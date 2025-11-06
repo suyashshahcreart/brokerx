@@ -62,3 +62,22 @@ Route::post('/confirm-password', [ConfirmablePasswordController::class, 'store']
 Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
     ->middleware('auth')
     ->name('logout');
+
+// OTP endpoints for mobile and email (used by frontend auth-login.js)
+use App\Http\Controllers\Auth\OtpController;
+
+Route::post('/otp/send', [OtpController::class, 'sendMobile'])
+    ->middleware('guest')
+    ->name('otp.send');
+
+Route::post('/otp/verify', [OtpController::class, 'verifyMobile'])
+    ->middleware('guest')
+    ->name('otp.verify');
+
+Route::post('/email-otp/send', [OtpController::class, 'sendEmail'])
+    ->middleware('guest')
+    ->name('email_otp.send');
+
+Route::post('/email-otp/verify', [OtpController::class, 'verifyEmail'])
+    ->middleware('guest')
+    ->name('email_otp.verify');

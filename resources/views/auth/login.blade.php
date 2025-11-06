@@ -15,12 +15,12 @@
                     </a>
                 </div>
 
-                <h2 class="fw-bold text-uppercase text-center fs-18">Sign In</h2>
-                <p class="text-muted text-center mt-1 mb-4">Enter your email address and password to access admin
+                <h2 class="fw-bold text-uppercase text-center fs-18">Log In</h2>
+                <p class="text-muted text-center mt-1 mb-4">Enter your email, mobile and password to access admin
                     panel.</p>
 
                 <div class="px-4">
-                    <form method="POST" action="{{ route('login') }}" class="authentication-form">
+                    <form method="POST" action="{{ route('login') }}" class="authentication-form" data-otp-send="{{ route('otp.send') }}" data-otp-verify="{{ route('otp.verify') }}" data-email-otp-send="{{ route('email_otp.send') }}" data-email-otp-verify="{{ route('email_otp.verify') }}">
 
                         @csrf
                         @if (sizeof($errors) > 0)
@@ -30,20 +30,32 @@
                         @endif
 
                         <div class="mb-3">
-                            <label class="form-label" for="example-email">Email</label>
-                            <input type="email" id="example-email" name="email"
+                            <label class="form-label" for="login-identifier">Email or Mobile</label>
+                            <input type="text" id="login-identifier" name="email"
                                    class="form-control bg-light bg-opacity-50 border-light py-2"
-                                   placeholder="Enter your email" value="demo@user.com">
+                                   placeholder="Enter email or mobile">
                         </div>
-                        <div class="mb-3">
+                        <div class="mb-3" id="password-block">
                             <a href="{{ route('second', ['auth', 'password'])}}"
                                class="float-end text-muted text-unline-dashed ms-1">Reset
                                 password</a>
-                            <label class="form-label" for="example-password">Password</label>
-                            <input type="password" id="example-password"
+                            <label class="form-label" for="login-password">Password</label>
+                            <input type="password" id="login-password"
                                    class="form-control bg-light bg-opacity-50 border-light py-2"
-                                   placeholder="Enter your password" name="password" value="password">
+                                   placeholder="Enter your password" name="password">
+                            <small class="form-text mt-1"><button type="button" id="login-toggle-otp" class="btn btn-link p-0">Verify with OTP</button></small>
                         </div>
+                        <div class="mb-3" id="otp-login-block" style="display:none;">
+                            <label class="form-label" for="login-otp-code">One-Time Password</label>
+                            <div class="input-group">
+                                <input type="text" id="login-otp-code" class="form-control bg-light bg-opacity-50 border-light py-2" placeholder="Enter 6-digit code" inputmode="numeric" maxlength="6">
+                                <button type="button" id="login-send-otp" class="btn btn-outline-success border-light">Send OTP</button>
+                                <button type="button" id="login-submit-otp" class="btn btn-success border-light">Submit OTP</button>
+                            </div>
+                            <small id="login-otp-text" class="form-text d-flex align-items-center gap-1 mt-1"></small>
+                            <small class="form-text mt-1"><button type="button" id="login-toggle-password" class="btn btn-link p-0">Use password instead</button></small>
+                        </div>
+                        <input type="hidden" name="otp_verified" id="login-otp-verified" value="0">
                         <div class="mb-3">
                             <div class="form-check">
                                 <input type="checkbox" class="form-check-input" id="checkbox-signin">
@@ -52,12 +64,11 @@
                         </div>
 
                         <div class="mb-1 text-center d-grid">
-                            <button class="btn btn-danger py-2 fw-medium" type="submit">Sign In</button>
+                            <button id="btn-submit-login" class="btn btn-danger py-2 fw-medium" type="submit">Sign In</button>
                         </div>
                     </form>
 
-                    <p class="mt-3 fw-semibold no-span">OR sign with</p>
-
+                    <!-- <p class="mt-3 fw-semibold no-span">OR sign with</p>
                     <div class="text-center">
                         <a href="javascript:void(0);" class="btn btn-outline-light shadow-none"><i
                                 class='bx bxl-google fs-20'></i></a>
@@ -65,7 +76,7 @@
                                 class='ri-facebook-fill fs-20'></i></a>
                         <a href="javascript:void(0);" class="btn btn-outline-light shadow-none"><i
                                 class='bx bxl-github fs-20'></i></a>
-                    </div>
+                    </div> -->
                 </div> <!-- end col -->
             </div> <!-- end card-body -->
         </div> <!-- end card -->
@@ -75,3 +86,7 @@
     </p>
 </div>
 @endsection
+
+@push('scripts')
+<script src="{{ asset('js/auth-login.js') }}"></script>
+@endpush

@@ -1,5 +1,6 @@
 <?php
 use App\Http\Controllers\OtpController;
+use App\Http\Controllers\EmailOtpController;
 
 
 use Illuminate\Support\Facades\Route;
@@ -19,6 +20,10 @@ use App\Http\Controllers\RoutingController;
 // OTP routes
 Route::post('/otp/send', [OtpController::class, 'send'])->name('otp.send');
 Route::post('/otp/verify', [OtpController::class, 'verify'])->name('otp.verify');
+
+// Email OTP routes
+Route::post('/email-otp/send', [EmailOtpController::class, 'send'])->name('email_otp.send');
+Route::post('/email-otp/verify', [EmailOtpController::class, 'verify'])->name('email_otp.verify');
 
 // auth routes
 require __DIR__ . '/auth.php';
