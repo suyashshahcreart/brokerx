@@ -2,7 +2,7 @@
 
 @section('content')
 
-<div class="col-xl-5">
+<div class="col-xl-8">
     <div class="card auth-card">
         <div class="card-body px-3 py-5">
             <div class="mx-auto mb-4 text-center auth-logo">
@@ -15,22 +15,100 @@
                 </a>
             </div>
 
-            <h2 class="fw-bold text-uppercase text-center fs-18">Free Account</h2>
+            <h2 class="fw-bold text-uppercase text-center fs-18">Register</h2>
             <p class="text-muted text-center mt-1 mb-4">New to our platform? Sign up now! It only takes a minute.</p>
 
             <div class="px-4">
-                <form action="{{ route('second', ['dashboards', 'analytics'])}}" class="authentication-form">
-                    <div class="mb-3">
-                        <label class="form-label" for="example-name">Name</label>
-                        <input type="name" id="example-name" name="example-name" class="form-control bg-light bg-opacity-50 border-light py-2" placeholder="Enter your name">
+                <form action="{{ route('second', ['dashboards', 'analytics'])}}" class="authentication-form" data-otp-send="{{ route('otp.send') }}" data-otp-verify="{{ route('otp.verify') }}">
+                    @csrf
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label" for="first-name">Firstname <span class="text-danger">*</span></label>
+                            <input type="text" id="first-name" name="first-name" class="form-control bg-light bg-opacity-50 border-light py-2" placeholder="Enter your first name" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label" for="last-name">Lastname <span class="text-danger">*</span></label>
+                            <input type="text" id="last-name" name="last-name" class="form-control bg-light bg-opacity-50 border-light py-2" placeholder="Enter your last name" required>
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label" for="example-email">Email</label>
-                        <input type="email" id="example-email" name="example-email" class="form-control bg-light bg-opacity-50 border-light py-2" placeholder="Enter your email">
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label" for="mobile">Mobile <span class="text-danger">*</span></label>
+                            <div class="input-group" id="mobile-input-group">
+                                <input type="tel" id="mobile" name="mobile" class="form-control bg-light bg-opacity-50 border-light py-2" placeholder="Enter your mobile number" required>
+                                <button type="button" id="btn-verify-mobile" class="btn btn-outline-success border-light">Verify</button>
+                                <span id="mobile-verified-badge" class="input-group-text bg-success text-white fs-5 d-none"><i class='bx bx-check-circle me-1'></i>Verified</span>
+                            </div>
+                            <div id="otp-block" class="mt-2" style="display:none;">
+                                <div class="input-group">
+                                    <input type="text" id="otp-code" class="form-control bg-light bg-opacity-50 border-light py-2" placeholder="Enter 6-digit code" inputmode="numeric" maxlength="6">
+                                    <button type="button" id="btn-submit-otp" class="btn btn-success border-light">Submit OTP</button>
+                                </div>
+                                <small class="form-text d-flex align-items-center gap-2 mt-1">
+                                    <span>Code sent to</span>
+                                    <strong id="otp-mobile-display"></strong>
+                                    <button type="button" id="btn-change-mobile" class="btn btn-link p-0 ms-2">Change mobile number</button>
+                                </small>
+                            </div>
+                            <small id="mobile-verify-text" class="form-text d-flex align-items-center gap-1 mt-1"></small>
+                            <small id="mobile-change-after" class="form-text d-flex align-items-center gap-1 mt-1 d-none">
+                                <button type="button" id="btn-change-mobile-after" class="btn btn-link p-0">Change mobile number</button>
+                            </small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label" for="example-email">Email</label>
+                            <input type="email" id="example-email" name="email" class="form-control bg-light bg-opacity-50 border-light py-2" placeholder="Enter your email">
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label" for="example-password">Password</label>
-                        <input type="text" id="example-password" class="form-control bg-light bg-opacity-50 border-light py-2" placeholder="Enter your password">
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label" for="example-password">Password <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <input type="password" id="example-password" name="password" class="form-control bg-light bg-opacity-50 border-light py-2" placeholder="Enter your password" required>
+                                <button type="button" class="btn btn-light bg-light bg-opacity-50 border-light password-toggle" data-target="example-password" aria-label="Show password">
+                                    <i class='bx bx-hide'></i>
+                                </button>
+                            </div>
+                            <div>
+                                <div class="progress" style="height: 2px;">
+                                    <div id="password-strength-bar" class="progress-bar" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                                </div>
+                                <ul id="password-requirements" class="list-unstyled d-flex flex-wrap gap-3 mt-2 mb-0">
+                                    <li id="req-length-item" class="d-flex align-items-center text-danger">
+                                        <i id="req-length-icon" class='bx bx-x-circle me-1'></i>
+                                        <span id="req-length">At least 8 characters</span>
+                                    </li>
+                                    <li id="req-upper-item" class="d-flex align-items-center text-danger">
+                                        <i id="req-upper-icon" class='bx bx-x-circle me-1'></i>
+                                        <span id="req-upper">Uppercase</span>
+                                    </li>
+                                    <li id="req-lower-item" class="d-flex align-items-center text-danger">
+                                        <i id="req-lower-icon" class='bx bx-x-circle me-1'></i>
+                                        <span id="req-lower">Lowercase</span>
+                                    </li>
+                                    <li id="req-number-item" class="d-flex align-items-center text-danger">
+                                        <i id="req-number-icon" class='bx bx-x-circle me-1'></i>
+                                        <span id="req-number">Number</span>
+                                    </li>
+                                    <li id="req-special-item" class="d-flex align-items-center text-danger">
+                                        <i id="req-special-icon" class='bx bx-x-circle me-1'></i>
+                                        <span id="req-special">Special</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label" for="confirm-password">Confirm Password <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <input type="password" id="confirm-password" name="confirm-password" class="form-control bg-light bg-opacity-50 border-light py-2" placeholder="Confirm your password" required>
+                                <button type="button" class="btn btn-light bg-light bg-opacity-50 border-light password-toggle" data-target="confirm-password" aria-label="Show password">
+                                    <i class='bx bx-hide'></i>
+                                </button>
+                            </div>
+                            <small id="confirm-password-text" class="form-text d-flex align-items-center gap-1 mt-1"></small>
+                        </div>
                     </div>
                     <div class="mb-3">
                         <div class="form-check">
@@ -43,13 +121,12 @@
                         <button class="btn btn-danger py-2" type="submit">Create Account</button>
                     </div>
                 </form>
-                <p class="mt-3 fw-semibold no-span">OR sign with</p>
-
+                <!-- <p class="mt-3 fw-semibold no-span">OR sign with</p>
                 <div class="text-center">
                     <a href="javascript:void(0);" class="btn btn-outline-light shadow-none"><i class='bx bxl-google fs-20'></i></a>
                     <a href="javascript:void(0);" class="btn btn-outline-light shadow-none"><i class='ri-facebook-fill fs-20'></i></a>
                     <a href="javascript:void(0);" class="btn btn-outline-light shadow-none"><i class='bx bxl-github fs-20'></i></a>
-                </div>
+                </div> -->
             </div> <!-- end col -->
         </div> <!-- end card-body -->
     </div> <!-- end card -->
@@ -58,3 +135,7 @@
 </div> <!-- end col -->
 
 @endsection
+
+@push('scripts')
+<script src="{{ asset('js/auth-signup.js') }}"></script>
+@endpush

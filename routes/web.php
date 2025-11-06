@@ -1,4 +1,6 @@
 <?php
+use App\Http\Controllers\OtpController;
+
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\RoutingController;
@@ -14,6 +16,11 @@ use App\Http\Controllers\RoutingController;
 |
 */
 
+// OTP routes
+Route::post('/otp/send', [OtpController::class, 'send'])->name('otp.send');
+Route::post('/otp/verify', [OtpController::class, 'verify'])->name('otp.verify');
+
+// auth routes
 require __DIR__ . '/auth.php';
 
 Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {

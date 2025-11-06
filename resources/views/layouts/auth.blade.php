@@ -19,5 +19,6 @@
 @include('layouts.partials/footer-scripts')
 
 </body>
+@stack('scripts')
 
 </html>
