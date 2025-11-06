@@ -19,16 +19,16 @@
             <p class="text-muted text-center mt-1 mb-4">New to our platform? Sign up now! It only takes a minute.</p>
 
             <div class="px-4">
-                <form action="{{ route('second', ['dashboards', 'analytics'])}}" class="authentication-form" data-otp-send="{{ route('otp.send') }}" data-otp-verify="{{ route('otp.verify') }}">
+                <form action="{{ route('register') }}" method="post" class="authentication-form" data-otp-send="{{ route('otp.send') }}" data-otp-verify="{{ route('otp.verify') }}">
                     @csrf
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label class="form-label" for="first-name">Firstname <span class="text-danger">*</span></label>
-                            <input type="text" id="first-name" name="first-name" class="form-control bg-light bg-opacity-50 border-light py-2" placeholder="Enter your first name" required>
+                            <label class="form-label" for="firstname">Firstname <span class="text-danger">*</span></label>
+                            <input type="text" id="first-name" name="firstname" class="form-control bg-light bg-opacity-50 border-light py-2" placeholder="Enter your first name" required>
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label class="form-label" for="last-name">Lastname <span class="text-danger">*</span></label>
-                            <input type="text" id="last-name" name="last-name" class="form-control bg-light bg-opacity-50 border-light py-2" placeholder="Enter your last name" required>
+                            <label class="form-label" for="lastname">Lastname <span class="text-danger">*</span></label>
+                            <input type="text" id="last-name" name="lastname" class="form-control bg-light bg-opacity-50 border-light py-2" placeholder="Enter your last name" required>
                         </div>
                     </div>
 
@@ -102,7 +102,7 @@
                         <div class="col-md-6 mb-3">
                             <label class="form-label" for="confirm-password">Confirm Password <span class="text-danger">*</span></label>
                             <div class="input-group">
-                                <input type="password" id="confirm-password" name="confirm-password" class="form-control bg-light bg-opacity-50 border-light py-2" placeholder="Confirm your password" required>
+                                <input type="password" id="confirm-password" name="password_confirmation" class="form-control bg-light bg-opacity-50 border-light py-2" placeholder="Confirm your password" required>
                                 <button type="button" class="btn btn-light bg-light bg-opacity-50 border-light password-toggle" data-target="confirm-password" aria-label="Show password">
                                     <i class='bx bx-hide'></i>
                                 </button>
@@ -118,7 +118,7 @@
                     </div>
 
                     <div class="mb-1 text-center d-grid">
-                        <button class="btn btn-danger py-2" type="submit">Create Account</button>
+                        <button id="btn-submit-register" class="btn btn-danger py-2" type="submit" disabled>Create Account</button>
                     </div>
                 </form>
                 <!-- <p class="mt-3 fw-semibold no-span">OR sign with</p>

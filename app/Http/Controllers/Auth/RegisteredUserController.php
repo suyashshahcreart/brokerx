@@ -32,21 +32,36 @@ class RegisteredUserController extends Controller
      */
     public function store(Request $request)
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|confirmed|min:8',
+        $validated = $request->validate([
+            'firstname' => ['required', 'string', 'max:255'],
+            'lastname' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
+            'mobile' => ['required', 'string', 'min:8', 'max:20', 'unique:users,mobile'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
         ]);
 
+        $mobile = $validated['mobile'];
+        $isMobileVerified = session('mobile_verified:' . md5($mobile), false) === true;
+
+        if (!$isMobileVerified) {
+            return back()->withErrors(['mobile' => 'Please verify your mobile number before registering.'])->withInput();
+        }
+
         $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
+            'firstname' => $validated['firstname'],
+            'lastname' => $validated['lastname'],
+            'mobile' => $mobile,
+            'email' => $validated['email'],
+            'password' => Hash::make($validated['password']),
+            'mobile_verified_at' => $isMobileVerified ? now() : null,
         ]);
 
         event(new Registered($user));
 
         Auth::login($user);
+
+        // Clear OTP verification session flag
+        session()->forget('mobile_verified:' . md5($mobile));
 
         return redirect(RouteServiceProvider::HOME);
     }

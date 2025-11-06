@@ -36,6 +36,10 @@
   var confirmInput = document.getElementById('confirm-password');
   var confirmText = document.getElementById('confirm-password-text');
   var formEl = document.querySelector('form.authentication-form');
+  var submitBtn = document.getElementById('btn-submit-register');
+  var firstNameInput = document.getElementById('first-name');
+  var lastNameInput = document.getElementById('last-name');
+  var emailInput = document.getElementById('example-email');
 
   if (passwordInput && bar) {
     function scorePassword(pw) {
@@ -101,11 +105,12 @@
       renderBar(scorePassword(pw));
       updateRequirements(pw);
       updateConfirmMatch();
+      updateSubmitState();
     });
 
     if (confirmInput) {
-      confirmInput.addEventListener('input', updateConfirmMatch);
-      confirmInput.addEventListener('blur', updateConfirmMatch);
+      confirmInput.addEventListener('input', function(){ updateConfirmMatch(); updateSubmitState(); });
+      confirmInput.addEventListener('blur', function(){ updateConfirmMatch(); updateSubmitState(); });
     }
 
     // Initialize
@@ -113,6 +118,27 @@
     renderBar(scorePassword(initPw));
     updateRequirements(initPw);
     updateConfirmMatch();
+  }
+
+  function isMobileVerified() {
+    var badge = document.getElementById('mobile-verified-badge');
+    return !!(badge && !badge.classList.contains('d-none'));
+  }
+
+  function fieldsFilled() {
+    var fn = (firstNameInput && firstNameInput.value.trim().length > 0);
+    var ln = (lastNameInput && lastNameInput.value.trim().length > 0);
+    var mob = (mobileInput && mobileInput.value.trim().length > 0);
+    var pw = (passwordInput && passwordInput.value.trim().length >= 8);
+    var cpw = (confirmInput && confirmInput.value.trim().length >= 1);
+    var match = (passwordInput && confirmInput && passwordInput.value === confirmInput.value);
+    return fn && ln && mob && pw && cpw && match;
+  }
+
+  function updateSubmitState() {
+    if (!submitBtn) return;
+    var enable = fieldsFilled() && isMobileVerified();
+    submitBtn.disabled = !enable;
   }
 
   if (formEl && passwordInput && confirmInput) {
@@ -178,6 +204,7 @@
               otpCode.value = '';
               otpCode.focus();
             }
+            updateSubmitState();
           } else {
             var msg = (resp.data && resp.data.message) ? resp.data.message : 'Failed to send code';
             mobileText.innerHTML = "<i class='bx bx-x-circle me-1'></i>" + msg;
@@ -213,6 +240,7 @@
       if (mobileBtn) mobileBtn.classList.remove('d-none');
       if (mobileChangeAfter) mobileChangeAfter.classList.add('d-none');
       if (otpSubmit) otpSubmit.disabled = false;
+      updateSubmitState();
     });
   }
 
@@ -252,6 +280,7 @@
             mobileInput.readOnly = true;
             // otpSubmit.disabled = true;
             if (mobileChangeAfter) mobileChangeAfter.classList.remove('d-none');
+            updateSubmitState();
           } else {
             var msg = (resp.data && resp.data.message) ? resp.data.message : 'Verification failed';
             mobileText.innerHTML = "<i class='bx bx-x-circle me-1'></i>" + msg;
@@ -279,6 +308,7 @@
         mobileInput.readOnly = false;
         mobileInput.focus();
       }
+      updateSubmitState();
     });
   }
 })();
