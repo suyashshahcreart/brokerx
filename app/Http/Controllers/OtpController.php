@@ -11,6 +11,14 @@ class OtpController extends Controller
 {
     public function send(Request $request)
     {
+        // Ensure user is authenticated
+        if (!auth()->check()) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Unauthenticated. Please login first.',
+            ], 401);
+        }
+
         $validated = $request->validate([
             'mobile' => ['required', 'string', 'min:10', 'max:13'],
         ]);
@@ -46,6 +54,14 @@ class OtpController extends Controller
 
     public function verify(Request $request)
     {
+        // Ensure user is authenticated
+        if (!auth()->check()) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Unauthenticated. Please login first.',
+            ], 401);
+        }
+
         $validated = $request->validate([
             'mobile' => ['required', 'string', 'min:8', 'max:20'],
             'code' => ['required', 'digits:6'],
@@ -72,8 +88,13 @@ class OtpController extends Controller
         }
 
         Cache::forget($otpKey);
-        // Mark as verified for this session
-        session(['mobile_verified:' . md5($mobile) => true]);
+        
+        // Update user's mobile_verified_at
+        $user = auth()->user();
+        if ($user && $user->mobile === $mobile) {
+            $user->mobile_verified_at = now();
+            $user->save();
+        }
 
         return response()->json([
             'ok' => true,

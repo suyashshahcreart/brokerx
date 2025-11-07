@@ -2,6 +2,7 @@
 use App\Http\Controllers\OtpController;
 use App\Http\Controllers\EmailOtpController;
 use App\Http\Controllers\BrokerController;
+use App\Http\Controllers\UserController;
 
 
 use Illuminate\Support\Facades\Route;
@@ -18,16 +19,26 @@ use App\Http\Controllers\RoutingController;
 |
 */
 
-// OTP routes
-Route::post('/otp/send', [OtpController::class, 'send'])->name('otp.send');
-Route::post('/otp/verify', [OtpController::class, 'verify'])->name('otp.verify');
-
-// Email OTP routes
-Route::post('/email-otp/send', [EmailOtpController::class, 'send'])->name('email_otp.send');
-Route::post('/email-otp/verify', [EmailOtpController::class, 'verify'])->name('email_otp.verify');
-
 // auth routes
 require __DIR__ . '/auth.php';
+
+// OTP routes (protected by auth middleware)
+Route::middleware(['auth'])->group(function () {
+    Route::post('/otp/send', [OtpController::class, 'send'])->name('otp.send');
+    Route::post('/otp/verify', [OtpController::class, 'verify'])->name('otp.verify');
+    Route::post('/email-otp/send', [EmailOtpController::class, 'send'])->name('email_otp.send');
+    Route::post('/email-otp/verify', [EmailOtpController::class, 'verify'])->name('email_otp.verify');
+});
+
+// User routes (protected by auth middleware)
+Route::middleware('auth')->group(function () {
+    Route::put('/user/{id}', [UserController::class, 'update'])->name('user.update');
+});
+
+// Optional dashboard alias (to avoid Route [dashboard] not defined errors)
+Route::middleware('auth')->get('/dashboard', function() {
+    return redirect()->route('root');
+})->name('dashboard');
 
 // Broker routes (protected by auth middleware)
 Route::middleware('auth')->group(function () {

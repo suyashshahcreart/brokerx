@@ -11,6 +11,14 @@ class EmailOtpController extends Controller
 {
     public function send(Request $request)
     {
+        // Ensure user is authenticated
+        if (!auth()->check()) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Unauthenticated. Please login first.',
+            ], 401);
+        }
+
         $validated = $request->validate([
             'email' => ['required', 'string', 'email', 'max:255'],
         ]);
@@ -53,13 +61,21 @@ class EmailOtpController extends Controller
 
     public function verify(Request $request)
     {
+        // Ensure user is authenticated
+        if (!auth()->check()) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Unauthenticated. Please login first.',
+            ], 401);
+        }
+
         $validated = $request->validate([
             'email' => ['required', 'string', 'email', 'max:255'],
-            'code' => ['required', 'digits:6'],
+            'otp' => ['required', 'digits:6'],
         ]);
 
         $email = $validated['email'];
-        $code = $validated['code'];
+        $code = $validated['otp'];
 
         $otpKey = 'email-otp:code:' . md5($email);
         $stored = Cache::get($otpKey);
@@ -79,7 +95,13 @@ class EmailOtpController extends Controller
         }
 
         Cache::forget($otpKey);
-        session(['email_verified:' . md5($email) => true]);
+        
+        // Update user's email_verified_at
+        $user = auth()->user();
+        if ($user && $user->email === $email) {
+            $user->email_verified_at = now();
+            $user->save();
+        }
 
         return response()->json([
             'ok' => true,
