@@ -9,6 +9,7 @@ use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Cache;
 
 class RegisteredUserController extends Controller
 {
@@ -35,33 +36,37 @@ class RegisteredUserController extends Controller
         $validated = $request->validate([
             'firstname' => ['required', 'string', 'max:255'],
             'lastname' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
+            'email' => ['nullable', 'string', 'email', 'max:255', 'unique:users,email'],
             'mobile' => ['required', 'string', 'min:8', 'max:20', 'unique:users,mobile'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
         ]);
 
         $mobile = $validated['mobile'];
-        $isMobileVerified = session('mobile_verified:' . md5($mobile), false) === true;
+        
+        // Check if mobile OTP was verified (flag set by OTP verification endpoint)
+        $cacheKey = "otp:verified:registration:mobile:{$mobile}";
+        $isMobileVerified = Cache::get($cacheKey);
 
         if (!$isMobileVerified) {
             return back()->withErrors(['mobile' => 'Please verify your mobile number before registering.'])->withInput();
         }
 
+        // Create user with verified mobile
         $user = User::create([
             'firstname' => $validated['firstname'],
             'lastname' => $validated['lastname'],
             'mobile' => $mobile,
-            'email' => $validated['email'],
+            'email' => $validated['email'] ?? null,
             'password' => Hash::make($validated['password']),
-            'mobile_verified_at' => $isMobileVerified ? now() : null,
+            'mobile_verified_at' => now(),
         ]);
+
+        // Clear OTP verification cache
+        Cache::forget($cacheKey);
 
         event(new Registered($user));
 
         Auth::login($user);
-
-        // Clear OTP verification session flag
-        session()->forget('mobile_verified:' . md5($mobile));
 
         return redirect(RouteServiceProvider::HOME);
     }

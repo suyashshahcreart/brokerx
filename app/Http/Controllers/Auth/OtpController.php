@@ -170,11 +170,16 @@ class OtpController extends Controller
 
         $mobile = $request->input('mobile');
 
-        // Allow sending OTP to non-registered users for verification purposes
-        // Optional: check if mobile is already registered and return error
+        // Check if mobile is already registered and verified
         $existingUser = User::where('mobile', $mobile)->first();
         if ($existingUser) {
-            return response()->json(['ok' => false, 'message' => 'This mobile number is already registered'], 422);
+            // If user exists and mobile is verified, block OTP
+            if ($existingUser->mobile_verified_at !== null) {
+                return response()->json(['ok' => false, 'message' => 'This mobile number is already registered and verified'], 422);
+            }
+            // If user exists but mobile not verified, allow re-verification
+            // You can optionally block this too by uncommenting below:
+            // return response()->json(['ok' => false, 'message' => 'This mobile number is already registered'], 422);
         }
 
         $code = random_int(100000, 999999);
@@ -232,11 +237,16 @@ class OtpController extends Controller
 
         $email = $request->input('email');
 
-        // Allow sending OTP to non-registered users for verification purposes
-        // Optional: check if email is already registered and return error
+        // Check if email is already registered and verified
         $existingUser = User::where('email', $email)->first();
         if ($existingUser) {
-            return response()->json(['ok' => false, 'message' => 'This email address is already registered'], 422);
+            // If user exists and email is verified, block OTP
+            if ($existingUser->email_verified_at !== null) {
+                return response()->json(['ok' => false, 'message' => 'This email address is already registered and verified'], 422);
+            }
+            // If user exists but email not verified, allow re-verification
+            // You can optionally block this too by uncommenting below:
+            // return response()->json(['ok' => false, 'message' => 'This email address is already registered'], 422);
         }
 
         $code = random_int(100000, 999999);

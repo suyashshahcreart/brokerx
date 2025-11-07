@@ -150,6 +150,21 @@
         var ev = new Event('input');
         confirmInput.dispatchEvent(ev);
         confirmInput.focus();
+        return;
+      }
+      
+      // Check mobile verification before submit
+      if (!isMobileVerified()) {
+        e.preventDefault();
+        if (mobileText) {
+          mobileText.innerHTML = "<i class='bx bx-x-circle me-1'></i>Please verify your mobile number before registering";
+          mobileText.className = 'form-text d-flex align-items-center gap-1 mt-1 text-danger';
+        }
+        if (mobileInput) {
+          mobileInput.classList.add('is-invalid');
+          mobileInput.focus();
+        }
+        return;
       }
     });
   }
@@ -175,7 +190,14 @@
     mobileBtn.addEventListener('click', function () {
       var value = (mobileInput.value || '').trim();
       if (!value || value.length < 8) {
-        mobileText.innerHTML = "<i class='bx bx-x-circle me-1'></i>Enter a valid mobile number";
+        mobileText.innerHTML = "<i class='bx bx-x-circle me-1'></i>Enter a valid mobile number (min 8 characters)";
+        mobileText.className = 'form-text d-flex align-items-center gap-1 mt-1 text-danger';
+        mobileInput.classList.add('is-invalid');
+        return;
+      }
+      // Basic mobile validation (digits only with optional + prefix)
+      if (!/^\+?\d{8,20}$/.test(value)) {
+        mobileText.innerHTML = "<i class='bx bx-x-circle me-1'></i>Mobile number can only contain digits and optional + prefix";
         mobileText.className = 'form-text d-flex align-items-center gap-1 mt-1 text-danger';
         mobileInput.classList.add('is-invalid');
         return;

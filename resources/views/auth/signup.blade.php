@@ -21,14 +21,31 @@
             <div class="px-4">
                 <form action="{{ route('register') }}" method="post" class="authentication-form" data-otp-send="{{ route('registration.otp.send') }}" data-otp-verify="{{ route('registration.otp.verify') }}">
                     @csrf
+                    
+                    @if ($errors->any())
+                        <div class="alert alert-danger">
+                            <ul class="mb-0">
+                                @foreach ($errors->all() as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
+
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label" for="firstname">Firstname <span class="text-danger">*</span></label>
-                            <input type="text" id="first-name" name="firstname" class="form-control bg-light bg-opacity-50 border-light py-2" placeholder="Enter your first name" required>
+                            <input type="text" id="first-name" name="firstname" value="{{ old('firstname') }}" class="form-control bg-light bg-opacity-50 border-light py-2 @error('firstname') is-invalid @enderror" placeholder="Enter your first name" required>
+                            @error('firstname')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label" for="lastname">Lastname <span class="text-danger">*</span></label>
-                            <input type="text" id="last-name" name="lastname" class="form-control bg-light bg-opacity-50 border-light py-2" placeholder="Enter your last name" required>
+                            <input type="text" id="last-name" name="lastname" value="{{ old('lastname') }}" class="form-control bg-light bg-opacity-50 border-light py-2 @error('lastname') is-invalid @enderror" placeholder="Enter your last name" required>
+                            @error('lastname')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
                         </div>
                     </div>
 
@@ -36,7 +53,7 @@
                         <div class="col-md-6 mb-3">
                             <label class="form-label" for="mobile">Mobile <span class="text-danger">*</span></label>
                             <div class="input-group" id="mobile-input-group">
-                                <input type="tel" id="mobile" name="mobile" class="form-control bg-light bg-opacity-50 border-light py-2" placeholder="Enter your mobile number" required>
+                                <input type="tel" id="mobile" name="mobile" value="{{ old('mobile') }}" class="form-control bg-light bg-opacity-50 border-light py-2 @error('mobile') is-invalid @enderror" placeholder="Enter your mobile number" required>
                                 <button type="button" id="btn-verify-mobile" class="btn btn-outline-success border-light">Verify</button>
                                 <span id="mobile-verified-badge" class="input-group-text bg-success text-white fs-5 d-none"><i class='bx bx-check-circle me-1'></i>Verified</span>
                             </div>
@@ -52,13 +69,19 @@
                                 </small>
                             </div>
                             <small id="mobile-verify-text" class="form-text d-flex align-items-center gap-1 mt-1"></small>
+                            @error('mobile')
+                                <div class="text-danger mt-1"><small>{{ $message }}</small></div>
+                            @enderror
                             <small id="mobile-change-after" class="form-text d-flex align-items-center gap-1 mt-1 d-none">
                                 <button type="button" id="btn-change-mobile-after" class="btn btn-link p-0">Change mobile number</button>
                             </small>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label" for="example-email">Email</label>
-                            <input type="email" id="example-email" name="email" class="form-control bg-light bg-opacity-50 border-light py-2" placeholder="Enter your email">
+                            <input type="email" id="example-email" name="email" value="{{ old('email') }}" class="form-control bg-light bg-opacity-50 border-light py-2 @error('email') is-invalid @enderror" placeholder="Enter your email">
+                            @error('email')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
                         </div>
                     </div>
 
