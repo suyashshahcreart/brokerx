@@ -19,7 +19,7 @@
             <p class="text-muted text-center mt-1 mb-4">New to our platform? Sign up now! It only takes a minute.</p>
 
             <div class="px-4">
-                <form action="{{ route('register') }}" method="post" class="authentication-form" data-otp-send="{{ route('otp.send') }}" data-otp-verify="{{ route('otp.verify') }}">
+                <form action="{{ route('register') }}" method="post" class="authentication-form" data-otp-send="{{ route('registration.otp.send') }}" data-otp-verify="{{ route('registration.otp.verify') }}">
                     @csrf
                     <div class="row">
                         <div class="col-md-6 mb-3">
