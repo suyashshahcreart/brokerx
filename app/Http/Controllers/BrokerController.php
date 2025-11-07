@@ -26,7 +26,7 @@ class BrokerController extends Controller
     {
         // Check if user already has a broker profile
         if (Auth::user()->broker) {
-            return redirect()->route('dashboard')->with('info', 'You already have a broker account.');
+            return redirect()->route('root')->with('info', 'You already have a broker account.');
         }
         return view('broker.create');
     }
@@ -87,7 +87,7 @@ class BrokerController extends Controller
     public function show(Broker $broker)
     {
         $broker->load('user');
-        return view('broker.show', compact('broker'));
+        return view('brokers.show', compact('broker'));
     }
 
     /**
@@ -100,7 +100,7 @@ class BrokerController extends Controller
             return redirect()->route('dashboard')->with('error', 'Unauthorized access.');
         }
 
-        return view('broker.edit', compact('broker'));
+        return view('brokers.edit', compact('broker'));
     }
 
     /**
