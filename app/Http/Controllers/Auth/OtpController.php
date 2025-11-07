@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
+use App\Models\User;
 
 class OtpController extends Controller
 {
@@ -24,6 +25,12 @@ class OtpController extends Controller
         }
 
         $mobile = $request->input('mobile');
+
+        // Only send OTP to existing users
+        $user = User::where('mobile', $mobile)->first();
+        if (!$user) {
+            return response()->json(['ok' => false, 'message' => 'No user found with this mobile number'], 404);
+        }
         $code = random_int(100000, 999999);
 
         Cache::put("otp:mobile:{$mobile}", $code, $this->ttlSeconds);
@@ -48,6 +55,11 @@ class OtpController extends Controller
         }
 
         $mobile = $request->input('mobile');
+
+        // Ensure user exists
+        if (!User::where('mobile', $mobile)->exists()) {
+            return response()->json(['ok' => false, 'message' => 'No user found with this mobile number'], 404);
+        }
         $code = $request->input('code');
 
         $cacheKey = "otp:mobile:{$mobile}";
@@ -78,6 +90,12 @@ class OtpController extends Controller
         }
 
         $email = $request->input('email');
+
+        // Only send OTP to existing users
+        $user = User::where('email', $email)->first();
+        if (!$user) {
+            return response()->json(['ok' => false, 'message' => 'No user found with this email address'], 404);
+        }
         $code = random_int(100000, 999999);
 
         Cache::put("otp:email:{$email}", $code, $this->ttlSeconds);
@@ -109,6 +127,11 @@ class OtpController extends Controller
         }
 
         $email = $request->input('email');
+
+        // Ensure user exists
+        if (!User::where('email', $email)->exists()) {
+            return response()->json(['ok' => false, 'message' => 'No user found with this email address'], 404);
+        }
         $code = $request->input('code');
 
         $cacheKey = "otp:email:{$email}";

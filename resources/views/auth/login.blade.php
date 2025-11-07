@@ -48,12 +48,13 @@
                         <div class="mb-3" id="otp-login-block" style="display:none;">
                             <label class="form-label" for="login-otp-code">One-Time Password</label>
                             <div class="input-group">
-                                <input type="text" id="login-otp-code" class="form-control bg-light bg-opacity-50 border-light py-2" placeholder="Enter 6-digit code" inputmode="numeric" maxlength="6">
-                                <button type="button" id="login-send-otp" class="btn btn-outline-success border-light">Send OTP</button>
-                                <button type="button" id="login-submit-otp" class="btn btn-success border-light">Submit OTP</button>
+                                <input type="text" id="login-otp-code" name="otp_code" class="form-control bg-light bg-opacity-50 border-light py-2" placeholder="Enter 6-digit code" inputmode="numeric" maxlength="6">
                             </div>
                             <small id="login-otp-text" class="form-text d-flex align-items-center gap-1 mt-1"></small>
-                            <small class="form-text mt-1"><button type="button" id="login-toggle-password" class="btn btn-link p-0">Use password instead</button></small>
+                            <div class="d-flex justify-content-between mt-1">
+                                <small class="form-text"><button type="button" id="login-toggle-password" class="btn btn-link p-0">Use password instead</button></small>
+                                <small class="form-text"><button type="button" id="login-change-identifier" class="btn btn-link p-0">Change email or mobile</button></small>
+                            </div>
                         </div>
                         <input type="hidden" name="otp_verified" id="login-otp-verified" value="0">
                         <div class="mb-3">

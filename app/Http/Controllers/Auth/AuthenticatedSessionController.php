@@ -30,21 +30,23 @@ class AuthenticatedSessionController extends Controller
      */
     public function store(LoginRequest $request)
     {
+        // If OTP code provided, verify and log in without password
+        if ($request->filled('otp_code')) {
+            $identifier = (string) $request->input('email'); // identifier can be email or mobile
+            $code = (string) $request->input('otp_code');
 
-        // If frontend indicated OTP verification, allow passwordless sign in
-        if ($request->input('otp_verified') == '1') {
-            $identifier = (string) $request->input('email');
             $isEmail = filter_var($identifier, FILTER_VALIDATE_EMAIL);
             if ($isEmail) {
                 $user = User::where('email', $identifier)->first();
-                $cacheKey = "otp:verified:email:{$identifier}";
+                $cacheKey = "otp:email:{$identifier}";
             } else {
                 $user = User::where('mobile', $identifier)->first();
-                $cacheKey = "otp:verified:mobile:{$identifier}";
+                $cacheKey = "otp:mobile:{$identifier}";
             }
 
-            if ($user && Cache::get($cacheKey)) {
-                // consume the verified flag and log the user in
+            $stored = $cacheKey ? Cache::get($cacheKey) : null;
+            if ($user && $stored && (string)$stored === $code) {
+                // consume OTP and log in
                 Cache::forget($cacheKey);
                 Auth::login($user);
                 $request->session()->regenerate();
@@ -52,9 +54,10 @@ class AuthenticatedSessionController extends Controller
                 return redirect()->intended(RouteServiceProvider::HOME);
             }
 
-            return redirect()->back()->withErrors(['email' => 'OTP not verified or expired.']);
+            return back()->withErrors(['email' => 'Invalid or expired OTP.'])->withInput();
         }
 
+        // Default password-based authentication
         $request->authenticate();
 
         $request->session()->regenerate();
