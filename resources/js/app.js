@@ -5,9 +5,31 @@
  */
 
 
+import $ from 'jquery';
+window.$ = window.jQuery = $;
+
+import 'datatables.net-bs5';
+import 'datatables.net-bs5/css/dataTables.bootstrap5.min.css';
+import 'select2/dist/css/select2.min.css';
+import 'select2';
+import moment from 'moment';
+window.moment = moment;
+import 'daterangepicker/daterangepicker.css';
+const loadDateRangePicker = () => {
+    if (!window.__daterangepickerPromise) {
+        window.__daterangepickerPromise = import('daterangepicker');
+    }
+    return window.__daterangepickerPromise;
+};
+window.__loadDateRangePicker = loadDateRangePicker;
+loadDateRangePicker();
+
 import bootstrap from 'bootstrap/dist/js/bootstrap.min';
 
 window.bootstrap = bootstrap;
+
+import Swal from 'sweetalert2';
+window.Swal = Swal;
 
 import Prism from 'prismjs';
 import NormalizeWhitespace from 'prismjs/plugins/normalize-whitespace/prism-normalize-whitespace.js'
@@ -18,7 +40,15 @@ import ClipboardJS from 'clipboard';
 import Gumshoe from 'gumshoejs/dist/gumshoe'
 import Toastify from 'toastify-js'
 import Choices from 'choices.js';
-import  {Autoplay, EffectCreative, EffectFade, Mousewheel, Navigation, Pagination, Scrollbar} from 'swiper/modules'
+import {
+    Autoplay,
+    EffectCreative,
+    EffectFade,
+    Mousewheel,
+    Navigation,
+    Pagination,
+    Scrollbar
+} from 'swiper/modules'
 import 'iconify-icon';
 import 'simplebar'
 
@@ -41,7 +71,7 @@ class Components {
         //Toasts
         var toastPlacement = document.getElementById("toastPlacement");
         if (toastPlacement) {
-            document.getElementById("selectToastPlacement").addEventListener("change", function () {
+            document.getElementById("selectToastPlacement").addEventListener("change", function() {
                 if (!toastPlacement.dataset.originalClass) {
                     toastPlacement.dataset.originalClass = toastPlacement.className;
                 }
@@ -50,7 +80,7 @@ class Components {
         }
 
         var toastElList = [].slice.call(document.querySelectorAll('.toast'))
-        var toastList = toastElList.map(function (toastEl) {
+        var toastList = toastElList.map(function(toastEl) {
             return new bootstrap.Toast(toastEl)
         })
 
@@ -68,7 +98,7 @@ class Components {
         var fullScreenBtn = document.querySelector('[data-toggle="fullscreen"]');
 
         if (fullScreenBtn) {
-            fullScreenBtn.addEventListener('click', function (e) {
+            fullScreenBtn.addEventListener('click', function(e) {
                 e.preventDefault();
                 document.body.classList.toggle('fullscreen-enable')
                 if (!document.fullscreenElement && /* alternative standard method */ !document.mozFullScreenElement && !document.webkitFullscreenElement) {
@@ -100,8 +130,8 @@ class Components {
         this.searchClose = document.getElementById('search-close-options');
         const self = this;
         if (this.searchOption) {
-            ['focus', 'keyup'].forEach(function (event) {
-                self.searchOption.addEventListener(event, function (e) {
+            ['focus', 'keyup'].forEach(function(event) {
+                self.searchOption.addEventListener(event, function(e) {
                     if (self.searchOption.value.length > 0) {
                         self.searchDropdown.classList.add('show');
                         self.searchClose.classList.remove('d-none');
@@ -113,7 +143,7 @@ class Components {
             })
         }
         if (self.searchClose) {
-            self.searchClose.addEventListener('click', function () {
+            self.searchClose.addEventListener('click', function() {
                 self.searchDropdown.classList.remove('show');
                 self.searchClose.classList.add('d-none');
                 self.searchOption.value = "";
@@ -126,28 +156,28 @@ class Components {
         var counter = document.querySelectorAll(".counter-value");
         var speed = 250; // The lower the slower
         counter &&
-        counter.forEach(function (counter_value) {
-            function updateCount() {
-                var target = +counter_value.getAttribute("data-target");
-                var count = +counter_value.innerText;
-                var inc = target / speed;
-                if (inc < 1) {
-                    inc = 1;
+            counter.forEach(function(counter_value) {
+                function updateCount() {
+                    var target = +counter_value.getAttribute("data-target");
+                    var count = +counter_value.innerText;
+                    var inc = target / speed;
+                    if (inc < 1) {
+                        inc = 1;
+                    }
+                    // Check if target is reached
+                    if (count < target) {
+                        // Add inc to count and output in counter_value
+                        counter_value.innerText = (count + inc).toFixed(0);
+                        // Call function every ms
+                        setTimeout(updateCount, 1);
+                    } else {
+                        counter_value.innerText = numberWithCommas(target);
+                    }
+                    numberWithCommas(counter_value.innerText);
                 }
-                // Check if target is reached
-                if (count < target) {
-                    // Add inc to count and output in counter_value
-                    counter_value.innerText = (count + inc).toFixed(0);
-                    // Call function every ms
-                    setTimeout(updateCount, 1);
-                } else {
-                    counter_value.innerText = numberWithCommas(target);
-                }
-                numberWithCommas(counter_value.innerText);
-            }
 
-            updateCount();
-        });
+                updateCount();
+            });
 
         function numberWithCommas(x) {
             return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
@@ -200,7 +230,7 @@ class FormAdvanced {
     // Choices Select plugin
     initFormChoices() {
         var choicesExamples = document.querySelectorAll("[data-choices]");
-        choicesExamples.forEach(function (item) {
+        choicesExamples.forEach(function(item) {
             var choiceData = {};
             var isChoicesVal = item.attributes;
             if (isChoicesVal["data-choices-groups"]) {
@@ -264,13 +294,18 @@ class Portlet {
 
     initCloser() {
         const self = this;
+
         document.querySelectorAll(this.portletCloser).forEach(element => {
-            element.addEventListener('click', function (e) {
+            element.addEventListener('click', function(e) {
                 e.preventDefault();
                 const portlet = element.closest(self.portletIdentifier);
-                const portlet_parent = portlet?.parentElement;
-                if (portlet) portlet.remove();
-                if (portlet_parent?.children.length === 0) portlet_parent?.remove();
+                const portletParent = portlet ? portlet.parentElement : null;
+                if (portlet) {
+                    portlet.remove();
+                }
+                if (portletParent && portletParent.children.length === 0) {
+                    portletParent.remove();
+                }
                 self.init();
             });
         });
@@ -279,17 +314,21 @@ class Portlet {
     initRefresher() {
         const self = this;
         const elements = document.querySelectorAll(this.portletRefresher);
-        elements.forEach(function (element) {
-            element.addEventListener('click', function (e) {
+        elements.forEach(function(element) {
+            element.addEventListener('click', function(e) {
                 e.preventDefault();
                 const portlet = element.closest(self.portletIdentifier);
-                if (portlet) portlet.innerHTML += ('<div class="card-disabled"><div class="card-portlets-loader"></div></div>');
-                let pd;
-                portlet?.children.forEach(element => {
-                    if (element.classList.contains('card-disabled')) pd = element;
-                });
-                setTimeout(function () {
-                    pd?.remove();
+                if (!portlet) {
+                    return;
+                }
+
+                portlet.insertAdjacentHTML('beforeend', '<div class="card-disabled"><div class="card-portlets-loader"></div></div>');
+                const overlay = portlet.querySelector('.card-disabled');
+
+                setTimeout(function() {
+                    if (overlay) {
+                        overlay.remove();
+                    }
                     self.init();
                 }, 500 + 300 * (Math.random() * 5));
             })
@@ -316,7 +355,7 @@ class Code {
 
                 if (copy) {
                     var clipboard = new ClipboardJS(copy, {
-                        target: function (trigger) {
+                        target: function(trigger) {
                             var highlight = trigger.closest('.highlight');
                             var el = highlight.querySelector('.tab-pane.active');
 
@@ -328,13 +367,13 @@ class Code {
                         }
                     });
 
-                    clipboard.on('success', function (e) {
+                    clipboard.on('success', function(e) {
                         var caption = e.trigger.innerHTML;
 
                         e.trigger.innerHTML = 'Copied';
                         e.clearSelection();
 
-                        setTimeout(function () {
+                        setTimeout(function() {
                             e.trigger.innerHTML = caption;
                         }, 2000);
                     });
@@ -368,7 +407,7 @@ class Dragula {
 
         document.querySelectorAll("[data-plugin=dragula]")
 
-            .forEach(function (element) {
+            .forEach(function(element) {
 
                 const containersIds = JSON.parse(element.getAttribute('data-containers'));
                 let containers = [];
@@ -386,7 +425,7 @@ class Dragula {
                 // init dragula
                 if (handleClass) {
                     dragula(containers, {
-                        moves: function (el, container, handle) {
+                        moves: function(el, container, handle) {
                             return handle.classList.contains(handleClass);
                         }
                     });
@@ -403,6 +442,77 @@ class Dragula {
     }
 
 
+}
+
+// Panel Card Actions
+class PanelCard {
+    constructor() {
+        this.cardSelector = '[data-panel-card]';
+    }
+
+    init() {
+        document.addEventListener('click', (event) => {
+            const button = event.target.closest('[data-panel-action]');
+            if (!button) return;
+            const card = button.closest(this.cardSelector);
+            if (!card) return;
+
+            const action = button.dataset.panelAction;
+            switch (action) {
+                case 'refresh':
+                    this.handleRefresh(card, button);
+                    break;
+                case 'collapse':
+                    this.handleCollapse(card, button);
+                    break;
+                case 'fullscreen':
+                    this.handleFullscreen(card, button);
+                    break;
+                case 'close':
+                    this.handleClose(card);
+                    break;
+                default:
+                    break;
+            }
+        });
+    }
+
+    handleRefresh(card, button) {
+        if (card.querySelector('.panel-overlay')) return;
+        const overlay = document.createElement('div');
+        overlay.className = 'panel-overlay';
+        overlay.innerHTML = '<div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div>';
+        card.appendChild(overlay);
+        setTimeout(() => {
+            overlay.remove();
+        }, 1200);
+    }
+
+    handleCollapse(card, button) {
+        const sections = card.querySelectorAll('.card-body, .card-footer');
+        sections.forEach(section => {
+            section.classList.toggle('d-none');
+        });
+
+        const icon = button.querySelector('i');
+        if (icon) {
+            icon.classList.toggle('ri-arrow-up-s-line');
+            icon.classList.toggle('ri-arrow-down-s-line');
+        }
+    }
+
+    handleFullscreen(card, button) {
+        card.classList.toggle('card-fullscreen');
+        const icon = button.querySelector('i');
+        if (icon) {
+            icon.classList.toggle('ri-fullscreen-line');
+            icon.classList.toggle('ri-fullscreen-exit-line');
+        }
+    }
+
+    handleClose(card) {
+        card.remove();
+    }
 }
 
 // Swiper Slider
@@ -473,7 +583,7 @@ class SwiperSlider {
 
         // Pagination Custom Swiper
         var swiper = new Swiper("[data-swiper='custom']", {
-            modules: [Autoplay,Pagination],
+            modules: [Autoplay, Pagination],
             loop: true,
             autoplay: {
                 delay: 2500,
@@ -482,7 +592,7 @@ class SwiperSlider {
             pagination: {
                 clickable: true,
                 el: ".swiper-pagination",
-                renderBullet: function (index, className) {
+                renderBullet: function(index, className) {
                     return '<span class="' + className + '">' + (index + 1) + "</span>";
                 },
             }
@@ -669,8 +779,8 @@ class SwiperSlider {
 class ToastNotification {
     initToastNotification() {
 
-        document.querySelectorAll("[data-toast]").forEach(function (element) {
-            element.addEventListener("click", function () {
+        document.querySelectorAll("[data-toast]").forEach(function(element) {
+            element.addEventListener("click", function() {
                 var toastData = {};
                 if (element.attributes["data-toast-text"]) {
                     toastData.text = element.attributes["data-toast-text"].value.toString();
@@ -719,14 +829,14 @@ class ToastNotification {
     }
 }
 
-document.addEventListener('DOMContentLoaded', function (e) {
+document.addEventListener('DOMContentLoaded', function(e) {
     new Components().init();
     new FormValidation().init();
     new FormAdvanced().init();
     new Portlet().init();
+    new PanelCard().init();
     new Code().init();
     new Dragula().init();
     new SwiperSlider().init();
     new ToastNotification().init();
 });
-

@@ -6,11 +6,11 @@
         <div class="card auth-card">
             <div class="card-body px-3 py-5">
                 <div class="mx-auto mb-4 text-center auth-logo">
-                    <a href="{{ route('second', ['dashboards', 'analytics'])}}" class="logo-dark">
+                    <a href="##" class="logo-dark">
                         <img src="{{ asset('images/logo-dark.png') }}" height="32" alt="logo dark">
                     </a>
 
-                    <a href="{{ route('second', ['dashboards', 'analytics'])}}" class="logo-light">
+                    <a href="##" class="logo-light">
                         <img src="{{ asset('images/logo-light.png') }}" height="28" alt="logo light">
                     </a>
                 </div>
@@ -36,7 +36,7 @@
                                    placeholder="Enter your email" value="demo@user.com">
                         </div>
                         <div class="mb-3">
-                            <a href="{{ route('second', ['auth', 'password'])}}"
+                            <a href="#"
                                class="float-end text-muted text-unline-dashed ms-1">Reset
                                 password</a>
                             <label class="form-label" for="example-password">Password</label>
@@ -70,7 +70,7 @@
             </div> <!-- end card-body -->
         </div> <!-- end card -->
 
-        <p class="mb-0 text-center text-white">New here? <a href="{{ route('second', ['auth', 'signup'])}}"
+        <p class="mb-0 text-center text-white">New here? <a href="#"
             class="text-reset text-unline-dashed fw-bold ms-1">Sign Up</a>
     </p>
 </div>
