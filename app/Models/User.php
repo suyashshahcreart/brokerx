@@ -48,4 +48,28 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    /**
+     * Get the broker profile associated with the user.
+     */
+    public function broker()
+    {
+        return $this->hasOne(Broker::class);
+    }
+
+    /**
+     * Check if user has a broker profile.
+     */
+    public function isBroker()
+    {
+        return $this->broker()->exists();
+    }
+
+    /**
+     * Check if user's broker profile is approved.
+     */
+    public function isBrokerApproved()
+    {
+        return $this->broker && $this->broker->status === 'approved';
+    }
 }

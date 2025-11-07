@@ -1,6 +1,7 @@
 <?php
 use App\Http\Controllers\OtpController;
 use App\Http\Controllers\EmailOtpController;
+use App\Http\Controllers\BrokerController;
 
 
 use Illuminate\Support\Facades\Route;
@@ -27,6 +28,11 @@ Route::post('/email-otp/verify', [EmailOtpController::class, 'verify'])->name('e
 
 // auth routes
 require __DIR__ . '/auth.php';
+
+// Broker routes (protected by auth middleware)
+Route::middleware('auth')->group(function () {
+    Route::resource('broker', BrokerController::class);
+});
 
 Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     Route::get('', [RoutingController::class, 'index'])->name('root');
