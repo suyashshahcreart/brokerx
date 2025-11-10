@@ -25,12 +25,12 @@ return new class extends Migration {
             $table->string('pin_code')->nullable();
 
             // Professional info
-            $table->string('license_number')->unique();
+            $table->string('license_number')->unique()->nullable();
             $table->string('company_name')->nullable();
             $table->string('position_title')->nullable();
             $table->integer('years_of_experience')->nullable();
             $table->boolean('license_verified')->default(false);
-            $table->decimal('commission_rate', 5, 2)->default(0.00);
+            $table->decimal('commission_rate', 5, 2)->default(null);
             $table->text('bio')->nullable();
 
             // Media

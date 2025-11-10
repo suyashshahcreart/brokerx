@@ -188,7 +188,7 @@
                                 <div class="mb-3">
                                     <label for="commission_rate" class="form-label">Commission Rate (%)</label>
                                     <input type="number" id="commission_rate" name="commission_rate" class="form-control @error('commission_rate') is-invalid @enderror" 
-                                           placeholder="e.g., 2.5" value="{{ old('commission_rate', $broker->commission_rate) }}" min="0" max="100" step="0.01">
+                                           placeholder="e.g., 2.5" value="{{ old('commission_rate', $broker->commission_rate) }}" min="0" max="100">
                                     @error('commission_rate')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
@@ -229,7 +229,7 @@
                                 <div class="mb-3">
                                     <label for="whatsapp_number" class="form-label">WhatsApp Number</label>
                                     <input type="text" id="whatsapp_number" name="whatsapp_number" class="form-control @error('whatsapp_number') is-invalid @enderror" 
-                                           placeholder="+1 234 567 8900" value="{{ old('whatsapp_number', $broker->whatsapp_number) }}">
+                                           placeholder="Active Whatsapp No." value="{{ old('whatsapp_number', $broker->whatsapp_number) }}">
                                     @error('whatsapp_number')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
