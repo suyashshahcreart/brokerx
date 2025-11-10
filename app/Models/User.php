@@ -53,6 +53,16 @@ class User extends Authenticatable
     }
 
     /**
+     * Get the user's full name.
+     *
+     * @return string
+     */
+    public function getNameAttribute(): string
+    {
+        return trim($this->firstname . ' ' . $this->lastname);
+    }
+
+    /**
      * Configure activity log options
      *
      * @return LogOptions
@@ -60,7 +70,7 @@ class User extends Authenticatable
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logOnly(['name', 'email'])
+            ->logOnly(['firstname', 'lastname', 'email', 'mobile'])
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs()
             ->setDescriptionForEvent(fn(string $eventName) => "User {$eventName}");
