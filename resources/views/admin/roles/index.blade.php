@@ -42,9 +42,11 @@
             </div>
             <div class="d-flex align-items-center gap-2">
                 <x-admin.back-button :classes="['btn', 'btn-soft-secondary']" :merge="false" icon="ri-arrow-go-back-line" />
-                <a href="{{ route('admin.roles.create') }}" class="btn btn-primary" title="Add Role" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Add Role">
-                    <i class="ri-shield-user-line me-1"></i> New Role
-                </a>
+                @if(!empty($canCreate) && $canCreate)
+                    <a href="{{ route('admin.roles.create') }}" class="btn btn-primary" title="Add Role" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Add Role">
+                        <i class="ri-shield-user-line me-1"></i> New Role
+                    </a>
+                @endif
             </div>
         </div>
 

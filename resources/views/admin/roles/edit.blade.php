@@ -63,60 +63,78 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Permissions</label>
-                        <div class="card">
-                            <div class="card-body">
-                                @php
-                                    $selectedPermissions = collect(old('permissions', $role->permissions->pluck('name')->toArray()));
-                                    $groupChunks = $groupedPermissions->chunk(ceil($groupedPermissions->count() / 2));
-                                @endphp
-                                <div class="d-flex justify-content-between align-items-center mb-3">
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" id="select-all-permissions">
-                                        <label class="form-check-label fw-semibold" for="select-all-permissions">Select All Permissions</label>
-                                    </div>
-                                    <button type="button" class="btn btn-sm btn-outline-secondary" id="toggle-all-groups" data-expanded="true">
-                                        <i class="ri-arrow-up-s-line me-1"></i>Collapse All
-                                    </button>
-                                </div>
-                                <div class="row g-4">
-                                    @foreach($groupChunks as $chunk)
-                                        <div class="col-lg-6">
-                                            @foreach($chunk as $groupName => $permissions)
-                                                @php
-                                                    $groupId = Str::slug($groupName);
-                                                @endphp
-                                                <div class="border rounded mb-3 permission-group">
-                                                    <div class="d-flex align-items-center justify-content-between px-3 py-2">
-                                                        <div class="form-check">
-                                                            <input class="form-check-input group-checkbox" type="checkbox" id="group-{{ $groupId }}" data-group="{{ $groupId }}">
-                                                            <label class="form-check-label fw-semibold" for="group-{{ $groupId }}">{{ $groupName }}</label>
-                                                        </div>
-                                                        <button type="button" class="btn btn-sm btn-outline-secondary toggle-group" data-bs-toggle="collapse" data-bs-target="#group-list-{{ $groupId }}" aria-expanded="true">
-                                                            <i class="ri-subtract-line"></i>
-                                                        </button>
-                                                    </div>
-                                                    <div id="group-list-{{ $groupId }}" class="collapse show px-3 pb-3">
-                                                        @foreach($permissions as $permission)
-                                                            @php
-                                                                $label = Str::title(str_replace(['_', '-'], ' ', Str::after($permission->name, Str::before($permission->name, '_') . '_')));
-                                                                if ($label === '') {
-                                                                    $label = Str::title(str_replace(['_', '-'], ' ', $permission->name));
-                                                                }
-                                                            @endphp
-                                                            <div class="form-check ms-2">
-                                                                <input class="form-check-input permission-checkbox" type="checkbox" name="permissions[]" value="{{ $permission->name }}" id="perm_{{ $permission->id }}"
-                                                                    data-group="{{ $groupId }}" {{ $selectedPermissions->contains($permission->name) ? 'checked' : '' }}>
-                                                                <label class="form-check-label" for="perm_{{ $permission->id }}">{{ $label }}</label>
-                                                            </div>
-                                                        @endforeach
-                                                    </div>
-                                                </div>
-                                            @endforeach
+                        @if(!empty($canAssignPermissions) && $canAssignPermissions)
+                            <div class="card">
+                                <div class="card-body">
+                                    @php
+                                        $selectedPermissions = collect(old('permissions', $role->permissions->pluck('name')->toArray()));
+                                        $chunkSize = max(1, ceil($groupedPermissions->count() / 2));
+                                        $groupChunks = $groupedPermissions->isNotEmpty() ? $groupedPermissions->chunk($chunkSize) : collect();
+                                    @endphp
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="select-all-permissions">
+                                            <label class="form-check-label fw-semibold" for="select-all-permissions">Select All Permissions</label>
                                         </div>
-                                    @endforeach
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" id="toggle-all-groups" data-expanded="true">
+                                            <i class="ri-arrow-up-s-line me-1"></i>Collapse All
+                                        </button>
+                                    </div>
+                                    <div class="row g-4">
+                                        @foreach($groupChunks as $chunk)
+                                            <div class="col-lg-6">
+                                                @foreach($chunk as $groupName => $permissions)
+                                                    @php
+                                                        $groupId = Str::slug($groupName);
+                                                    @endphp
+                                                    <div class="border rounded mb-3 permission-group">
+                                                        <div class="d-flex align-items-center justify-content-between px-3 py-2">
+                                                            <div class="form-check">
+                                                                <input class="form-check-input group-checkbox" type="checkbox" id="group-{{ $groupId }}" data-group="{{ $groupId }}">
+                                                                <label class="form-check-label fw-semibold" for="group-{{ $groupId }}">{{ $groupName }}</label>
+                                                            </div>
+                                                            <button type="button" class="btn btn-sm btn-outline-secondary toggle-group" data-bs-toggle="collapse" data-bs-target="#group-list-{{ $groupId }}" aria-expanded="true">
+                                                                <i class="ri-subtract-line"></i>
+                                                            </button>
+                                                        </div>
+                                                        <div id="group-list-{{ $groupId }}" class="collapse show px-3 pb-3">
+                                                            @foreach($permissions as $permission)
+                                                                @php
+                                                                    $label = Str::title(str_replace(['_', '-'], ' ', Str::after($permission->name, Str::before($permission->name, '_') . '_')));
+                                                                    if ($label === '') {
+                                                                        $label = Str::title(str_replace(['_', '-'], ' ', $permission->name));
+                                                                    }
+                                                                @endphp
+                                                                <div class="form-check ms-2">
+                                                                    <input class="form-check-input permission-checkbox" type="checkbox" name="permissions[]" value="{{ $permission->name }}" id="perm_{{ $permission->id }}"
+                                                                        data-group="{{ $groupId }}" {{ $selectedPermissions->contains($permission->name) ? 'checked' : '' }}>
+                                                                    <label class="form-check-label" for="perm_{{ $permission->id }}">{{ $label }}</label>
+                                                                </div>
+                                                            @endforeach
+                                                        </div>
+                                                    </div>
+                                                @endforeach
+                                            </div>
+                                        @endforeach
+                                    </div>
                                 </div>
                             </div>
-                        </div>
+                        @else
+                            <div class="alert alert-info" role="alert">
+                                You do not have permission to modify role permissions. Existing permissions are shown below.
+                            </div>
+                            <div class="border rounded p-3">
+                                @if($role->permissions->isEmpty())
+                                    <p class="text-muted mb-0">No permissions assigned to this role.</p>
+                                @else
+                                    <div class="d-flex flex-wrap gap-1">
+                                        @foreach($role->permissions->pluck('name')->sort()->values() as $permissionName)
+                                            <span class="badge bg-soft-info text-info">{{ $permissionName }}</span>
+                                        @endforeach
+                                    </div>
+                                @endif
+                            </div>
+                        @endif
                     </div>
                     <div class="d-flex gap-2">
                         <button class="btn btn-primary" type="submit"><i class="ri-save-line me-1"></i> Update Role</button>

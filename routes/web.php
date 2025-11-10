@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Admin\ActivityLogController;
+use App\Http\Controllers\BrokerX\BrokerXController;
 
 /*
 |--------------------------------------------------------------------------
@@ -36,3 +37,6 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'middleware' => ['web','aut
     Route::get('activity', [ActivityLogController::class, 'index'])->name('activity.index');
 });
 
+Route::group(['prefix' => 'brokerx', 'as' => 'brokerx.', 'middleware' => ['web','auth']], function () {
+    Route::get('/', [BrokerXController::class, 'index'])->name('index');
+});

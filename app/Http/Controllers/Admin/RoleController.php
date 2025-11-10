@@ -13,10 +13,20 @@ use Yajra\DataTables\Facades\DataTables;
 
 class RoleController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('permission:role_view')->only(['index', 'show']);
+        $this->middleware('permission:role_create')->only(['create', 'store']);
+        $this->middleware('permission:role_edit')->only(['edit', 'update']);
+        $this->middleware('permission:role_delete')->only(['destroy']);
+    }
+
     public function index(Request $request)
     {
         if ($request->ajax()) {
             $query = Role::query()->withCount('users')->with('permissions');
+            $canEdit = $request->user()->can('role_edit');
+            $canDelete = $request->user()->can('role_delete');
 
             return DataTables::of($query)
                 ->addColumn('permissions', function (Role $role) {
@@ -24,39 +34,58 @@ class RoleController extends Controller
                     $permissions = $role->permissions->pluck('name')->sort()->values();
                     return view('admin.roles.partials.permissions', compact('permissions'))->render();
                 })
-                ->addColumn('actions', function (Role $role) {
-                    return view('admin.roles.partials.actions', compact('role'))->render();
+                ->addColumn('actions', function (Role $role) use ($canEdit, $canDelete) {
+                    return view('admin.roles.partials.actions', compact('role', 'canEdit', 'canDelete'))->render();
                 })
                 ->editColumn('name', fn(Role $role) => e($role->name))
                 ->rawColumns(['permissions', 'actions'])
                 ->toJson();
         }
 
-        return view('admin.roles.index');
+        $canCreate = $request->user()->can('role_create');
+        $canEdit = $request->user()->can('role_edit');
+        $canDelete = $request->user()->can('role_delete');
+
+        return view('admin.roles.index', compact('canCreate', 'canEdit', 'canDelete'));
     }
 
     public function create()
     {
-        $permissions = Permission::orderBy('name')->get();
-        $groupedPermissions = $permissions->groupBy(function (Permission $permission) {
-            $parts = explode('_', $permission->name, 2);
-            return Str::title(str_replace('_', ' ', $parts[0] ?? 'General'));
-        });
+        $canAssignPermissions = auth()->user()->can('role_assign_permissions');
+        $permissions = $canAssignPermissions ? Permission::orderBy('name')->get() : collect();
+        $groupedPermissions = $canAssignPermissions
+            ? $permissions->groupBy(function (Permission $permission) {
+                $parts = explode('_', $permission->name, 2);
+                return Str::title(str_replace('_', ' ', $parts[0] ?? 'General'));
+            })
+            : collect();
 
         return view('admin.roles.create', [
             'groupedPermissions' => $groupedPermissions,
+            'canAssignPermissions' => $canAssignPermissions,
         ]);
     }
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
+        $rules = [
             'name' => ['required', 'string', 'max:255', 'unique:roles,name'],
-            'permissions' => ['array']
-        ]);
+        ];
+
+        if ($request->user()->can('role_assign_permissions')) {
+            $rules['permissions'] = ['array'];
+            $rules['permissions.*'] = ['string', 'exists:permissions,name'];
+        } else {
+            $rules['permissions'] = ['prohibited'];
+        }
+
+        $validated = $request->validate($rules);
         
         $role = Role::create(['name' => $validated['name']]);
-        $selectedPermissions = $request->input('permissions', []);
+        $selectedPermissions = [];
+        if ($request->user()->can('role_assign_permissions')) {
+            $selectedPermissions = array_values(array_filter($request->input('permissions', [])));
+        }
         $role->syncPermissions($selectedPermissions);
         $role->load('permissions');
         
@@ -77,25 +106,37 @@ class RoleController extends Controller
 
     public function edit(Role $role)
     {
-        $permissions = Permission::orderBy('name')->get();
-        $groupedPermissions = $permissions->groupBy(function (Permission $permission) {
-            $parts = explode('_', $permission->name, 2);
-            return Str::title(str_replace('_', ' ', $parts[0] ?? 'General'));
-        });
+        $canAssignPermissions = auth()->user()->can('role_assign_permissions');
+        $permissions = $canAssignPermissions ? Permission::orderBy('name')->get() : collect();
+        $groupedPermissions = $canAssignPermissions
+            ? $permissions->groupBy(function (Permission $permission) {
+                $parts = explode('_', $permission->name, 2);
+                return Str::title(str_replace('_', ' ', $parts[0] ?? 'General'));
+            })
+            : collect();
 
         $role->load('permissions');
         return view('admin.roles.edit', [
             'role' => $role,
             'groupedPermissions' => $groupedPermissions,
+            'canAssignPermissions' => $canAssignPermissions,
         ]);
     }
 
     public function update(Request $request, Role $role)
     {
-        $validated = $request->validate([
+        $rules = [
             'name' => ['required', 'string', 'max:255', 'unique:roles,name,' . $role->id],
-            'permissions' => ['array']
-        ]);
+        ];
+
+        if ($request->user()->can('role_assign_permissions')) {
+            $rules['permissions'] = ['array'];
+            $rules['permissions.*'] = ['string', 'exists:permissions,name'];
+        } else {
+            $rules['permissions'] = ['prohibited'];
+        }
+
+        $validated = $request->validate($rules);
         
         // Capture before state
         $role->load('permissions');
@@ -108,7 +149,12 @@ class RoleController extends Controller
         $role->update(['name' => $validated['name']]);
         
         // Sync permissions
-        $selectedPermissions = $request->input('permissions', []);
+        $selectedPermissions = [];
+        if ($request->user()->can('role_assign_permissions')) {
+            $selectedPermissions = array_values(array_filter($request->input('permissions', [])));
+        } else {
+            $selectedPermissions = $role->permissions->pluck('name')->toArray();
+        }
         $role->syncPermissions($selectedPermissions);
         $role->load('permissions');
         

@@ -11,18 +11,28 @@ use Yajra\DataTables\Facades\DataTables;
 
 class PermissionController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('permission:permission_view')->only(['index', 'show']);
+        $this->middleware('permission:permission_create')->only(['create', 'store']);
+        $this->middleware('permission:permission_edit')->only(['edit', 'update']);
+        $this->middleware('permission:permission_delete')->only(['destroy']);
+    }
+
     public function index(Request $request)
     {
         if ($request->ajax()) {
             $query = Permission::query()->withCount('roles')->select(['permissions.*']);
+            $canEdit = $request->user()->can('permission_edit');
+            $canDelete = $request->user()->can('permission_delete');
 
             return DataTables::of($query)
                 ->addColumn('roles_count_badge', function (Permission $permission) {
                     $count = (int) $permission->roles_count;
                     return '<span class="badge bg-soft-secondary text-secondary">' . $count . '</span>';
                 })
-                ->addColumn('actions', function (Permission $permission) {
-                    return view('admin.permissions.partials.actions', compact('permission'))->render();
+                ->addColumn('actions', function (Permission $permission) use ($canEdit, $canDelete) {
+                    return view('admin.permissions.partials.actions', compact('permission', 'canEdit', 'canDelete'))->render();
                 })
                 ->editColumn('created_at', function (Permission $permission) {
                     return optional($permission->created_at)->format('M d, Y');
@@ -31,7 +41,11 @@ class PermissionController extends Controller
                 ->toJson();
         }
 
-        return view('admin.permissions.index');
+        $canCreate = $request->user()->can('permission_create');
+        $canEdit = $request->user()->can('permission_edit');
+        $canDelete = $request->user()->can('permission_delete');
+
+        return view('admin.permissions.index', compact('canCreate', 'canEdit', 'canDelete'));
     }
 
     public function create()

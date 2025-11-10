@@ -16,9 +16,11 @@
             </div>
             <div class="d-flex align-items-center gap-2">
                 <x-admin.back-button :classes="['btn', 'btn-soft-secondary']" :merge="false" icon="ri-arrow-go-back-line" />
-                <a href="{{ route('admin.permissions.create') }}" class="btn btn-primary" title="New Permission" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="New Permission">
-                    <i class="ri-add-line me-1"></i> New Permission
-                </a>
+                @if(!empty($canCreate) && $canCreate)
+                    <a href="{{ route('admin.permissions.create') }}" class="btn btn-primary" title="New Permission" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="New Permission">
+                        <i class="ri-add-line me-1"></i> New Permission
+                    </a>
+                @endif
             </div>
         </div>
 
