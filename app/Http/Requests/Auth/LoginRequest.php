@@ -26,6 +26,15 @@ class LoginRequest extends FormRequest
      */
     public function rules(): array
     {
+        // If logging in via OTP (code present), allow identifier to be email or mobile string and password is not required
+        if ($this->filled('otp_code')) {
+            return [
+                'email' => 'required|string', // used as identifier: email or mobile
+                'password' => 'nullable|string',
+                'otp_code' => 'required|digits:6',
+            ];
+        }
+
         return [
             'email' => 'required|string|email',
             'password' => 'required|string',

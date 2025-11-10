@@ -475,6 +475,21 @@ d3@^7.6.1:
     d3-transition "3"
     d3-zoom "3"
 
+datatables.net-bs5@^2.3.4:
+  version "2.3.4"
+  resolved "https://registry.npmjs.org/datatables.net-bs5/-/datatables.net-bs5-2.3.4.tgz"
+  integrity sha512-OSoPWhNfiU71VjNP604uTmFRxiX32U7SCW0KRZ2X6z3ZYbIwjjoWcMEjjPWOH3uOqaI0OTDBgOgOs5G28VaJog==
+  dependencies:
+    datatables.net "2.3.4"
+    jquery ">=1.7"
+
+datatables.net@^2.3.4, datatables.net@2.3.4:
+  version "2.3.4"
+  resolved "https://registry.npmjs.org/datatables.net/-/datatables.net-2.3.4.tgz"
+  integrity sha512-fKuRlrBIdpAl2uIFgl9enKecHB41QmFd/2nN9LBbOvItV/JalAxLcyqdZXex7wX4ZXjnJQEnv6xeS9veOpKzSw==
+  dependencies:
+    jquery ">=1.7"
+
 daterangepicker@^3.1.0:
   version "3.1.0"
   resolved "https://registry.npmjs.org/daterangepicker/-/daterangepicker-3.1.0.tgz"
@@ -811,7 +826,7 @@ is-regex@^1.1.4:
     call-bind "^1.0.2"
     has-tostringtag "^1.0.0"
 
-jquery@>=1.10, jquery@>=1.7:
+jquery@^3.7.1, jquery@>=1.10, jquery@>=1.7:
   version "3.7.1"
   resolved "https://registry.npmjs.org/jquery/-/jquery-3.7.1.tgz"
   integrity sha512-m4avr8yL8kmFN8psrbFFFmB/If14iN5o9nw/NgnnM+kybDJpRsAynV2BsfpTYrTRysYUdADVD7CkUUizgkpLfg==
@@ -856,7 +871,7 @@ mime-types@^2.1.12:
   dependencies:
     mime-db "1.52.0"
 
-moment@^2.29.4, moment@^2.9.0:
+moment@^2.30.1, moment@^2.9.0:
   version "2.30.1"
   resolved "https://registry.npmjs.org/moment/-/moment-2.30.1.tgz"
   integrity sha512-uEmtNhbDOrWPFS+hdjFCBfy9f2YoyzRpwcl+DqpC6taX21FzsTLQVbMV/W7PzNSX6x/bhC1zA3c2UQ5NzH6how==
@@ -1046,6 +1061,11 @@ select@^1.1.2:
   version "1.1.2"
   resolved "https://registry.npmjs.org/select/-/select-1.1.2.tgz"
   integrity sha512-OwpTSOfy6xSs1+pwcNrv0RBMOzI39Lp3qQKUTPVVPRjCdNa5JH/oPRiqsesIskK8TVgmRiHwO4KXlV2Li9dANA==
+
+select2@^4.1.0-rc.0:
+  version "4.1.0-rc.0"
+  resolved "https://registry.npmjs.org/select2/-/select2-4.1.0-rc.0.tgz"
+  integrity sha512-Hr9TdhyHCZUtwznEH2CBf7967mEM0idtJ5nMtjvk3Up5tPukOLXbHUNmh10oRfeNIhj+3GD3niu+g6sVK+gK0A==
 
 set-function-length@^1.2.1:
   version "1.2.2"

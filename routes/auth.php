@@ -62,3 +62,40 @@ Route::post('/confirm-password', [ConfirmablePasswordController::class, 'store']
 Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
     ->middleware('auth')
     ->name('logout');
+
+// OTP endpoints for mobile and email (used by frontend auth-login.js)
+use App\Http\Controllers\Auth\OtpController;
+
+// Login OTP endpoints (registered users only)
+Route::post('/otp/send', [OtpController::class, 'sendMobile'])
+    ->middleware('guest')
+    ->name('otp.send');
+
+Route::post('/otp/verify', [OtpController::class, 'verifyMobile'])
+    ->middleware('guest')
+    ->name('otp.verify');
+
+Route::post('/email-otp/send', [OtpController::class, 'sendEmail'])
+    ->middleware('guest')
+    ->name('email_otp.send');
+
+Route::post('/email-otp/verify', [OtpController::class, 'verifyEmail'])
+    ->middleware('guest')
+    ->name('email_otp.verify');
+
+// Registration/Verification OTP endpoints (non-registered users allowed)
+Route::post('/registration/otp/send', [OtpController::class, 'sendMobileForRegistration'])
+    ->middleware('guest')
+    ->name('registration.otp.send');
+
+Route::post('/registration/otp/verify', [OtpController::class, 'verifyMobileForRegistration'])
+    ->middleware('guest')
+    ->name('registration.otp.verify');
+
+Route::post('/registration/email-otp/send', [OtpController::class, 'sendEmailForRegistration'])
+    ->middleware('guest')
+    ->name('registration.email_otp.send');
+
+Route::post('/registration/email-otp/verify', [OtpController::class, 'verifyEmailForRegistration'])
+    ->middleware('guest')
+    ->name('registration.email_otp.verify');

@@ -60,7 +60,7 @@
                                    <a href="javascript:void(0);" class="dropdown-item py-3 border-bottom text-wrap">
                                         <div class="d-flex">
                                              <div class="flex-shrink-0">
-                                                  <img src="/images/users/avatar-1.jpg" class="img-fluid me-2 avatar-sm rounded-circle" alt="avatar-1" />
+                                             <img src="{{ asset('images/users/avatar-1.jpg') }}" class="img-fluid me-2 avatar-sm rounded-circle" alt="avatar-1" />
                                              </div>
                                              <div class="flex-grow-1">
                                                   <p class="mb-0"><span class="fw-medium">Josephine Thompson </span>commented on admin panel <span>" Wow 😍! this admin looks good and awesome design"</span></p>
@@ -89,7 +89,7 @@
                                    <a href="javascript:void(0);" class="dropdown-item py-3 border-bottom">
                                         <div class="d-flex">
                                              <div class="flex-shrink-0">
-                                                  <img src="/images/users/avatar-3.jpg" class="img-fluid me-2 avatar-sm rounded-circle" alt="avatar-3" />
+                                             <img src="{{ asset('images/users/avatar-3.jpg') }}" class="img-fluid me-2 avatar-sm rounded-circle" alt="avatar-3" />
                                              </div>
                                              <div class="flex-grow-1">
                                                   <p class="mb-0 fw-semibold">Jacob Gines</p>
@@ -119,7 +119,7 @@
                                    <a href="javascript:void(0);" class="dropdown-item py-3 border-bottom">
                                         <div class="d-flex">
                                              <div class="flex-shrink-0">
-                                                  <img src="/images/users/avatar-5.jpg" class="img-fluid me-2 avatar-sm rounded-circle" alt="avatar-5" />
+                                             <img src="{{ asset('images/users/avatar-5.jpg') }}" class="img-fluid me-2 avatar-sm rounded-circle" alt="avatar-5" />
                                              </div>
                                              <div class="flex-grow-1">
                                                   <p class="mb-0 fw-semibold">Shawn Bunch</p>
@@ -147,12 +147,16 @@
                     <div class="dropdown topbar-item">
                          <a type="button" class="topbar-button" id="page-header-user-dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                               <span class="d-flex align-items-center">
-                                   <img class="rounded-circle" width="32" src="/images/users/avatar-1.jpg" alt="avatar-3">
+                                   <img class="rounded-circle" width="32" src="{{ asset('images/users/avatar-1.jpg') }}" alt="avatar-3">
                               </span>
                          </a>
                          <div class="dropdown-menu dropdown-menu-end">
                               <!-- item-->
-                              <h6 class="dropdown-header">Welcome Gaston!</h6>
+                              <h6 class="dropdown-header">Welcome {{ optional(Auth::user())->firstname ?? 'Guest' }}</h6>
+
+                              <a class="dropdown-item" href="{{ route('second', ['pages', 'calendar'])}}">
+                                   <iconify-icon icon="solar:user-broken" class="align-middle me-2 fs-18"></iconify-icon><span class="align-middle">Profile</span>
+                              </a>
 
                               <a class="dropdown-item" href="{{ route('second', ['pages', 'calendar'])}}">
                                    <iconify-icon icon="solar:calendar-broken" class="align-middle me-2 fs-18"></iconify-icon><span class="align-middle">My Schedules</span>

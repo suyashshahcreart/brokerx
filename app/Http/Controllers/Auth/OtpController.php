@@ -1,0 +1,300 @@
+<?php
+
+namespace App\Http\Controllers\Auth;
+
+use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Validator;
+use App\Models\User;
+
+class OtpController extends Controller
+{
+    protected $ttlSeconds = 300; // 5 minutes
+
+    // ========================================
+    // LOGIN OTP METHODS (Registered users only)
+    // ========================================
+
+    public function sendMobile(Request $request)
+    {
+        $v = Validator::make($request->all(), [
+            'mobile' => ['required', 'regex:/^\+?\d{8,20}$/'],
+        ]);
+
+        if ($v->fails()) {
+            return response()->json(['ok' => false, 'message' => $v->errors()->first()], 422);
+        }
+
+        $mobile = $request->input('mobile');
+
+        // Only send OTP to existing users
+        $user = User::where('mobile', $mobile)->first();
+        if (!$user) {
+            return response()->json(['ok' => false, 'message' => 'No user found with this mobile number'], 404);
+        }
+        $code = random_int(100000, 999999);
+
+        Cache::put("otp:mobile:{$mobile}", $code, $this->ttlSeconds);
+
+        // Log the code so it can be used during development/testing
+        Log::info("OTP sent to mobile {$mobile}: {$code}");
+
+        // TODO: Integrate with SMS gateway here.
+
+        return response()->json(['ok' => true, 'message' => 'OTP sent']);
+    }
+
+    public function verifyMobile(Request $request)
+    {
+        $v = Validator::make($request->all(), [
+            'mobile' => ['required', 'regex:/^\+?\d{8,20}$/'],
+            'code' => ['required', 'digits:6'],
+        ]);
+
+        if ($v->fails()) {
+            return response()->json(['ok' => false, 'message' => $v->errors()->first()], 422);
+        }
+
+        $mobile = $request->input('mobile');
+
+        // Ensure user exists
+        if (!User::where('mobile', $mobile)->exists()) {
+            return response()->json(['ok' => false, 'message' => 'No user found with this mobile number'], 404);
+        }
+        $code = $request->input('code');
+
+        $cacheKey = "otp:mobile:{$mobile}";
+        $stored = Cache::get($cacheKey);
+        if (!$stored) {
+            return response()->json(['ok' => false, 'message' => 'OTP expired or not found'], 422);
+        }
+
+        if ((string)$stored !== (string)$code) {
+            return response()->json(['ok' => false, 'message' => 'Invalid code'], 422);
+        }
+
+    // on success remove the OTP and set a short-lived verified flag
+    Cache::forget($cacheKey);
+    Cache::put("otp:verified:mobile:{$mobile}", true, 300);
+
+    return response()->json(['ok' => true, 'message' => 'OTP verified']);
+    }
+
+    public function sendEmail(Request $request)
+    {
+        $v = Validator::make($request->all(), [
+            'email' => ['required', 'email'],
+        ]);
+
+        if ($v->fails()) {
+            return response()->json(['ok' => false, 'message' => $v->errors()->first()], 422);
+        }
+
+        $email = $request->input('email');
+
+        // Only send OTP to existing users
+        $user = User::where('email', $email)->first();
+        if (!$user) {
+            return response()->json(['ok' => false, 'message' => 'No user found with this email address'], 404);
+        }
+        $code = random_int(100000, 999999);
+
+        Cache::put("otp:email:{$email}", $code, $this->ttlSeconds);
+
+        // Try to send email; if mail isn't configured this will be logged.
+        try {
+            Mail::raw("Your verification code is: {$code}", function ($message) use ($email) {
+                $message->to($email)->subject('Your verification code');
+            });
+        } catch (\Exception $ex) {
+            Log::error('Failed to send OTP email: ' . $ex->getMessage());
+            // still return ok so devs can use log to get the code; adjust as necessary
+        }
+
+        Log::info("OTP sent to email {$email}: {$code}");
+
+        return response()->json(['ok' => true, 'message' => 'OTP sent']);
+    }
+
+    public function verifyEmail(Request $request)
+    {
+        $v = Validator::make($request->all(), [
+            'email' => ['required', 'email'],
+            'code' => ['required', 'digits:6'],
+        ]);
+
+        if ($v->fails()) {
+            return response()->json(['ok' => false, 'message' => $v->errors()->first()], 422);
+        }
+
+        $email = $request->input('email');
+
+        // Ensure user exists
+        if (!User::where('email', $email)->exists()) {
+            return response()->json(['ok' => false, 'message' => 'No user found with this email address'], 404);
+        }
+        $code = $request->input('code');
+
+        $cacheKey = "otp:email:{$email}";
+        $stored = Cache::get($cacheKey);
+        if (!$stored) {
+            return response()->json(['ok' => false, 'message' => 'OTP expired or not found'], 422);
+        }
+
+        if ((string)$stored !== (string)$code) {
+            return response()->json(['ok' => false, 'message' => 'Invalid code'], 422);
+        }
+
+    Cache::forget($cacheKey);
+    Cache::put("otp:verified:email:{$email}", true, 300);
+
+    return response()->json(['ok' => true, 'message' => 'OTP verified']);
+    }
+
+    // ========================================
+    // REGISTRATION/VERIFICATION OTP METHODS (Non-registered users allowed)
+    // ========================================
+
+    public function sendMobileForRegistration(Request $request)
+    {
+        $v = Validator::make($request->all(), [
+            'mobile' => ['required', 'regex:/^\+?\d{8,20}$/'],
+        ]);
+
+        if ($v->fails()) {
+            return response()->json(['ok' => false, 'message' => $v->errors()->first()], 422);
+        }
+
+        $mobile = $request->input('mobile');
+
+        // Check if mobile is already registered and verified
+        $existingUser = User::where('mobile', $mobile)->first();
+        if ($existingUser) {
+            // If user exists and mobile is verified, block OTP
+            if ($existingUser->mobile_verified_at !== null) {
+                return response()->json(['ok' => false, 'message' => 'This mobile number is already registered and verified'], 422);
+            }
+            // If user exists but mobile not verified, allow re-verification
+            // You can optionally block this too by uncommenting below:
+            // return response()->json(['ok' => false, 'message' => 'This mobile number is already registered'], 422);
+        }
+
+        $code = random_int(100000, 999999);
+
+        Cache::put("otp:registration:mobile:{$mobile}", $code, $this->ttlSeconds);
+
+        // Log the code so it can be used during development/testing
+        Log::info("Registration OTP sent to mobile {$mobile}: {$code}");
+
+        // TODO: Integrate with SMS gateway here.
+
+        return response()->json(['ok' => true, 'message' => 'OTP sent']);
+    }
+
+    public function verifyMobileForRegistration(Request $request)
+    {
+        $v = Validator::make($request->all(), [
+            'mobile' => ['required', 'regex:/^\+?\d{8,20}$/'],
+            'code' => ['required', 'digits:6'],
+        ]);
+
+        if ($v->fails()) {
+            return response()->json(['ok' => false, 'message' => $v->errors()->first()], 422);
+        }
+
+        $mobile = $request->input('mobile');
+        $code = $request->input('code');
+
+        $cacheKey = "otp:registration:mobile:{$mobile}";
+        $stored = Cache::get($cacheKey);
+        if (!$stored) {
+            return response()->json(['ok' => false, 'message' => 'OTP expired or not found'], 422);
+        }
+
+        if ((string)$stored !== (string)$code) {
+            return response()->json(['ok' => false, 'message' => 'Invalid code'], 422);
+        }
+
+        // on success remove the OTP and set a short-lived verified flag
+        Cache::forget($cacheKey);
+        Cache::put("otp:verified:registration:mobile:{$mobile}", true, 300);
+
+        return response()->json(['ok' => true, 'message' => 'OTP verified']);
+    }
+
+    public function sendEmailForRegistration(Request $request)
+    {
+        $v = Validator::make($request->all(), [
+            'email' => ['required', 'email'],
+        ]);
+
+        if ($v->fails()) {
+            return response()->json(['ok' => false, 'message' => $v->errors()->first()], 422);
+        }
+
+        $email = $request->input('email');
+
+        // Check if email is already registered and verified
+        $existingUser = User::where('email', $email)->first();
+        if ($existingUser) {
+            // If user exists and email is verified, block OTP
+            if ($existingUser->email_verified_at !== null) {
+                return response()->json(['ok' => false, 'message' => 'This email address is already registered and verified'], 422);
+            }
+            // If user exists but email not verified, allow re-verification
+            // You can optionally block this too by uncommenting below:
+            // return response()->json(['ok' => false, 'message' => 'This email address is already registered'], 422);
+        }
+
+        $code = random_int(100000, 999999);
+
+        Cache::put("otp:registration:email:{$email}", $code, $this->ttlSeconds);
+
+        // Try to send email; if mail isn't configured this will be logged.
+        try {
+            Mail::raw("Your verification code is: {$code}", function ($message) use ($email) {
+                $message->to($email)->subject('Your verification code');
+            });
+        } catch (\Exception $ex) {
+            Log::error('Failed to send registration OTP email: ' . $ex->getMessage());
+            // still return ok so devs can use log to get the code; adjust as necessary
+        }
+
+        Log::info("Registration OTP sent to email {$email}: {$code}");
+
+        return response()->json(['ok' => true, 'message' => 'OTP sent']);
+    }
+
+    public function verifyEmailForRegistration(Request $request)
+    {
+        $v = Validator::make($request->all(), [
+            'email' => ['required', 'email'],
+            'code' => ['required', 'digits:6'],
+        ]);
+
+        if ($v->fails()) {
+            return response()->json(['ok' => false, 'message' => $v->errors()->first()], 422);
+        }
+
+        $email = $request->input('email');
+        $code = $request->input('code');
+
+        $cacheKey = "otp:registration:email:{$email}";
+        $stored = Cache::get($cacheKey);
+        if (!$stored) {
+            return response()->json(['ok' => false, 'message' => 'OTP expired or not found'], 422);
+        }
+
+        if ((string)$stored !== (string)$code) {
+            return response()->json(['ok' => false, 'message' => 'Invalid code'], 422);
+        }
+
+        Cache::forget($cacheKey);
+        Cache::put("otp:verified:registration:email:{$email}", true, 300);
+
+        return response()->json(['ok' => true, 'message' => 'OTP verified']);
+    }
+}

@@ -6,10 +6,13 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Spatie\Activitylog\Traits\LogsActivity;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, HasRoles, LogsActivity;
 
     /**
      * The attributes that are mass assignable.
@@ -17,9 +20,12 @@ class User extends Authenticatable
      * @var array<int, string>
      */
     protected $fillable = [
-        'name',
+        'firstname',
+        'lastname',
+        'mobile',
         'email',
         'password',
+        'mobile_verified_at',
     ];
 
     /**
@@ -41,7 +47,46 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'mobile_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    /**
+     * Configure activity log options
+     *
+     * @return LogOptions
+     */
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly(['name', 'email'])
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs()
+            ->setDescriptionForEvent(fn(string $eventName) => "User {$eventName}");
+    }
+     
+
+    /* Get the broker profile associated with the user.
+     */
+    public function broker()
+    {
+        return $this->hasOne(Broker::class);
+    }
+
+    /**
+     * Check if user has a broker profile.
+     */
+    public function isBroker()
+    {
+        return $this->broker()->exists();
+    }
+
+    /**
+     * Check if user's broker profile is approved.
+     */
+    public function isBrokerApproved()
+    {
+        return $this->broker && $this->broker->status === 'approved';
     }
 }
