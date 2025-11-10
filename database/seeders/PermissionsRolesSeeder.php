@@ -40,6 +40,12 @@ class PermissionsRolesSeeder extends Seeder
             'media_view',
             'media_upload',
             'media_delete',
+
+            //scheduler management
+            'scheduler_view',
+            'scheduler_create',
+            'scheduler_edit',
+            'scheduler_delete',
         ];
 
         foreach ($permissions as $permissionName) {

@@ -21,9 +21,12 @@ class DatabaseSeeder extends Seeder
         $this->call(PermissionsRolesSeeder::class);
 
         $user = User::factory()->create([
-            'name' => 'User',
-            'email' => 'demo@user.com',
+            'firstname' => 'admin',
+            'lastname' => 'User',
+            'email' => 'admin@user.com',
+            'mobile' => 9876543210,
             'email_verified_at' => now(),
+            'mobile_verified_at' => now(),
             'password' => Hash::make('password'),
             'remember_token' => Str::random(10),
         ]);
