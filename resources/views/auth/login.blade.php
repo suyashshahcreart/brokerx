@@ -6,12 +6,12 @@
         <div class="card auth-card">
             <div class="card-body px-3 py-5">
                 <div class="mx-auto mb-4 text-center auth-logo">
-                    <a href="{{ route('second', ['dashboards', 'analytics'])}}" class="logo-dark">
-                        <img src="/images/logo-dark.png" height="32" alt="logo dark">
+                    <a href="##" class="logo-dark">
+                        <img src="{{ asset('images/logo-dark.png') }}" height="32" alt="logo dark">
                     </a>
 
-                    <a href="{{ route('second', ['dashboards', 'analytics'])}}" class="logo-light">
-                        <img src="/images/logo-light.png" height="28" alt="logo light">
+                    <a href="##" class="logo-light">
+                        <img src="{{ asset('images/logo-light.png') }}" height="28" alt="logo light">
                     </a>
                 </div>
 
@@ -35,8 +35,8 @@
                                    class="form-control bg-light bg-opacity-50 border-light py-2"
                                    placeholder="Enter email or mobile">
                         </div>
-                        <div class="mb-3" id="password-block">
-                            <a href="{{ route('second', ['auth', 'password'])}}"
+                        <div class="mb-3">
+                            <a href="#"
                                class="float-end text-muted text-unline-dashed ms-1">Reset
                                 password</a>
                             <label class="form-label" for="login-password">Password</label>
@@ -83,6 +83,7 @@
         </div> <!-- end card -->
 
         <p class="mb-0 text-center text-white">New here? <a href="{{ route('register')}}"
+
             class="text-reset text-unline-dashed fw-bold ms-1">Sign Up</a>
     </p>
 </div>

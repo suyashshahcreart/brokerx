@@ -1,7 +1,10 @@
-import {defineConfig} from 'vite';
+import {
+    defineConfig
+} from 'vite';
 import laravel from 'laravel-vite-plugin';
 
 export default defineConfig({
+    base: '/lahomes/',
     plugins: [
         laravel({
             input: [
@@ -18,7 +21,7 @@ export default defineConfig({
                 'node_modules/quill/dist/quill.snow.css',
                 'node_modules/quill/dist/quill.bubble.css',
                 'node_modules/swiper/swiper-bundle.min.css',
-                
+
                 // js
                 'resources/js/app.js',
                 'resources/js/config.js',
