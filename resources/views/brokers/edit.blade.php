@@ -158,7 +158,7 @@
                                 <div class="mb-3">
                                     <label for="company_name" class="form-label">Company Name</label>
                                     <input type="text" id="company_name" name="company_name" class="form-control @error('company_name') is-invalid @enderror" 
-                                           placeholder="Enter Company Name" value="{{ old('company_name', $broker->company_name) }}">
+                                           placeholder="Enter Company Name" value="{{ old('company_name', $broker->company_name) }}" required>
                                     @error('company_name')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
@@ -168,7 +168,7 @@
                                 <div class="mb-3">
                                     <label for="position_title" class="form-label">Position Title</label>
                                     <input type="text" id="position_title" name="position_title" class="form-control @error('position_title') is-invalid @enderror" 
-                                           placeholder="e.g., Senior Broker, Real Estate Agent" value="{{ old('position_title', $broker->position_title) }}">
+                                           placeholder="e.g., Senior Broker, Real Estate Agent" value="{{ old('position_title', $broker->position_title) }}" required>
                                     @error('position_title')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
@@ -178,7 +178,7 @@
                                 <div class="mb-3">
                                     <label for="years_of_experience" class="form-label">Years of Experience</label>
                                     <input type="number" id="years_of_experience" name="years_of_experience" class="form-control @error('years_of_experience') is-invalid @enderror" 
-                                           placeholder="Enter Years" value="{{ old('years_of_experience', $broker->years_of_experience) }}" min="0">
+                                           placeholder="Enter Years" value="{{ old('years_of_experience', $broker->years_of_experience) }}" min="0" required>
                                     @error('years_of_experience')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
@@ -188,7 +188,7 @@
                                 <div class="mb-3">
                                     <label for="commission_rate" class="form-label">Commission Rate (%)</label>
                                     <input type="number" id="commission_rate" name="commission_rate" class="form-control @error('commission_rate') is-invalid @enderror" 
-                                           placeholder="e.g., 2.5" value="{{ old('commission_rate', $broker->commission_rate) }}" min="0" max="100" step="0.01">
+                                           placeholder="e.g., 2.5" value="{{ old('commission_rate', $broker->commission_rate) }}" min="0" max="100" required>
                                     @error('commission_rate')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
@@ -219,7 +219,7 @@
                                 <div class="mb-3">
                                     <label for="phone_number" class="form-label">Phone Number</label>
                                     <input type="text" id="phone_number" name="phone_number" class="form-control @error('phone_number') is-invalid @enderror" 
-                                           placeholder="+1 234 567 8900" value="{{ old('phone_number', $broker->phone_number) }}">
+                                           placeholder="+1 234 567 8900" value="{{ old('phone_number', $broker->phone_number) }}" required>
                                     @error('phone_number')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
@@ -229,7 +229,7 @@
                                 <div class="mb-3">
                                     <label for="whatsapp_number" class="form-label">WhatsApp Number</label>
                                     <input type="text" id="whatsapp_number" name="whatsapp_number" class="form-control @error('whatsapp_number') is-invalid @enderror" 
-                                           placeholder="+1 234 567 8900" value="{{ old('whatsapp_number', $broker->whatsapp_number) }}">
+                                           placeholder="Active Whatsapp No." value="{{ old('whatsapp_number', $broker->whatsapp_number) }}" required>
                                     @error('whatsapp_number')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
@@ -239,7 +239,7 @@
                                 <div class="mb-3">
                                     <label for="address" class="form-label">Address</label>
                                     <textarea class="form-control @error('address') is-invalid @enderror" id="address" name="address" rows="2"
-                                              placeholder="Enter full address">{{ old('address', $broker->address) }}</textarea>
+                                              placeholder="Enter full address" required>{{ old('address', $broker->address) }}</textarea>
                                     @error('address')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
@@ -249,7 +249,7 @@
                                 <div class="mb-3">
                                     <label for="city" class="form-label">City</label>
                                     <input type="text" id="city" name="city" class="form-control @error('city') is-invalid @enderror" 
-                                           placeholder="Enter City" value="{{ old('city', $broker->city) }}">
+                                           placeholder="Enter City" value="{{ old('city', $broker->city) }}" required>
                                     @error('city')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
@@ -259,7 +259,7 @@
                                 <div class="mb-3">
                                     <label for="state" class="form-label">State</label>
                                     <input type="text" id="state" name="state" class="form-control @error('state') is-invalid @enderror" 
-                                           placeholder="Enter State" value="{{ old('state', $broker->state) }}">
+                                           placeholder="Enter State" value="{{ old('state', $broker->state) }}" required>
                                     @error('state')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
@@ -269,7 +269,7 @@
                                 <div class="mb-3">
                                     <label for="country" class="form-label">Country</label>
                                     <input type="text" id="country" name="country" class="form-control @error('country') is-invalid @enderror" 
-                                           placeholder="Enter Country" value="{{ old('country', $broker->country) }}">
+                                           placeholder="Enter Country" value="{{ old('country', $broker->country) }}" required>
                                     @error('country')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
@@ -279,7 +279,7 @@
                                 <div class="mb-3">
                                     <label for="pin_code" class="form-label">Pin Code / Zip Code</label>
                                     <input type="text" id="pin_code" name="pin_code" class="form-control @error('pin_code') is-invalid @enderror" 
-                                           placeholder="Enter Pin/Zip Code" value="{{ old('pin_code', $broker->pin_code) }}">
+                                           placeholder="Enter Pin/Zip Code" value="{{ old('pin_code', $broker->pin_code) }}" required>
                                     @error('pin_code')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror

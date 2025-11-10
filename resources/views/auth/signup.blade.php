@@ -85,6 +85,14 @@
                         </div>
                     </div>
 
+                    <!-- <div class="mb-3">
+                        <label class="form-label" for="license-number">Broker License Number <span class="text-danger">*</span></label>
+                        <input type="text" id="license-number" name="license_number" value="{{ old('license_number') }}" class="form-control bg-light bg-opacity-50 border-light py-2 @error('license_number') is-invalid @enderror" placeholder="Enter your broker license number" required>
+                        @error('license_number')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div> -->
+
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label" for="example-password">Password <span class="text-danger">*</span></label>
