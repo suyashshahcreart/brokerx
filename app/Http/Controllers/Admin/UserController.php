@@ -58,7 +58,9 @@ class UserController extends Controller
     public function store(Request $request)
     {
         $rules = [
-            'name' => ['required','string','max:255'],
+            'firstname' => ['required','string','max:255'],
+            'lastname' => ['required','string','max:255'],
+            'mobile' => ['required','numeric','digits:10','unique:users,mobile'],
             'email' => ['required','email','max:255','unique:users,email'],
             'password' => ['required','string','min:6'],
         ];
@@ -73,7 +75,9 @@ class UserController extends Controller
         $validated = $request->validate($rules);
         
         $user = User::create([
-            'name' => $validated['name'],
+            'firstname' => $validated['firstname'],
+            'lastname' => $validated['lastname'],
+            'mobile' => $validated['mobile'],
             'email' => $validated['email'],
             'password' => Hash::make($validated['password'])
         ]);
@@ -113,7 +117,9 @@ class UserController extends Controller
     public function update(Request $request, User $user)
     {
         $rules = [
-            'name' => ['required','string','max:255'],
+            'firstname' => ['required','string','max:255'],
+            'lastname' => ['required','string','max:255'],
+            'mobile' => ['required','numeric','digits:10','unique:users,mobile,' . $user->id],
             'email' => ['required','email','max:255','unique:users,email,' . $user->id],
             'password' => ['nullable','string','min:6'],
         ];
@@ -130,14 +136,18 @@ class UserController extends Controller
         // Capture before state
         $user->load('roles');
         $before = [
-            'name' => $user->name,
+            'firstname' => $user->firstname,
+            'lastname' => $user->lastname,
+            'mobile' => $user->mobile,
             'email' => $user->email,
             'roles' => $user->roles->pluck('name')->sort()->values()->toArray(),
         ];
         
         // Prepare update data
         $data = [
-            'name' => $validated['name'],
+            'firstname' => $validated['firstname'],
+            'lastname' => $validated['lastname'],
+            'mobile' => $validated['mobile'],
             'email' => $validated['email']
         ];
         
@@ -177,7 +187,9 @@ class UserController extends Controller
         
         // Capture after state
         $after = [
-            'name' => $user->name,
+            'firstname' => $user->firstname,
+            'lastname' => $user->lastname,
+            'mobile' => $user->mobile,
             'email' => $user->email,
             'roles' => $user->roles->pluck('name')->sort()->values()->toArray(),
         ];

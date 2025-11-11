@@ -1,0 +1,7 @@
+1. composer install / update
+2. nom install
+3. npm run builds
+very importend steps
+
+check the node packages and js build.
+check providers are setup and working.
