@@ -37,10 +37,62 @@ class SchedulerController extends Controller
             'firstname' => 'required|string|max:255',
             'lastname' => 'nullable|string|max:255',
             'email' => 'nullable|email|max:255|unique:schedulers,email',
-            'mobile' => 'required|string|max:50|unique:schedulers,mobile',
+            'mobile' => 'nullable|string|max:50|unique:schedulers,mobile',
         ]);
 
+        // require at least one contact
+        if (empty($data['email']) && empty($data['mobile'])) {
+            return back()->withErrors(['mobile' => 'Please provide a mobile number or email and verify it before registering.'])->withInput();
+        }
+
+        // Check verification marker in cache (set by verifyOtp when called for registration)
+        $verified = false;
+        $verifiedKind = $request->input('verified_kind');
+        $verifiedValue = $request->input('verified_value');
+
+        if ($request->boolean('verified') && $verifiedValue) {
+            $regKey = 'otp:verified:registration:' . md5($verifiedValue);
+            if (Cache::pull($regKey)) {
+                $verified = true;
+            }
+        }
+
+        // Fallback: try to find any verification for provided contacts
+        if (! $verified) {
+            if (!empty($data['email'])) {
+                $regKey = 'otp:verified:registration:' . md5($data['email']);
+                if (Cache::pull($regKey)) {
+                    $verified = true;
+                    $verifiedKind = 'email';
+                    $verifiedValue = $data['email'];
+                }
+            }
+        }
+        if (! $verified) {
+            if (!empty($data['mobile'])) {
+                $regKey = 'otp:verified:registration:' . md5($data['mobile']);
+                if (Cache::pull($regKey)) {
+                    $verified = true;
+                    $verifiedKind = 'mobile';
+                    $verifiedValue = $data['mobile'];
+                }
+            }
+        }
+
+        if (! $verified) {
+            return back()->withErrors(['mobile' => 'Contact not verified or verification expired. Please verify and try again.'])->withInput();
+        }
+
         $scheduler = Scheduler::create($data);
+
+        // set verified timestamp
+        if ($verifiedKind === 'email' || (!empty($data['email']) && $verifiedValue === $data['email'])) {
+            $scheduler->email_verified_at = now();
+        }
+        if ($verifiedKind === 'mobile' || (!empty($data['mobile']) && $verifiedValue === $data['mobile'])) {
+            $scheduler->mobile_verified_at = now();
+        }
+        $scheduler->save();
 
         // Log in via session (simple mobile-based session auth)
         Session::put('scheduler_id', $scheduler->id);
@@ -199,6 +251,9 @@ class SchedulerController extends Controller
             Cache::forget($cacheKey);
 
             if ($isJson) {
+                // mark the identifier as verified for registration (short TTL)
+                $regKey = "otp:verified:registration:" . md5($identifier);
+                Cache::put($regKey, true, now()->addSeconds(600));
                 return response()->json(['ok' => true, 'message' => 'Email verified']);
             }
 
@@ -249,6 +304,9 @@ class SchedulerController extends Controller
         Cache::forget($cacheKey);
 
         if ($isJson) {
+            // mark the identifier as verified for registration (short TTL)
+            $regKey = "otp:verified:registration:" . md5($mobile);
+            Cache::put($regKey, true, now()->addSeconds(600));
             return response()->json(['ok' => true, 'message' => 'Mobile verified']);
         }
 

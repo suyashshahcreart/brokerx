@@ -144,9 +144,33 @@
                 verifiedBadge.classList.remove('d-none');
                 mobileVerifyText.innerHTML = '<span class="text-success">Verified</span>';
                 otpBlock.style.display = 'none';
-                // disable inputs
-                mobileInput.readOnly = true;
-                emailInput.readOnly = true;
+                // make mobile read-only but keep email editable per requirement
+                if (mobileInput) mobileInput.readOnly = true;
+                if (emailInput) emailInput.readOnly = false;
+                // hide the verify button next to mobile after successful verification
+                if (btnVerify) btnVerify.style.display = 'none';
+
+                // attach hidden verification markers to the form so server can validate
+                const kind = (verifiedKind || (verifiedValue && verifiedValue.indexOf('@') !== -1 ? 'email' : 'mobile'));
+                // helper to ensure hidden input exists
+                function setHidden(name, value){
+                    let el = form.querySelector('input[name="' + name + '"]');
+                    if (!el){
+                        el = document.createElement('input');
+                        el.type = 'hidden';
+                        el.name = name;
+                        form.appendChild(el);
+                    }
+                    el.value = value;
+                }
+                setHidden('verified', '1');
+                setHidden('verified_kind', kind);
+                setHidden('verified_value', verifiedValue || (kind === 'email' ? emailInput.value.trim() : mobileInput.value.trim()));
+
+                // make sure submit button is visible and enable it if other inputs ok
+                if (btnSubmitRegister){
+                    btnSubmitRegister.style.display = '';
+                }
                 enableRegisterIfReady();
             }catch(err){
                 mobileVerifyText.innerHTML = '<span class="text-danger">'+ (err.message || 'Verification failed') +'</span>';
@@ -166,6 +190,13 @@
             otpCodeInput.value = '';
             verified = false;
             verifiedBadge.classList.add('d-none');
+            // remove hidden verification markers
+            ['verified','verified_kind','verified_value'].forEach(name => {
+                const el = form.querySelector('input[name="'+name+'"]');
+                if (el) el.remove();
+            });
+            // re-show verify button when changing mobile/email
+            if (btnVerify) btnVerify.style.display = '';
             enableRegisterIfReady();
         });
     }
