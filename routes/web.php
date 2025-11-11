@@ -3,6 +3,7 @@ use App\Http\Controllers\OtpController;
 use App\Http\Controllers\EmailOtpController;
 use App\Http\Controllers\BrokerController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\SchedulerController;
 
 
 use Illuminate\Support\Facades\Route;
@@ -42,14 +43,30 @@ Route::middleware('auth')->group(function () {
 });
 
 // Optional dashboard alias (to avoid Route [dashboard] not defined errors)
-Route::middleware('auth')->get('/dashboard', function() {
+Route::middleware('auth')->get('/dashboard', function () {
     return redirect()->route('root');
 })->name('dashboard');
 
 // Broker routes (protected by auth middleware)
 Route::middleware('auth')->group(function () {
     Route::resource('broker', BrokerController::class);
+
 });
+
+//schudler
+
+// Scheduler OTP endpoints (public)
+Route::post('schedulers/otp/send', [SchedulerController::class, 'sendOtp'])->name('schedulers.otp.send');
+Route::post('schedulers/otp/verify', [SchedulerController::class, 'verifyOtp'])->name('schedulers.otp.verify');
+
+// Scheduler auth (mobile-based) and resource routes
+Route::get('schedulers/register', [SchedulerController::class, 'showRegister'])->name('schedulers.register');
+Route::post('schedulers/register', [SchedulerController::class, 'register'])->name('schedulers.register.store');
+Route::get('schedulers/login', [SchedulerController::class, 'showLogin'])->name('schedulers.login');
+Route::post('schedulers/login', [SchedulerController::class, 'login'])->name('schedulers.login.attempt');
+Route::post('schedulers/logout', [SchedulerController::class, 'logout'])->name('schedulers.logout');
+
+Route::resource('schedulers', SchedulerController::class);
 
 Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     Route::get('/', [AdminDashboardController::class, 'index'])->name('root');
@@ -66,13 +83,13 @@ Route::group(['prefix' => 'themes', 'middleware' => 'auth'], function () {
     Route::get('{any}', [RoutingController::class, 'root'])->name('any');
 });
 
-Route::group(['prefix' => 'admin', 'as' => 'admin.', 'middleware' => ['web','auth']], function () {
+Route::group(['prefix' => 'admin', 'as' => 'admin.', 'middleware' => ['web', 'auth']], function () {
     Route::resource('permissions', PermissionController::class);
     Route::resource('roles', RoleController::class);
     Route::resource('users', AdminUserController::class);
     Route::get('activity', [ActivityLogController::class, 'index'])->name('activity.index');
 });
 
-Route::group(['prefix' => 'brokerx', 'as' => 'brokerx.', 'middleware' => ['web','auth']], function () {
+Route::group(['prefix' => 'brokerx', 'as' => 'brokerx.', 'middleware' => ['web', 'auth']], function () {
     Route::get('/', [BrokerXController::class, 'index'])->name('index');
 });
