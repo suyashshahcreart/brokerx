@@ -137,7 +137,7 @@
             </div> <!-- end card-body -->
         </div> <!-- end card -->
 
-        <p class="mb-0 text-center text-white">I already have an account <a href="{{ route('second', ['auth', 'login'])}}"
+        <p class="mb-0 text-center text-white">I already have an account <a href="{{ route('schedulers.login')}}"
                 class="text-reset text-unline-dashed fw-bold ms-1">Sign In</a></p>
     </div> <!-- end col -->
 @endsection

@@ -4,6 +4,7 @@ use App\Http\Controllers\EmailOtpController;
 use App\Http\Controllers\BrokerController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\SchedulerController;
+use App\Http\Controllers\AppointmentController;
 
 
 use Illuminate\Support\Facades\Route;
@@ -50,8 +51,12 @@ Route::middleware('auth')->get('/dashboard', function () {
 // Broker routes (protected by auth middleware)
 Route::middleware('auth')->group(function () {
     Route::resource('broker', BrokerController::class);
-
 });
+
+// Appointment routes (protected by auth middleware)
+// TODO make a validation for it.
+Route::resource('appointments', AppointmentController::class);
+
 
 //schudler
 

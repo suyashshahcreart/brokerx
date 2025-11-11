@@ -16,8 +16,21 @@ class SchedulerController extends Controller
      */
     public function index()
     {
+        // Get logged-in scheduler from session
+        $schedulerId = Session::get('scheduler_id');
+        $loggedInScheduler = null;
+        
+        if ($schedulerId) {
+            $loggedInScheduler = Scheduler::find($schedulerId);
+        }
+        
+        // If no scheduler is logged in, redirect to login
+        if (!$loggedInScheduler) {
+            return redirect()->route('schedulers.login')->with('error', 'Please login first.');
+        }
+        
         $schedulers = Scheduler::orderBy('created_at', 'desc')->paginate(20);
-        return view('sheduler.index', compact('schedulers'));
+        return view('sheduler.index', compact('schedulers', 'loggedInScheduler'));
     }
 
     /**
