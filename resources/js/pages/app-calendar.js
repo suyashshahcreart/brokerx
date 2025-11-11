@@ -30,10 +30,39 @@ class CalendarSchedule {
           this.formEvent?.reset();
           this.formEvent.classList.remove('was-validated');
           this.newEventData = null;
+          this.selectedEvent = info.event;
+          
+          // Check if this is an appointment from database
+          if (this.selectedEvent.id && this.selectedEvent.extendedProps) {
+               // Show appointment details
+               const props = this.selectedEvent.extendedProps;
+               const appointmentDetails = `
+                    <div class="appointment-details">
+                         <p><strong>Location:</strong> ${props.address}, ${props.city}, ${props.state}, ${props.country} - ${props.pin_code}</p>
+                         <p><strong>Status:</strong> <span class="badge bg-${this.selectedEvent.classNames[0].replace('bg-', '')}">${props.status.toUpperCase()}</span></p>
+                         <p><strong>Time:</strong> ${this.selectedEvent.start.toLocaleString()}</p>
+                         ${this.selectedEvent.end ? `<p><strong>End Time:</strong> ${this.selectedEvent.end.toLocaleString()}</p>` : ''}
+                    </div>
+               `;
+               
+               // Use SweetAlert to show details
+               if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                         title: this.selectedEvent.title,
+                         html: appointmentDetails,
+                         icon: 'info',
+                         confirmButtonText: 'Close'
+                    });
+               } else {
+                    alert(this.selectedEvent.title + '\n\n' + props.address + ', ' + props.city + '\nStatus: ' + props.status);
+               }
+               return;
+          }
+          
+          // Original event edit functionality for draggable events
           this.btnDeleteEvent.style.display = "block";
           this.modalTitle.text = ('Edit Event');
           this.modal.show();
-          this.selectedEvent = info.event;
           document.getElementById('event-title').value = this.selectedEvent.title;
           document.getElementById('event-category').value = (this.selectedEvent.classNames[0]);
      }
@@ -139,7 +168,24 @@ class CalendarSchedule {
                     center: 'title',
                     right: 'dayGridMonth,timeGridWeek,timeGridDay,listMonth'
                },
-               initialEvents: defaultEvents,
+               events: function(info, successCallback, failureCallback) {
+                    // Check if API URL is available
+                    if (window.appointmentsApiUrl) {
+                         fetch(window.appointmentsApiUrl)
+                              .then(response => response.json())
+                              .then(data => {
+                                   successCallback(data);
+                              })
+                              .catch(error => {
+                                   console.error('Error loading appointments:', error);
+                                   // Fallback to default events if API fails
+                                   successCallback(defaultEvents);
+                              });
+                    } else {
+                         // Use default events if no API URL
+                         successCallback(defaultEvents);
+                    }
+               },
                editable: true,
                droppable: true, // this allows things to be dropped onto the calendar !!!
                // dayMaxEventRows: false, // allow "more" link when too many events

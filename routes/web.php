@@ -71,6 +71,9 @@ Route::get('schedulers/login', [SchedulerController::class, 'showLogin'])->name(
 Route::post('schedulers/login', [SchedulerController::class, 'login'])->name('schedulers.login.attempt');
 Route::post('schedulers/logout', [SchedulerController::class, 'logout'])->name('schedulers.logout');
 
+// Get appointments as JSON for calendar
+Route::get('schedulers/appointments/json', [SchedulerController::class, 'getAppointmentsJson'])->name('schedulers.appointments.json');
+
 Route::resource('schedulers', SchedulerController::class);
 
 Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {

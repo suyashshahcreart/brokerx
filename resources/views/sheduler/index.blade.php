@@ -23,7 +23,8 @@
                     <div class="row">
                         <div class="col-xl-3">
                             <div class="d-grid">
-                                <button type="button" class="btn btn-primary" id="btn-new-event" data-bs-toggle="modal" data-bs-target="#event-modal">
+                                <button type="button" class="btn btn-primary" id="btn-new-event" data-bs-toggle="modal"
+                                    data-bs-target="#event-modal">
                                     <i class="ri-add-line fs-18 me-2"></i> Add New Appointment
                                 </button>
                             </div>
@@ -59,7 +60,8 @@
             <div class="modal fade" id="event-modal" tabindex="-1">
                 <div class="modal-dialog modal-lg">
                     <div class="modal-content">
-                        <form class="needs-validation" action="{{ route('appointments.store') }}" method="POST" id="forms-appointment" novalidate>
+                        <form class="needs-validation" action="{{ route('appointments.store') }}" method="POST"
+                            id="forms-appointment" novalidate>
                             @csrf
                             <div class="modal-header p-3 border-bottom-0">
                                 <h5 class="modal-title" id="modal-title">Schedule New Appointment</h5>
@@ -68,7 +70,7 @@
                             <div class="modal-body px-3 pb-3 pt-0">
                                 <!-- Hidden Scheduler ID (from logged-in scheduler) -->
                                 <input type="hidden" name="scheduler_id" value="{{ $loggedInScheduler->id ?? '' }}">
-                                
+
                                 <!-- Scheduler Info Display -->
                                 <div class="row">
                                     <div class="col-12">
@@ -76,7 +78,8 @@
                                             <i class="ri-user-line me-2"></i>
                                             <strong>Scheduler:</strong> {{ $loggedInScheduler->name ?? 'N/A' }}
                                             @if($loggedInScheduler->mobile ?? false)
-                                                <span class="ms-2">| <i class="ri-phone-line"></i> {{ $loggedInScheduler->mobile }}</span>
+                                                <span class="ms-2">| <i class="ri-phone-line"></i>
+                                                    {{ $loggedInScheduler->mobile }}</span>
                                             @endif
                                         </div>
                                     </div>
@@ -86,16 +89,19 @@
                                 <div class="row">
                                     <div class="col-md-4">
                                         <div class="mb-3">
-                                            <label class="control-label form-label">Date <span class="text-danger">*</span></label>
-                                            <input class="form-control" type="date" name="date" id="appointment-date" 
-                                                   min="{{ date('Y-m-d') }}" required />
+                                            <label class="control-label form-label">Date <span
+                                                    class="text-danger">*</span></label>
+                                            <input class="form-control" type="date" name="date" id="appointment-date"
+                                                min="{{ date('Y-m-d') }}" required />
                                             <div class="invalid-feedback">Please provide a valid date</div>
                                         </div>
                                     </div>
                                     <div class="col-md-4">
                                         <div class="mb-3">
-                                            <label class="control-label form-label">Start Time <span class="text-danger">*</span></label>
-                                            <input class="form-control" type="time" name="start_time" id="start-time" required />
+                                            <label class="control-label form-label">Start Time <span
+                                                    class="text-danger">*</span></label>
+                                            <input class="form-control" type="time" name="start_time" id="start-time"
+                                                required />
                                             <div class="invalid-feedback">Please provide start time</div>
                                         </div>
                                     </div>
@@ -112,7 +118,8 @@
                                 <div class="row">
                                     <div class="col-12">
                                         <div class="mb-3">
-                                            <label class="control-label form-label">Address <span class="text-danger">*</span></label>
+                                            <label class="control-label form-label">Address <span
+                                                    class="text-danger">*</span></label>
                                             <input class="form-control" placeholder="Street Address" type="text"
                                                 name="address" id="appointment-address" required />
                                             <div class="invalid-feedback">Please provide an address</div>
@@ -124,17 +131,19 @@
                                 <div class="row">
                                     <div class="col-md-6">
                                         <div class="mb-3">
-                                            <label class="control-label form-label">City <span class="text-danger">*</span></label>
-                                            <input class="form-control" placeholder="City" type="text"
-                                                name="city" id="appointment-city" required />
+                                            <label class="control-label form-label">City <span
+                                                    class="text-danger">*</span></label>
+                                            <input class="form-control" placeholder="City" type="text" name="city"
+                                                id="appointment-city" required />
                                             <div class="invalid-feedback">Please provide a city</div>
                                         </div>
                                     </div>
                                     <div class="col-md-6">
                                         <div class="mb-3">
-                                            <label class="control-label form-label">State <span class="text-danger">*</span></label>
-                                            <input class="form-control" placeholder="State" type="text"
-                                                name="state" id="appointment-state" required />
+                                            <label class="control-label form-label">State <span
+                                                    class="text-danger">*</span></label>
+                                            <input class="form-control" placeholder="State" type="text" name="state"
+                                                id="appointment-state" required />
                                             <div class="invalid-feedback">Please provide a state</div>
                                         </div>
                                     </div>
@@ -144,17 +153,19 @@
                                 <div class="row">
                                     <div class="col-md-6">
                                         <div class="mb-3">
-                                            <label class="control-label form-label">Country <span class="text-danger">*</span></label>
-                                            <input class="form-control" placeholder="Country" type="text"
-                                                name="country" id="appointment-country" value="" required />
+                                            <label class="control-label form-label">Country <span
+                                                    class="text-danger">*</span></label>
+                                            <input class="form-control" placeholder="Country" type="text" name="country"
+                                                id="appointment-country" value="" required />
                                             <div class="invalid-feedback">Please provide a country</div>
                                         </div>
                                     </div>
                                     <div class="col-md-6">
                                         <div class="mb-3">
-                                            <label class="control-label form-label">Pin Code <span class="text-danger">*</span></label>
-                                            <input class="form-control" placeholder="Pin Code" type="text"
-                                                name="pin_code" id="appointment-pincode" required />
+                                            <label class="control-label form-label">Pin Code <span
+                                                    class="text-danger">*</span></label>
+                                            <input class="form-control" placeholder="Pin Code" type="text" name="pin_code"
+                                                id="appointment-pincode" required />
                                             <div class="invalid-feedback">Please provide a pin code</div>
                                         </div>
                                     </div>
@@ -164,7 +175,8 @@
                                 <div class="row">
                                     <div class="col-12">
                                         <div class="mb-3">
-                                            <label class="control-label form-label">Status <span class="text-danger">*</span></label>
+                                            <label class="control-label form-label">Status <span
+                                                    class="text-danger">*</span></label>
                                             <select class="form-select" name="status" id="appointment-status" required>
                                                 <option value="pending" selected>Pending</option>
                                                 <option value="confirmed">Confirmed</option>
@@ -193,48 +205,14 @@
             </div> <!-- end modal-->
         </div> <!-- end col -->
     </div> <!-- end row -->
-
+    <script src="{{ asset('js/appointment-add.js') }}"></script>
 @endsection
 
 @section('script-bottom')
     @vite(['resources/js/pages/app-calendar.js'])
-    
     <script>
-        // Form validation for appointment
-        (function() {
-            'use strict';
-            
-            // Fetch all the forms we want to apply custom Bootstrap validation to
-            var forms = document.querySelectorAll('.needs-validation');
-            
-            // Loop over them and prevent submission
-            Array.prototype.slice.call(forms).forEach(function(form) {
-                form.addEventListener('submit', function(event) {
-                    if (!form.checkValidity()) {
-                        event.preventDefault();
-                        event.stopPropagation();
-                    }
-                    
-                    form.classList.add('was-validated');
-                }, false);
-            });
-
-            // Validate end time is after start time
-            const startTime = document.getElementById('start-time');
-            const endTime = document.getElementById('end-time');
-            
-            if (startTime && endTime) {
-                endTime.addEventListener('change', function() {
-                    if (startTime.value && endTime.value) {
-                        if (endTime.value <= startTime.value) {
-                            endTime.setCustomValidity('End time must be after start time');
-                        } else {
-                            endTime.setCustomValidity('');
-                        }
-                    }
-                });
-            }
-        })();
+        // Pass API URL to fetch appointments
+        window.appointmentsApiUrl = "{{ route('schedulers.appointments.json') }}";
 
         // Show success/error messages
         @if(session('success'))

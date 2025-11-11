@@ -12,6 +12,44 @@ use Illuminate\Support\Facades\Mail;
 class SchedulerController extends Controller
 {
     /**
+     * Get appointments as JSON for calendar
+     */
+    public function getAppointmentsJson()
+    {
+        $schedulerId = Session::get('scheduler_id');
+        
+        if (!$schedulerId) {
+            return response()->json(['error' => 'Not authenticated'], 401);
+        }
+        
+        $appointments = \App\Models\Appointment::where('scheduler_id', $schedulerId)
+            ->orderBy('date', 'desc')
+            ->orderBy('start_time', 'desc')
+            ->get()
+            ->map(function ($appointment) {
+                return [
+                    'id' => $appointment->id,
+                    'title' => $appointment->address . ', ' . $appointment->city,
+                    'start' => $appointment->date . 'T' . $appointment->start_time,
+                    'end' => $appointment->end_time ? $appointment->date . 'T' . $appointment->end_time : null,
+                    'className' => $appointment->status === 'pending' ? 'bg-primary' : 
+                                  ($appointment->status === 'confirmed' ? 'bg-success' : 
+                                  ($appointment->status === 'completed' ? 'bg-info' : 'bg-danger')),
+                    'extendedProps' => [
+                        'status' => $appointment->status,
+                        'address' => $appointment->address,
+                        'city' => $appointment->city,
+                        'state' => $appointment->state,
+                        'country' => $appointment->country,
+                        'pin_code' => $appointment->pin_code,
+                    ]
+                ];
+            });
+        
+        return response()->json($appointments);
+    }
+
+    /**
      * Display a listing of the resource.
      */
     public function index()
