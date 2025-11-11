@@ -44,18 +44,56 @@
                     <div class="row">
                         <div class="col-lg-6">
                             <div class="mb-3">
-                                <label for="name" class="form-label">Name <span class="text-danger">*</span></label>
-                                <input type="text" name="name" id="name" value="{{ old('name') }}" 
-                                    class="form-control @error('name') is-invalid @enderror" 
+                                <label for="firstname" class="form-label">First Name <span class="text-danger">*</span></label>
+                                <input type="text" name="firstname" id="firstname" value="{{ old('firstname') }}"
+                                    class="form-control @error('firstname') is-invalid @enderror"
                                     required minlength="2" maxlength="255">
                                 <div class="invalid-feedback">
-                                    @error('name')
+                                    @error('firstname')
                                         {{ $message }}
                                     @else
-                                        Please provide a valid name (minimum 2 characters).
+                                        Please provide a valid first name (minimum 2 characters).
                                     @enderror
                                 </div>
-                                @if(!$errors->has('name'))
+                                @if(!$errors->has('firstname'))
+                                    <div class="valid-feedback">Looks good!</div>
+                                @endif
+                            </div>
+                        </div>
+                        <div class="col-lg-6">
+                            <div class="mb-3">
+                                <label for="lastname" class="form-label">Last Name <span class="text-danger">*</span></label>
+                                <input type="text" name="lastname" id="lastname" value="{{ old('lastname') }}"
+                                    class="form-control @error('lastname') is-invalid @enderror"
+                                    required minlength="2" maxlength="255">
+                                <div class="invalid-feedback">
+                                    @error('lastname')
+                                        {{ $message }}
+                                    @else
+                                        Please provide a valid last name (minimum 2 characters).
+                                    @enderror
+                                </div>
+                                @if(!$errors->has('lastname'))
+                                    <div class="valid-feedback">Looks good!</div>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-lg-6">
+                            <div class="mb-3">
+                                <label for="mobile" class="form-label">Mobile <span class="text-danger">*</span></label>
+                                <input type="tel" name="mobile" id="mobile" value="{{ old('mobile') }}"
+                                    class="form-control @error('mobile') is-invalid @enderror"
+                                    required inputmode="numeric" pattern="[0-9]{10}" minlength="10" maxlength="10">
+                                <div class="invalid-feedback">
+                                    @error('mobile')
+                                        {{ $message }}
+                                    @else
+                                        Mobile number must be exactly 10 digits.
+                                    @enderror
+                                </div>
+                                @if(!$errors->has('mobile'))
                                     <div class="valid-feedback">Looks good!</div>
                                 @endif
                             </div>
@@ -63,8 +101,8 @@
                         <div class="col-lg-6">
                             <div class="mb-3">
                                 <label for="email" class="form-label">Email <span class="text-danger">*</span></label>
-                                <input type="email" name="email" id="email" value="{{ old('email') }}" 
-                                    class="form-control @error('email') is-invalid @enderror" 
+                                <input type="email" name="email" id="email" value="{{ old('email') }}"
+                                    class="form-control @error('email') is-invalid @enderror"
                                     required maxlength="255">
                                 <div class="invalid-feedback">
                                     @error('email')

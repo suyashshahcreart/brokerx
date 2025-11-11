@@ -50,7 +50,8 @@
                     <table class="table table-hover align-middle mb-0" id="users-table">
                         <thead class="table-light">
                             <tr>
-                                <th>Name</th>
+                                <th>Full Name</th>
+                                <th>Mobile</th>
                                 <th>Email</th>
                                 <th>Roles</th>
                                 <th class="text-end">Actions</th>
@@ -87,6 +88,7 @@
                 order: [[0, 'asc']],
                 columns: [
                     { data: 'name', name: 'name', className: 'fw-semibold' },
+                    { data: 'mobile', name: 'mobile' },
                     { data: 'email', name: 'email' },
                     { data: 'roles_badges', name: 'roles.name', orderable: false, searchable: false },
                     {
