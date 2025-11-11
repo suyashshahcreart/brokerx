@@ -62,7 +62,10 @@ class ActivityLogController extends Controller
 
         $logNames = Activity::select('log_name')->distinct()->pluck('log_name')->sort()->values();
         $events = Activity::select('description')->distinct()->pluck('description')->sort()->values();
-        $users = User::orderBy('name')->get(['id', 'name']);
+        $users = User::select('id', 'firstname', 'lastname')
+            ->orderBy('firstname')
+            ->orderBy('lastname')
+            ->get();
 
         return view('admin.activity.index', compact('logNames', 'events', 'users'));
     }

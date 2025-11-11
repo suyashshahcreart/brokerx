@@ -28,6 +28,22 @@ class UserController extends Controller
             $canDelete = $request->user()->can('user_delete');
 
             return DataTables::of($query)
+                ->addColumn('name', function (User $user) {
+                    return e($user->name);
+                })
+                ->filterColumn('name', function ($query, $keyword) {
+                    $query->where(function ($subQuery) use ($keyword) {
+                        $subQuery
+                            ->where('firstname', 'like', "%{$keyword}%")
+                            ->orWhere('lastname', 'like', "%{$keyword}%");
+                    });
+                })
+                ->orderColumn('name', function ($query, $direction) {
+                    $query
+                        ->orderBy('firstname', $direction)
+                        ->orderBy('lastname', $direction);
+                })
+                ->editColumn('mobile', fn(User $user) => e($user->mobile))
                 ->addColumn('roles_badges', function (User $user) {
                     $user->loadMissing('roles');
                     return view('admin.users.partials.roles', ['roles' => $user->roles])->render();
@@ -35,7 +51,6 @@ class UserController extends Controller
                 ->addColumn('actions', function (User $user) use ($canEdit, $canDelete) {
                     return view('admin.users.partials.actions', compact('user', 'canEdit', 'canDelete'))->render();
                 })
-                ->editColumn('name', fn(User $user) => e($user->name))
                 ->editColumn('email', fn(User $user) => e($user->email))
                 ->rawColumns(['roles_badges', 'actions'])
                 ->toJson();
@@ -97,6 +112,9 @@ class UserController extends Controller
                 'event' => 'created',
                 'after' => [
                     'name' => $user->name,
+                    'firstname' => $user->firstname,
+                    'lastname' => $user->lastname,
+                    'mobile' => $user->mobile,
                     'email' => $user->email,
                     'roles' => $user->roles->pluck('name')->toArray()
                 ]
@@ -136,6 +154,7 @@ class UserController extends Controller
         // Capture before state
         $user->load('roles');
         $before = [
+            'name' => $user->name,
             'firstname' => $user->firstname,
             'lastname' => $user->lastname,
             'mobile' => $user->mobile,
@@ -187,6 +206,7 @@ class UserController extends Controller
         
         // Capture after state
         $after = [
+            'name' => $user->name,
             'firstname' => $user->firstname,
             'lastname' => $user->lastname,
             'mobile' => $user->mobile,
@@ -238,6 +258,9 @@ class UserController extends Controller
         $user->load('roles');
         $before = [
             'name' => $user->name,
+            'firstname' => $user->firstname,
+            'lastname' => $user->lastname,
+            'mobile' => $user->mobile,
             'email' => $user->email,
             'roles' => $user->roles->pluck('name')->sort()->values()->toArray(),
         ];
