@@ -17,7 +17,7 @@ class SchedulerController extends Controller
     public function index()
     {
         $schedulers = Scheduler::orderBy('created_at', 'desc')->paginate(20);
-        return view('sheduler.list', compact('schedulers'));
+        return view('sheduler.index', compact('schedulers'));
     }
 
     /**

@@ -19,7 +19,8 @@
                 <p class="text-muted text-center mt-1 mb-4">Enter your email, mobile to Shedule Appoinment.</p>
 
                 <div class="px-4">
-                    <form method="POST" action="{{ route('schedulers.otp.verify') }}" class="authentication-form" id="scheduler-otp-form">
+                    <form method="POST" action="{{ route('schedulers.otp.verify') }}" class="authentication-form" 
+                        id="scheduler-otp-form" data-send-url="{{ route('schedulers.otp.send') }}">
 
                         @csrf
                         @if (sizeof($errors) > 0)
@@ -59,40 +60,7 @@
                         </div>
                     </form>
 
-                    <script>
-                        (function(){
-                            const sendBtn = document.getElementById('btn-send-otp');
-                            const resendBtn = document.getElementById('btn-resend-otp');
-                            const mobileInput = document.getElementById('login-mobile');
-                            const otpBlock = document.getElementById('otp-block');
-                            const otpText = document.getElementById('login-otp-text');
-
-                            function csrf() { return document.querySelector('meta[name="csrf-token"]').getAttribute('content'); }
-
-                            async function sendOtp(){
-                                const identifier = mobileInput.value.trim();
-                                if(!identifier){ alert('Please enter mobile or email'); return; }
-                                sendBtn.disabled = true;
-                                const res = await fetch("{{ route('schedulers.otp.send') }}", {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf() },
-                                    body: JSON.stringify({ identifier })
-                                });
-                                const json = await res.json();
-                                if(json.ok){
-                                    otpBlock.style.display = 'block';
-                                    otpText.textContent = 'Code sent. It will expire in ' + (json.ttl || 300) + ' seconds.';
-                                    resendBtn.style.display = 'inline-block';
-                                } else {
-                                    alert(json.message || 'Unable to send OTP');
-                                }
-                                sendBtn.disabled = false;
-                            }
-
-                            sendBtn.addEventListener('click', sendOtp);
-                            resendBtn.addEventListener('click', sendOtp);
-                        })();
-                    </script>
+                    <script src="{{ asset('js/scheduler-login.js') }}"></script>
 
                     <!-- <p class="mt-3 fw-semibold no-span">OR sign with</p>
                         <div class="text-center">
@@ -107,7 +75,7 @@
             </div> <!-- end card-body -->
         </div> <!-- end card -->
 
-        <p class="mb-0 text-center text-white">New here? <a href="{{ route('register')}}"
+        <p class="mb-0 text-center text-white">New here? <a href="{{ route('schedulers.register')}}"
                 class="text-reset text-unline-dashed fw-bold ms-1">Sign Up</a>
         </p>
     </div>

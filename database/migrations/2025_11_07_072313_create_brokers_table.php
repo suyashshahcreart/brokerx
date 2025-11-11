@@ -25,7 +25,7 @@ return new class extends Migration {
             $table->string('pin_code')->nullable();
 
             // Professional info
-            $table->string('license_number')->unique()->nullable();
+            $table->string('license_number')->unique()->nullable()->default(null);
             $table->string('company_name')->nullable();
             $table->string('position_title')->nullable();
             $table->integer('years_of_experience')->nullable();
