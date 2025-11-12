@@ -14,9 +14,29 @@ BrokerX is a Laravel 11 real estate broker management platform with dual authent
 ### Dual Authentication Pattern
 Two independent auth systems coexist:
 1. **Standard Auth** (`routes/auth.php`): Uses Laravel Breeze for Users/Brokers
+   - Middleware: `auth`
+   - Check: `auth()->check()`, `auth()->user()`
+   - Routes: Protected by `auth` middleware
 2. **Scheduler Auth** (`SchedulerController`): OTP-based, session-stored (`scheduler_id`), no password field
+   - Middleware: `scheduler.auth` (custom middleware in `app/Http/Middleware/SchedulerAuth.php`)
+   - Check: `Session::has('scheduler_id')`, `Session::get('scheduler_id')`
+   - Routes: Protected by `scheduler.auth` middleware
 
 When adding auth checks: `Session::get('scheduler_id')` for schedulers, `auth()->user()` for standard users.
+
+### Middleware System
+Registered aliases in `bootstrap/app.php`:
+- `auth` - Standard Laravel authentication
+- `permission` - Spatie permission check
+- `role` - Spatie role check
+- `role_or_permission` - Spatie role or permission check
+- `scheduler.auth` - Custom scheduler authentication (checks for `scheduler_id` in session)
+
+Apply in routes:
+```php
+Route::middleware(['auth'])->group(function () { /* User routes */ });
+Route::middleware(['scheduler.auth'])->group(function () { /* Scheduler routes */ });
+```
 
 ### Permission System
 Uses Spatie Laravel Permission package:
