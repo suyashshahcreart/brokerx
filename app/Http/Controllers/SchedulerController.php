@@ -27,14 +27,38 @@ class SchedulerController extends Controller
             ->orderBy('start_time', 'desc')
             ->get()
             ->map(function ($appointment) {
+                // Determine background color based on status
+                $bgClass = match($appointment->status) {
+                    'pending' => 'bg-primary',
+                    'confirmed' => 'bg-success',
+                    'completed' => 'bg-info',
+                    'cancelled' => 'bg-danger',
+                    default => 'bg-secondary'
+                };
+                
+                // Get hex color for the status
+                $color = match($appointment->status) {
+                    'pending' => '#3b76e1',
+                    'confirmed' => '#22c55e',
+                    'completed' => '#0dcaf0',
+                    'cancelled' => '#ef4444',
+                    default => '#6c757d'
+                };
+                
+                // Format dates for FullCalendar (ISO 8601 format)
+                $startDateTime = \Carbon\Carbon::parse($appointment->date . ' ' . $appointment->start_time)->toIso8601String();
+                $endDateTime = $appointment->end_time 
+                    ? \Carbon\Carbon::parse($appointment->date . ' ' . $appointment->end_time)->toIso8601String() 
+                    : null;
+                
                 return [
                     'id' => $appointment->id,
                     'title' => $appointment->address . ', ' . $appointment->city,
-                    'start' => $appointment->date . 'T' . $appointment->start_time,
-                    'end' => $appointment->end_time ? $appointment->date . 'T' . $appointment->end_time : null,
-                    'className' => $appointment->status === 'pending' ? 'bg-primary' : 
-                                  ($appointment->status === 'confirmed' ? 'bg-success' : 
-                                  ($appointment->status === 'completed' ? 'bg-info' : 'bg-danger')),
+                    'start' => $startDateTime,
+                    'end' => $endDateTime,
+                    'classNames' => [$bgClass], // FullCalendar expects an array
+                    'backgroundColor' => $color,
+                    'borderColor' => $color,
                     'extendedProps' => [
                         'status' => $appointment->status,
                         'address' => $appointment->address,

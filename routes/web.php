@@ -51,15 +51,11 @@ Route::middleware('auth')->get('/dashboard', function () {
 // Broker routes (protected by auth middleware)
 Route::middleware('auth')->group(function () {
     Route::resource('broker', BrokerController::class);
+    Route::get('appointments/json', [AppointmentController::class, 'getAppointmentsJson'])->name('appointments.json');
+    Route::resource('appointments', AppointmentController::class);
 });
 
-// Appointment routes (protected by auth middleware)
-// TODO make a validation for it.
-Route::resource('appointments', AppointmentController::class);
-
-
 //schudler
-
 // Scheduler OTP endpoints (public)
 Route::post('schedulers/otp/send', [SchedulerController::class, 'sendOtp'])->name('schedulers.otp.send');
 Route::post('schedulers/otp/verify', [SchedulerController::class, 'verifyOtp'])->name('schedulers.otp.verify');

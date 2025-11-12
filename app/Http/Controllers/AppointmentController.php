@@ -6,6 +6,7 @@ use App\Models\Appointment;
 use App\Models\Scheduler;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Validator;
 
 class AppointmentController extends Controller
@@ -15,8 +16,91 @@ class AppointmentController extends Controller
      */
     public function index()
     {
-        $appointments = Appointment::with('scheduler')->latest()->paginate(10);
-        return view('appointments.index', compact('appointments'));
+        // Get logged-in scheduler from session (for scheduler view)
+        $schedulerId = Session::get('scheduler_id');
+        $loggedInScheduler = null;
+
+        if ($schedulerId) {
+            $loggedInScheduler = Scheduler::find($schedulerId);
+        }
+
+        // If accessed by authenticated user (not scheduler), show all appointments
+        if (Auth::check() && !$loggedInScheduler) {
+            $appointments = Appointment::with('scheduler')->latest()->paginate(10);
+            return view('appointments.index', compact('appointments', 'loggedInScheduler'));
+        }
+
+        // If accessed by scheduler, show their appointments with calendar
+        if ($loggedInScheduler) {
+            $appointments = Appointment::where('scheduler_id', $schedulerId)
+                ->with('scheduler')
+                ->latest()
+                ->paginate(10);
+            return view('appointments.index', compact('appointments', 'loggedInScheduler'));
+        }
+
+        // If no auth, redirect to login
+        return redirect()->route('login')->with('error', 'Please login first.');
+    }
+
+    /**
+     * Get appointments as JSON for calendar
+     */
+    public function getAppointmentsJson()
+    {
+        // Check if user is authenticated (either standard user or scheduler)
+        $schedulerId = Session::get('scheduler_id');
+        $user = Auth::user();
+        
+        // If scheduler is logged in, show only their appointments
+        $appointments = Appointment::all();
+        
+        // Format appointments for FullCalendar
+        $events = $appointments->map(function ($appointment) {
+            // Determine background color based on status
+            $bgClass = match($appointment->status) {
+                'pending' => 'bg-primary',
+                'confirmed' => 'bg-success',
+                'completed' => 'bg-info',
+                'cancelled' => 'bg-danger',
+                default => 'bg-secondary'
+            };
+            
+            return [
+                'id' => $appointment->id,
+                'title' => $appointment->address . ', ' . $appointment->city,
+                'start' => $appointment->start_time,
+                'end' => $appointment->end_time,
+                'date'=>$appointment->date,
+                'classNames' => [$bgClass], // FullCalendar expects an array
+                'backgroundColor' => $this->getColorFromClass($bgClass),
+                'borderColor' => $this->getColorFromClass($bgClass),
+                'extendedProps' => [
+                    'status' => $appointment->status,
+                    'address' => $appointment->address,
+                    'city' => $appointment->city,
+                    'state' => $appointment->state,
+                    'country' => $appointment->country,
+                    'pin_code' => $appointment->pin_code,
+                ]
+            ];
+        });
+        
+        return response()->json($events);
+    }
+    
+    /**
+     * Get hex color from Bootstrap class
+     */
+    private function getColorFromClass($class)
+    {
+        return match($class) {
+            'bg-primary' => '#3b76e1',
+            'bg-success' => '#22c55e',
+            'bg-info' => '#0dcaf0',
+            'bg-danger' => '#ef4444',
+            default => '#6c757d'
+        };
     }
 
     /**
