@@ -1,4 +1,4 @@
-@extends('layouts.vertical', ['title' => 'Shedule An Appointment', 'subTitle' => 'Real Estate'])
+@extends('sheduler.layout.vertical', ['title' => 'Shedule An Appointment', 'subTitle' => 'Real Estate'])
 @section('content')
 
     @if(session('success'))
@@ -209,7 +209,7 @@
 @endsection
 
 @section('script-bottom')
-    @vite(['resources/js/pages/app-calendar.js'])
+    @vite(['resources/js/pages/sheduler-index.js'])
     <script>
         // Pass API URL to fetch appointments
         window.appointmentsApiUrl = "{{ route('schedulers.appointments.json') }}";

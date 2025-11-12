@@ -11,66 +11,70 @@ use Illuminate\Support\Facades\Mail;
 
 class SchedulerController extends Controller
 {
+
+    // HELPER MENTHODS
+    /**
+     * Get hex color from Bootstrap class
+     */
+    private function getColorFromClass($class)
+    {
+        return match ($class) {
+            'bg-primary' => '#3b76e1',
+            'bg-success' => '#22c55e',
+            'bg-info' => '#0dcaf0',
+            'bg-danger' => '#ef4444',
+            default => '#6c757d'
+        };
+    }
+
     /**
      * Get appointments as JSON for calendar
      */
     public function getAppointmentsJson()
     {
         $schedulerId = Session::get('scheduler_id');
-        
+
         if (!$schedulerId) {
             return response()->json(['error' => 'Not authenticated'], 401);
         }
-        
+
         $appointments = \App\Models\Appointment::where('scheduler_id', $schedulerId)
             ->orderBy('date', 'desc')
             ->orderBy('start_time', 'desc')
-            ->get()
-            ->map(function ($appointment) {
-                // Determine background color based on status
-                $bgClass = match($appointment->status) {
-                    'pending' => 'bg-primary',
-                    'confirmed' => 'bg-success',
-                    'completed' => 'bg-info',
-                    'cancelled' => 'bg-danger',
-                    default => 'bg-secondary'
-                };
-                
-                // Get hex color for the status
-                $color = match($appointment->status) {
-                    'pending' => '#3b76e1',
-                    'confirmed' => '#22c55e',
-                    'completed' => '#0dcaf0',
-                    'cancelled' => '#ef4444',
-                    default => '#6c757d'
-                };
-                
-                // Format dates for FullCalendar (ISO 8601 format)
-                $startDateTime = \Carbon\Carbon::parse($appointment->date . ' ' . $appointment->start_time)->toIso8601String();
-                $endDateTime = $appointment->end_time 
-                    ? \Carbon\Carbon::parse($appointment->date . ' ' . $appointment->end_time)->toIso8601String() 
-                    : null;
-                
-                return [
-                    'id' => $appointment->id,
-                    'title' => $appointment->address . ', ' . $appointment->city,
-                    'start' => $startDateTime,
-                    'end' => $endDateTime,
-                    'classNames' => [$bgClass], // FullCalendar expects an array
-                    'backgroundColor' => $color,
-                    'borderColor' => $color,
-                    'extendedProps' => [
-                        'status' => $appointment->status,
-                        'address' => $appointment->address,
-                        'city' => $appointment->city,
-                        'state' => $appointment->state,
-                        'country' => $appointment->country,
-                        'pin_code' => $appointment->pin_code,
-                    ]
-                ];
-            });
-        
-        return response()->json($appointments);
+            ->get();
+
+        // Format appointments for FullCalendar
+        $events = $appointments->map(function ($appointment) {
+            // Determine background color based on status
+            $bgClass = match ($appointment->status) {
+                'pending' => 'bg-primary',
+                'confirmed' => 'bg-success',
+                'completed' => 'bg-info',
+                'cancelled' => 'bg-danger',
+                default => 'bg-secondary'
+            };
+
+            return [
+                'id' => $appointment->id,
+                'title' => $appointment->address . ', ' . $appointment->city,
+                'start' => $appointment->start_time,
+                'end' => $appointment->end_time,
+                'date' => $appointment->date,
+                'classNames' => [$bgClass], // FullCalendar expects an array
+                'backgroundColor' => $this->getColorFromClass($bgClass),
+                'borderColor' => $this->getColorFromClass($bgClass),
+                'extendedProps' => [
+                    'status' => $appointment->status,
+                    'address' => $appointment->address,
+                    'city' => $appointment->city,
+                    'state' => $appointment->state,
+                    'country' => $appointment->country,
+                    'pin_code' => $appointment->pin_code,
+                ]
+            ];
+        });
+
+        return response()->json($events);
     }
 
     /**
@@ -81,16 +85,16 @@ class SchedulerController extends Controller
         // Get logged-in scheduler from session
         $schedulerId = Session::get('scheduler_id');
         $loggedInScheduler = null;
-        
+
         if ($schedulerId) {
             $loggedInScheduler = Scheduler::find($schedulerId);
         }
-        
+
         // If no scheduler is logged in, redirect to login
         if (!$loggedInScheduler) {
             return redirect()->route('schedulers.login')->with('error', 'Please login first.');
         }
-        
+
         $schedulers = Scheduler::orderBy('created_at', 'desc')->paginate(20);
         return view('sheduler.index', compact('schedulers', 'loggedInScheduler'));
     }
@@ -133,7 +137,7 @@ class SchedulerController extends Controller
         }
 
         // Fallback: try to find any verification for provided contacts
-        if (! $verified) {
+        if (!$verified) {
             if (!empty($data['email'])) {
                 $regKey = 'otp:verified:registration:' . md5($data['email']);
                 if (Cache::pull($regKey)) {
@@ -143,7 +147,7 @@ class SchedulerController extends Controller
                 }
             }
         }
-        if (! $verified) {
+        if (!$verified) {
             if (!empty($data['mobile'])) {
                 $regKey = 'otp:verified:registration:' . md5($data['mobile']);
                 if (Cache::pull($regKey)) {
@@ -154,7 +158,7 @@ class SchedulerController extends Controller
             }
         }
 
-        if (! $verified) {
+        if (!$verified) {
             return back()->withErrors(['mobile' => 'Contact not verified or verification expired. Please verify and try again.'])->withInput();
         }
 
@@ -217,7 +221,7 @@ class SchedulerController extends Controller
         // If no otp_code, fallback to simple mobile lookup
         $scheduler = Scheduler::where('mobile', $data['mobile'])->first();
 
-        if (! $scheduler) {
+        if (!$scheduler) {
             return back()->withErrors(['mobile' => 'No scheduler found with this mobile number'])->withInput();
         }
 
@@ -245,7 +249,7 @@ class SchedulerController extends Controller
 
             $code = random_int(100000, 999999);
             $cacheKey = "otp:email:{$input}";
-            Cache::put($cacheKey, (string)$code, now()->addMinutes(5));
+            Cache::put($cacheKey, (string) $code, now()->addMinutes(5));
 
             // send email (best-effort)
             try {
@@ -267,7 +271,7 @@ class SchedulerController extends Controller
 
         $code = random_int(100000, 999999);
         $cacheKey = "otp:mobile:{$mobile}";
-        Cache::put($cacheKey, (string)$code, now()->addMinutes(5));
+        Cache::put($cacheKey, (string) $code, now()->addMinutes(5));
 
         // Replace this with real SMS gateway in production
         Log::info("Scheduler OTP for mobile {$mobile}: {$code}");
@@ -299,7 +303,7 @@ class SchedulerController extends Controller
                 'otp_code' => ['nullable', 'digits:6'],
             ]);
 
-            if (! $code) {
+            if (!$code) {
                 if ($isJson) {
                     return response()->json(['ok' => false, 'message' => 'Code required'], 422);
                 }
@@ -309,14 +313,14 @@ class SchedulerController extends Controller
             $cacheKey = "otp:email:{$identifier}";
             $stored = Cache::get($cacheKey);
 
-            if (! $stored) {
+            if (!$stored) {
                 if ($isJson) {
                     return response()->json(['ok' => false, 'message' => 'Code expired. Please request a new one.'], 422);
                 }
                 return back()->withErrors(['code' => 'Code expired. Please request a new one.'])->withInput();
             }
 
-            if ((string)$stored !== (string)$code) {
+            if ((string) $stored !== (string) $code) {
                 if ($isJson) {
                     return response()->json(['ok' => false, 'message' => 'Invalid code'], 422);
                 }
@@ -352,7 +356,7 @@ class SchedulerController extends Controller
             'otp_code' => ['nullable', 'digits:6'],
         ]);
 
-        if (! $code) {
+        if (!$code) {
             if ($isJson) {
                 return response()->json(['ok' => false, 'message' => 'Code required'], 422);
             }
@@ -362,14 +366,14 @@ class SchedulerController extends Controller
         $cacheKey = "otp:mobile:{$mobile}";
         $stored = Cache::get($cacheKey);
 
-        if (! $stored) {
+        if (!$stored) {
             if ($isJson) {
                 return response()->json(['ok' => false, 'message' => 'Code expired. Please request a new one.'], 422);
             }
             return back()->withErrors(['code' => 'Code expired. Please request a new one.'])->withInput();
         }
 
-        if ((string)$stored !== (string)$code) {
+        if ((string) $stored !== (string) $code) {
             if ($isJson) {
                 return response()->json(['ok' => false, 'message' => 'Invalid code'], 422);
             }

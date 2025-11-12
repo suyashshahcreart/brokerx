@@ -11,7 +11,7 @@
 <div class="wrapper">
 
     @include("layouts.partials/topbar")
-    @include("layouts.partials/main-nav")
+    @include("sheduler.layout.partials.main-nav")
 
     <div class="page-content">
 
