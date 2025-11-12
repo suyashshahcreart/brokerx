@@ -162,6 +162,9 @@ Route::middleware(['scheduler.auth'])->prefix('schedulers')->name('schedulers.')
     // Scheduler Appointments (FullCalendar JSON endpoint)
     Route::get('appointments/json', [SchedulerController::class, 'getAppointmentsJson'])->name('appointments.json');
     
+    // Update Appointment
+    Route::post('appointments/{id}/update', [SchedulerController::class, 'updateAppointment'])->name('appointments.update');
+    
     // Logout
     Route::post('logout', [SchedulerController::class, 'logout'])->name('logout');
 });

@@ -188,23 +188,29 @@
                                     </div>
                                 </div>
 
+                                <!-- Area and Price -->
                                 <div class="row">
-                                    <div class="col-md-8">
+                                    <div class="col-md-6">
                                         <div class="mb-3">
-                                            <label class="control-label form-label">Area for Shoot<span
+                                            <label class="control-label form-label">Shoot Area (sq ft) <span
                                                     class="text-danger">*</span></label>
-                                            <input class="form-control" placeholder="Area Sqt" type="number" name="area"
-                                                id="appointment-pincode" required />
-                                            <div class="invalid-feedback">Please provide a pin code</div>
+                                            <input class="form-control" placeholder="Enter area in square feet" 
+                                                type="number" name="area" id="appointment-area" 
+                                                min="1" step="1" required />
+                                            <small class="text-muted">Price: ₹10 per square foot</small>
+                                            <div class="invalid-feedback">Please provide the shoot area</div>
                                         </div>
                                     </div>
-                                    <div class="col-md-4">
+                                    <div class="col-md-6">
                                         <div class="mb-3">
-                                            <label class="control-label form-label">Price<span
-                                                    class="text-danger">*</span></label>
-                                            <input class="form-control" placeholder="000.00" type="number" name="price"
-                                                id="appointment-pincode" readonly />
-                                            <div class="invalid-feedback">Please provide a pin code</div>
+                                            <label class="control-label form-label">Total Price (INR)</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text">₹</span>
+                                                <input class="form-control" placeholder="0.00" type="number" 
+                                                    name="price" id="appointment-price" 
+                                                    step="0.01" readonly />
+                                            </div>
+                                            <small class="text-muted">Auto-calculated based on area</small>
                                         </div>
                                     </div>
                                 </div>
@@ -227,6 +233,35 @@
         </div> <!-- end col -->
     </div> <!-- end row -->
     <script src="{{ asset('js/appointment-add.js') }}"></script>
+    <script>
+        // Price calculation: ₹10 per square foot
+        const PRICE_PER_SQFT = 10;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const areaInput = document.getElementById('appointment-area');
+            const priceInput = document.getElementById('appointment-price');
+
+            if (areaInput && priceInput) {
+                // Calculate price when area changes
+                areaInput.addEventListener('input', function() {
+                    const area = parseFloat(this.value) || 0;
+                    const totalPrice = area * PRICE_PER_SQFT;
+                    
+                    // Update price field with 2 decimal places
+                    priceInput.value = totalPrice > 0 ? totalPrice.toFixed(2) : '';
+                });
+
+                // Validate that area is positive
+                areaInput.addEventListener('blur', function() {
+                    const area = parseFloat(this.value) || 0;
+                    if (area < 0) {
+                        this.value = '';
+                        priceInput.value = '';
+                    }
+                });
+            }
+        });
+    </script>
 @endsection
 
 @section('script-bottom')

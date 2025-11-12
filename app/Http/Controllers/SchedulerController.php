@@ -496,4 +496,60 @@ class SchedulerController extends Controller
         $scheduler->delete();
         return redirect()->route('schedulers.index')->with('success', 'Scheduler deleted.');
     }
+
+    /**
+     * Update appointment (scheduler can only update time and location)
+     */
+    public function updateAppointment(Request $request, $id)
+    {
+        $schedulerId = Session::get('scheduler_id');
+
+        if (!$schedulerId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Not authenticated'
+            ], 401);
+        }
+
+        // Find appointment
+        $appointment = Appointment::where('id', $id)
+            ->where('scheduler_id', $schedulerId)
+            ->first();
+
+        if (!$appointment) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Appointment not found or you do not have permission to update it'
+            ], 404);
+        }
+
+        // Validate request - only time and location fields
+        $validated = $request->validate([
+            'start_time' => 'required',
+            'end_time' => 'required',
+            'address' => 'required|string|max:255',
+            'city' => 'required|string|max:100',
+            'state' => 'required|string|max:100',
+            'country' => 'required|string|max:100',
+            'pin_code' => 'required|string|max:20',
+        ]);
+
+        // Update appointment - only time and location
+        $appointment->update([
+            'start_time' => $validated['start_time'],
+            'end_time' => $validated['end_time'],
+            'address' => $validated['address'],
+            'city' => $validated['city'],
+            'state' => $validated['state'],
+            'country' => $validated['country'],
+            'pin_code' => $validated['pin_code'],
+            'updated_by' => $schedulerId,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Appointment time and location updated successfully',
+            'appointment' => $appointment
+        ]);
+    }
 }
