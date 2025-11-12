@@ -172,7 +172,7 @@
                                 </div>
 
                                 <!-- Status -->
-                                <div class="row">
+                                <div class="row d-none">
                                     <div class="col-12">
                                         <div class="mb-3">
                                             <label class="control-label form-label">Status <span
@@ -184,6 +184,27 @@
                                                 <option value="completed">Completed</option>
                                             </select>
                                             <div class="invalid-feedback">Please select a status</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-8">
+                                        <div class="mb-3">
+                                            <label class="control-label form-label">Area for Shoot<span
+                                                    class="text-danger">*</span></label>
+                                            <input class="form-control" placeholder="Area Sqt" type="number" name="area"
+                                                id="appointment-pincode" required />
+                                            <div class="invalid-feedback">Please provide a pin code</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label class="control-label form-label">Price<span
+                                                    class="text-danger">*</span></label>
+                                            <input class="form-control" placeholder="000.00" type="number" name="price"
+                                                id="appointment-pincode" readonly />
+                                            <div class="invalid-feedback">Please provide a pin code</div>
                                         </div>
                                     </div>
                                 </div>

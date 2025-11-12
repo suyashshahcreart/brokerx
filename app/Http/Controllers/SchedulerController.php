@@ -437,8 +437,30 @@ class SchedulerController extends Controller
      * Display the specified resource.
      */
     public function show(Scheduler $scheduler)
-    {
-        return view('sheduler.details', compact('scheduler'));
+    {   
+        // Get appointments with related data
+        $appointments = Appointment::where('scheduler_id', $scheduler->id)
+            ->with(['assignedTo', 'assignedBy', 'completedBy'])
+            ->orderBy('date', 'desc')
+            ->orderBy('start_time', 'desc')
+            ->get();
+            
+        // Calculate statistics
+        $totalAppointments = $appointments->count();
+        $pendingAppointments = $appointments->where('status', 'pending')->count();
+        $confirmedAppointments = $appointments->where('status', 'confirmed')->count();
+        $completedAppointments = $appointments->where('status', 'completed')->count();
+        $cancelledAppointments = $appointments->where('status', 'cancelled')->count();
+        
+        return view('sheduler.details', compact(
+            'scheduler',
+            'appointments',
+            'totalAppointments',
+            'pendingAppointments',
+            'confirmedAppointments',
+            'completedAppointments',
+            'cancelledAppointments'
+        ));
     }
 
     /**

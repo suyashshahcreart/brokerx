@@ -33,11 +33,11 @@
                </li>
 
                <li class="nav-item">
-                    <a class="nav-link" href="{{ route('any', 'transactions')}}">
-                         <span class="nav-icon">
-                              <i class="ri-arrow-left-right-line"></i>
-                         </span>
-                         <span class="nav-text">Change Appointment</span>
+                    <a class="nav-link" href="{{ route('schedulers.show', session('scheduler_id')) }}">
+                          <span class="nav-icon">
+                                <i class="ri-arrow-left-right-line"></i>
+                          </span>
+                          <span class="nav-text">Appointment Details</span>
                     </a>
                </li>
 

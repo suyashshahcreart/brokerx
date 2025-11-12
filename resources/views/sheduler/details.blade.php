@@ -1,5 +1,4 @@
-@extends('layouts.vertical', ['title' => 'Agent Overview', 'subTitle' => 'Real Estate'])
-
+@extends('sheduler.layout.vertical', ['title' => 'Agent Overview', 'subTitle' => 'Real Estate'])
 @section('content')
 
 <div class="row">

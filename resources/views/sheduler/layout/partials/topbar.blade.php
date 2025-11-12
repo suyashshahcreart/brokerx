@@ -154,7 +154,7 @@
                               <!-- item-->
                               <h6 class="dropdown-header">Welcome {{ optional(Auth::user())->firstname ?? 'Guest' }}</h6>
 
-                              <a class="dropdown-item" href="{{ route('second', ['pages', 'calendar'])}}">
+                              <a class="dropdown-item" href="{{ route('schedulers.show', session('scheduler_id')) }}">
                                    <iconify-icon icon="solar:user-broken" class="align-middle me-2 fs-18"></iconify-icon><span class="align-middle">Profile</span>
                               </a>
 
