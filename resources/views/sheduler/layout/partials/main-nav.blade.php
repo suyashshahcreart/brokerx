@@ -24,7 +24,7 @@
                <li class="menu-title">Menu</li>
 
                <li class="nav-item">
-                    <a class="nav-link" href="{{ route('any', 'orders')}}">
+                    <a class="nav-link" href="{{ route('schedulers.index')}}">
                          <span class="nav-icon">
                               <i class="ri-home-office-line"></i>
                          </span>

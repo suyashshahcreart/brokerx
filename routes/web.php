@@ -55,6 +55,9 @@ Route::middleware('auth')->group(function () {
     Route::resource('appointments', AppointmentController::class);
 });
 
+// get appoinment data
+Route::post('appointments/add', [AppointmentController::class, 'store'])->name('appointments.store');
+
 //schudler
 // Scheduler OTP endpoints (public)
 Route::post('schedulers/otp/send', [SchedulerController::class, 'sendOtp'])->name('schedulers.otp.send');
@@ -69,22 +72,12 @@ Route::post('schedulers/logout', [SchedulerController::class, 'logout'])->name('
 
 // Get appointments as JSON for calendar
 Route::get('schedulers/appointments/json', [SchedulerController::class, 'getAppointmentsJson'])->name('schedulers.appointments.json');
-
-Route::resource('schedulers', SchedulerController::class);
+Route::resource('schedulers', controller: SchedulerController::class);
+// Route::middleware('')->group(callback: function (): void {
+// });
 
 Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
     Route::get('/', [AdminDashboardController::class, 'index'])->name('root');
-    // Route::get('', [RoutingController::class, 'index'])->name('root');
-    // Route::get('{first}/{second}/{third}', [RoutingController::class, 'thirdLevel'])->name('third');
-    // Route::get('{first}/{second}', [RoutingController::class, 'secondLevel'])->name('second');
-    // Route::get('{any}', [RoutingController::class, 'root'])->name('any');
-});
-
-Route::group(['prefix' => 'themes', 'middleware' => 'auth'], function () {
-    Route::get('', [RoutingController::class, 'index'])->name('root');
-    Route::get('{first}/{second}/{third}', [RoutingController::class, 'thirdLevel'])->name('third');
-    Route::get('{first}/{second}', [RoutingController::class, 'secondLevel'])->name('second');
-    Route::get('{any}', [RoutingController::class, 'root'])->name('any');
 });
 
 Route::group(['prefix' => 'admin', 'as' => 'admin.', 'middleware' => ['web', 'auth']], function () {
@@ -96,4 +89,12 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'middleware' => ['web', 'au
 
 Route::group(['prefix' => 'brokerx', 'as' => 'brokerx.', 'middleware' => ['web', 'auth']], function () {
     Route::get('/', [BrokerXController::class, 'index'])->name('index');
+});
+
+// Theam routes
+Route::group(['prefix' => 'themes', 'middleware' => 'auth'], function () {
+    Route::get('', [RoutingController::class, 'index'])->name('root');
+    Route::get('{first}/{second}/{third}', [RoutingController::class, 'thirdLevel'])->name('third');
+    Route::get('{first}/{second}', [RoutingController::class, 'secondLevel'])->name('second');
+    Route::get('{any}', [RoutingController::class, 'root'])->name('any');
 });

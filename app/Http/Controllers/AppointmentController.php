@@ -47,11 +47,7 @@ class AppointmentController extends Controller
      * Get appointments as JSON for calendar
      */
     public function getAppointmentsJson()
-    {
-        // Check if user is authenticated (either standard user or scheduler)
-        $schedulerId = Session::get('scheduler_id');
-        $user = Auth::user();
-        
+    {   
         // If scheduler is logged in, show only their appointments
         $appointments = Appointment::all();
         

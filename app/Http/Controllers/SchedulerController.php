@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Appointment;
 use App\Models\Scheduler;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
@@ -38,10 +39,7 @@ class SchedulerController extends Controller
             return response()->json(['error' => 'Not authenticated'], 401);
         }
 
-        $appointments = \App\Models\Appointment::where('scheduler_id', $schedulerId)
-            ->orderBy('date', 'desc')
-            ->orderBy('start_time', 'desc')
-            ->get();
+        $appointments = Appointment::all();
 
         // Format appointments for FullCalendar
         $events = $appointments->map(function ($appointment) {
