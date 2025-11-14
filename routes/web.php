@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Admin\ActivityLogController;
+use App\Http\Controllers\Admin\BookingController;
 use App\Http\Controllers\BrokerX\BrokerXController;
 
 /*
@@ -70,6 +71,7 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'middleware' => ['web','aut
     Route::resource('permissions', PermissionController::class);
     Route::resource('roles', RoleController::class);
     Route::resource('users', AdminUserController::class);
+    Route::resource('bookings', BookingController::class);
     Route::get('activity', [ActivityLogController::class, 'index'])->name('activity.index');
 });
 

@@ -26,10 +26,13 @@ class DatabaseSeeder extends Seeder
 
         // Seed BHK data
         $this->call(BHKSeeder::class);
-        
+
         // Seed location data
         $this->call(StateSeeder::class);
         $this->call(CitySeeder::class);
+
+        // Seed bookings
+        $this->call(BookingSeeder::class);
 
         $user = User::factory()->create([
             'firstname' => 'admin',
