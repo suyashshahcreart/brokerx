@@ -20,6 +20,17 @@ class DatabaseSeeder extends Seeder
         // Seed base permissions and roles
         $this->call(PermissionsRolesSeeder::class);
 
+        // Seed property types and subtypes
+        $this->call(PropertyTypeSeeder::class);
+        $this->call(PropertySubTypeSeeder::class);
+
+        // Seed BHK data
+        $this->call(BHKSeeder::class);
+        
+        // Seed location data
+        $this->call(StateSeeder::class);
+        $this->call(CitySeeder::class);
+
         $user = User::factory()->create([
             'firstname' => 'admin',
             'lastname' => 'User',
