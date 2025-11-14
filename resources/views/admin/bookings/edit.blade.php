@@ -54,3 +54,7 @@
     </div>
 </div>
 @endsection
+
+@section('script')
+    @vite(['resources/js/pages/bookings-form.js'])
+@endsection

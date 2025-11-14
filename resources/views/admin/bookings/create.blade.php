@@ -71,7 +71,7 @@
                                 <select name="property_sub_type_id" id="property_sub_type_id" class="form-select" required>
                                     <option value="">Select subtype</option>
                                     @foreach($propertySubTypes as $pst)
-                                        <option value="{{ $pst->id }}" @selected(old('property_sub_type_id')==$pst->id)>{{ $pst->name }}</option>
+                                        <option value="{{ $pst->id }}" data-property-type-id="{{ $pst->property_type_id }}" @selected(old('property_sub_type_id')==$pst->id)>{{ $pst->name }}</option>
                                     @endforeach
                                 </select>
                                 <div class="invalid-feedback">Please select a property subtype.</div>
@@ -97,7 +97,7 @@
                                 <select name="city_id" id="city_id" class="form-select">
                                     <option value="">Select city</option>
                                     @foreach($cities as $c)
-                                        <option value="{{ $c->id }}" @selected(old('city_id')==$c->id)>{{ $c->name }}</option>
+                                        <option value="{{ $c->id }}" data-state-id="{{ $c->state_id }}" @selected(old('city_id')==$c->id)>{{ $c->name }}</option>
                                     @endforeach
                                 </select>
                             </div>
@@ -234,19 +234,5 @@
 @endsection
 
 @section('script')
-<script>
-(function() {
-    'use strict';
-    const form = document.querySelector('.needs-validation');
-    if (form) {
-        form.addEventListener('submit', function(event) {
-            if (!form.checkValidity()) {
-                event.preventDefault();
-                event.stopPropagation();
-            }
-            form.classList.add('was-validated');
-        }, false);
-    }
-})();
-</script>
+    @vite(['resources/js/pages/bookings-form.js'])
 @endsection
