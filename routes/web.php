@@ -13,6 +13,7 @@ use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Admin\ActivityLogController;
 use App\Http\Controllers\Admin\BookingController;
+use App\Http\Controllers\FrontendController;
 use App\Http\Controllers\BrokerX\BrokerXController;
 
 /*
@@ -78,3 +79,8 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'middleware' => ['web','aut
 Route::group(['prefix' => 'brokerx', 'as' => 'brokerx.', 'middleware' => ['web','auth']], function () {
     Route::get('/', [BrokerXController::class, 'index'])->name('index');
 });
+
+// Public frontend routes
+Route::get('/front', [FrontendController::class, 'index'])->name('frontend.index');
+Route::get('/setup', [FrontendController::class, 'setup'])->name('frontend.setup');
+Route::post('/setup', [FrontendController::class, 'storeBooking'])->name('frontend.setup.store');
