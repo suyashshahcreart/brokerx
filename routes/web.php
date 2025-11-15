@@ -88,6 +88,10 @@ Route::post('/frontend/setup/save-property-step', [FrontendController::class, 's
 Route::post('/frontend/setup/save-address-step', [FrontendController::class, 'saveAddressStep'])->name('frontend.setup.save-address');
 Route::post('/frontend/setup/get-booking-summary', [FrontendController::class, 'getBookingSummary'])->name('frontend.setup.summary');
 Route::post('/frontend/setup/finalize-payment-step', [FrontendController::class, 'finalizePaymentStep'])->name('frontend.setup.finalize-payment');
+Route::middleware('auth')->get('/frontend/setup/user-bookings', [FrontendController::class, 'listUserBookings'])->name('frontend.setup.bookings');
+Route::post('/frontend/setup/payment/create-session', [FrontendController::class, 'createCashfreeSession'])->name('frontend.setup.payment.session');
+Route::post('/frontend/setup/payment/status', [FrontendController::class, 'refreshCashfreeStatus'])->name('frontend.setup.payment.status');
+Route::get('/frontend/setup/payment/callback', [FrontendController::class, 'cashfreeCallback'])->name('frontend.cashfree.callback');
 
 // Public OTP routes for frontend (no auth required)
 Route::post('/frontend/check-user-send-otp', [FrontendController::class, 'checkUserAndSendOtp'])->name('frontend.check-user-send-otp');

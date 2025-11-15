@@ -10,12 +10,21 @@ use App\Models\State;
 use App\Models\BHK;
 use App\Models\PropertyType;
 use App\Models\PropertySubType;
+use App\Services\CashfreeService;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 use Spatie\Permission\Models\Role;
 
 class FrontendController extends Controller
 {
+    protected CashfreeService $cashfree;
+
+    public function __construct(CashfreeService $cashfree)
+    {
+        $this->cashfree = $cashfree;
+    }
     public function index()
     {
         return view('frontend.index');
@@ -27,11 +36,13 @@ class FrontendController extends Controller
         $states = State::with(['cities:id,state_id,name'])->get(['id','name','code']);
         $cities = City::get(['id','name','state_id']);
         $bhk = BHK::all();
+        $hasBookings = Auth::check() ? Booking::where('user_id', Auth::id())->exists() : false;
         return view('frontend.setup', [
             'propTypes' => $types,
             'states' => $states,
             'cities' => $cities,
             'bhk' => $bhk,
+            'hasBookings' => $hasBookings,
         ]);
     }
 
@@ -258,6 +269,7 @@ class FrontendController extends Controller
             'user_id' => $user->id,
             'property_type_id' => $propertyData['property_type_id'],
             'property_sub_type_id' => $propertyData['property_sub_type_id'],
+            'owner_type' => $validated['owner_type'],
             'bhk_id' => $propertyData['bhk_id'],
             'city_id' => $city->id,
             'state_id' => $city->state_id,
@@ -340,6 +352,7 @@ class FrontendController extends Controller
         $booking->user_id = $user->id;
         $booking->property_type_id = $mapping['property_type_id'];
         $booking->property_sub_type_id = $mapping['property_sub_type_id'];
+        $booking->owner_type = $validated['owner_type'];
         $booking->bhk_id = $mapping['bhk_id'];
         $booking->furniture_type = $mapping['furniture_type'];
         $booking->area = $mapping['area'] ?? 0;
@@ -419,7 +432,7 @@ class FrontendController extends Controller
                 'id' => $booking->id,
                 'status' => $booking->status,
                 'owner_type' => $booking->owner_type ?? null,
-                'property_category' => $booking->property_category ?? null,
+                'property_category' => $booking->propertyType?->name,
                 'property_type' => $booking->propertyType?->name,
                 'property_sub_type' => $booking->propertySubType?->name,
                 'furniture_type' => $booking->furniture_type,
@@ -459,6 +472,30 @@ class FrontendController extends Controller
             'success' => true,
             'message' => 'Payment completed. Booking confirmed.',
             'booking_id' => $booking->id,
+        ]);
+    }
+
+    /**
+     * List bookings for the authenticated user (property grid)
+     */
+    public function listUserBookings(Request $request)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Authentication required.',
+            ], 401);
+        }
+
+        $bookings = Booking::with(['propertyType', 'propertySubType', 'bhk', 'city'])
+            ->where('user_id', $user->id)
+            ->latest()
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'bookings' => $bookings->map(fn ($booking) => $this->formatBookingForGrid($booking)),
         ]);
     }
 
@@ -531,5 +568,300 @@ class FrontendController extends Controller
             $price += $blocks * $extraBlockPrice;
         }
         return $price;
+    }
+
+    /**
+     * Step 5 -> Create Cashfree order & session id
+     */
+    public function createCashfreeSession(Request $request)
+    {
+        $validated = $request->validate([
+            'booking_id' => 'required|integer|exists:bookings,id',
+        ]);
+
+        $booking = Booking::with('user')->findOrFail($validated['booking_id']);
+
+        if ($booking->payment_status === 'paid') {
+            return response()->json([
+                'success' => false,
+                'message' => 'This booking is already paid.',
+            ], 422);
+        }
+
+        $amount = $booking->price ?: $this->calculateEstimate($booking->area);
+
+        if ($amount <= 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unable to calculate payment amount for this booking.',
+            ], 422);
+        }
+
+        $customer = $booking->user;
+        $customerName = trim(($customer->firstname ?? '') . ' ' . ($customer->lastname ?? '')) ?: 'Customer';
+        $customerEmail = $customer->email ?: 'customer' . $booking->id . '@example.com';
+        $customerPhone = $customer->mobile ?: $request->input('phone');
+
+        if (empty($customerPhone)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Customer phone number missing for payment.',
+            ], 422);
+        }
+
+        $orderId = $booking->cashfree_order_id ?: 'bk_' . $booking->id . '_' . Str::upper(Str::random(6));
+        $customerId = 'cust_' . ($customer?->id ?? $booking->id);
+        $returnUrl = config('cashfree.return_url') ?: route('frontend.cashfree.callback');
+
+        $payload = [
+            'order_id' => $orderId,
+            'order_amount' => round($amount, 2),
+            'order_currency' => 'INR',
+            'order_note' => 'Virtual tour booking #' . $booking->id,
+            'customer_details' => [
+                'customer_id' => $customerId,
+                'customer_name' => $customerName,
+                'customer_email' => $customerEmail,
+                'customer_phone' => $customerPhone,
+            ],
+            'order_meta' => [
+                'return_url' => rtrim($returnUrl, '/') . '?order_id={order_id}',
+            ],
+        ];
+
+        try {
+            $response = $this->cashfree->createOrder($payload);
+        } catch (\Throwable $e) {
+            Log::error('Cashfree order creation failed', [
+                'booking_id' => $booking->id,
+                'message' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to connect to Cashfree. Please try again later.',
+            ], 500);
+        }
+
+        $statusCode = $response['status_code'] ?? 500;
+        $body = $response['json'] ?? null;
+        if ($statusCode < 200 || $statusCode >= 300 || empty($body['payment_session_id'])) {
+            Log::error('Cashfree order creation error', [
+                'booking_id' => $booking->id,
+                'status_code' => $statusCode,
+                'response' => $response['body'] ?? null,
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => $body['message'] ?? 'Unable to create payment session. Please try again.',
+            ], 422);
+        }
+
+        $booking->cashfree_order_id = $body['order_id'] ?? $orderId;
+        $booking->cashfree_payment_session_id = $body['payment_session_id'];
+        $booking->cashfree_payment_status = $body['order_status'] ?? 'CREATED';
+        $booking->cashfree_payment_amount = (int) round($body['order_amount'] ?? $amount);
+        $booking->cashfree_payment_currency = $body['order_currency'] ?? 'INR';
+        $booking->cashfree_payment_meta = [
+            'customer_id' => $customerId,
+        ];
+        $booking->cashfree_last_response = $body;
+        $booking->price = $booking->price ?: (int) round($amount);
+        $booking->payment_status = 'pending';
+        $booking->save();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'order_id' => $booking->cashfree_order_id,
+                'payment_session_id' => $booking->cashfree_payment_session_id,
+                'amount' => $booking->cashfree_payment_amount,
+                'currency' => $booking->cashfree_payment_currency,
+                'mode' => $this->cashfree->mode(),
+                'return_url' => $payload['order_meta']['return_url'],
+            ],
+        ]);
+    }
+
+    /**
+     * Poll Cashfree for latest order status and sync booking
+     */
+    public function refreshCashfreeStatus(Request $request)
+    {
+        $validated = $request->validate([
+            'booking_id' => 'required|integer|exists:bookings,id',
+        ]);
+
+        $booking = Booking::with('user')->findOrFail($validated['booking_id']);
+
+        if (!$booking->cashfree_order_id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Payment session not created yet.',
+            ], 422);
+        }
+
+        try {
+            $response = $this->cashfree->fetchOrder($booking->cashfree_order_id);
+        } catch (\Throwable $e) {
+            Log::error('Cashfree status fetch failed', [
+                'booking_id' => $booking->id,
+                'message' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Unable to fetch payment status from Cashfree.',
+            ], 500);
+        }
+
+        $statusCode = $response['status_code'] ?? 500;
+        $orderData = $response['json'] ?? [];
+
+        if ($statusCode < 200 || $statusCode >= 300 || empty($orderData)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cashfree did not return order details yet. Please retry.',
+            ], 422);
+        }
+
+        $summary = $this->syncBookingWithCashfreeOrder($booking, $orderData);
+
+        return response()->json([
+            'success' => true,
+            'data' => $summary,
+        ]);
+    }
+
+    /**
+     * Return URL handler for Cashfree redirect fallback
+     */
+    public function cashfreeCallback(Request $request)
+    {
+        $orderId = $request->query('order_id');
+
+        if (!$orderId) {
+            return view('frontend.cashfree-callback', [
+                'orderId' => null,
+                'status' => 'UNKNOWN',
+                'message' => 'Missing order reference.',
+                'details' => null,
+            ]);
+        }
+
+        $booking = Booking::where('cashfree_order_id', $orderId)->first();
+
+        if (!$booking) {
+            return view('frontend.cashfree-callback', [
+                'orderId' => $orderId,
+                'status' => 'UNKNOWN',
+                'message' => 'We could not find this booking. Please contact support.',
+                'details' => null,
+            ]);
+        }
+
+        try {
+            $response = $this->cashfree->fetchOrder($orderId);
+        } catch (\Throwable $e) {
+            return view('frontend.cashfree-callback', [
+                'orderId' => $orderId,
+                'status' => 'UNKNOWN',
+                'message' => 'Unable to fetch payment status. Please contact support with your order ID.',
+                'details' => null,
+            ]);
+        }
+
+        $orderData = $response['json'] ?? [];
+        $summary = $this->syncBookingWithCashfreeOrder($booking, $orderData);
+
+        return view('frontend.cashfree-callback', [
+            'orderId' => $summary['order_id'],
+            'status' => $summary['order_status'],
+            'message' => $summary['status_message'],
+            'details' => $summary,
+        ]);
+    }
+
+    protected function syncBookingWithCashfreeOrder(Booking $booking, array $orderData): array
+    {
+        $orderStatus = strtoupper($orderData['order_status'] ?? 'UNKNOWN');
+        $payments = $orderData['payments'] ?? [];
+        if (count($payments) > 1) {
+            usort($payments, function ($a, $b) {
+                $timeA = isset($a['payment_time']) ? strtotime($a['payment_time']) : 0;
+                $timeB = isset($b['payment_time']) ? strtotime($b['payment_time']) : 0;
+                return $timeB <=> $timeA;
+            });
+        }
+        $latestPayment = $payments[0] ?? null;
+
+        $booking->cashfree_payment_status = $orderStatus;
+        $booking->cashfree_payment_amount = (int) round($orderData['order_amount'] ?? $booking->cashfree_payment_amount);
+        $booking->cashfree_payment_currency = $orderData['order_currency'] ?? $booking->cashfree_payment_currency ?? 'INR';
+        $booking->cashfree_last_response = $orderData;
+
+        if ($latestPayment) {
+            $booking->cashfree_payment_method = $latestPayment['payment_method'] ?? null;
+            $booking->cashfree_reference_id = $latestPayment['cf_payment_id'] ?? ($latestPayment['payment_reference_id'] ?? null);
+            $booking->cashfree_payment_message = $latestPayment['payment_message'] ?? null;
+            if (!empty($latestPayment['payment_time'])) {
+                $booking->cashfree_payment_at = Carbon::parse($latestPayment['payment_time']);
+            }
+        }
+
+        if ($orderStatus === 'PAID') {
+            $booking->payment_status = 'paid';
+            $booking->status = 'confirmed';
+            $booking->cashfree_payment_message = $booking->cashfree_payment_message ?: 'Payment successful';
+        } elseif (in_array($orderStatus, ['FAILED', 'EXPIRED', 'TERMINATED', 'TERMINATION_REQUESTED'])) {
+            $booking->payment_status = 'failed';
+            $booking->cashfree_payment_message = $booking->cashfree_payment_message ?: 'Payment failed';
+        } else {
+            $booking->payment_status = 'pending';
+        }
+
+        $booking->save();
+
+        return [
+            'booking_id' => $booking->id,
+            'order_id' => $booking->cashfree_order_id,
+            'order_status' => $orderStatus,
+            'amount' => $booking->cashfree_payment_amount,
+            'currency' => $booking->cashfree_payment_currency,
+            'payment_method' => $booking->cashfree_payment_method,
+            'reference_id' => $booking->cashfree_reference_id,
+            'payment_at' => optional($booking->cashfree_payment_at)->toDateTimeString(),
+            'status_message' => $booking->cashfree_payment_message,
+            'raw' => $orderData,
+        ];
+    }
+
+    protected function formatBookingForGrid(Booking $booking): array
+    {
+        $mainType = $booking->propertyType?->name ?? 'Residential';
+        return [
+            'id' => $booking->id,
+            'owner_type' => $booking->owner_type,
+            'main_property_type' => $mainType,
+            'property_sub_type' => $booking->propertySubType?->name,
+            'furniture_type' => $booking->furniture_type,
+            'bhk_id' => $booking->bhk_id,
+            'bhk_label' => $booking->bhk?->name,
+            'area' => $booking->area,
+            'status' => $booking->status,
+            'payment_status' => $booking->payment_status,
+            'price' => $booking->price,
+            'updated_at' => optional($booking->updated_at)->toDateTimeString(),
+            'city' => $booking->city?->name,
+            'other_details' => $booking->other_details ?? null,
+            'address' => [
+                'house_number' => $booking->house_no,
+                'building_name' => $booking->building,
+                'pincode' => $booking->pin_code,
+                'full_address' => $booking->full_address,
+                'city' => $booking->city?->name,
+            ],
+        ];
     }
 }
