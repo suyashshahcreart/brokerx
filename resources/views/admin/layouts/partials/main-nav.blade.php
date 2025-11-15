@@ -1,9 +1,9 @@
 <div class="main-nav">
      <!-- Sidebar Logo -->
      <div class="logo-box">
-         <a href="#" class="logo-dark">
-              <img src="{{ asset('images/logo-sm.png') }}" class="logo-sm" alt="logo sm">
-              <img src="{{ asset('images/logo-dark.png') }}" class="logo-lg" alt="logo dark">
+          <a href="#" class="logo-dark">
+               <img src="{{ asset('images/logo-sm.png') }}" class="logo-sm" alt="logo sm">
+               <img src="{{ asset('images/logo-dark.png') }}" class="logo-lg" alt="logo dark">
           </a>
 
           <a href="#" class="logo-light">
@@ -34,7 +34,8 @@
 
 
                <li class="nav-item">
-                    <a class="nav-link menu-arrow" href="#sidebarProperty" data-bs-toggle="collapse" role="button" aria-expanded="false" aria-controls="sidebarProperty">
+                    <a class="nav-link menu-arrow" href="#sidebarProperty" data-bs-toggle="collapse" role="button"
+                         aria-expanded="false" aria-controls="sidebarProperty">
                          <span class="nav-icon">
                               <i class="ri-community-line"></i>
                          </span>
@@ -59,7 +60,8 @@
                </li> <!-- end Pages Menu -->
 
                <li class="nav-item">
-                    <a class="nav-link menu-arrow" href="#sidebarAgents" data-bs-toggle="collapse" role="button" aria-expanded="false" aria-controls="sidebarAgents">
+                    <a class="nav-link menu-arrow" href="#sidebarAgents" data-bs-toggle="collapse" role="button"
+                         aria-expanded="false" aria-controls="sidebarAgents">
                          <span class="nav-icon">
                               <i class="ri-group-line"></i>
                          </span>
@@ -84,7 +86,8 @@
                </li> <!-- end Pages Menu -->
 
                <li class="nav-item">
-                    <a class="nav-link menu-arrow" href="#sidebarCustomers" data-bs-toggle="collapse" role="button" aria-expanded="false" aria-controls="sidebarCustomers">
+                    <a class="nav-link menu-arrow" href="#sidebarCustomers" data-bs-toggle="collapse" role="button"
+                         aria-expanded="false" aria-controls="sidebarCustomers">
                          <span class="nav-icon">
                               <i class="ri-contacts-book-3-line"></i>
                          </span>
@@ -108,63 +111,80 @@
                     </div>
                </li> <!-- end Pages Menu -->
 
-               @canany(['user_view','role_view','permission_view','activity_view','media_view'])
-               <li class="menu-title">System</li>
-
-               @can('user_view')
                <li class="nav-item">
-                    <a class="nav-link" href="{{ route('admin.users.index') }}">
+                    <a class="nav-link menu-arrow" href="#sidebarBooking" data-bs-toggle="collapse" role="button"
+                         aria-expanded="false" aria-controls="sidebarCustomers">
                          <span class="nav-icon">
-                              <i class="ri-user-line"></i>
+                              <i class="ri-contacts-book-3-line"></i>
                          </span>
-                         <span class="nav-text">Users</span>
+                         <span class="nav-text"> Bookings </span>
                     </a>
-               </li>
-               @endcan
+                    <div class="collapse" id="sidebarBooking">
+                         <ul class="nav sub-navbar-nav">
+                              <li class="sub-nav-item">
+                                   <a class="sub-nav-link" href="{{ route('admin.bookings.index') }}">List View</a>
+                              </li>
+                         </ul>
+                    </div>
+               </li> <!-- end Pages Menu -->
 
-               @can('role_view')
-               <li class="nav-item">
-                    <a class="nav-link" href="{{ route('admin.roles.index') }}">
-                         <span class="nav-icon">
-                              <i class="ri-id-card-line"></i>
-                         </span>
-                         <span class="nav-text">Roles</span>
-                    </a>
-               </li>
-               @endcan
+               @canany(['user_view', 'role_view', 'permission_view', 'activity_view', 'media_view'])
+                    <li class="menu-title">System</li>
 
-               @can('permission_view')
-               <li class="nav-item">
-                    <a class="nav-link" href="{{ route('admin.permissions.index') }}">
-                         <span class="nav-icon">
-                              <i class="ri-lock-2-line"></i>
-                         </span>
-                         <span class="nav-text">Permissions</span>
-                    </a>
-               </li>
-               @endcan
+                    @can('user_view')
+                         <li class="nav-item">
+                              <a class="nav-link" href="{{ route('admin.users.index') }}">
+                                   <span class="nav-icon">
+                                        <i class="ri-user-line"></i>
+                                   </span>
+                                   <span class="nav-text">Users</span>
+                              </a>
+                         </li>
+                    @endcan
 
-               @can('activity_view')
-               <li class="nav-item">
-                    <a class="nav-link" href="{{ route('admin.activity.index') }}">
-                         <span class="nav-icon">
-                              <i class="ri-book-line"></i>
-                         </span>
-                         <span class="nav-text">Activity Log</span>
-                    </a>
-               </li>
-               @endcan
+                    @can('role_view')
+                         <li class="nav-item">
+                              <a class="nav-link" href="{{ route('admin.roles.index') }}">
+                                   <span class="nav-icon">
+                                        <i class="ri-id-card-line"></i>
+                                   </span>
+                                   <span class="nav-text">Roles</span>
+                              </a>
+                         </li>
+                    @endcan
 
-               @can('media_view')
-               <li class="nav-item">
-                    <a class="nav-link" href="#">
-                         <span class="nav-icon">
-                              <i class="ri-image-line"></i>
-                         </span>
-                         <span class="nav-text">Media Library</span>
-                    </a>
-               </li>
-               @endcan
+                    @can('permission_view')
+                         <li class="nav-item">
+                              <a class="nav-link" href="{{ route('admin.permissions.index') }}">
+                                   <span class="nav-icon">
+                                        <i class="ri-lock-2-line"></i>
+                                   </span>
+                                   <span class="nav-text">Permissions</span>
+                              </a>
+                         </li>
+                    @endcan
+
+                    @can('activity_view')
+                         <li class="nav-item">
+                              <a class="nav-link" href="{{ route('admin.activity.index') }}">
+                                   <span class="nav-icon">
+                                        <i class="ri-book-line"></i>
+                                   </span>
+                                   <span class="nav-text">Activity Log</span>
+                              </a>
+                         </li>
+                    @endcan
+
+                    @can('media_view')
+                         <li class="nav-item">
+                              <a class="nav-link" href="#">
+                                   <span class="nav-icon">
+                                        <i class="ri-image-line"></i>
+                                   </span>
+                                   <span class="nav-text">Media Library</span>
+                              </a>
+                         </li>
+                    @endcan
                @endcanany
 
           </ul>
