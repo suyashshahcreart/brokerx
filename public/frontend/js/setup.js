@@ -37,9 +37,15 @@ showStep(1);
 switchMainTab('res');
 
 /**********************
- Step 1: OTP flow
+ Step 1: OTP flow with API integration
 ***********************/
-el('sendOtpBtn').addEventListener('click', () => {
+// Helper to get CSRF token
+function getCsrfToken() {
+    return document.querySelector('meta[name="csrf-token"]')?.content || 
+           document.querySelector('input[name="_token"]')?.value || '';
+}
+
+el('sendOtpBtn').addEventListener('click', async () => {
     // validate name & phone
     const name = el('inputName').value.trim();
     const phone = el('inputPhone').value.trim();
@@ -54,39 +60,135 @@ el('sendOtpBtn').addEventListener('click', () => {
     } else el('err-phone').style.display = 'none';
     if (!ok) return;
 
-    // generate demo OTP and show input
-    state.otp = String(Math.floor(1000 + Math.random() * 9000)); // 4-digit
-    state.otpVerified = false;
-    el('otpRow').classList.remove('hidden');
-    el('otpSentBadge').classList.remove('hidden');
-    el('demoOtp').classList.remove('hidden');
-    el('demoOtpCode').innerText = state.otp; // show for demo/testing
-    el('toStep2').disabled = true;
-    console.log('Demo OTP:', state.otp);
+    // Disable button and show loading
+    const sendBtn = el('sendOtpBtn');
+    sendBtn.disabled = true;
+    sendBtn.textContent = 'Sending...';
+
+    try {
+        // Call API to send OTP
+        const response = await fetch('/otp/send', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': getCsrfToken(),
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ mobile: phone })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            state.otp = data.otp; // For demo purposes
+            state.otpVerified = false;
+            el('otpRow').classList.remove('hidden');
+            el('otpSentBadge').classList.remove('hidden');
+            el('demoOtp').classList.remove('hidden');
+            el('demoOtpCode').innerText = state.otp;
+            el('toStep2').disabled = true;
+            console.log('OTP sent:', state.otp);
+        } else {
+            alert(data.message || 'Failed to send OTP. Please try again.');
+        }
+    } catch (error) {
+        console.error('Error sending OTP:', error);
+        alert('Network error. Please check your connection and try again.');
+    } finally {
+        sendBtn.disabled = false;
+        sendBtn.textContent = 'Send OTP';
+    }
 });
 
-el('resendOtp').addEventListener('click', (e) => {
+el('resendOtp').addEventListener('click', async (e) => {
     e.preventDefault();
-    if (!el('inputPhone').value.trim()) { alert('Enter phone to resend OTP'); return; }
-    state.otp = String(Math.floor(1000 + Math.random() * 9000));
-    el('demoOtpCode').innerText = state.otp;
-    el('otpSentBadge').classList.remove('hidden');
-    el('demoOtp').classList.remove('hidden');
-    console.log('Resent demo OTP:', state.otp);
+    const phone = el('inputPhone').value.trim();
+    if (!phone) { 
+        alert('Enter phone to resend OTP'); 
+        return; 
+    }
+
+    try {
+        const response = await fetch('/otp/send', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': getCsrfToken(),
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ mobile: phone })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            state.otp = data.otp;
+            el('demoOtpCode').innerText = state.otp;
+            el('otpSentBadge').classList.remove('hidden');
+            el('demoOtp').classList.remove('hidden');
+            console.log('Resent OTP:', state.otp);
+        } else {
+            alert(data.message || 'Failed to resend OTP.');
+        }
+    } catch (error) {
+        console.error('Error resending OTP:', error);
+        alert('Network error. Please try again.');
+    }
 });
 
-el('verifyOtpBtn').addEventListener('click', () => {
+el('verifyOtpBtn').addEventListener('click', async () => {
     const entered = el('inputOtp').value.trim();
-    if (!entered || entered !== state.otp) {
+    const phone = el('inputPhone').value.trim();
+
+    if (!entered || entered.length !== 4) {
         el('err-otp').style.display = 'block';
+        el('err-otp').textContent = 'Please enter 4-digit OTP';
         return;
     }
-    el('err-otp').style.display = 'none';
-    state.otpVerified = true;
-    el('otpRow').classList.add('hidden');
-    el('otpSentBadge').classList.remove('hidden');
-    el('otpSentBadge').innerText = 'Verified ✓';
-    el('toStep2').disabled = false;
+
+    // Disable button and show loading
+    const verifyBtn = el('verifyOtpBtn');
+    verifyBtn.disabled = true;
+    verifyBtn.textContent = 'Verifying...';
+
+    try {
+        // Call API to verify OTP
+        const response = await fetch('/otp/verify', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': getCsrfToken(),
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ 
+                mobile: phone,
+                otp: entered
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            el('err-otp').style.display = 'none';
+            state.otpVerified = true;
+            el('otpRow').classList.add('hidden');
+            el('otpSentBadge').classList.remove('hidden');
+            el('otpSentBadge').innerText = 'Verified ✓';
+            el('demoOtp').classList.add('hidden');
+            el('toStep2').disabled = false;
+            console.log('OTP verified successfully');
+        } else {
+            el('err-otp').style.display = 'block';
+            el('err-otp').textContent = data.message || 'Invalid OTP';
+        }
+    } catch (error) {
+        console.error('Error verifying OTP:', error);
+        el('err-otp').style.display = 'block';
+        el('err-otp').textContent = 'Network error. Please try again.';
+    } finally {
+        verifyBtn.disabled = false;
+        verifyBtn.textContent = 'Verify OTP';
+    }
 });
 
 el('toStep2').addEventListener('click', () => {
