@@ -22,7 +22,16 @@ class FrontendController extends Controller
 
     public function setup()
     {
-        return view('frontend.setup');
+        $types = PropertyType::with(['subTypes:id,property_type_id,name,icon'])->get(['id','name','icon']);
+        $states = State::with(['cities:id,state_id,name'])->get(['id','name','code']);
+        $cities = City::get(['id','name','state_id']);
+        $bhk = BHK::all();
+        return view('frontend.setup', [
+            'propTypes' => $types,
+            'states' => $states,
+            'cities' => $cities,
+            'bhk' => $bhk,
+        ]);
     }
 
     /**
@@ -265,7 +274,7 @@ class FrontendController extends Controller
         // Determine property details based on main type
         $propertyData = $this->extractPropertyData($request, $validated['main_property_type']);
 
-        // Create booking
+        // Create booking (aligned to bookings schema)
         $booking = Booking::create([
             'user_id' => $user->id,
             'property_type_id' => $propertyData['property_type_id'],
@@ -276,16 +285,13 @@ class FrontendController extends Controller
             'booking_date' => now(),
             'status' => 'pending',
             'payment_status' => 'paid',
-            'amount' => $validated['amount'],
-            'furnish_type' => $propertyData['furnish_type'],
-            'area' => $propertyData['area'],
-            'house_number' => $validated['house_number'],
-            'building_name' => $validated['building_name'],
-            'pincode' => $validated['pincode'],
+            'price' => (int) $validated['amount'],
+            'furniture_type' => $propertyData['furniture_type'] ?? null,
+            'area' => $propertyData['area'] ?? 0,
+            'house_no' => $validated['house_number'],
+            'building' => $validated['building_name'],
+            'pin_code' => $validated['pincode'],
             'full_address' => $validated['full_address'],
-            'owner_type' => $validated['owner_type'],
-            'property_category' => $validated['main_property_type'],
-            'other_details' => $propertyData['other_details'],
             'created_by' => $user->id,
             'updated_by' => $user->id,
         ]);
@@ -294,50 +300,256 @@ class FrontendController extends Controller
         return redirect()->route('frontend.index')->with('success', 'Booking submitted successfully! Our team will contact you soon.');
     }
 
-    private function extractPropertyData(Request $request, $mainType)
+    /**
+     * Step 2 -> Save property data (draft booking creation or update)
+     */
+    public function savePropertyStep(Request $request)
     {
-        $data = [
-            'property_type_id' => null,
-            'property_sub_type_id' => null,
-            'bhk_id' => null,
-            'furnish_type' => null,
-            'area' => null,
-            'other_details' => null,
-        ];
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'phone' => 'required|digits:10',
+            'owner_type' => 'required|string|in:Owner,Broker',
+            'main_property_type' => 'required|string|in:Residential,Commercial,Other',
+            // Residential
+            'residential_property_type' => 'nullable|string',
+            'residential_furnish' => 'nullable|string',
+            'residential_size' => 'nullable|string',
+            'residential_area' => 'nullable|numeric|min:1',
+            // Commercial
+            'commercial_property_type' => 'nullable|string',
+            'commercial_furnish' => 'nullable|string',
+            'commercial_area' => 'nullable|numeric|min:1',
+            // Other
+            'other_looking' => 'nullable|string',
+            'other_description' => 'nullable|string',
+            'other_area' => 'nullable|numeric|min:1',
+            'booking_id' => 'nullable|integer|exists:bookings,id',
+        ]);
 
-        if ($mainType === 'Residential') {
-            $propertyTypeName = $request->input('residential_property_type', 'Apartment');
-            $propertyType = PropertyType::firstOrCreate(['name' => $propertyTypeName]);
-            $data['property_type_id'] = $propertyType->id;
+        // Find user by mobile or phone field
+        $user = User::where('mobile', $validated['phone'])
+            ->orWhere('mobile', $validated['phone'])
+            ->first();
+        if (!$user) {
+            // Create minimal user (guest) - keep mobile field for consistency
+            $nameParts = explode(' ', $validated['name'], 2);
+            $user = User::create([
+                'firstname' => $nameParts[0],
+                'lastname' => $nameParts[1] ?? '',
+                'mobile' => $validated['phone'],
+            ]);
+            $customerRole = Role::firstOrCreate(['name' => 'customer']);
+            $user->assignRole($customerRole);
+        }
 
-            $data['furnish_type'] = $request->input('residential_furnish');
-            $data['area'] = $request->input('residential_area');
+        // Resolve property mapping
+        $mapping = $this->mapPropertyData($validated);
 
-            // Handle BHK
-            $bhkSize = $request->input('residential_size');
-            if ($bhkSize) {
-                $bhk = BHK::firstOrCreate(['size' => $bhkSize]);
-                $data['bhk_id'] = $bhk->id;
-            }
-        } elseif ($mainType === 'Commercial') {
-            $propertyTypeName = $request->input('commercial_property_type', 'Office');
-            $propertyType = PropertyType::firstOrCreate(['name' => $propertyTypeName]);
-            $data['property_type_id'] = $propertyType->id;
+        // Create or update draft booking
+        $booking = null;
+        if (!empty($validated['booking_id'])) {
+            $booking = Booking::find($validated['booking_id']);
+        }
+        if (!$booking) {
+            $booking = new Booking();
+            $booking->status = 'draft_property';
+            $booking->payment_status = 'unpaid';
+            // Assign Carbon date instance
+            $booking->created_by = $user->id;
+        }
 
-            $data['furnish_type'] = $request->input('commercial_furnish');
-            $data['area'] = $request->input('commercial_area');
-        } elseif ($mainType === 'Other') {
-            $otherLooking = $request->input('other_looking', 'Other');
-            $propertyType = PropertyType::firstOrCreate(['name' => 'Other']);
-            $data['property_type_id'] = $propertyType->id;
+        $booking->user_id = $user->id;
+        $booking->property_type_id = $mapping['property_type_id'];
+        $booking->property_sub_type_id = $mapping['property_sub_type_id'];
+        $booking->bhk_id = $mapping['bhk_id'];
+        $booking->furniture_type = $mapping['furniture_type'];
+        $booking->area = $mapping['area'] ?? 0;
+        $booking->payment_status = $booking->payment_status ?: 'pending';
+        $booking->status = 'pending';
+        $booking->updated_by = $user->id;
+        $booking->save();
 
-            $data['area'] = $request->input('other_area');
-            $data['other_details'] = json_encode([
-                'looking_for' => $otherLooking,
-                'description' => $request->input('other_description'),
+        return response()->json([
+            'success' => true,
+            'message' => 'Property details saved.',
+            'booking_id' => $booking->id,
+        ]);
+    }
+
+    /**
+     * Step 3 -> Save address data
+     */
+    public function saveAddressStep(Request $request)
+    {
+        $validated = $request->validate([
+            'booking_id' => 'required|integer|exists:bookings,id',
+            'house_number' => 'required|string|max:255',
+            'building_name' => 'required|string|max:255',
+            'pincode' => 'required|digits:6',
+            'city' => 'required|string',
+            'full_address' => 'required|string',
+        ]);
+
+        $booking = Booking::find($validated['booking_id']);
+        if (!$booking) {
+            return response()->json(['success' => false, 'message' => 'Booking not found.'], 404);
+        }
+
+        // Resolve city & state
+        $city = City::where('name', $validated['city'])->first();
+        if (!$city) {
+            $state = State::firstOrCreate(['name' => 'Gujarat']);
+            $city = City::create([
+                'name' => $validated['city'],
+                'state_id' => $state->id
             ]);
         }
 
-        return $data;
+        $booking->house_no = $validated['house_number'];
+        $booking->building = $validated['building_name'];
+        $booking->pin_code = $validated['pincode'];
+        $booking->full_address = $validated['full_address'];
+        $booking->city_id = $city->id;
+        $booking->state_id = $city->state_id;
+        $booking->status = 'pending';
+        $booking->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Address details saved.',
+            'booking_id' => $booking->id,
+        ]);
+    }
+
+    /**
+     * Step 4 -> Get booking summary
+     */
+    public function getBookingSummary(Request $request)
+    {
+        $validated = $request->validate([
+            'booking_id' => 'required|integer|exists:bookings,id',
+        ]);
+        $booking = Booking::with(['propertyType','propertySubType','bhk','city','state','user'])->find($validated['booking_id']);
+        if (!$booking) {
+            return response()->json(['success' => false, 'message' => 'Booking not found.'], 404);
+        }
+        return response()->json([
+            'success' => true,
+            'booking' => [
+                'id' => $booking->id,
+                'status' => $booking->status,
+                'owner_type' => $booking->owner_type ?? null,
+                'property_category' => $booking->property_category ?? null,
+                'property_type' => $booking->propertyType?->name,
+                'property_sub_type' => $booking->propertySubType?->name,
+                'furniture_type' => $booking->furniture_type,
+                'bhk' => $booking->bhk?->name,
+                'area' => $booking->area,
+                'other_details' => $booking->other_details ?? null,
+                'house_number' => $booking->house_no,
+                'building_name' => $booking->building ?? null,
+                'city' => $booking->city?->name,
+                'pincode' => $booking->pin_code,
+                'full_address' => $booking->full_address,
+                'price_estimate' => $this->calculateEstimate($booking->area),
+            ],
+        ]);
+    }
+
+    /**
+     * Step 5 -> Finalize payment & confirm booking
+     */
+    public function finalizePaymentStep(Request $request)
+    {
+        $validated = $request->validate([
+            'booking_id' => 'required|integer|exists:bookings,id',
+            'payment_method' => 'required|string|in:card,upi,netbanking',
+            'amount' => 'required|numeric|min:0',
+        ]);
+        $booking = Booking::find($validated['booking_id']);
+        if (!$booking) {
+            return response()->json(['success' => false, 'message' => 'Booking not found.'], 404);
+        }
+        $booking->payment_status = 'paid';
+        $booking->status = 'pending';
+        $booking->price = (int) $validated['amount'];
+        $booking->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Payment completed. Booking confirmed.',
+            'booking_id' => $booking->id,
+        ]);
+    }
+
+    /**
+     * Internal helper: map property request data to DB ids
+     */
+    protected function mapPropertyData(array $data): array
+    {
+        $main = $data['main_property_type'];
+        $propertyType = PropertyType::where('name', $main)->first();
+        $propertyTypeId = $propertyType?->id;
+
+        $subTypeName = null;
+        $furnish = null;
+        $bhkId = null;
+        $area = null;
+        $otherDetails = null;
+
+        if ($main === 'Residential') {
+            $subTypeName = $data['residential_property_type'] ?? null;
+            $furnish = $data['residential_furnish'] ?? null;
+            $size = $data['residential_size'] ?? null;
+            if ($size) {
+                $bhk = BHK::where('id', $size)->first();
+                $bhkId = $bhk?->id;
+            }
+            $area = $data['residential_area'] ?? null;
+        } elseif ($main === 'Commercial') {
+            $subTypeName = $data['commercial_property_type'] ?? null;
+            $furnish = $data['commercial_furnish'] ?? null;
+            $area = $data['commercial_area'] ?? null;
+        } else { // Other
+            $subTypeName = $data['other_looking'] ?? null;
+            $otherDetails = $data['other_description'] ?? null;
+            $area = $data['other_area'] ?? null;
+        }
+
+        $subTypeId = null;
+        if ($subTypeName && $propertyTypeId) {
+            $subType = PropertySubType::where('property_type_id', $propertyTypeId)
+                ->where('name', $subTypeName)
+                ->first();
+            $subTypeId = $subType?->id;
+        }
+
+        return [
+            'property_type_id' => $propertyTypeId,
+            'property_sub_type_id' => $subTypeId,
+            'bhk_id' => $bhkId,
+            'furniture_type' => $furnish,
+            'area' => $area,
+            'other_details' => $otherDetails,
+        ];
+    }
+
+    /**
+     * Simple dynamic price estimator (same logic as frontend)
+     */
+    protected function calculateEstimate($area): int
+    {
+        $areaVal = (int) $area;
+        if ($areaVal <= 0) return 0;
+        $baseArea = 1500;
+        $basePrice = 599;
+        $extraBlockPrice = 200;
+        $price = $basePrice;
+        if ($areaVal > $baseArea) {
+            $extra = $areaVal - $baseArea;
+            $blocks = (int) ceil($extra / 500);
+            $price += $blocks * $extraBlockPrice;
+        }
+        return $price;
     }
 }

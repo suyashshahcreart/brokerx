@@ -4,7 +4,6 @@ use App\Http\Controllers\EmailOtpController;
 use App\Http\Controllers\BrokerController;
 use App\Http\Controllers\UserController;
 
-
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\RoutingController;
 use App\Http\Controllers\AdminDashboardController;
@@ -84,6 +83,11 @@ Route::group(['prefix' => 'brokerx', 'as' => 'brokerx.', 'middleware' => ['web',
 Route::get('/front', [FrontendController::class, 'index'])->name('frontend.index');
 Route::get('/setup', [FrontendController::class, 'setup'])->name('frontend.setup');
 Route::post('/setup', [FrontendController::class, 'storeBooking'])->name('frontend.setup.store');
+// Step-by-step AJAX routes
+Route::post('/frontend/setup/save-property-step', [FrontendController::class, 'savePropertyStep'])->name('frontend.setup.save-property');
+Route::post('/frontend/setup/save-address-step', [FrontendController::class, 'saveAddressStep'])->name('frontend.setup.save-address');
+Route::post('/frontend/setup/get-booking-summary', [FrontendController::class, 'getBookingSummary'])->name('frontend.setup.summary');
+Route::post('/frontend/setup/finalize-payment-step', [FrontendController::class, 'finalizePaymentStep'])->name('frontend.setup.finalize-payment');
 
 // Public OTP routes for frontend (no auth required)
 Route::post('/frontend/check-user-send-otp', [FrontendController::class, 'checkUserAndSendOtp'])->name('frontend.check-user-send-otp');

@@ -112,6 +112,8 @@
                             <input type="hidden" id="choice_comFurnish" name="commercial_furnish">
                             <input type="hidden" id="choice_othLooking" name="other_looking">
                             <input type="hidden" id="mainPropertyType" name="main_property_type" value="Residential">
+                            <!-- Draft booking id for step-by-step persistence -->
+                            <input type="hidden" id="bookingId" name="booking_id" value="">
 
                             <div class="mb-3">
                                 <div class="section-title">Owner Type <span class="text-danger">*</span></div>
@@ -120,45 +122,53 @@
                                     <div class="top-pill" data-group="ownerType" data-value="Broker" onclick="topPillClick(this)">Broker</div>
                                 </div>
                             </div>
-
+                            <!-- PROPERTY TYPE TAB -->
                             <div class="mb-3">
                                 <div class="section-title">Property Type<span class="text-danger">*</span></div>
                                 <div class="d-flex flex-column flex-sm-row gap-2">
-                                    <div class="top-pill" id="pillResidential" onclick="handlePropertyTabChange('res')">Residential</div>
-                                    <div class="top-pill" id="pillCommercial" onclick="handlePropertyTabChange('com')">Commercial</div>
-                                    <div class="top-pill" id="pillOther" onclick="handlePropertyTabChange('oth')">Other</div>
+                                    @foreach($propTypes as $type)
+                                        @php
+                                            $map = [
+                                                'Residential' => 'res',
+                                                'Commercial'  => 'com',
+                                                'Other'       => 'oth',
+                                            ];
+                                            $tabKey = $map[$type->name] ?? strtolower(substr(preg_replace('/\s+/', '', $type->name), 0, 3));
+                                        @endphp
+                                        <div
+                                            class="top-pill"
+                                            id="pill{{ \Illuminate\Support\Str::studly($type->name) }}"
+                                            data-value="{{ $type->name }}"
+                                            data-type-id="{{ $type->id ?? '' }}"
+                                            onclick="handlePropertyTabChange('{{ $tabKey }}')"
+                                        >
+                                            @if(!empty($type->icon))
+                                                <i class="fa {{ $type->icon }}"></i>
+                                            @endif
+                                            {{ $type->name }}
+                                        </div>
+                                    @endforeach
                                 </div>
                             </div>
 
-                            <!-- RESIDENTIAL TAB -->
+                            <!-- PROPERTY SUB TYPE TAB -->
                             <div id="tab-res">
-                                <div class="section-title">Property Type<span class="text-danger">*</span></div>
-                                <div class="d-flex flex-column flex-sm-row gap-2 mb-3">
-                                    <div class="top-pill" data-group="resType" data-value="Apartment" onclick="selectCard(this)">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-                                            <rect x="5" y="3" width="8" height="18" rx="1.2"></rect>
-                                            <path d="M13 7h4v14"></path>
-                                            <path d="M4 21h16"></path>
-                                            <path d="M8 7h2M8 11h2M8 15h2"></path>
-                                        </svg>
-                                        Apartment
-                                    </div>
-                                    <div class="top-pill" data-group="resType" data-value="House" onclick="selectCard(this)">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-                                            <path d="M4 11L12 4l8 7"></path>
-                                            <path d="M5 10v10h4v-6h6v6h4V10"></path>
-                                        </svg>
-                                        House
-                                    </div>
-                                    <div class="top-pill" data-group="resType" data-value="Duplex" onclick="selectCard(this)">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-                                            <path d="M3 9l9-6 9 6"></path>
-                                            <path d="M5 9v11h6V9"></path>
-                                            <path d="M13 9v11h6V9"></path>
-                                            <path d="M8 13h2M16 13h2"></path>
-                                        </svg>
-                                        Duplex
-                                    </div>
+                                <div class="section-title">Property Sub Type<span class="text-danger">*</span></div>
+                                <div class="d-wrap gap-2 mb-3">
+                                    @php
+                                        $residentialType = $propTypes->firstWhere('name', 'Residential');
+                                        $residentialSubTypes = $residentialType ? $residentialType->subTypes : [];
+                                    @endphp
+                                    @forelse($residentialSubTypes as $subType)
+                                        <div class="top-pill m-1" data-group="resType" data-value="{{ $subType->name }}" onclick="selectCard(this)">
+                                            @if($subType->icon)
+                                                <i class="fa {{ $subType->icon }}"></i>
+                                            @endif
+                                            {{ $subType->name }}
+                                        </div>
+                                    @empty
+                                        <div class="text-muted">No residential types available</div>
+                                    @endforelse
                                 </div>
                                 <div class="section-title">Furnish Type<span class="text-danger">*</span></div>
                                 <div class="d-flex flex-column flex-sm-row gap-2 mb-3">
@@ -168,10 +178,11 @@
                                 </div>
                                 <div class="section-title">Size (BHK / RK)</div>
                                 <div class="d-flex flex-column flex-sm-row gap-2 mb-3">
-                                    <div class="chip" data-group="resSize" data-value="1 BHK" onclick="selectChip(this)">1 BHK</div>
-                                    <div class="chip" data-group="resSize" data-value="2 BHK" onclick="selectChip(this)">2 BHK</div>
-                                    <div class="chip" data-group="resSize" data-value="3 BHK" onclick="selectChip(this)">3 BHK</div>
-                                    <div class="chip" data-group="resSize" data-value="4+ BHK" onclick="selectChip(this)">4+ BHK</div>
+                                    @forelse($bhk as $bhkItem)
+                                    <div class="chip" data-group="resSize" data-value="{{ $bhkItem->id }}" onclick="selectChip(this)">{{ $bhkItem->name }}</div>
+                                    @empty
+                                        <div class="chip" data-group="resSize" data-value="null" onclick="selectChip(this)">Not Found</div>
+                                    @endforelse
                                 </div>
                                 <div class="mb-3">
                                     <div class="section-title">Super Built-up Area (sq. ft.) <span class="text-danger">*</span></div>
@@ -182,35 +193,24 @@
 
                             <!-- COMMERCIAL TAB -->
                             <div id="tab-com" style="display:none;">
-                                <div class="section-title">Property Type<span class="text-danger">*</span></div>
+                                <div class="section-title">Property Sub Type<span class="text-danger">*</span></div>
                                 <div class="d-flex flex-column flex-sm-row gap-2 mb-3">
-                                    <div class="top-pill" data-group="comType" data-value="Office" onclick="selectCard(this)">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-                                            <path d="M3 9l9-6 9 6v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-                                            <path d="M7 21v-6h10v6"></path>
-                                            <path d="M9 13v4M15 13v4"></path>
-                                        </svg>
-                                        Office
-                                    </div>
-                                    <div class="top-pill" data-group="comType" data-value="Shop" onclick="selectCard(this)">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-                                            <path d="M3 9l2-5h14l2 5"></path>
-                                            <path d="M4 9v9h16V9"></path>
-                                            <path d="M8 14h4"></path>
-                                            <path d="M12 18v-4"></path>
-                                        </svg>
-                                        Shop
-                                    </div>
-                                    <div class="top-pill" data-group="comType" data-value="Showroom" onclick="selectCard(this)">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-                                            <rect x="3" y="6" width="18" height="14" rx="2"></rect>
-                                            <path d="M7 10h10v6H7z"></path>
-                                            <path d="M5 6V3h4v3"></path>
-                                            <path d="M15 6V3h4v3"></path>
-                                        </svg>
-                                        Showroom
-                                    </div>
+                                    @php
+                                        $commercialType = $propTypes->firstWhere('name', 'Commercial');
+                                        $commercialSubTypes = $commercialType ? $commercialType->subTypes : [];
+                                    @endphp
+                                    @forelse($commercialSubTypes as $subType)
+                                        <div class="top-pill" data-group="comType" data-value="{{ $subType->name }}" onclick="selectCard(this)">
+                                            @if($subType->icon)
+                                                <i class="fa {{ $subType->icon }}"></i>
+                                            @endif
+                                            {{ $subType->name }}
+                                        </div>
+                                    @empty
+                                        <div class="text-muted">No commercial types available</div>
+                                    @endforelse
                                 </div>
+                                <!-- FURNATURE TABL -->
                                 <div class="section-title">Furnish Type<span class="text-danger">*</span></div>
                                 <div class="d-flex flex-column flex-sm-row gap-2 mb-3">
                                     <div class="chip" data-group="comFurnish" data-value="Fully Furnished" onclick="selectChip(this)">Fully Furnished</div>
@@ -229,31 +229,20 @@
                                 <div class="mb-3">
                                     <div style="font-weight:700; margin-bottom:8px">Select Option <span class="text-danger">*</span></div>
                                     <div class="d-flex flex-column flex-sm-row gap-2">
-                                        <div class="top-pill" data-group="othLooking" data-value="Warehouse" onclick="topPillClick(this)">
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-                                                <path d="M3 9l9-6 9 6v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-                                                <path d="M7 21v-6h10v6"></path>
-                                                <path d="M9 13v4M15 13v4"></path>
-                                            </svg>
-                                            Warehouse
-                                        </div>
-                                        <div class="top-pill" data-group="othLooking" data-value="Restaurant" onclick="topPillClick(this)">
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-                                                <path d="M6 3v6a3 3 0 0 0 3 3"></path>
-                                                <path d="M6 3c3 0 5 2 5 5v4"></path>
-                                                <path d="M18 3v18"></path>
-                                                <path d="M14 7h4"></path>
-                                            </svg>
-                                            Restaurant
-                                        </div>
-                                        <div class="top-pill" data-group="othLooking" data-value="Cafe" onclick="topPillClick(this)">
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-                                                <path d="M4 10h12v5a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4z"></path>
-                                                <path d="M16 12h2.5a2.5 2.5 0 0 1 0 5H16"></path>
-                                                <path d="M6 3c0 2 2 2 2 4s-2 2-2 4"></path>
-                                            </svg>
-                                            Cafe
-                                        </div>
+                                        @php
+                                            $otherType = $propTypes->firstWhere('name', 'Other');
+                                            $otherSubTypes = $otherType ? $otherType->subTypes : [];
+                                        @endphp
+                                        @forelse($otherSubTypes as $subType)
+                                            <div class="top-pill" data-group="othLooking" data-value="{{ $subType->name }}" onclick="topPillClick(this)">
+                                                @if($subType->icon)
+                                                    <i class="fa {{ $subType->icon }}"></i>
+                                                @endif
+                                                {{ $subType->name }}
+                                            </div>
+                                        @empty
+                                            <div class="text-muted">No other types available</div>
+                                        @endforelse
                                     </div>
                                     <div id="err-othLooking" class="error">Select an option or enter Other option.</div>
                                 </div>
@@ -298,9 +287,12 @@
                                     <div id="err-addrPincode" class="error">Valid 6-digit pincode required.</div>
                                 </div>
                                 <div class="col-md-4">
-                                    <label class="form-label">City</label>
-                                    <select id="addrCity" name="city" class="form-select" disabled>
-                                        <option value="Ahmedabad" selected>Ahmedabad</option>
+                                    <label class="form-label">City <span class="text-danger">*</span></label>
+                                    <select id="addrCity" name="city" class="form-select">
+                                        <option value="">Select City</option>
+                                        @foreach($cities as $city)
+                                            <option value="{{ $city->name }}">{{ $city->name }}</option>
+                                        @endforeach
                                     </select>
                                 </div>
                                 <div class="col-12">
@@ -470,6 +462,13 @@
     <script src="{{ asset('frontend/js/plugins/jquery.isotope.v3.0.2.js') }}"></script>
     <script src="{{ asset('frontend/js/plugins/smooth-scroll.min.js') }}"></script>
     <script src="{{ asset('frontend/js/plugins/wow.js') }}"></script>
+    <script>
+        window.SetupData = {
+            types: @json($propTypes ?? []),
+            states: @json($states ?? []),
+            cities: @json($cities ?? [])
+        };
+    </script>
     <script src="{{ asset('frontend/js/custom.js') }}"></script>
     <script src="{{ asset('frontend/js/setup.js') }}"></script>
 @endsection
