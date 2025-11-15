@@ -1,18 +1,28 @@
 /**********************
      State & helpers
     ***********************/
+const setupContext = window.SetupContext || {};
 const state = {
-    step: 1,
+    step: setupContext.authenticated ? 2 : 1,
     otp: 524163,
     otpVerified: true,
     paymentMethod: null,
     activePropertyTab: 'res',
-    contactLocked: false,
+    contactLocked: setupContext.authenticated ? true : false,
     currentPrice: 0,
     bookingId: null
 };
 
 const el = id => document.getElementById(id);
+const appUrlMeta = document.querySelector('meta[name="app-url"]');
+const baseUrl = (appUrlMeta?.content || window.location.origin || '').replace(/\/+$/, '');
+
+function buildUrl(path = '') {
+    if (!path) return baseUrl;
+    if (/^https?:\/\//i.test(path)) return path;
+    const normalized = path.replace(/^\/+/, '');
+    return baseUrl ? `${baseUrl}/${normalized}` : `/${normalized}`;
+}
 
 function updateProgress() {
     const percent = Math.round(((state.step - 1) / 4) * 100);
@@ -32,10 +42,27 @@ function showStep(n) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+function hydrateAuthUser() {
+    if (!setupContext.authenticated || !setupContext.user) return;
+    const { name, mobile } = setupContext.user;
+    if (el('inputName')) el('inputName').value = name || '';
+    if (el('inputPhone')) el('inputPhone').value = mobile || '';
+    const badge = el('otpSentBadge');
+    if (badge) {
+        badge.classList.remove('hidden');
+        badge.textContent = 'Verified ✓';
+    }
+    const toStep2Btn = el('toStep2');
+    if (toStep2Btn) {
+        toStep2Btn.disabled = false;
+    }
+}
+
 // init
 updateProgress();
-showStep(1);
+showStep(state.step);
 switchMainTab('res');
+hydrateAuthUser();
 
 // Dynamic data rendering from SetupData
 const setupData = window.SetupData || { types: [], states: [], cities: [] };
@@ -94,12 +121,12 @@ initCitySelect();
 ***********************/
 // Helper to get CSRF token
 function getCsrfToken() {
-    return document.querySelector('meta[name="csrf-token"]')?.content || 
+    return document.querySelector('meta[name="csrf-token"]')?.content ||
            document.querySelector('input[name="_token"]')?.value || '';
 }
 
 async function postJson(url, data) {
-    const resp = await fetch(url, {
+    const resp = await fetch(buildUrl(url), {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -111,7 +138,8 @@ async function postJson(url, data) {
     return resp.json();
 }
 
-el('sendOtpBtn').addEventListener('click', async () => {
+const sendOtpBtn = el('sendOtpBtn');
+if (sendOtpBtn) sendOtpBtn.addEventListener('click', async () => {
     // validate name & phone
     const name = el('inputName').value.trim();
     const phone = el('inputPhone').value.trim();
@@ -133,7 +161,7 @@ el('sendOtpBtn').addEventListener('click', async () => {
 
     try {
         // Call API to check user and send OTP
-        const response = await fetch('/frontend/check-user-send-otp', {
+        const response = await fetch(buildUrl('/frontend/check-user-send-otp'), {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -171,7 +199,8 @@ el('sendOtpBtn').addEventListener('click', async () => {
     }
 });
 
-el('resendOtp').addEventListener('click', async (e) => {
+const resendOtpBtn = el('resendOtp');
+if (resendOtpBtn) resendOtpBtn.addEventListener('click', async (e) => {
     e.preventDefault();
     const phone = el('inputPhone').value.trim();
     const name = el('inputName').value.trim();
@@ -186,7 +215,7 @@ el('resendOtp').addEventListener('click', async (e) => {
     }
 
     try {
-        const response = await fetch('/frontend/check-user-send-otp', {
+        const response = await fetch(buildUrl('/frontend/check-user-send-otp'), {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -213,7 +242,8 @@ el('resendOtp').addEventListener('click', async (e) => {
     }
 });
 
-el('verifyOtpBtn').addEventListener('click', async () => {
+const verifyOtpBtn = el('verifyOtpBtn');
+if (verifyOtpBtn) verifyOtpBtn.addEventListener('click', async () => {
     const entered = el('inputOtp').value.trim();
     const phone = el('inputPhone').value.trim();
 
@@ -230,7 +260,7 @@ el('verifyOtpBtn').addEventListener('click', async () => {
 
     try {
         // Call API to verify OTP
-        const response = await fetch('/frontend/verify-user-otp', {
+        const response = await fetch(buildUrl('/frontend/verify-user-otp'), {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -246,6 +276,10 @@ el('verifyOtpBtn').addEventListener('click', async () => {
         const result = await response.json();
 
         if (result.success) {
+            if (result.csrf_token) {
+                const meta = document.querySelector('meta[name="csrf-token"]');
+                if (meta) meta.content = result.csrf_token;
+            }
             el('err-otp').style.display = 'none';
             state.otpVerified = true;
             el('otpRow').classList.add('hidden');
@@ -253,6 +287,8 @@ el('verifyOtpBtn').addEventListener('click', async () => {
             el('otpSentBadge').innerText = 'Verified ✓';
             el('toStep2').disabled = false;
             console.log('✅ OTP verified successfully:', result.user);
+            state.step = 2;
+            showStep(2);
         } else {
             el('err-otp').style.display = 'block';
             el('err-otp').textContent = result.message || 'Invalid OTP';
@@ -267,7 +303,8 @@ el('verifyOtpBtn').addEventListener('click', async () => {
     }
 });
 
-el('toStep2').addEventListener('click', () => {
+const toStep2Btn = el('toStep2');
+if (toStep2Btn) toStep2Btn.addEventListener('click', () => {
     if (!state.otpVerified) {
         alert('Please verify OTP before proceeding.');
         return;
@@ -276,7 +313,8 @@ el('toStep2').addEventListener('click', () => {
     showStep(2);
 });
 
-el('skipContact').addEventListener('click', () => {
+const skipContactBtn = el('skipContact');
+if (skipContactBtn) skipContactBtn.addEventListener('click', () => {
     // clear contact fields
     el('inputName').value = '';
     el('inputPhone').value = '';
@@ -455,7 +493,8 @@ function topPillClick(dom) {
     }
 }
 
-el('backToContact').addEventListener('click', () => {
+const backToContactBtn = el('backToContact');
+if (backToContactBtn) backToContactBtn.addEventListener('click', () => {
     if (state.contactLocked) {
         alert('Contact details are locked after verification.');
         return;

@@ -38,7 +38,7 @@ class BookingSeeder extends Seeder
         $statuses = ['pending', 'confirmed', 'cancelled', 'completed'];
 
         // Create 10 sample bookings
-        for ($i = 0; $i < 10; $i++) {
+        for ($i = 0; $i < 5; $i++) {
             $city = $cities->isNotEmpty() ? $cities->random() : null;
             $state = $states->isNotEmpty() ? $states->random() : null;
 

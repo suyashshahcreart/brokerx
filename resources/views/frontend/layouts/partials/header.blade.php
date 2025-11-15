@@ -17,7 +17,16 @@
                 <li class="nav-item"><a class="nav-link" href="#" data-scroll-nav="3">Pricing</a></li>
                 <li class="nav-item"><a class="nav-link" href="#" data-scroll-nav="4">Blog</a></li>
                 <li class="nav-item"><a class="nav-link" href="#" data-scroll-nav="5">Testimonials</a></li>
-                <li class="nav-item ms-0 ms-lg-3"><a class="btn btn-primary" href="{{ route('login') }}">Dashboard Login</a></li>
+                @auth
+                    <li class="nav-item ms-0 ms-lg-3">
+                        <form action="{{ route('logout') }}" method="POST" class="d-inline">
+                            @csrf
+                            <button type="submit" class="btn btn-primary">Logout</button>
+                        </form>
+                    </li>
+                @else
+                    <li class="nav-item ms-0 ms-lg-3"><a class="btn btn-primary" href="{{ route('login') }}">Dashboard Login</a></li>
+                @endauth
             </ul>
         </div>
     </div>

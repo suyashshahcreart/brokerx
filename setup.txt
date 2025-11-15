@@ -5,3 +5,24 @@ very importend steps
 
 check the node packages and js build.
 check providers are setup and working.
+
+
+also chckhre vite.config.js file
+
+folder base path (if folder name lahomes ( base on this change here propely))
+
+export default defineConfig({
+    base: '/lahomes/',
+
+
+also config session.php file 
+
+'path' => env('SESSION_PATH', '/lahomes'),
+
+
+
+
+update query 
+
+ALTER TABLE `users` CHANGE `lastname` `lastname` VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL, CHANGE `email` `email` VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL, CHANGE `password` `password` VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL;
+

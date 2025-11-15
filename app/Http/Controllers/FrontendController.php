@@ -11,6 +11,7 @@ use App\Models\BHK;
 use App\Models\PropertyType;
 use App\Models\PropertySubType;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 use Spatie\Permission\Models\Role;
 
 class FrontendController extends Controller
@@ -75,20 +76,6 @@ class FrontendController extends Controller
                 // Assign customer role
                 $customerRole = Role::firstOrCreate(['name' => 'customer']);
                 $user->assignRole($customerRole);
-
-                Log::info('✅ NEW USER CREATED', [
-                    'timestamp' => now()->toDateTimeString(),
-                    'name' => $user->firstname . ' ' . $user->lastname,
-                    'status' => 'User created successfully'
-                ]);
-            } else {
-                Log::info('👤 EXISTING USER FOUND', [
-                    'timestamp' => now()->toDateTimeString(),
-                    'user_id' => $user->id,
-                    'name' => $user->firstname . ' ' . $user->lastname,
-                    'mobile' => $mobile,
-                    'status' => 'User already exists'
-                ]);
             }
 
             // Generate 6-digit OTP
@@ -98,15 +85,6 @@ class FrontendController extends Controller
             $user->update([
                 'otp' => $otp,
                 'otp_expires_at' => now()->addMinutes(5),
-            ]);
-
-            // Log OTP for testing (save to log file)
-            Log::info('📱 OTP GENERATED AND SENT', [
-                'timestamp' => now()->toDateTimeString(),
-                'otp' => $otp,
-                'expires_at' => now()->addMinutes(5)->toDateTimeString(),
-                'user_status' => $userStatus,
-                'message' => 'OTP saved to database and queued for SMS'
             ]);
 
             // TODO: Integrate SMS gateway here
@@ -183,7 +161,7 @@ class FrontendController extends Controller
                 'message' => 'User not found. Please request OTP first.',
             ], 404);
         }
-
+        
         // Check if OTP exists
         if (!$user->otp) {
             return response()->json([
@@ -208,17 +186,16 @@ class FrontendController extends Controller
             ], 422);
         }
         
-        // OTP is valid - clear it and mark mobile as verified
+        // OTP is valid - clear it, mark mobile as verified, and log user in
         $user->update([
             'otp' => null,
             'otp_expires_at' => null,
             'mobile_verified_at' => $user->mobile_verified_at ?? now(),
         ]);
-
-        Log::info('OTP verified successfully', [
-            'user_id' => $user->id,
-            'mobile' => $mobile,
-        ]);
+        Auth::login($user);
+        $request->session()->regenerate();
+        $request->session()->regenerateToken();
+        $newCsrfToken = csrf_token();
 
         return response()->json([
             'success' => true,
@@ -230,6 +207,8 @@ class FrontendController extends Controller
                 'email' => $user->email,
                 'mobile_verified' => true,
             ],
+            'authenticated' => Auth::check(),
+            'csrf_token' => $newCsrfToken,
         ]);
     }
 
@@ -364,6 +343,7 @@ class FrontendController extends Controller
         $booking->bhk_id = $mapping['bhk_id'];
         $booking->furniture_type = $mapping['furniture_type'];
         $booking->area = $mapping['area'] ?? 0;
+        $booking->price = $this->calculateEstimate($mapping['area'] ?? 0);
         $booking->payment_status = $booking->payment_status ?: 'pending';
         $booking->status = 'pending';
         $booking->updated_by = $user->id;

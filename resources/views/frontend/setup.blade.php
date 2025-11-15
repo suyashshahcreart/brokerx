@@ -1,7 +1,19 @@
 @extends('frontend.layouts.base', ['title' => 'Setup Virtual Tour - PROP PIK'])
 
+@php
+    $isLoggedIn = auth()->check();
+    $authUser = auth()->user();
+    $authUserName = $isLoggedIn ? trim(($authUser->firstname ?? '') . ' ' . ($authUser->lastname ?? '')) : null;
+    $setupUserPayload = $isLoggedIn ? [
+        'name' => $authUserName,
+        'mobile' => $authUser->mobile ?? null,
+        'email' => $authUser->email ?? null,
+    ] : null;
+@endphp
+
 @section('css')
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="app-url" content="{{ config('app.url') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400..800&family=Urbanist:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
@@ -42,8 +54,10 @@
                 </div>
                 <div class="step-row">
                     <div class="step-buttons">
-                        <button class="step-btn active" data-step="1" id="btn-step-1">Contact</button>
-                        <button class="step-btn" data-step="2" id="btn-step-2">Property</button>
+                        @unless($isLoggedIn)
+                            <button class="step-btn active" data-step="1" id="btn-step-1">Contact</button>
+                        @endunless
+                        <button class="step-btn {{ $isLoggedIn ? 'active' : '' }}" data-step="2" id="btn-step-2">Property</button>
                         <button class="step-btn" data-step="3" id="btn-step-3">Address</button>
                         <button class="step-btn" data-step="4" id="btn-step-4">Verify</button>
                         <button class="step-btn" data-step="5" id="btn-step-5">Payment</button>
@@ -56,19 +70,19 @@
                 @csrf
                 <div class="content">
                     <!-- STEP 1: CONTACT + OTP -->
-                    <div id="step-1" class="step-pane">
+                    <div id="step-1" class="step-pane {{ $isLoggedIn ? 'hidden d-none' : '' }}" @if($isLoggedIn) aria-hidden="true" @endif>
                         <h2 class="app-title">Contact details & verification</h2>
                         <div class="muted-small mb-3">Enter your name and phone. We'll send an OTP to verify.</div>
                         <div class="card p-3 mb-3" style="border-radius:12px;">
                             <div class="row g-3">
                                 <div class="col-md-6">
                                     <label class="form-label">Full name <span class="text-danger">*</span></label>
-                                    <input id="inputName" name="name" class="form-control" placeholder="e.g., John Doe" value="{{ request('prefillName') }}" />
+                                    <input id="inputName" name="name" class="form-control" placeholder="e.g., John Doe" value="{{ $isLoggedIn ? $authUserName : request('prefillName') }}" />
                                     <div id="err-name" class="error">Name is required.</div>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Phone number <span class="text-danger">*</span></label>
-                                    <input id="inputPhone" name="phone" class="form-control" placeholder="10-digit mobile" maxlength="10" value="{{ request('prefillPhone') }}" />
+                                    <input id="inputPhone" name="phone" class="form-control" placeholder="10-digit mobile" maxlength="10" value="{{ $isLoggedIn ? ($authUser->mobile ?? '') : request('prefillPhone') }}" />
                                     <div id="err-phone" class="error">Enter a valid 10-digit mobile number.</div>
                                 </div>
                             </div>
@@ -96,7 +110,7 @@
                     </div>
 
                     <!-- STEP 2: PROPERTY DETAILS -->
-                    <div id="step-2" class="step-pane hidden">
+                    <div id="step-2" class="step-pane {{ $isLoggedIn ? '' : 'hidden' }}">
                         <div class="d-flex justify-content-between align-items-start mb-2">
                             <div>
                                 <h2 class="app-title">Property details</h2>
@@ -258,9 +272,11 @@
                                 </div>
                             </div>
 
-                            <div class="d-flex flex-column flex-sm-row gap-2 justify-content-between mt-3">
-                                <button type="button" class="btn btn-outline-secondary" id="backToContact">Back to Contact</button>
-                                <button type="button" class="btn btn-primary" id="toStep3">Proceed to Address</button>
+                                <div class="d-flex flex-column flex-sm-row gap-2 justify-content-between mt-3">
+                                    @unless($isLoggedIn)
+                                        <button type="button" class="btn btn-outline-secondary" id="backToContact">Back to Contact</button>
+                                    @endunless
+                                    <button type="button" class="btn btn-primary" id="toStep3">Proceed to Address</button>
                             </div>
                         </div>
                     </div>
@@ -289,10 +305,8 @@
                                 <div class="col-md-4">
                                     <label class="form-label">City <span class="text-danger">*</span></label>
                                     <select id="addrCity" name="city" class="form-select">
-                                        <option value="">Select City</option>
-                                        @foreach($cities as $city)
-                                            <option value="{{ $city->name }}">{{ $city->name }}</option>
-                                        @endforeach
+                                        {{-- <option value="">Select City</option> --}}
+                                        <option value="Ahmedabad" selected>Ahmedabad</option>
                                     </select>
                                 </div>
                                 <div class="col-12">
@@ -463,6 +477,10 @@
     <script src="{{ asset('frontend/js/plugins/smooth-scroll.min.js') }}"></script>
     <script src="{{ asset('frontend/js/plugins/wow.js') }}"></script>
     <script>
+        window.SetupContext = {
+            authenticated: @json($isLoggedIn),
+            user: @json($setupUserPayload),
+        };
         window.SetupData = {
             types: @json($propTypes ?? []),
             states: @json($states ?? []),

@@ -45,7 +45,7 @@ return new class extends Migration
             // Property details
             $table->string('furniture_type')->nullable();
             $table->unsignedInteger('area');
-            $table->unsignedBigInteger('price');
+            $table->unsignedBigInteger('price')->nullable();
 
             // Address fields
             $table->string('house_no')->nullable();
@@ -58,7 +58,7 @@ return new class extends Migration
 
             // Booking metadata
             $table->date('booking_date')->nullable();
-            $table->enum('payment_status', ['pending', 'paid', 'failed', 'refunded'])->default('pending');
+            $table->enum('payment_status', ['unpaid', 'pending', 'paid', 'failed', 'refunded'])->default('unpaid');
             $table->enum('status', ['pending', 'confirmed', 'cancelled', 'completed'])->default('pending');
 
             // Audit fields

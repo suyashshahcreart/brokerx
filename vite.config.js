@@ -4,7 +4,7 @@ import {
 import laravel from 'laravel-vite-plugin';
 
 export default defineConfig({
-    base: '/lahomes/',
+    base: '/brokerx/',
     plugins: [
         laravel({
             input: [

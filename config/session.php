@@ -143,7 +143,7 @@ return [
     |
     */
 
-    'path' => env('SESSION_PATH', '/lahomes'),
+    'path' => env('SESSION_PATH', '/brokerx'),
 
     /*
     |--------------------------------------------------------------------------
