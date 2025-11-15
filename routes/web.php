@@ -84,3 +84,7 @@ Route::group(['prefix' => 'brokerx', 'as' => 'brokerx.', 'middleware' => ['web',
 Route::get('/front', [FrontendController::class, 'index'])->name('frontend.index');
 Route::get('/setup', [FrontendController::class, 'setup'])->name('frontend.setup');
 Route::post('/setup', [FrontendController::class, 'storeBooking'])->name('frontend.setup.store');
+
+// Public OTP routes for frontend (no auth required)
+Route::post('/frontend/check-user-send-otp', [FrontendController::class, 'checkUserAndSendOtp'])->name('frontend.check-user-send-otp');
+Route::post('/frontend/verify-user-otp', [FrontendController::class, 'verifyUserOtp'])->name('frontend.verify-user-otp');

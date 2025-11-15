@@ -75,12 +75,11 @@
                             <div class="mt-3 d-flex flex-column flex-sm-row gap-2 align-items-center">
                                 <button type="button" class="btn btn-primary" id="sendOtpBtn">Send OTP</button>
                                 <div id="otpSentBadge" class="muted-small text-success hidden">OTP sent</div>
-                                <div id="demoOtp" class="muted-small text-muted hidden">[demo OTP: <strong id="demoOtpCode"></strong>]</div>
                             </div>
                             <div id="otpRow" class="mt-3 hidden">
                                 <div class="row g-3 align-items-center">
                                     <div class="col-md-4">
-                                        <input id="inputOtp" class="form-control" maxlength="6" placeholder="Enter OTP" />
+                                        <input id="inputOtp" class="form-control" maxlength="6" placeholder="Enter 6-digit OTP" />
                                         <div id="err-otp" class="error">Enter the correct OTP.</div>
                                     </div>
                                     <div class="col-12 col-sm-auto text-center text-sm-start">

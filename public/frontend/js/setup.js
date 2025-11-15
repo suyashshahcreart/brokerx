@@ -66,30 +66,35 @@ el('sendOtpBtn').addEventListener('click', async () => {
     sendBtn.textContent = 'Sending...';
 
     try {
-        // Call API to send OTP
-        const response = await fetch('/otp/send', {
+        // Call API to check user and send OTP
+        const response = await fetch('/frontend/check-user-send-otp', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRF-TOKEN': getCsrfToken(),
                 'Accept': 'application/json'
             },
-            body: JSON.stringify({ mobile: phone })
+            body: JSON.stringify({ 
+                mobile: phone,
+                name: name
+            })
         });
 
-        const data = await response.json();
+        const result = await response.json();
 
-        if (data.success) {
-            state.otp = data.otp; // For demo purposes
+        if (result.success && result.data) {
             state.otpVerified = false;
             el('otpRow').classList.remove('hidden');
             el('otpSentBadge').classList.remove('hidden');
-            el('demoOtp').classList.remove('hidden');
-            el('demoOtpCode').innerText = state.otp;
             el('toStep2').disabled = true;
-            console.log('OTP sent:', state.otp);
+            // Optional status log without OTP content
+            if (result.data.is_new_user) {
+                console.log('✅ New user created and OTP sent');
+            } else {
+                console.log('👤 Existing user - OTP sent');
+            }
         } else {
-            alert(data.message || 'Failed to send OTP. Please try again.');
+            alert(result.message || 'Failed to send OTP. Please try again.');
         }
     } catch (error) {
         console.error('Error sending OTP:', error);
@@ -103,32 +108,38 @@ el('sendOtpBtn').addEventListener('click', async () => {
 el('resendOtp').addEventListener('click', async (e) => {
     e.preventDefault();
     const phone = el('inputPhone').value.trim();
+    const name = el('inputName').value.trim();
+    
     if (!phone) { 
         alert('Enter phone to resend OTP'); 
         return; 
     }
+    if (!name) {
+        alert('Enter name to resend OTP');
+        return;
+    }
 
     try {
-        const response = await fetch('/otp/send', {
+        const response = await fetch('/frontend/check-user-send-otp', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRF-TOKEN': getCsrfToken(),
                 'Accept': 'application/json'
             },
-            body: JSON.stringify({ mobile: phone })
+            body: JSON.stringify({ 
+                mobile: phone,
+                name: name
+            })
         });
 
-        const data = await response.json();
+        const result = await response.json();
 
-        if (data.success) {
-            state.otp = data.otp;
-            el('demoOtpCode').innerText = state.otp;
+        if (result.success && result.data) {
             el('otpSentBadge').classList.remove('hidden');
-            el('demoOtp').classList.remove('hidden');
-            console.log('Resent OTP:', state.otp);
+            console.log('📱 Resent OTP');
         } else {
-            alert(data.message || 'Failed to resend OTP.');
+            alert(result.message || 'Failed to resend OTP.');
         }
     } catch (error) {
         console.error('Error resending OTP:', error);
@@ -140,9 +151,9 @@ el('verifyOtpBtn').addEventListener('click', async () => {
     const entered = el('inputOtp').value.trim();
     const phone = el('inputPhone').value.trim();
 
-    if (!entered || entered.length !== 4) {
+    if (!entered || entered.length !== 6) {
         el('err-otp').style.display = 'block';
-        el('err-otp').textContent = 'Please enter 4-digit OTP';
+        el('err-otp').textContent = 'Please enter 6-digit OTP';
         return;
     }
 
@@ -153,7 +164,7 @@ el('verifyOtpBtn').addEventListener('click', async () => {
 
     try {
         // Call API to verify OTP
-        const response = await fetch('/otp/verify', {
+        const response = await fetch('/frontend/verify-user-otp', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -166,20 +177,19 @@ el('verifyOtpBtn').addEventListener('click', async () => {
             })
         });
 
-        const data = await response.json();
+        const result = await response.json();
 
-        if (data.success) {
+        if (result.success) {
             el('err-otp').style.display = 'none';
             state.otpVerified = true;
             el('otpRow').classList.add('hidden');
             el('otpSentBadge').classList.remove('hidden');
             el('otpSentBadge').innerText = 'Verified ✓';
-            el('demoOtp').classList.add('hidden');
             el('toStep2').disabled = false;
-            console.log('OTP verified successfully');
+            console.log('✅ OTP verified successfully:', result.user);
         } else {
             el('err-otp').style.display = 'block';
-            el('err-otp').textContent = data.message || 'Invalid OTP';
+            el('err-otp').textContent = result.message || 'Invalid OTP';
         }
     } catch (error) {
         console.error('Error verifying OTP:', error);
@@ -209,7 +219,6 @@ el('skipContact').addEventListener('click', () => {
     state.otpVerified = false;
     el('otpRow').classList.add('hidden');
     el('otpSentBadge').classList.add('hidden');
-    el('demoOtp').classList.add('hidden');
     el('toStep2').disabled = true;
     state.contactLocked = false;
     ['btn-step-1', 'backToContact', 'sendOtpBtn', 'verifyOtpBtn', 'resendOtp', 'skipContact'].forEach(id => {
