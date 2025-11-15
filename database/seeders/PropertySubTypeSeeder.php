@@ -32,6 +32,10 @@ class PropertySubTypeSeeder extends Seeder
                 ['name' => 'Warehouse', 'icon' => 'fa-warehouse'],
                 ['name' => 'Others', 'icon' => 'fa-ellipsis'],
             ],
+            'Other'=>[
+                ['name'=>'Restaurant','icon'=>'fa-cutlery'],
+                ['name'=>'Cafe','icon'=>'fa-coffee']
+            ]
         ];
         
         foreach ($data as $typeName => $subTypes) {

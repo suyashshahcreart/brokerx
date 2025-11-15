@@ -16,6 +16,7 @@ class PropertyTypeSeeder extends Seeder
         $types = [
             ['name' => 'Residential', 'icon' => 'fa-home'],
             ['name' => 'Commercial', 'icon' => 'fa-building'],
+            ['name' => 'Other', 'icon' => 'fa-coffee'],
         ];
         foreach ($types as $type) {
             PropertyType::create($type);
