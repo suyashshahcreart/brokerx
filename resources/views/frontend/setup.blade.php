@@ -12,7 +12,6 @@
 
     $stepNumbers = [
         'contact' => null,
-        'booking' => null,
         'property' => null,
         'address' => null,
         'verify' => null,
@@ -22,17 +21,12 @@
     if (!$isLoggedIn) {
         $stepNumbers['contact'] = $currentStepNumber++;
     }
-    if ($hasBookings ?? false) {
-        $stepNumbers['booking'] = $currentStepNumber++;
-    }
     $stepNumbers['property'] = $currentStepNumber++;
     $stepNumbers['address'] = $currentStepNumber++;
     $stepNumbers['verify'] = $currentStepNumber++;
     $stepNumbers['payment'] = $currentStepNumber++;
 
-    $initialStepKey = !$isLoggedIn
-        ? 'contact'
-        : (($hasBookings ?? false) ? 'booking' : 'property');
+    $initialStepKey = !$isLoggedIn ? 'contact' : 'property';
     $initialStepNumber = $stepNumbers[$initialStepKey] ?? $stepNumbers['property'];
 @endphp
 
@@ -143,9 +137,6 @@
                         @if($stepNumbers['contact'])
                             <button class="step-btn {{ $initialStepNumber === $stepNumbers['contact'] ? 'active' : '' }}" data-step="{{ $stepNumbers['contact'] }}" id="btn-step-contact">Contact</button>
                         @endif
-                        @if($stepNumbers['booking'])
-                            <button class="step-btn {{ $initialStepNumber === $stepNumbers['booking'] ? 'active' : '' }}" data-step="{{ $stepNumbers['booking'] }}" id="btn-step-booking">Booking</button>
-                        @endif
                         <button class="step-btn {{ $initialStepNumber === $stepNumbers['property'] ? 'active' : '' }}" data-step="{{ $stepNumbers['property'] }}" id="btn-step-property">Property</button>
                         <button class="step-btn" data-step="{{ $stepNumbers['address'] }}" id="btn-step-address">Address</button>
                         <button class="step-btn" data-step="{{ $stepNumbers['verify'] }}" id="btn-step-verify">Verify</button>
@@ -194,15 +185,13 @@
                             </div>
                             <div class="d-flex flex-column flex-sm-row gap-2 justify-content-end mt-4">
                                 <button type="button" class="btn btn-outline-secondary me-2" id="skipContact">Clear</button>
-                                <button type="button" class="btn btn-primary" id="toStep2" disabled>Proceed to {{ ($hasBookings ?? false) ? 'Booking' : 'Property' }}</button>
+                                <button type="button" class="btn btn-primary" id="toStep2" disabled>Proceed to Property</button>
                             </div>
                         </div>
                     </div>
-                    @endif
 
-                    @if($stepNumbers['booking'])
-                    <!-- STEP: BOOKINGS -->
-                    <div id="step-{{ $stepNumbers['booking'] }}" class="step-pane {{ $initialStepNumber === $stepNumbers['booking'] ? '' : 'hidden' }}">
+                    <!-- STEP: PROPERTY DETAILS -->
+                    <div id="step-{{ $stepNumbers['property'] }}" class="step-pane {{ $initialStepNumber === $stepNumbers['property'] ? '' : 'hidden' }}">
                         <div class="d-flex justify-content-between align-items-start mb-2">
                             <div>
                                 <h2 class="app-title">Your bookings</h2>
@@ -399,9 +388,6 @@
                                     @unless($isLoggedIn)
                                         <button type="button" class="btn btn-outline-secondary" id="backToContact">Back to Contact</button>
                                     @endunless
-                                    @if($stepNumbers['booking'])
-                                        <button type="button" class="btn btn-outline-secondary" id="backToBooking">Back to Booking</button>
-                                    @endif
                                     <button type="button" class="btn btn-primary" id="toStepAddress">Proceed to Address</button>
                             </div>
                         </div>
@@ -618,7 +604,7 @@
             user: @json($setupUserPayload),
             steps: @json($stepNumbers),
             initialStep: @json($initialStepNumber),
-            bookingTabEnabled: @json($hasBookings ?? false),
+            bookingTabEnabled: false,
         };
         window.SetupData = {
             types: @json($propTypes ?? []),

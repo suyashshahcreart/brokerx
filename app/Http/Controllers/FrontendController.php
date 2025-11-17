@@ -30,8 +30,17 @@ class FrontendController extends Controller
         return view('frontend.index');
     }
 
-    public function setup()
+    public function setup(Request $request)
     {
+        // If user is logged in and has bookings, always redirect to booking dashboard first
+        // They can only access setup page from the "New Booking" button in dashboard
+        if (Auth::check()) {
+            $hasBookings = Booking::where('user_id', Auth::id())->exists();
+            if ($hasBookings && !$request->has('force_new')) {
+                return redirect()->route('frontend.booking-dashboard');
+            }
+        }
+        
         $types = PropertyType::with(['subTypes:id,property_type_id,name,icon'])->get(['id','name','icon']);
         $states = State::with(['cities:id,state_id,name'])->get(['id','name','code']);
         $cities = City::get(['id','name','state_id']);

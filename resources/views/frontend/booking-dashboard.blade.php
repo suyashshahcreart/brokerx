@@ -193,9 +193,9 @@
             return price;
         }
 
-        // Switch to new booking tab (redirects to setup.html)
+        // Switch to new booking tab (redirects to setup with force_new parameter)
         function switchToNewBooking() {
-            window.location.href = "{{ route('frontend.setup') }}";
+            window.location.href = "{{ route('frontend.setup') }}?force_new=true";
         }
 
         // Load and display bookings
