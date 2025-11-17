@@ -16,14 +16,17 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Spatie\Permission\Models\Role;
+use App\Services\WhatsAppService;
 
 class FrontendController extends Controller
 {
     protected CashfreeService $cashfree;
+    protected WhatsAppService $whatsapp;
 
-    public function __construct(CashfreeService $cashfree)
+    public function __construct(CashfreeService $cashfree, WhatsAppService $whatsapp)
     {
         $this->cashfree = $cashfree;
+        $this->whatsapp = $whatsapp;
     }
     public function index()
     {
@@ -88,37 +91,71 @@ class FrontendController extends Controller
                 $customerRole = Role::firstOrCreate(['name' => 'customer']);
                 $user->assignRole($customerRole);
             }
-
-            // Generate 6-digit OTP
-            $otp = str_pad(random_int(100000, 999999), 6, '0', STR_PAD_LEFT);
-            
             // Save OTP to user table with 5 minute expiry
+            $otp = str_pad(random_int(100000, 999999), 6, '0', STR_PAD_LEFT);
             $user->update([
                 'otp' => $otp,
-                'otp_expires_at' => now()->addMinutes(5),
+                'otp_expires_at' => now()->addMinutes(15),
             ]);
+
+            // Generate 6-digit OTP
+            
+            // WhatsApp API expects phone number without + sign, e.g., 919904273657
+            $mobile = '91' . $mobile;
+            $message = "🎉 *Welcome to Porp Pik! 👋* \n\nYour verification OTP is : `$otp`";
+
+            $res = $this->whatsapp->sendText(
+                $mobile,
+                $message
+            );
+
+            // Check if WhatsApp message was sent successfully
+            // Successful response has: messaging_product, contacts, and messages array with id
+            $isSuccess = isset($res['messaging_product']) 
+                && isset($res['messages']) 
+                && is_array($res['messages']) 
+                && !empty($res['messages']) 
+                && isset($res['messages'][0]['id'])
+                && !isset($res['error']);
+
+            if ($isSuccess) {
+                // Return success response
+                return response()->json([
+                    'success' => true,
+                    'message' => $isNewUser 
+                        ? 'Account created! OTP sent to your mobile number.' 
+                        : 'OTP sent to your registered mobile number.',
+                    'data' => [
+                        'is_new_user' => $isNewUser,
+                        'user_status' => $userStatus,
+                        'user' => [
+                            'id' => $user->id,
+                            'name' => $user->firstname . ' ' . $user->lastname,
+                            'mobile' => $user->mobile,
+                            'mobile_verified' => !is_null($user->mobile_verified_at),
+                        ],
+                        // Remove 'otp' field in production for security
+                    ]
+                ], 200);
+            } else {
+                // Log error for debugging
+                \Log::error('WhatsApp OTP send failed', [
+                    'response' => $res,
+                    'mobile' => $mobile,
+                ]);
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to send OTP. Please try again.',
+                ], 500);
+            }
+            
+            
 
             // TODO: Integrate SMS gateway here
             // Example: SMS::send($mobile, "Your OTP is: {$otp}. Valid for 5 minutes.");
 
-            // Return success response
-            return response()->json([
-                'success' => true,
-                'message' => $isNewUser 
-                    ? 'Account created! OTP sent to your mobile number.' 
-                    : 'OTP sent to your registered mobile number.',
-                'data' => [
-                    'is_new_user' => $isNewUser,
-                    'user_status' => $userStatus,
-                    'user' => [
-                        'id' => $user->id,
-                        'name' => $user->firstname . ' ' . $user->lastname,
-                        'mobile' => $user->mobile,
-                        'mobile_verified' => !is_null($user->mobile_verified_at),
-                    ],
-                    // Remove 'otp' field in production for security
-                ]
-            ], 200);
+            
 
         } catch (\Illuminate\Validation\ValidationException $e) {
             Log::error('❌ VALIDATION ERROR in checkUserAndSendOtp', [

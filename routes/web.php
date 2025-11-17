@@ -16,6 +16,7 @@ use App\Http\Controllers\Admin\PortfolioController as AdminPortfolioController;
 use App\Http\Controllers\FrontendController;
 use App\Http\Controllers\PortfolioController;
 use App\Http\Controllers\BrokerX\BrokerXController;
+use App\Http\Controllers\WhatsAppController;
 
 /*
 |--------------------------------------------------------------------------
@@ -105,3 +106,15 @@ Route::get('/frontend/setup/payment/callback', [FrontendController::class, 'cash
 // Public OTP routes for frontend (no auth required)
 Route::post('/frontend/check-user-send-otp', [FrontendController::class, 'checkUserAndSendOtp'])->name('frontend.check-user-send-otp');
 Route::post('/frontend/verify-user-otp', [FrontendController::class, 'verifyUserOtp'])->name('frontend.verify-user-otp');
+
+// WhatsApp Cloud API routes (protected by auth middleware)
+Route::prefix('whatsapp-demo')->middleware('auth')->group(function () {
+    Route::get('/', [WhatsAppController::class, 'index'])->name('whatsapp.demo');
+    Route::post('/send-text', [WhatsAppController::class, 'sendText'])->name('whatsapp.sendText');
+    Route::post('/send-template', [WhatsAppController::class, 'sendTemplate'])->name('whatsapp.sendTemplate');
+    Route::post('/send-buttons', [WhatsAppController::class, 'sendButtons'])->name('whatsapp.sendButtons');
+    Route::post('/send-list', [WhatsAppController::class, 'sendList'])->name('whatsapp.sendList');
+    Route::post('/templates/list', [WhatsAppController::class, 'listTemplates'])->name('whatsapp.templates.list');
+    Route::post('/templates/create', [WhatsAppController::class, 'createTemplate'])->name('whatsapp.templates.create');
+    Route::post('/templates/delete', [WhatsAppController::class, 'deleteTemplate'])->name('whatsapp.templates.delete');
+});

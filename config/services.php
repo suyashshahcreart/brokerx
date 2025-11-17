@@ -35,4 +35,12 @@ return [
         ],
     ],
 
+    'whatsapp' => [
+        'base_url'        => env('WHATSAPP_CLOUD_API_URL', 'https://graph.facebook.com'),
+        'version'         => env('WHATSAPP_CLOUD_API_VERSION', 'v21.0'),
+        'phone_number_id' => env('WHATSAPP_CLOUD_API_PHONE_NUMBER_ID'),
+        'waba_id'         => env('WHATSAPP_CLOUD_API_WABA_ID'),
+        'token'           => env('WHATSAPP_CLOUD_API_TOKEN'),
+    ],
+
 ];
