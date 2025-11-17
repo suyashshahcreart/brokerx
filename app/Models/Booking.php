@@ -15,6 +15,7 @@ class Booking extends Model
         'user_id',
         'property_type_id',
         'property_sub_type_id',
+        'owner_type',
         'bhk_id',
         'city_id',
         'state_id',
@@ -34,10 +35,24 @@ class Booking extends Model
         'created_by',
         'updated_by',
         'deleted_by',
+        'cashfree_order_id',
+        'cashfree_payment_session_id',
+        'cashfree_payment_status',
+        'cashfree_payment_method',
+        'cashfree_payment_amount',
+        'cashfree_payment_currency',
+        'cashfree_reference_id',
+        'cashfree_payment_at',
+        'cashfree_payment_message',
+        'cashfree_payment_meta',
+        'cashfree_last_response',
     ];
 
     protected $casts = [
         'booking_date' => 'date',
+        'cashfree_payment_at' => 'datetime',
+        'cashfree_payment_meta' => 'array',
+        'cashfree_last_response' => 'array',
     ];
 
     // Relationships

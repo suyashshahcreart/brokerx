@@ -1,41 +1,514 @@
 /**********************
      State & helpers
     ***********************/
+const setupContext = window.SetupContext || {};
+const stepNumbers = setupContext.steps || {};
+const stepKeyByNumber = {};
+Object.entries(stepNumbers).forEach(([key, value]) => {
+    if (value) stepKeyByNumber[value] = key;
+});
+const enabledStepNumbers = Object.values(stepNumbers).filter(Boolean).sort((a, b) => a - b);
+const initialStepNumber = setupContext.initialStep || enabledStepNumbers[0] || 1;
+const hasBookingStep = Boolean(stepNumbers.booking);
+
 const state = {
-    step: 1,
+    step: initialStepNumber,
+    currentStepKey: stepKeyByNumber[initialStepNumber] || null,
+    highestStepUnlocked: initialStepNumber,
     otp: 524163,
     otpVerified: true,
-    paymentMethod: null,
     activePropertyTab: 'res',
-    contactLocked: false,
+    contactLocked: setupContext.authenticated ? true : false,
     currentPrice: 0,
-    bookingId: null
+    bookingId: null,
+    returningFromPayment: false,
+    isAuthenticated: setupContext.authenticated || false,
+    bookings: [],
+    bookingsInitialized: false,
+    bookingsLoading: false,
+    selectedBookingId: null,
+    isAddingNewProperty: false,
+    bookingsEnabled: hasBookingStep,
+    bookingSelectionReady: !hasBookingStep,
+    bookingReadOnly: false,
 };
 
+const cashfreeSelectors = {};
+
+const cashfreeState = {
+    initializing: false,
+    orderId: null,
+    paymentSessionId: null,
+    amount: 0,
+    currency: 'INR',
+    status: 'NOT_STARTED',
+    completed: false,
+    lastSummary: null,
+    autoAttempted: false,
+};
+
+const urlParams = new URLSearchParams(window.location.search);
+const bookingIdParam = urlParams.get('booking_id');
+const openPaymentParam = urlParams.get('open_payment') === '1';
+const orderIdParam = urlParams.get('order_id');
+
+if (bookingIdParam) {
+    state.bookingId = bookingIdParam;
+    state.selectedBookingId = bookingIdParam;
+    state.isAddingNewProperty = false;
+    const hiddenBookingInput = document.getElementById('bookingId');
+    if (hiddenBookingInput) {
+        hiddenBookingInput.value = bookingIdParam;
+    }
+}
+
+if (openPaymentParam && bookingIdParam) {
+    const paymentStep = getStepNumber('payment');
+    if (paymentStep) {
+        state.step = paymentStep;
+        state.currentStepKey = getStepKeyByNumber(paymentStep);
+        state.highestStepUnlocked = paymentStep;
+    }
+    state.returningFromPayment = true;
+}
+
+if (orderIdParam) {
+    cashfreeState.orderId = orderIdParam;
+}
+
 const el = id => document.getElementById(id);
+function safeInputValue(id, fallback = '') {
+    const node = el(id);
+    if (node && typeof node.value !== 'undefined') {
+        return (node.value ?? '').toString().trim();
+    }
+    return typeof fallback === 'function' ? fallback() : (fallback ?? '');
+}
+function getContactNameValue() {
+    return safeInputValue('inputName', () => (setupContext.user?.name || '').trim());
+}
+function getContactPhoneValue() {
+    return safeInputValue('inputPhone', () => (setupContext.user?.mobile || '').trim());
+}
+const bookingGrid = el('bookingGrid');
+const bookingGridEmpty = el('bookingGridEmpty');
+const bookingGridLoader = el('bookingGridLoader');
+const refreshBookingsBtn = el('refreshBookingsBtn');
+const bookingProceedBtn = el('bookingToProperty');
+const propertyCard = el('propertyCard');
+const addressCard = el('addressCard');
+const propertyReadOnlyNotice = el('propertyReadOnlyNotice');
+const addressReadOnlyNotice = el('addressReadOnlyNotice');
+const propertyInputs = ['resArea', 'comArea', 'othArea', 'othDesc'];
+const addressInputs = ['addrHouse', 'addrBuilding', 'addrPincode', 'addrFull'];
+const appUrlMeta = document.querySelector('meta[name="app-url"]');
+const baseUrl = (appUrlMeta?.content || window.location.origin || '').replace(/\/+$/, '');
+let readOnlyBypass = false;
+const contactStepNumber = getStepNumber('contact');
+const bookingStepNumber = getStepNumber('booking');
+const propertyStepNumber = getStepNumber('property');
+
+function getStepNumber(key) {
+    return stepNumbers[key] || null;
+}
+
+function getStepKeyByNumber(num) {
+    return stepKeyByNumber[num] || null;
+}
+
+function hasStep(key) {
+    return Boolean(getStepNumber(key));
+}
+
+function buildUrl(path = '') {
+    if (!path) return baseUrl;
+    if (/^https?:\/\//i.test(path)) return path;
+    const normalized = path.replace(/^\/+/, '');
+    return baseUrl ? `${baseUrl}/${normalized}` : `/${normalized}`;
+}
+
+function runWithReadOnlyBypass(fn) {
+    const prev = readOnlyBypass;
+    readOnlyBypass = true;
+    try {
+        fn();
+    } finally {
+        readOnlyBypass = prev;
+    }
+}
+
+function canMutateForm() {
+    return !state.bookingReadOnly || readOnlyBypass;
+}
+
+function updateReadOnlyUI() {
+    const ro = state.bookingReadOnly;
+    if (propertyCard) propertyCard.classList.toggle('form-readonly', ro);
+    if (addressCard) addressCard.classList.toggle('form-readonly', ro);
+    if (propertyReadOnlyNotice) propertyReadOnlyNotice.classList.toggle('d-none', !ro);
+    if (addressReadOnlyNotice) addressReadOnlyNotice.classList.toggle('d-none', !ro);
+    propertyInputs.forEach(id => {
+        const node = el(id);
+        if (node) node.readOnly = ro;
+    });
+    addressInputs.forEach(id => {
+        const node = el(id);
+        if (node) node.readOnly = ro;
+    });
+}
 
 function updateProgress() {
-    const percent = Math.round(((state.step - 1) / 4) * 100);
+    const totalSegments = enabledStepNumbers.length > 1 ? enabledStepNumbers.length - 1 : 1;
+    const currentIndex = Math.max(enabledStepNumbers.indexOf(state.step), 0);
+    const percent = Math.round((currentIndex / totalSegments) * 100);
     el('progressBar').style.width = percent + '%';
-    // highlight step button
     document.querySelectorAll('.step-btn').forEach(b => b.classList.remove('active'));
     const btn = document.querySelector(`.step-btn[data-step="${state.step}"]`);
     if (btn) btn.classList.add('active');
 }
 
 function showStep(n) {
+    if (!n) return;
     state.step = n;
-    // hide all panes
+    state.currentStepKey = getStepKeyByNumber(n);
+    state.highestStepUnlocked = Math.max(state.highestStepUnlocked ?? n, n);
     document.querySelectorAll('.step-pane').forEach(p => p.classList.add('hidden'));
-    el(`step-${n}`).classList.remove('hidden');
+    const pane = el(`step-${n}`);
+    if (pane) pane.classList.remove('hidden');
     updateProgress();
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (state.currentStepKey === 'booking') {
+        maybeInitBookingGrid();
+    }
+    if (state.currentStepKey === 'payment') {
+        prepareCashfreeStep();
+    }
 }
 
+function goToStep(key) {
+    const num = getStepNumber(key);
+    if (num) {
+        showStep(num);
+    }
+}
+
+function hydrateAuthUser() {
+    if (!setupContext.authenticated || !setupContext.user) return;
+    const { name, mobile } = setupContext.user;
+    if (el('inputName')) el('inputName').value = name || '';
+    if (el('inputPhone')) el('inputPhone').value = mobile || '';
+    const badge = el('otpSentBadge');
+    if (badge) {
+        badge.classList.remove('hidden');
+        badge.textContent = 'Verified ✓';
+    }
+    const toStep2Btn = el('toStep2');
+    if (toStep2Btn) {
+        toStep2Btn.disabled = false;
+    }
+}
+
+function isUserAuthenticated() {
+    return Boolean(state.isAuthenticated || setupContext.authenticated);
+}
+
+function toggleBookingGridLoader(show) {
+    if (!bookingGridLoader) return;
+    bookingGridLoader.classList.toggle('d-none', !show);
+}
+
+function maybeInitBookingGrid(force = false) {
+    if (!hasStep('booking')) return;
+    if (!isUserAuthenticated()) {
+        state.bookings = [];
+        state.bookingReadOnly = false;
+        updateReadOnlyUI();
+        renderBookingGrid();
+        return;
+    }
+    if (state.bookingsInitialized && !force) {
+        renderBookingGrid();
+        return;
+    }
+    state.bookingsInitialized = true;
+    fetchUserBookings(true);
+}
+
+async function fetchUserBookings(force = false) {
+    if (!isUserAuthenticated()) return;
+    if (state.bookingsLoading && !force) return;
+    state.bookingsLoading = true;
+    toggleBookingGridLoader(true);
+    try {
+        const response = await fetch(buildUrl('/frontend/setup/user-bookings'), {
+            headers: { 'Accept': 'application/json' },
+        });
+        if (!response.ok) {
+            if (response.status === 401) {
+                state.bookings = [];
+                return;
+            }
+            throw new Error('Failed to fetch bookings');
+        }
+        const result = await response.json();
+        state.bookings = result.bookings || [];
+        if (state.bookingId && !state.selectedBookingId) {
+            const match = state.bookings.find(b => Number(b.id) === Number(state.bookingId));
+            if (match) state.selectedBookingId = match.id;
+        }
+        if (!state.bookings.length) {
+            state.selectedBookingId = null;
+            state.isAddingNewProperty = true;
+            state.bookingSelectionReady = true;
+            state.bookingReadOnly = false;
+        } else if (!state.selectedBookingId) {
+            state.isAddingNewProperty = false;
+            state.bookingSelectionReady = false;
+            state.bookingReadOnly = false;
+        }
+        updateReadOnlyUI();
+        renderBookingGrid();
+    } catch (error) {
+        console.error('Error loading bookings', error);
+    } finally {
+        state.bookingsLoading = false;
+        toggleBookingGridLoader(false);
+    }
+}
+
+function renderBookingGrid() {
+    if (!bookingGrid) return;
+    bookingGrid.innerHTML = '';
+    if (!isUserAuthenticated()) {
+        if (bookingGridEmpty) bookingGridEmpty.textContent = 'Sign in to view your saved properties.';
+        return;
+    }
+    const addCol = document.createElement('div');
+    addCol.className = 'col';
+    addCol.appendChild(buildAddNewBookingCard());
+    bookingGrid.appendChild(addCol);
+    if (!state.bookings.length) {
+        if (bookingGridEmpty) bookingGridEmpty.textContent = 'No saved properties yet. Start by adding a new one.';
+        return;
+    }
+    if (bookingGridEmpty) bookingGridEmpty.textContent = '';
+    state.bookings.forEach(booking => {
+        const col = document.createElement('div');
+        col.className = 'col';
+        col.appendChild(buildBookingCard(booking));
+        bookingGrid.appendChild(col);
+    });
+    updateBookingProceedState();
+}
+
+function isBookingSelectionSatisfied() {
+    return !hasStep('booking') || state.bookingSelectionReady;
+}
+
+function updateBookingProceedState() {
+    if (!bookingProceedBtn) return;
+    bookingProceedBtn.disabled = !isBookingSelectionSatisfied();
+}
+
+function buildAddNewBookingCard() {
+    const card = document.createElement('div');
+    card.className = 'booking-card booking-card-add rounded-3 p-3 h-100';
+    if (state.isAddingNewProperty || !state.selectedBookingId) {
+        card.classList.add('booking-card-active');
+    }
+    card.innerHTML = `
+        <div class="fw-semibold mb-1 d-flex align-items-center gap-2">
+            <span class="text-primary fw-bold" style="font-size:1.1rem;">+</span>
+            Add new booking
+        </div>
+        <div class="muted-small">Start a fresh property booking flow.</div>
+    `;
+    card.addEventListener('click', () => startNewPropertyFlow(true));
+    return card;
+}
+
+function buildBookingCard(booking) {
+    const status = (booking.payment_status || '').toLowerCase();
+    let badgeClass = 'status-pending';
+    if (status === 'paid') badgeClass = 'status-paid';
+    else if (status === 'failed' || status === 'unpaid') badgeClass = 'status-unpaid';
+    const statusLabel = status ? status.toUpperCase() : 'PENDING';
+    const priceLabel = booking.price ? `₹${Number(booking.price).toLocaleString('en-IN')}` : '-';
+    const card = document.createElement('div');
+    card.className = 'booking-card rounded-3 p-3 h-100';
+    if (state.selectedBookingId && Number(state.selectedBookingId) === Number(booking.id)) {
+        card.classList.add('booking-card-active');
+    }
+    card.innerHTML = `
+        <div class="d-flex justify-content-between align-items-start mb-2">
+            <div>
+                <div class="fw-semibold">${booking.main_property_type || 'Property'}</div>
+                <div class="text-muted small">${booking.property_sub_type || 'No subtype'}</div>
+            </div>
+            <span class="status-badge ${badgeClass}">${statusLabel}</span>
+        </div>
+        <div class="small mb-1">Owner: <strong>${booking.owner_type || '-'}</strong></div>
+        <div class="small mb-1">Area: <strong>${booking.area ? `${booking.area} sq.ft` : '-'}</strong></div>
+        <div class="small mb-1">Price: <strong>${priceLabel}</strong></div>
+        <div class="small mb-1 d-none">BHK: <strong>${booking.bhk_label || '-'}</strong></div>
+        <div class="small text-muted">Updated: ${booking.updated_at ? new Date(booking.updated_at).toLocaleDateString() : '-'}</div>
+    `;
+    card.addEventListener('click', () => selectBookingFromGrid(booking.id));
+    return card;
+}
+
+function startNewPropertyFlow(autoAdvance = false) {
+    state.isAddingNewProperty = true;
+    state.selectedBookingId = null;
+    state.bookingId = null;
+    state.bookingSelectionReady = true;
+    state.bookingReadOnly = false;
+    updateReadOnlyUI();
+    const hiddenBookingInput = el('bookingId');
+    if (hiddenBookingInput) hiddenBookingInput.value = '';
+    ['choice_ownerType','choice_resType','choice_resFurnish','choice_resSize','choice_comType','choice_comFurnish','choice_othLooking'].forEach(id => {
+        const input = el(id);
+        if (input) input.value = '';
+    });
+    document.querySelectorAll('[data-group]').forEach(node => node.classList.remove('active'));
+    clearAllPropertySelections();
+    resetAddressFields();
+    switchMainTab('res');
+    updatePriceDisplay();
+    renderBookingGrid();
+    updateBookingProceedState();
+    if (autoAdvance && hasStep('property')) {
+        const propertyNumber = getStepNumber('property');
+        state.highestStepUnlocked = Math.max(state.highestStepUnlocked, propertyNumber);
+        goToStep('property');
+    }
+}
+
+function selectBookingFromGrid(id) {
+    const booking = state.bookings.find(b => Number(b.id) === Number(id));
+    if (!booking) return;
+    state.selectedBookingId = booking.id;
+    state.bookingId = booking.id;
+    state.isAddingNewProperty = false;
+    state.bookingSelectionReady = true;
+    state.bookingReadOnly = (booking.payment_status || '').toLowerCase() === 'paid';
+    updateReadOnlyUI();
+    const hiddenBookingInput = el('bookingId');
+    if (hiddenBookingInput) hiddenBookingInput.value = booking.id;
+    populatePropertyFormFromBooking(booking);
+    renderBookingGrid();
+    updateBookingProceedState();
+    // auto open property tab when selecting
+    if (hasStep('property')) {
+        const propertyNumber = getStepNumber('property');
+        state.highestStepUnlocked = Math.max(state.highestStepUnlocked, propertyNumber);
+        goToStep('property');
+    }
+}
+
+function populatePropertyFormFromBooking(booking) {
+    runWithReadOnlyBypass(() => {
+        applyOwnerTypeSelection(booking.owner_type);
+        const mainType = booking.main_property_type || 'Residential';
+        const tabKey = mainType === 'Commercial' ? 'com' : (mainType === 'Other' ? 'oth' : 'res');
+        switchMainTab(tabKey);
+        if (tabKey === 'res') {
+            setGroupValue('resType', booking.property_sub_type);
+            setGroupValue('resFurnish', booking.furniture_type);
+            setGroupValue('resSize', booking.bhk_id ? String(booking.bhk_id) : '');
+            setInputValue('resArea', booking.area || '');
+        } else if (tabKey === 'com') {
+            setGroupValue('comType', booking.property_sub_type);
+            setGroupValue('comFurnish', booking.furniture_type);
+            setInputValue('comArea', booking.area || '');
+        } else {
+            setGroupValue('othLooking', booking.property_sub_type);
+            const othDesc = el('othDesc');
+            if (othDesc) othDesc.value = booking.other_details || '';
+            setInputValue('othArea', booking.area || '');
+        }
+        applyAddressFromBooking(booking);
+        updatePriceDisplay();
+    });
+}
+
+function applyOwnerTypeSelection(value) {
+    const nodes = document.querySelectorAll('[data-group="ownerType"]');
+    nodes.forEach(node => {
+        if (node.dataset.value === value) node.classList.add('active');
+        else node.classList.remove('active');
+    });
+    const hiddenOwner = el('choice_ownerType');
+    if (hiddenOwner) hiddenOwner.value = value || '';
+}
+
+function setGroupValue(group, value) {
+    if (!group) return;
+    document.querySelectorAll(`[data-group="${group}"]`).forEach(node => {
+        if (value && node.dataset.value == value) node.classList.add('active');
+        else node.classList.remove('active');
+    });
+    const hiddenMap = {
+        ownerType: 'choice_ownerType',
+        resType: 'choice_resType',
+        resFurnish: 'choice_resFurnish',
+        resSize: 'choice_resSize',
+        comType: 'choice_comType',
+        comFurnish: 'choice_comFurnish',
+        othLooking: 'choice_othLooking',
+    };
+    const hidden = el(hiddenMap[group]);
+    if (hidden) hidden.value = value || '';
+}
+
+function setInputValue(id, value) {
+    const input = el(id);
+    if (input) input.value = value ?? '';
+}
+
+function applyAddressFromBooking(booking) {
+    if (!booking || !booking.address) return;
+    setInputValue('addrHouse', booking.address.house_number || '');
+    setInputValue('addrBuilding', booking.address.building_name || '');
+    setInputValue('addrFull', booking.address.full_address || '');
+    setInputValue('addrPincode', booking.address.pincode || '');
+    const citySelect = el('addrCity');
+    if (citySelect && booking.address.city) {
+        const existing = Array.from(citySelect.options).some(opt => opt.value === booking.address.city);
+        if (!existing) {
+            const opt = document.createElement('option');
+            opt.value = booking.address.city;
+            opt.textContent = booking.address.city;
+            citySelect.appendChild(opt);
+        }
+        citySelect.value = booking.address.city;
+    }
+}
+
+if (refreshBookingsBtn) {
+    refreshBookingsBtn.addEventListener('click', () => fetchUserBookings(true));
+}
+
+if (bookingProceedBtn) {
+    bookingProceedBtn.addEventListener('click', () => {
+        if (!isBookingSelectionSatisfied()) {
+            alert('Please select an existing booking or add a new property to continue.');
+            return;
+        }
+        if (hasStep('property')) {
+            const propertyNumber = getStepNumber('property');
+            state.highestStepUnlocked = Math.max(state.highestStepUnlocked, propertyNumber);
+            goToStep('property');
+        }
+    });
+}
+updateBookingProceedState();
+
 // init
-updateProgress();
-showStep(1);
+showStep(state.step);
 switchMainTab('res');
+hydrateAuthUser();
+updateReadOnlyUI();
 
 // Dynamic data rendering from SetupData
 const setupData = window.SetupData || { types: [], states: [], cities: [] };
@@ -94,12 +567,12 @@ initCitySelect();
 ***********************/
 // Helper to get CSRF token
 function getCsrfToken() {
-    return document.querySelector('meta[name="csrf-token"]')?.content || 
+    return document.querySelector('meta[name="csrf-token"]')?.content ||
            document.querySelector('input[name="_token"]')?.value || '';
 }
 
 async function postJson(url, data) {
-    const resp = await fetch(url, {
+    const resp = await fetch(buildUrl(url), {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -111,7 +584,8 @@ async function postJson(url, data) {
     return resp.json();
 }
 
-el('sendOtpBtn').addEventListener('click', async () => {
+const sendOtpBtn = el('sendOtpBtn');
+if (sendOtpBtn) sendOtpBtn.addEventListener('click', async () => {
     // validate name & phone
     const name = el('inputName').value.trim();
     const phone = el('inputPhone').value.trim();
@@ -133,7 +607,7 @@ el('sendOtpBtn').addEventListener('click', async () => {
 
     try {
         // Call API to check user and send OTP
-        const response = await fetch('/frontend/check-user-send-otp', {
+        const response = await fetch(buildUrl('/frontend/check-user-send-otp'), {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -171,7 +645,8 @@ el('sendOtpBtn').addEventListener('click', async () => {
     }
 });
 
-el('resendOtp').addEventListener('click', async (e) => {
+const resendOtpBtn = el('resendOtp');
+if (resendOtpBtn) resendOtpBtn.addEventListener('click', async (e) => {
     e.preventDefault();
     const phone = el('inputPhone').value.trim();
     const name = el('inputName').value.trim();
@@ -186,7 +661,7 @@ el('resendOtp').addEventListener('click', async (e) => {
     }
 
     try {
-        const response = await fetch('/frontend/check-user-send-otp', {
+        const response = await fetch(buildUrl('/frontend/check-user-send-otp'), {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -213,7 +688,8 @@ el('resendOtp').addEventListener('click', async (e) => {
     }
 });
 
-el('verifyOtpBtn').addEventListener('click', async () => {
+const verifyOtpBtn = el('verifyOtpBtn');
+if (verifyOtpBtn) verifyOtpBtn.addEventListener('click', async () => {
     const entered = el('inputOtp').value.trim();
     const phone = el('inputPhone').value.trim();
 
@@ -230,7 +706,7 @@ el('verifyOtpBtn').addEventListener('click', async () => {
 
     try {
         // Call API to verify OTP
-        const response = await fetch('/frontend/verify-user-otp', {
+        const response = await fetch(buildUrl('/frontend/verify-user-otp'), {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -246,6 +722,10 @@ el('verifyOtpBtn').addEventListener('click', async () => {
         const result = await response.json();
 
         if (result.success) {
+            if (result.csrf_token) {
+                const meta = document.querySelector('meta[name="csrf-token"]');
+                if (meta) meta.content = result.csrf_token;
+            }
             el('err-otp').style.display = 'none';
             state.otpVerified = true;
             el('otpRow').classList.add('hidden');
@@ -253,6 +733,18 @@ el('verifyOtpBtn').addEventListener('click', async () => {
             el('otpSentBadge').innerText = 'Verified ✓';
             el('toStep2').disabled = false;
             console.log('✅ OTP verified successfully:', result.user);
+            state.isAuthenticated = true;
+            setupContext.authenticated = true;
+            state.bookingsInitialized = false;
+            maybeInitBookingGrid(true);
+            state.bookingReadOnly = false;
+            updateReadOnlyUI();
+            const propertyStepNumber = getStepNumber('property');
+            if (propertyStepNumber) {
+                state.step = propertyStepNumber;
+                state.highestStepUnlocked = propertyStepNumber;
+                goToStep('property');
+            }
         } else {
             el('err-otp').style.display = 'block';
             el('err-otp').textContent = result.message || 'Invalid OTP';
@@ -267,16 +759,23 @@ el('verifyOtpBtn').addEventListener('click', async () => {
     }
 });
 
-el('toStep2').addEventListener('click', () => {
+const toStep2Btn = el('toStep2');
+if (toStep2Btn) toStep2Btn.addEventListener('click', () => {
     if (!state.otpVerified) {
         alert('Please verify OTP before proceeding.');
         return;
     }
     lockContactSection();
-    showStep(2);
+    const nextKey = hasStep('booking') ? 'booking' : 'property';
+    const nextNumber = getStepNumber(nextKey);
+    if (nextNumber) {
+        state.highestStepUnlocked = Math.max(state.highestStepUnlocked, nextNumber);
+        goToStep(nextKey);
+    }
 });
 
-el('skipContact').addEventListener('click', () => {
+const skipContactBtn = el('skipContact');
+if (skipContactBtn) skipContactBtn.addEventListener('click', () => {
     // clear contact fields
     el('inputName').value = '';
     el('inputPhone').value = '';
@@ -317,6 +816,7 @@ function switchMainTab(key) {
 }
 
 function selectCard(dom) {
+    if (!canMutateForm()) return;
     const group = dom.dataset.group;
     document.querySelectorAll(`[data-group="${group}"]`).forEach(n => n.classList.remove('active'));
     dom.classList.add('active');
@@ -369,6 +869,7 @@ function lockContactSection() {
 }
 
 function handlePropertyTabChange(key) {
+    if (!canMutateForm()) return;
     clearAllPropertySelections();
     resetAddressFields();
     switchMainTab(key);
@@ -396,15 +897,6 @@ function calculateDynamicPrice(areaValue) {
     return price;
 }
 
-function updatePaymentEstimate() {
-    const box = el('payEstimateBox');
-    const valNode = el('payEstimateValue');
-    if (!box || !valNode) return;
-    const amountField = el('payAmount');
-    const amount = amountField ? Number(amountField.value) || 0 : 0;
-    valNode.innerText = amount ? `₹${amount.toLocaleString('en-IN')}` : '₹0';
-}
-
 function updatePriceDisplay() {
     const areaValue = getActiveAreaValue();
     const price = calculateDynamicPrice(areaValue);
@@ -413,18 +905,11 @@ function updatePriceDisplay() {
     if (priceNode) {
         priceNode.innerText = price ? `₹${price.toLocaleString('en-IN')}` : '₹0';
     }
-    const amountField = el('payAmount');
-    if (amountField && state.paymentMethod) {
-        amountField.value = price || '';
-    }
-    const estimateBox = el('payEstimateBox');
-    if (estimateBox && state.paymentMethod) {
-        estimateBox.classList.remove('hidden');
-        updatePaymentEstimate();
-    }
+    updateCashfreeAmountDisplay(price);
 }
 
 function selectChip(dom) {
+    if (!canMutateForm()) return;
     const group = dom.dataset.group;
     document.querySelectorAll(`[data-group="${group}"]`).forEach(n => n.classList.remove('active'));
     dom.classList.add('active');
@@ -443,6 +928,7 @@ function selectChip(dom) {
 updatePriceDisplay();
 
 function topPillClick(dom) {
+    if (!canMutateForm()) return;
     const group = dom.dataset.group;
     document.querySelectorAll(`[data-group="${group}"]`).forEach(n => n.classList.remove('active'));
     dom.classList.add('active');
@@ -455,15 +941,20 @@ function topPillClick(dom) {
     }
 }
 
-el('backToContact').addEventListener('click', () => {
+const backToContactBtn = el('backToContact');
+if (backToContactBtn) backToContactBtn.addEventListener('click', () => {
     if (state.contactLocked) {
         alert('Contact details are locked after verification.');
         return;
     }
-    showStep(1);
+    goToStep('contact');
 });
 
-el('toStep3').addEventListener('click', async () => {
+el('toStepAddress').addEventListener('click', async () => {
+    if (state.bookingReadOnly) {
+        goToStep('address');
+        return;
+    }
     // Validate depending on active tab
     const tabResVisible = el('tab-res').style.display !== 'none';
     const tabComVisible = el('tab-com').style.display !== 'none';
@@ -516,10 +1007,19 @@ el('toStep3').addEventListener('click', async () => {
     }
 
     // Build payload for property step
+    const contactName = getContactNameValue();
+    const contactPhone = getContactPhoneValue();
+
+    if (!contactName || !contactPhone) {
+        alert('Contact name and phone are required. Please complete the Contact step first.');
+        goToStep('contact');
+        return;
+    }
+
     const payload = {
         booking_id: state.bookingId || el('bookingId').value || null,
-        name: el('inputName').value.trim(),
-        phone: el('inputPhone').value.trim(),
+        name: contactName,
+        phone: contactPhone,
         owner_type: el('choice_ownerType').value,
         main_property_type: el('mainPropertyType').value,
         residential_property_type: el('choice_resType').value || null,
@@ -538,7 +1038,12 @@ el('toStep3').addEventListener('click', async () => {
         if (result.success) {
             state.bookingId = result.booking_id;
             el('bookingId').value = state.bookingId;
-            showStep(3);
+            state.selectedBookingId = state.bookingId;
+            state.bookingSelectionReady = true;
+            if (hasStep('booking') && isUserAuthenticated()) {
+                fetchUserBookings(true);
+            }
+            goToStep('address');
         } else {
             alert(result.message || 'Failed to save property details');
         }
@@ -551,9 +1056,17 @@ el('toStep3').addEventListener('click', async () => {
 /**********************
  Step 3: Address validations
 ***********************/
-el('backToProp').addEventListener('click', () => showStep(2));
+const backToBookingBtn = el('backToBooking');
+if (backToBookingBtn) backToBookingBtn.addEventListener('click', () => goToStep('booking'));
 
-el('toStep4').addEventListener('click', async () => {
+el('backToProp').addEventListener('click', () => goToStep('property'));
+
+el('toStepVerify').addEventListener('click', async () => {
+    if (state.bookingReadOnly) {
+        await fetchAndRenderSummary();
+        goToStep('verify');
+        return;
+    }
     // clear errors
     document.querySelectorAll('.error').forEach(e => e.style.display = 'none');
 
@@ -579,7 +1092,7 @@ el('toStep4').addEventListener('click', async () => {
     try {
         const result = await postJson('/frontend/setup/save-address-step', payload);
         if (result.success) {
-            showStep(4);
+            goToStep('verify');
             await fetchAndRenderSummary();
         } else {
             alert(result.message || 'Failed to save address');
@@ -615,19 +1128,21 @@ function renderSummary(b) {
                 <path d="M12 20h9"></path>
                 <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
             </svg>`;
-        const contactEditBtn = state.contactLocked ? '' : `<button type="button" class="summary-edit-btn" onclick="showStep(1)" aria-label="Edit contact">${editIcon}</button>`;
-        const propertyEditBtn = `<button type="button" class="summary-edit-btn" onclick="showStep(2)" aria-label="Edit property">${editIcon}</button>`;
-        const addressEditBtn = `<button type="button" class="summary-edit-btn" onclick="showStep(3)" aria-label="Edit address">${editIcon}</button>`;
+        const contactEditBtn = state.contactLocked || !hasStep('contact') ? '' : `<button type="button" class="summary-edit-btn" onclick="window.goToStep && window.goToStep('contact')" aria-label="Edit contact">${editIcon}</button>`;
+        const propertyEditBtn = `<button type="button" class="summary-edit-btn" onclick="window.goToStep && window.goToStep('property')" aria-label="Edit property">${editIcon}</button>`;
+        const addressEditBtn = `<button type="button" class="summary-edit-btn" onclick="window.goToStep && window.goToStep('address')" aria-label="Edit address">${editIcon}</button>`;
         const formattedPrice = state.currentPrice ? `₹${state.currentPrice.toLocaleString('en-IN')}` : '₹0';
+        const contactName = getContactNameValue() || b?.user?.name || '-';
+        const contactPhone = getContactPhoneValue() || b?.user?.mobile || '-';
         s.innerHTML = `
                 <div class="mb-2 summary-title-row"><strong>Contact</strong>${contactEditBtn}</div>
-                    <div>Phone: ${el('inputPhone').value.trim()}</div>
+                    <div>Name: ${contactName}</div>
+                    <div>Phone: ${contactPhone}</div>
                 </div>
                 <hr/>
                 <div class="mb-2 summary-title-row"><strong>Property</strong>${propertyEditBtn}</div>
                     <div>Owner Type: ${b.owner_type || '-'} </div>
-                    <div>Main Type: ${b.property_category || '-'} </div>
-                    <div>Type: ${b.property_type || '-'} </div>
+                    <div>Main Type: ${b.property_type || '-'} </div>
                     <div>Sub Type: ${b.property_sub_type || '-'} </div>
                     <div>Furnish: ${b.furniture_type || '-'} </div>
                     <div>BHK: ${b.bhk || '-'} </div>
@@ -654,9 +1169,9 @@ function buildSummaryFallback() {
         <path d="M12 20h9"></path>
         <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
       </svg>`;
-    const contactEditBtn = state.contactLocked ? '' : `<button type="button" class="summary-edit-btn" onclick="showStep(1)" aria-label="Edit contact">${editIcon}</button>`;
-    const propertyEditBtn = `<button type="button" class="summary-edit-btn" onclick="showStep(2)" aria-label="Edit property">${editIcon}</button>`;
-    const addressEditBtn = `<button type="button" class="summary-edit-btn" onclick="showStep(3)" aria-label="Edit address">${editIcon}</button>`;
+    const contactEditBtn = state.contactLocked || !hasStep('contact') ? '' : `<button type="button" class="summary-edit-btn" onclick="window.goToStep && window.goToStep('contact')" aria-label="Edit contact">${editIcon}</button>`;
+    const propertyEditBtn = `<button type="button" class="summary-edit-btn" onclick="window.goToStep && window.goToStep('property')" aria-label="Edit property">${editIcon}</button>`;
+    const addressEditBtn = `<button type="button" class="summary-edit-btn" onclick="window.goToStep && window.goToStep('address')" aria-label="Edit address">${editIcon}</button>`;
     const formattedPrice = state.currentPrice ? `₹${state.currentPrice.toLocaleString('en-IN')}` : '₹0';
     const propertyDetailSection = (() => {
         if (state.activePropertyTab === 'com') {
@@ -714,8 +1229,8 @@ function buildSummaryFallback() {
 
 function collectPayload() {
     return {
-        name: el('inputName').value.trim(),
-        phone: el('inputPhone').value.trim(),
+        name: getContactNameValue(),
+        phone: getContactPhoneValue(),
         ownerType: el('choice_ownerType').value || null,
         mainType: state.activePropertyTab === 'com' ? 'Commercial' : state.activePropertyTab === 'oth' ? 'Other' : 'Residential',
         residential: {
@@ -744,77 +1259,271 @@ function collectPayload() {
     };
 }
 
-el('backToAddress').addEventListener('click', () => showStep(3));
+el('backToAddress').addEventListener('click', () => goToStep('address'));
 
-el('toStep5').addEventListener('click', async () => {
+el('toStepPayment').addEventListener('click', async () => {
     // Optionally re-fetch summary before payment
     if (state.bookingId) await fetchAndRenderSummary();
-    showStep(5);
+    goToStep('payment');
 });
 
 /**********************
  Step 5: Payment
 ***********************/
-function selectPay(dom) {
-    document.querySelectorAll('[data-pay]').forEach(n => n.classList.remove('active'));
-    dom.classList.add('active');
-    state.paymentMethod = dom.dataset.pay;
-    el('paymentMethodInput').value = dom.dataset.pay;
-    el('payFields').classList.remove('hidden');
-    el('doPay').disabled = false;
-    updatePriceDisplay();
+cashfreeSelectors.statusValue = el('cashfreeStatusValue');
+cashfreeSelectors.statusMessage = el('cashfreeStatusMessage');
+cashfreeSelectors.orderId = el('cashfreeOrderId');
+cashfreeSelectors.amount = el('cashfreeAmountLabel');
+cashfreeSelectors.reference = el('cashfreeReferenceId');
+cashfreeSelectors.method = el('cashfreeMethod');
+cashfreeSelectors.alert = el('cashfreeAlert');
+cashfreeSelectors.loader = el('cashfreeLoader');
+
+function updateCashfreeAmountDisplay(price) {
+    const node = cashfreeSelectors.amount;
+    if (node) {
+        node.innerText = price ? `₹${price.toLocaleString('en-IN')}` : '₹0';
+    }
 }
 
-window.selectPay = selectPay; // expose for inline usage
+function toggleCashfreeLoader(show) {
+    const loader = cashfreeSelectors.loader;
+    if (!loader) return;
+    loader.style.display = show ? 'block' : 'none';
+}
 
-el('backToVerify').addEventListener('click', () => showStep(4));
+function setCashfreeStatus(statusText, message, theme = 'pending') {
+    const statusEl = cashfreeSelectors.statusValue;
+    const msgEl = cashfreeSelectors.statusMessage;
+    if (statusEl) {
+        statusEl.textContent = statusText;
+        statusEl.classList.remove('text-success', 'text-danger', 'text-warning');
+        if (theme === 'success') statusEl.classList.add('text-success');
+        else if (theme === 'failed') statusEl.classList.add('text-danger');
+        else statusEl.classList.add('text-warning');
+    }
+    if (msgEl) {
+        msgEl.textContent = message || '';
+    }
+}
 
-// Intercept form submission
-document.getElementById('setupForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
+function updateCashfreeMeta(summary = null) {
+    if (!summary) {
+        summary = {
+            order_id: cashfreeState.orderId,
+            amount: cashfreeState.amount,
+            currency: cashfreeState.currency,
+            reference_id: null,
+            payment_method: null,
+        };
+    }
+    if (cashfreeSelectors.orderId) {
+        cashfreeSelectors.orderId.textContent = summary.order_id || '-';
+    }
+    updateCashfreeAmountDisplay(summary.amount || cashfreeState.amount || state.currentPrice);
+    if (cashfreeSelectors.reference) {
+        cashfreeSelectors.reference.textContent = summary.reference_id || '-';
+    }
+    if (cashfreeSelectors.method) {
+        cashfreeSelectors.method.textContent = summary.payment_method || '-';
+    }
+}
+
+function ensureCashfreeInstance() {
+    if (!window.cashfreeInstance && typeof Cashfree === 'function') {
+        const mode = (window.CashfreeConfig?.mode === 'production') ? 'production' : 'sandbox';
+        window.cashfreeInstance = Cashfree({ mode });
+    }
+    return window.cashfreeInstance;
+}
+
+function prepareCashfreeStep() {
     if (!state.bookingId) {
-        alert('Booking draft missing. Please complete previous steps.');
+        setCashfreeStatus('Missing booking', 'Please complete previous steps before paying.', 'failed');
         return;
     }
-    const amountField = el('payAmount');
-    const payload = {
-        booking_id: state.bookingId,
-        payment_method: state.paymentMethod,
-        amount: amountField ? Number(amountField.value) || 0 : 0,
-    };
-    try {
-        const result = await postJson('/frontend/setup/finalize-payment-step', payload);
-        if (result.success) {
-            const modal = new bootstrap.Modal(el('successModal'));
-            modal.show();
-            el('doPay').disabled = true;
+    updateCashfreeAmountDisplay(state.currentPrice);
+    updateCashfreeMeta(cashfreeState.lastSummary);
+    if (state.returningFromPayment) {
+        setCashfreeStatus('Checking payment status', 'Fetching latest update from Cashfree...', 'pending');
+        state.returningFromPayment = false;
+        if (cashfreeState.orderId) {
+            pollCashfreeStatus(true);
         } else {
-            alert(result.message || 'Payment failed');
+            initCashfreeSession({ autoLaunch: false, force: true });
         }
-    } catch (err) {
-        console.error(err);
-        alert('Network error finalizing payment');
+        return;
     }
-});
+    if (!cashfreeState.orderId && !cashfreeState.initializing && !cashfreeState.completed) {
+        initCashfreeSession({ autoLaunch: true });
+    } else if (!cashfreeState.completed && !cashfreeState.autoAttempted) {
+        initCashfreeSession({ autoLaunch: true });
+    }
+}
+
+async function initCashfreeSession({ autoLaunch = false, force = false } = {}) {
+    if (!state.bookingId) {
+        alert('Booking not ready for payment.');
+        return;
+    }
+
+    if (cashfreeState.completed) {
+        setCashfreeStatus('Already paid', 'Payment for this booking is completed.', 'success');
+        return;
+    }
+
+    if (cashfreeState.orderId && !force) {
+        if (autoLaunch) {
+            launchCashfreeCheckout();
+        }
+        return;
+    }
+
+    cashfreeState.initializing = true;
+    setCashfreeStatus('Preparing payment', 'Creating payment session with Cashfree...', 'pending');
+    toggleCashfreeLoader(true);
+
+    try {
+        const result = await postJson('/frontend/setup/payment/create-session', {
+            booking_id: state.bookingId,
+        });
+        if (result.success) {
+            const data = result.data;
+            cashfreeState.orderId = data.order_id;
+            cashfreeState.paymentSessionId = data.payment_session_id;
+            cashfreeState.amount = data.amount;
+            cashfreeState.currency = data.currency;
+            cashfreeState.autoAttempted = true;
+            updateCashfreeMeta({
+                order_id: data.order_id,
+                amount: data.amount,
+                currency: data.currency,
+            });
+            setCashfreeStatus('Ready for payment', 'Click the button below to pay securely with Cashfree.', 'pending');
+            if (autoLaunch) {
+                launchCashfreeCheckout();
+            }
+        } else {
+            setCashfreeStatus('Unable to start', result.message || 'Please try again later.', 'failed');
+            showCashfreeAlert(result.message || 'Cashfree session could not be created.');
+        }
+    } catch (error) {
+        console.error(error);
+        setCashfreeStatus('Network error', 'Please check your connection and try again.', 'failed');
+        showCashfreeAlert('Network error while creating payment session.');
+    } finally {
+        cashfreeState.initializing = false;
+        toggleCashfreeLoader(false);
+    }
+}
+
+function showCashfreeAlert(message) {
+    if (!cashfreeSelectors.alert) return;
+    cashfreeSelectors.alert.textContent = message;
+    cashfreeSelectors.alert.style.display = message ? 'block' : 'none';
+}
+
+function launchCashfreeCheckout() {
+    if (!cashfreeState.paymentSessionId) {
+        initCashfreeSession({ autoLaunch: true, force: true });
+        return;
+    }
+    const instance = ensureCashfreeInstance();
+    if (!instance) {
+        showCashfreeAlert('Cashfree SDK not loaded. Please refresh the page.');
+        return;
+    }
+    setCashfreeStatus('Opening Cashfree checkout', 'Complete the payment in the popup window.', 'pending');
+    instance.checkout({
+        paymentSessionId: cashfreeState.paymentSessionId,
+    }).then(result => {
+        if (result?.error) {
+            console.error('Cashfree error', result.error);
+            setCashfreeStatus('Payment not completed', result.error.message || 'Checkout was closed.', 'failed');
+            showCashfreeAlert(result.error.message || 'Payment was cancelled.');
+        } else {
+            setCashfreeStatus('Processing confirmation', 'Please wait while we confirm your payment...', 'pending');
+            pollCashfreeStatus(false);
+        }
+    }).catch(error => {
+        console.error('Cashfree checkout failed', error);
+        setCashfreeStatus('Checkout error', 'Could not open Cashfree checkout. Please retry.', 'failed');
+        showCashfreeAlert('Could not open Cashfree checkout.');
+    });
+}
+
+async function pollCashfreeStatus(showLoader = true) {
+    if (!state.bookingId || !cashfreeState.orderId) {
+        showCashfreeAlert('Payment session not found.');
+        return;
+    }
+    if (showLoader) toggleCashfreeLoader(true);
+    try {
+        const result = await postJson('/frontend/setup/payment/status', {
+            booking_id: state.bookingId,
+        });
+        if (result.success) {
+            const data = result.data;
+            cashfreeState.lastSummary = data;
+            let theme = 'pending';
+            if (data.order_status === 'PAID') {
+                theme = 'success';
+                cashfreeState.completed = true;
+            } else if (['FAILED', 'EXPIRED', 'TERMINATED', 'TERMINATION_REQUESTED'].includes(data.order_status)) {
+                theme = 'failed';
+            }
+            setCashfreeStatus(data.order_status || 'PENDING', data.status_message || 'Status updated.', theme);
+            updateCashfreeMeta(data);
+            showCashfreeAlert('');
+        } else {
+            showCashfreeAlert(result.message || 'Unable to fetch payment status.');
+        }
+    } catch (error) {
+        console.error(error);
+        showCashfreeAlert('Network error while fetching payment status.');
+    } finally {
+        if (showLoader) toggleCashfreeLoader(false);
+    }
+}
+
+const cashfreePayBtn = el('cashfreePayBtn');
+if (cashfreePayBtn) {
+    cashfreePayBtn.addEventListener('click', () => initCashfreeSession({ autoLaunch: true, force: true }));
+}
+
+const cashfreeRefreshBtn = el('cashfreeStatusRefreshBtn');
+if (cashfreeRefreshBtn) {
+    cashfreeRefreshBtn.addEventListener('click', () => pollCashfreeStatus(true));
+}
+
+const backToVerifyBtn = el('backToVerify');
+if (backToVerifyBtn) {
+    backToVerifyBtn.addEventListener('click', () => goToStep('verify'));
+}
 
 /**********************
  Quick buttons: clicking top step buttons
 ***********************/
 document.querySelectorAll('.step-btn').forEach(b => {
     b.addEventListener('click', () => {
-        const s = Number(b.dataset.step);
-        if (state.contactLocked && s === 1) {
+        const target = Number(b.dataset.step);
+        if (contactStepNumber && state.contactLocked && target === contactStepNumber) {
             alert('Contact details are locked after verification.');
             return;
         }
-        if (s <= state.step) { showStep(s); return; }
-        if (s === 2 && state.otpVerified) { showStep(2); return; }
-        if (s === 3) {
-            alert('Please complete previous steps to go to Address.');
+        if (bookingStepNumber && target >= (propertyStepNumber || bookingStepNumber) && !isBookingSelectionSatisfied()) {
+            alert('Please select an existing booking or add a new property first.');
             return;
         }
-        if (s === 4) { alert('Please complete previous steps first.'); return; }
-        if (s === 5) { alert('Please complete previous steps first.'); return; }
+        if (target <= (state.highestStepUnlocked ?? state.step)) {
+            showStep(target);
+            return;
+        }
+        if (propertyStepNumber && target === propertyStepNumber && state.otpVerified) {
+            showStep(propertyStepNumber);
+            return;
+        }
+        alert('Please complete previous steps first.');
     });
 });
 
@@ -824,3 +1533,4 @@ window.selectCard = selectCard;
 window.selectChip = selectChip;
 window.topPillClick = topPillClick;
 window.handlePropertyTabChange = handlePropertyTabChange;
+window.goToStep = goToStep;
