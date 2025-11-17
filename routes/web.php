@@ -86,10 +86,14 @@ Route::group(['prefix' => 'brokerx', 'as' => 'brokerx.', 'middleware' => ['web',
 Route::get('/front', [FrontendController::class, 'index'])->name('frontend.index');
 Route::get('/setup', [FrontendController::class, 'setup'])->name('frontend.setup');
 Route::post('/setup', [FrontendController::class, 'storeBooking'])->name('frontend.setup.store');
-Route::get('/booking-dashboard', [FrontendController::class, 'bookingDashboard'])->name('frontend.booking-dashboard');
 Route::get('/privacy-policy', [FrontendController::class, 'privacyPolicy'])->name('frontend.privacy-policy');
 Route::get('/refund-policy', [FrontendController::class, 'refundPolicy'])->name('frontend.refund-policy');
 Route::get('/terms-conditions', [FrontendController::class, 'termsConditions'])->name('frontend.terms');
+
+// Protected frontend routes (require authentication)
+Route::middleware('auth')->group(function () {
+    Route::get('/booking-dashboard', [FrontendController::class, 'bookingDashboard'])->name('frontend.booking-dashboard');
+});
 
 // Frontend Portfolio routes (authenticated users)
 Route::middleware('auth')->group(function () {

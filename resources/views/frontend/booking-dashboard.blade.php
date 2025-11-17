@@ -1,6 +1,7 @@
 @extends('frontend.layouts.base', ['title' => 'Booking Dashboard - PROP PIK'])
 
 @section('css')
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400..800&family=Urbanist:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
@@ -107,23 +108,39 @@
     <script src="{{ asset('frontend/js/custom.js') }}"></script>
     <script>
         // Booking Management System
-        let bookings = [];
+        let bookings = @json($bookings ?? []);
         let bookingIdCounter = 1;
-        
-        // Initialize from localStorage safely
-        try {
-            const storedBookings = localStorage.getItem('proppikBookings');
-            if (storedBookings) {
-                bookings = JSON.parse(storedBookings);
-            }
-            const storedCounter = localStorage.getItem('proppikBookingIdCounter');
-            if (storedCounter) {
-                bookingIdCounter = parseInt(storedCounter) || 1;
-            }
-        } catch (e) {
-            console.error('Error initializing bookings from localStorage:', e);
-            bookings = [];
-            bookingIdCounter = 1;
+        console.log("booking :",bookings)
+        // Convert Laravel bookings to frontend format
+        if (bookings && bookings.length > 0) {
+            bookings = bookings.map(booking => {
+                return {
+                    id: booking.id,
+                    name: booking.user ? `${booking.user.firstname || ''} ${booking.user.lastname || ''}`.trim() : 'Property Booking',
+                    phone: booking.user ? booking.user.mobile : '',
+                    email: booking.user ? booking.user.email : '',
+                    address: booking.full_address || booking.address_area || '',
+                    mainType: booking.property_type ? booking.property_type.name : '',
+                    propertyType: booking.property_type ? booking.property_type.name : '',
+                    residential: booking.property_type && booking.property_type.name === 'Residential' ? {
+                        bhk: booking.bhk ? booking.bhk.name : '',
+                        subType: booking.property_sub_type ? booking.property_sub_type.name : '',
+                        area: booking.area || ''
+                    } : null,
+                    commercial: booking.property_type && booking.property_type.name === 'Commercial' ? {
+                        subType: booking.property_sub_type ? booking.property_sub_type.name : '',
+                        area: booking.area || ''
+                    } : null,
+                    other: booking.property_type && booking.property_type.name === 'Other' ? {
+                        area: booking.area || ''
+                    } : null,
+                    price: booking.price || 0,
+                    status: booking.status || 'pending',
+                    createdAt: booking.created_at || new Date().toISOString(),
+                    scheduledDate: null,
+                    scheduledTime: null
+                };
+            });
         }
 
         // Initialize dashboard
@@ -135,58 +152,9 @@
                 scheduleDateInput.setAttribute('min', today);
             }
             
-            // Initialize demo data if no bookings exist
-            initializeDemoData();
-            
-            // Small delay to ensure localStorage is updated
-            setTimeout(function() {
-                // Load bookings
-                loadBookings();
-            }, 100);
+            // Load bookings
+            loadBookings();
         });
-
-        // Initialize demo booking data matching setup.html form structure
-        function initializeDemoData() {
-            let existingBookings = [];
-            try {
-                const stored = localStorage.getItem('proppikBookings');
-                if (stored) {
-                    existingBookings = JSON.parse(stored);
-                }
-            } catch (e) {
-                console.error('Error parsing bookings from localStorage:', e);
-                existingBookings = [];
-            }
-            
-            // Check if existing bookings are valid (have required fields)
-            const hasValidBookings = existingBookings && existingBookings.length > 0 && 
-                existingBookings.some(b => b.name || b.propertyName);
-            
-            // Only add demo data if there are no existing bookings or if bookings are invalid
-            if (!hasValidBookings) {
-                const today = new Date();
-                const tomorrow = new Date(today);
-                tomorrow.setDate(tomorrow.getDate() + 1);
-                const nextWeek = new Date(today);
-                nextWeek.setDate(nextWeek.getDate() + 7);
-                
-                const demoBookings = [];
-                
-                localStorage.setItem('proppikBookings', JSON.stringify(demoBookings));
-                localStorage.setItem('proppikBookingIdCounter', '1');
-                
-                // Update the bookings array
-                bookings = demoBookings;
-                bookingIdCounter = 1;
-            } else {
-                // Update bookings from localStorage
-                bookings = existingBookings;
-                const savedCounter = parseInt(localStorage.getItem('proppikBookingIdCounter'));
-                if (savedCounter) {
-                    bookingIdCounter = savedCounter;
-                }
-            }
-        }
 
         // Calculate price based on area (same logic as setup.html)
         function calculatePrice(booking) {
@@ -232,16 +200,6 @@
 
         // Load and display bookings
         function loadBookings() {
-            // Always refresh bookings from localStorage to get the latest data
-            try {
-                const stored = localStorage.getItem('proppikBookings');
-                bookings = stored ? JSON.parse(stored) : [];
-                console.log('Loaded bookings from localStorage:', bookings.length, bookings);
-            } catch (e) {
-                console.error('Error loading bookings from localStorage:', e);
-                bookings = [];
-            }
-            
             const bookingsList = document.getElementById('bookingsList');
             
             if (!bookingsList) {
@@ -365,46 +323,79 @@
 
             const booking = bookings.find(b => b.id === bookingId);
             if (booking) {
+                // Update local booking data
                 booking.scheduledDate = scheduleDate;
                 booking.scheduledTime = scheduleTime;
                 booking.status = 'scheduled';
-                // Don't overwrite existing notes, just add schedule notes if provided
-                const scheduleNotes = document.getElementById('scheduleNotes').value.trim();
-                if (scheduleNotes) {
-                    booking.notes = (booking.notes || '') + '\n' + scheduleNotes;
-                }
+                
+                // Make AJAX request to update booking in database
+                fetch(`/admin/bookings/${bookingId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    },
+                    body: JSON.stringify({
+                        status: 'scheduled',
+                        // You can add more fields here as needed
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    loadBookings();
 
-                saveBookings();
-                loadBookings();
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('scheduleModal'));
+                    modal.hide();
 
-                const modal = bootstrap.Modal.getInstance(document.getElementById('scheduleModal'));
-                modal.hide();
-
-                document.getElementById('successTitle').textContent = 'Schedule Updated!';
-                document.getElementById('successMessage').textContent = 'Booking schedule has been updated successfully.';
-                const successModal = new bootstrap.Modal(document.getElementById('successModal'));
-                successModal.show();
+                    document.getElementById('successTitle').textContent = 'Schedule Updated!';
+                    document.getElementById('successMessage').textContent = 'Booking schedule has been updated successfully.';
+                    const successModal = new bootstrap.Modal(document.getElementById('successModal'));
+                    successModal.show();
+                })
+                .catch(error => {
+                    console.error('Error updating schedule:', error);
+                    alert('Failed to update schedule. Please try again.');
+                });
             }
         }
 
         // Delete booking
         function deleteBooking(bookingId) {
             if (confirm('Are you sure you want to delete this booking?')) {
-                bookings = bookings.filter(b => b.id !== bookingId);
-                saveBookings();
-                loadBookings();
+                // Make AJAX request to delete booking from database
+                fetch(`/admin/bookings/${bookingId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Remove booking from array
+                        bookings = bookings.filter(b => b.id !== bookingId);
+                        loadBookings();
 
-                document.getElementById('successTitle').textContent = 'Booking Deleted!';
-                document.getElementById('successMessage').textContent = 'The booking has been deleted successfully.';
-                const successModal = new bootstrap.Modal(document.getElementById('successModal'));
-                successModal.show();
+                        document.getElementById('successTitle').textContent = 'Booking Deleted!';
+                        document.getElementById('successMessage').textContent = 'The booking has been deleted successfully.';
+                        const successModal = new bootstrap.Modal(document.getElementById('successModal'));
+                        successModal.show();
+                    } else {
+                        alert('Failed to delete booking: ' + (data.message || 'Unknown error'));
+                    }
+                })
+                .catch(error => {
+                    console.error('Error deleting booking:', error);
+                    alert('Failed to delete booking. Please try again.');
+                });
             }
         }
 
-        // Save bookings to localStorage
+        // Save bookings to localStorage (deprecated - now using database)
         function saveBookings() {
-            localStorage.setItem('proppikBookings', JSON.stringify(bookings));
-            localStorage.setItem('proppikBookingIdCounter', bookingIdCounter.toString());
+            // This function is kept for compatibility but bookings are now saved in database
+            console.log('Bookings are now managed in the database');
         }
 
         // Escape HTML to prevent XSS

@@ -870,7 +870,13 @@ class FrontendController extends Controller
      */
     public function bookingDashboard()
     {
-        return view('frontend.booking-dashboard');
+        // Fetch authenticated user's bookings with related data
+        $bookings = Booking::where('user_id', Auth::id())
+            ->with(['user', 'propertyType', 'propertySubType', 'bhk', 'city', 'state'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+        
+        return view('frontend.booking-dashboard', compact('bookings'));
     }
 
     /**

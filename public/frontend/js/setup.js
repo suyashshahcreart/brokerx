@@ -736,6 +736,15 @@ if (verifyOtpBtn) verifyOtpBtn.addEventListener('click', async () => {
             state.isAuthenticated = true;
             setupContext.authenticated = true;
             state.bookingsInitialized = false;
+            
+            // Check if user has existing bookings and redirect to dashboard
+            if (setupContext.bookingTabEnabled) {
+                // User has existing bookings, redirect to booking dashboard
+                console.log('User has existing bookings, redirecting to dashboard...');
+                window.location.href = buildUrl('/booking-dashboard');
+                return;
+            }
+            
             maybeInitBookingGrid(true);
             state.bookingReadOnly = false;
             updateReadOnlyUI();
