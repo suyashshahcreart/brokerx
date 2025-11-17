@@ -440,6 +440,7 @@
                                 <div class="col-md-4">
                                     <label class="form-label">City <span class="text-danger">*</span></label>
                                     <select id="addrCity" name="city" class="form-select">
+
                                         {{-- <option value="">Select City</option> --}}
                                         <option value="Ahmedabad" selected>Ahmedabad</option>
                                     </select>
