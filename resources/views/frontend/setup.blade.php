@@ -290,9 +290,10 @@
                                     <label class="form-label">City <span class="text-danger">*</span></label>
                                     <select id="addrCity" name="city" class="form-select">
                                         <option value="">Select City</option>
-                                        @foreach($cities as $city)
+                                        <option value="Ahmedabad" selected>Ahmedabad</option>
+                                        <!-- @foreach($cities as $city)
                                             <option value="{{ $city->name }}">{{ $city->name }}</option>
-                                        @endforeach
+                                        @endforeach -->
                                     </select>
                                 </div>
                                 <div class="col-12">
