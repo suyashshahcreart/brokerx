@@ -17,6 +17,8 @@
 
 @include('frontend.layouts.partials/footer-scripts')
 
+@yield('scripts')
+
 </body>
 
 </html>

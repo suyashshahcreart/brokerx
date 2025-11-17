@@ -864,4 +864,36 @@ class FrontendController extends Controller
             ],
         ];
     }
+
+    /**
+     * Display the booking dashboard
+     */
+    public function bookingDashboard()
+    {
+        return view('frontend.booking-dashboard');
+    }
+
+    /**
+     * Display the privacy policy page
+     */
+    public function privacyPolicy()
+    {
+        return view('frontend.privacy-policy');
+    }
+
+    /**
+     * Display the refund policy page
+     */
+    public function refundPolicy()
+    {
+        return view('frontend.refund-policy');
+    }
+
+    /**
+     * Display the terms and conditions page
+     */
+    public function termsConditions()
+    {
+        return view('frontend.terms-conditions');
+    }
 }

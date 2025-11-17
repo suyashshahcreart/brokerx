@@ -155,183 +155,183 @@
     /*----------------------------------------------------
       8. Slider & Slider-Fade owlCarousel
     ----------------------------------------------------*/
-    $(document).ready(function () {
-        var owl = $('.header .owl-carousel');
-        // Slider owlCarousel - (Inner Page Slider)
-        $('.slider .owl-carousel').owlCarousel({
-            items: 1
-            , loop: true
-            , dots: true
-            , margin: 0
-            , autoplay: false
-            , autoplayTimeout: 5000
-            , nav: false
-            , navText: ['<i class="ti-angle-left" aria-hidden="true"></i>', '<i class="ti-angle-right" aria-hidden="true"></i>']
-            , responsiveClass: true
-            , responsive: {
-                0: {
-                    dots: false
-                , }
-                , 600: {
-                    dots: false
-                , }
-                , 1000: {
-                    dots: false
-                , }
-            }
-        });
-        $('.slider-fade .owl-carousel').owlCarousel({
-            items: 1
-            , loop: true
-            , dots: true
-            , margin: 0
-            , autoplay: true
-            , autoplayTimeout: 5000
-            , animateOut: 'fadeOut'
-            , nav: false
-            , navText: ['<i class="ti-angle-left" aria-hidden="true"></i>', '<i class="ti-angle-right" aria-hidden="true"></i>']
-        });
-        owl.on('changed.owl.carousel', function (event) {
-            var item = event.item.index - 2; // Position of the current item
-            $('h6').removeClass('animated fadeInUp');
-            $('h1').removeClass('animated fadeInUp');
-            $('.btn-wrap').removeClass('animated fadeInUp');
-            $('.owl-item').not('.cloned').eq(item).find('h6').addClass('animated fadeInUp');
-            $('.owl-item').not('.cloned').eq(item).find('h1').addClass('animated fadeInUp');
-            $('.owl-item').not('.cloned').eq(item).find('.btn-wrap').addClass('animated fadeInUp');
-        });
-    });
+    // $(document).ready(function () {
+    //     var owl = $('.header .owl-carousel');
+    //     // Slider owlCarousel - (Inner Page Slider)
+    //     $('.slider .owl-carousel').owlCarousel({
+    //         items: 1
+    //         , loop: true
+    //         , dots: true
+    //         , margin: 0
+    //         , autoplay: false
+    //         , autoplayTimeout: 5000
+    //         , nav: false
+    //         , navText: ['<i class="ti-angle-left" aria-hidden="true"></i>', '<i class="ti-angle-right" aria-hidden="true"></i>']
+    //         , responsiveClass: true
+    //         , responsive: {
+    //             0: {
+    //                 dots: false
+    //             , }
+    //             , 600: {
+    //                 dots: false
+    //             , }
+    //             , 1000: {
+    //                 dots: false
+    //             , }
+    //         }
+    //     });
+    //     $('.slider-fade .owl-carousel').owlCarousel({
+    //         items: 1
+    //         , loop: true
+    //         , dots: true
+    //         , margin: 0
+    //         , autoplay: true
+    //         , autoplayTimeout: 5000
+    //         , animateOut: 'fadeOut'
+    //         , nav: false
+    //         , navText: ['<i class="ti-angle-left" aria-hidden="true"></i>', '<i class="ti-angle-right" aria-hidden="true"></i>']
+    //     });
+    //     owl.on('changed.owl.carousel', function (event) {
+    //         var item = event.item.index - 2; // Position of the current item
+    //         $('h6').removeClass('animated fadeInUp');
+    //         $('h1').removeClass('animated fadeInUp');
+    //         $('.btn-wrap').removeClass('animated fadeInUp');
+    //         $('.owl-item').not('.cloned').eq(item).find('h6').addClass('animated fadeInUp');
+    //         $('.owl-item').not('.cloned').eq(item).find('h1').addClass('animated fadeInUp');
+    //         $('.owl-item').not('.cloned').eq(item).find('.btn-wrap').addClass('animated fadeInUp');
+    //     });
+    // });
     
     /*----------------------------------------------------
       9. Team owlCarousel
     ----------------------------------------------------*/
-    $('.team .owl-carousel').owlCarousel({
-        loop: true
-        , margin: 30
-        , dots: false
-        , mouseDrag: true
-        , autoplay: false
-        , nav: false
-        , navText: ["<span class='lnr ti-angle-left'></span>", "<span class='lnr ti-angle-right'></span>"]
-        , responsiveClass: true
-        , responsive: {
-            0: {
-                items: 1
-                , dots: true
-            }
-            , 600: {
-                items: 2
-            }
-            , 1000: {
-                items: 4
-            }
-        }
-    });
+    // $('.team .owl-carousel').owlCarousel({
+    //     loop: true
+    //     , margin: 30
+    //     , dots: false
+    //     , mouseDrag: true
+    //     , autoplay: false
+    //     , nav: false
+    //     , navText: ["<span class='lnr ti-angle-left'></span>", "<span class='lnr ti-angle-right'></span>"]
+    //     , responsiveClass: true
+    //     , responsive: {
+    //         0: {
+    //             items: 1
+    //             , dots: true
+    //         }
+    //         , 600: {
+    //             items: 2
+    //         }
+    //         , 1000: {
+    //             items: 4
+    //         }
+    //     }
+    // });
     
     /*----------------------------------------------------
       10. Services owlCarousel
     ----------------------------------------------------*/
-    $('.services .owl-carousel').owlCarousel({
-        loop: true
-        , margin: 20
-        , mouseDrag: true
-        , autoplay: false
-        , dots: false
-        , autoplayHoverPause: true
-        , nav: false
-        , navText: ["<span class='lnr ti-angle-left'></span>", "<span class='lnr ti-angle-right'></span>"]
-        , responsiveClass: true
-        , responsive: {
-            0: {
-                items: 1
-            }
-            , 600: {
-                items: 2
-            }
-            , 1000: {
-                items: 4
-            }
-        }
-    });
+    // $('.services .owl-carousel').owlCarousel({
+    //     loop: true
+    //     , margin: 20
+    //     , mouseDrag: true
+    //     , autoplay: false
+    //     , dots: false
+    //     , autoplayHoverPause: true
+    //     , nav: false
+    //     , navText: ["<span class='lnr ti-angle-left'></span>", "<span class='lnr ti-angle-right'></span>"]
+    //     , responsiveClass: true
+    //     , responsive: {
+    //         0: {
+    //             items: 1
+    //         }
+    //         , 600: {
+    //             items: 2
+    //         }
+    //         , 1000: {
+    //             items: 4
+    //         }
+    //     }
+    // });
     
     /*----------------------------------------------------
       11. Services 2 owlCarousel
     ----------------------------------------------------*/
-    $('.services2 .owl-carousel').owlCarousel({
-        loop: true
-        , margin: 15
-        , mouseDrag: true
-        , autoplay: false
-        , dots: false
-        , nav: false
-        , navText: ["<span class='lnr ti-angle-left'></span>", "<span class='lnr ti-angle-right'></span>"]
-        , autoplayHoverPause: true
-        , responsiveClass: true
-        , responsive: {
-            0: {
-                items: 1
-            , }
-            , 600: {
-                items: 2
-            }
-            , 1000: {
-                items: 3
-            }
-        }
-    });
+    // $('.services2 .owl-carousel').owlCarousel({
+    //     loop: true
+    //     , margin: 15
+    //     , mouseDrag: true
+    //     , autoplay: false
+    //     , dots: false
+    //     , nav: false
+    //     , navText: ["<span class='lnr ti-angle-left'></span>", "<span class='lnr ti-angle-right'></span>"]
+    //     , autoplayHoverPause: true
+    //     , responsiveClass: true
+    //     , responsive: {
+    //         0: {
+    //             items: 1
+    //         , }
+    //         , 600: {
+    //             items: 2
+    //         }
+    //         , 1000: {
+    //             items: 3
+    //         }
+    //     }
+    // });
     
     /*----------------------------------------------------
       12. Pricing owlCarousel
     ----------------------------------------------------*/
-    $('.price .owl-carousel').owlCarousel({
-        loop: true
-        , margin: 15
-        , mouseDrag: true
-        , autoplay: false
-        , dots: false
-        , nav: false
-        , navText: ["<span class='lnr ti-angle-left'></span>", "<span class='lnr ti-angle-right'></span>"]
-        , autoplayHoverPause: true
-        , responsiveClass: true
-        , responsive: {
-            0: {
-                items: 1
-                , dots: true
-            , }
-            , 600: {
-                items: 2
-                , dots: true
-            }
-            , 1000: {
-                items: 3
-            }
-        }
-    });
+    // $('.price .owl-carousel').owlCarousel({
+    //     loop: true
+    //     , margin: 15
+    //     , mouseDrag: true
+    //     , autoplay: false
+    //     , dots: false
+    //     , nav: false
+    //     , navText: ["<span class='lnr ti-angle-left'></span>", "<span class='lnr ti-angle-right'></span>"]
+    //     , autoplayHoverPause: true
+    //     , responsiveClass: true
+    //     , responsive: {
+    //         0: {
+    //             items: 1
+    //             , dots: true
+    //         , }
+    //         , 600: {
+    //             items: 2
+    //             , dots: true
+    //         }
+    //         , 1000: {
+    //             items: 3
+    //         }
+    //     }
+    // });
     
     /*----------------------------------------------------
       13. Gallery owlCarousel for Portfolio
     ----------------------------------------------------*/
-    $('.gallery-item .owl-carousel').owlCarousel({
-        loop: true
-        , margin: 15
-        , mouseDrag: true
-        , autoplay: false
-        , dots: false
-        , nav: false
-        , navText: ['<i class="ti-arrow-left" aria-hidden="true"></i>', '<i class="ti-arrow-right" aria-hidden="true"></i>']
-        , responsiveClass: true
-        , responsive: {
-            0: {
-                items: 1
-            , }
-            , 600: {
-                items: 1
-            }
-            , 1000: {
-                items: 1
-            }
-        }
-    });
+    // $('.gallery-item .owl-carousel').owlCarousel({
+    //     loop: true
+    //     , margin: 15
+    //     , mouseDrag: true
+    //     , autoplay: false
+    //     , dots: false
+    //     , nav: false
+    //     , navText: ['<i class="ti-arrow-left" aria-hidden="true"></i>', '<i class="ti-arrow-right" aria-hidden="true"></i>']
+    //     , responsiveClass: true
+    //     , responsive: {
+    //         0: {
+    //             items: 1
+    //         , }
+    //         , 600: {
+    //             items: 1
+    //         }
+    //         , 1000: {
+    //             items: 1
+    //         }
+    //     }
+    // });
     
     /*----------------------------------------------------
       14. Testimonials owlCarousel
@@ -361,29 +361,29 @@
     /*----------------------------------------------------
       15. MagnificPopup
     ----------------------------------------------------*/
-    $('.img-zoom').magnificPopup({
-        type: "image"
-        , closeOnContentClick: !0
-        , mainClass: "mfp-fade"
-        , gallery: {
-            enabled: !0
-            , navigateByImgClick: !0
-            , preload: [0, 1]
-        }
-    })
-    $('.magnific-youtube, .magnific-vimeo, .magnific-custom').magnificPopup({
-        disableOn: 700
-        , type: 'iframe'
-        , mainClass: 'mfp-fade'
-        , removalDelay: 300
-        , preloader: false
-        , fixedContentPos: false
-    });
+    // $('.img-zoom').magnificPopup({
+    //     type: "image"
+    //     , closeOnContentClick: !0
+    //     , mainClass: "mfp-fade"
+    //     , gallery: {
+    //         enabled: !0
+    //         , navigateByImgClick: !0
+    //         , preload: [0, 1]
+    //     }
+    // })
+    // $('.magnific-youtube, .magnific-vimeo, .magnific-custom').magnificPopup({
+    //     disableOn: 700
+    //     , type: 'iframe'
+    //     , mainClass: 'mfp-fade'
+    //     , removalDelay: 300
+    //     , preloader: false
+    //     , fixedContentPos: false
+    // });
     
     /*----------------------------------------------------
       16. YouTubePopUp
     ----------------------------------------------------*/
-    $("a.vid").YouTubePopUp();
+    // $("a.vid").YouTubePopUp();
     
     /*----------------------------------------------------
       17. Parallaxie
@@ -757,27 +757,27 @@
     /*----------------------------------------------------
       31. Isotope Active Masonry Gallery
     ----------------------------------------------------*/
-    $('.gallery-items').imagesLoaded(function () {
-        // Add isotope on click filter function
-        $('.gallery-filter li').on('click', function () {
-            $(".gallery-filter li").removeClass("active");
-            $(this).addClass("active");
-            var selector = $(this).attr('data-filter');
-            $(".gallery-items").isotope({
-                filter: selector
-                , animationOptions: {
-                    duration: 750
-                    , easing: 'linear'
-                    , queue: false
-                , }
-            });
-            return false;
-        });
-        $(".gallery-items").isotope({
-            itemSelector: '.single-item'
-            , layoutMode: 'masonry'
-        , });
-    });
+    // $('.gallery-items').imagesLoaded(function () {
+    //     // Add isotope on click filter function
+    //     $('.gallery-filter li').on('click', function () {
+    //         $(".gallery-filter li").removeClass("active");
+    //         $(this).addClass("active");
+    //         var selector = $(this).attr('data-filter');
+    //         $(".gallery-items").isotope({
+    //             filter: selector
+    //             , animationOptions: {
+    //                 duration: 750
+    //                 , easing: 'linear'
+    //                 , queue: false
+    //             , }
+    //         });
+    //         return false;
+    //     });
+    //     $(".gallery-items").isotope({
+    //         itemSelector: '.single-item'
+    //         , layoutMode: 'masonry'
+    //     , });
+    // });
     
     /*----------------------------------------------------
       32. Skills Bar
@@ -808,7 +808,7 @@
     /*----------------------------------------------------
       33. Blog Feed
     ----------------------------------------------------*/
-    const BLOG_API_ENDPOINT = 'https://darkred-rook-441483.hostingersite.com/wp-json/wp/v2/posts?per_page=3&_embed&fields=id,title,link,excerpt,content,date,featured_media,yoast_head_json,_embedded';
+    const BLOG_API_ENDPOINT = 'https://proppik.com/blog/wp-json/wp/v2/posts?per_page=3&_embed&fields=id,title,link,excerpt,content,date,featured_media,yoast_head_json,_embedded';
     const BLOG_IMAGE_FALLBACK = 'images/about.jpg';
     
     const stripHTML = (htmlString) => {
@@ -867,24 +867,53 @@
         if (!ids.size) return new Map();
     
         const mediaMap = new Map();
-        await Promise.all(Array.from(ids).map(async (id) => {
-            try {
-                const response = await fetch(`https://darkred-rook-441483.hostingersite.com/wp-json/wp/v2/media/${id}?_fields=id,source_url,media_details`);
-                if (!response.ok) return;
-                const media = await response.json();
-                if (!media || media.code === 'rest_forbidden') return;
-                const image =
-                    media.media_details?.sizes?.medium?.source_url ||
-                    media.media_details?.sizes?.medium_large?.source_url ||
-                    media.media_details?.sizes?.large?.source_url ||
-                    media.source_url;
-                if (image) {
-                    mediaMap.set(id, image);
+        const idsArray = Array.from(ids);
+        
+        try {
+            // Try fetching from collection endpoint first (avoids 401 on individual items)
+            const includeParam = idsArray.join(',');
+            const response = await fetch(`https://proppik.com/blog/wp-json/wp/v2/media?include=${includeParam}&_fields=id,source_url,media_details&per_page=100`);
+            
+            if (response.ok) {
+                const mediaArray = await response.json();
+                if (Array.isArray(mediaArray)) {
+                    mediaArray.forEach(media => {
+                        if (media && media.id) {
+                            const image =
+                                media.media_details?.sizes?.medium?.source_url ||
+                                media.media_details?.sizes?.medium_large?.source_url ||
+                                media.media_details?.sizes?.large?.source_url ||
+                                media.source_url;
+                            if (image) {
+                                mediaMap.set(media.id, image);
+                            }
+                        }
+                    });
                 }
-            } catch (error) {
-                console.error(`Failed to resolve media ${id}:`, error);
+            } else {
+                // Fallback: Try individual requests if collection endpoint fails
+                await Promise.all(idsArray.map(async (id) => {
+                    try {
+                        const response = await fetch(`https://proppik.com/blog/wp-json/wp/v2/media/${id}?_fields=id,source_url,media_details`);
+                        if (!response.ok) return;
+                        const media = await response.json();
+                        if (!media || media.code === 'rest_forbidden') return;
+                        const image =
+                            media.media_details?.sizes?.medium?.source_url ||
+                            media.media_details?.sizes?.medium_large?.source_url ||
+                            media.media_details?.sizes?.large?.source_url ||
+                            media.source_url;
+                        if (image) {
+                            mediaMap.set(id, image);
+                        }
+                    } catch (error) {
+                        console.error(`Failed to resolve media ${id}:`, error);
+                    }
+                }));
             }
-        }));
+        } catch (error) {
+            console.error('Failed to fetch featured media:', error);
+        }
     
         return mediaMap;
     };
@@ -911,7 +940,7 @@
         if (!postUrl) return null;
         if (oEmbedCache.has(postUrl)) return oEmbedCache.get(postUrl);
     
-        const endpoint = `https://darkred-rook-441483.hostingersite.com/wp-json/oembed/1.0/embed?url=${encodeURIComponent(postUrl)}&_fields=thumbnail_url`;
+        const endpoint = `https://proppik.com/blog/wp-json/oembed/1.0/embed?url=${encodeURIComponent(postUrl)}&_fields=thumbnail_url`;
     
         try {
             const response = await fetch(endpoint, {

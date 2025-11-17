@@ -114,6 +114,16 @@
 @endsection
 
 @section('content')
+ <section class="page-header section-padding-bottom-b section-padding-top-t page-header">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-12">
+                    <h1 class="wow page-title" data-splitting data-delay="100"> Setup Your Virtual Tour</h1>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <div class="preloader-bg"></div>
     <div id="preloader">
         <div id="preloader-status">
@@ -121,24 +131,8 @@
         </div>
     </div>
 
-    <div class="progress-wrap cursor-pointer">
-        <svg class="progress-circle svg-content" width="100%" height="100%" viewBox="-1 -1 102 102">
-            <path d="M50,1 a49,49 0 0,1 0,98 a49,49 0 0,1 0,-98" />
-        </svg>
-    </div>
-
-    <div class="cursor js-cursor"></div>
-
-    <div class="social-ico-block">
-        <a href="https://duruthemes.com/demo/html/gloom/" target="_blank" class="social-ico"><i class="fa-brands fa-instagram"></i></a>
-        <a href="https://duruthemes.com/demo/html/gloom/" target="_blank" class="social-ico"><i class="fa-brands fa-x-twitter"></i></a>
-        <a href="https://duruthemes.com/demo/html/gloom/" target="_blank" class="social-ico"><i class="fa-brands fa-youtube"></i></a>
-        <a href="https://duruthemes.com/demo/html/gloom/" target="_blank" class="social-ico"><i class="fa-brands fa-tiktok"></i></a>
-        <a href="https://duruthemes.com/demo/html/gloom/" target="_blank" class="social-ico"><i class="fa-brands fa-flickr"></i></a>
-    </div>
-
-    <div class="page">
-        <div class="panel">
+    <div class="page bg-light section-padding-bottom section-padding-top">
+        <div class="panel container">
             <!-- TOP PROGRESS -->
             <div class="prog-wrap">
                 <div class="steps-bar">
