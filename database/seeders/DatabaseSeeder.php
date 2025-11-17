@@ -20,14 +20,28 @@ class DatabaseSeeder extends Seeder
         // Seed base permissions and roles
         $this->call(PermissionsRolesSeeder::class);
 
+        // Seed property types and subtypes
+        $this->call(PropertyTypeSeeder::class);
+        $this->call(PropertySubTypeSeeder::class);
+
+        // Seed BHK data
+        $this->call(BHKSeeder::class);
+
+        // Seed location data
+        $this->call(StateSeeder::class);
+        $this->call(CitySeeder::class);
+
+        // Seed bookings
+        $this->call(BookingSeeder::class);
+
         $user = User::factory()->create([
             'firstname' => 'admin',
             'lastname' => 'User',
-            'email' => 'admin@user.com',
+            'email' => 'admin@admin.com',
             'mobile' => 9876543210,
             'email_verified_at' => now(),
             'mobile_verified_at' => now(),
-            'password' => Hash::make('password'),
+            'password' => Hash::make('123456'),
             'remember_token' => Str::random(10),
         ]);
 
