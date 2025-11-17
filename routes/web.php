@@ -12,7 +12,9 @@ use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Admin\ActivityLogController;
 use App\Http\Controllers\Admin\BookingController;
+use App\Http\Controllers\Admin\PortfolioController as AdminPortfolioController;
 use App\Http\Controllers\FrontendController;
+use App\Http\Controllers\PortfolioController;
 use App\Http\Controllers\BrokerX\BrokerXController;
 
 /*
@@ -72,6 +74,7 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'middleware' => ['web','aut
     Route::resource('roles', RoleController::class);
     Route::resource('users', AdminUserController::class);
     Route::resource('bookings', BookingController::class);
+    Route::resource('portfolios', AdminPortfolioController::class);
     Route::get('activity', [ActivityLogController::class, 'index'])->name('activity.index');
 });
 
@@ -83,6 +86,12 @@ Route::group(['prefix' => 'brokerx', 'as' => 'brokerx.', 'middleware' => ['web',
 Route::get('/front', [FrontendController::class, 'index'])->name('frontend.index');
 Route::get('/setup', [FrontendController::class, 'setup'])->name('frontend.setup');
 Route::post('/setup', [FrontendController::class, 'storeBooking'])->name('frontend.setup.store');
+
+// Frontend Portfolio routes (authenticated users)
+Route::middleware('auth')->group(function () {
+    Route::resource('portfolios', PortfolioController::class);
+});
+
 // Step-by-step AJAX routes
 Route::post('/frontend/setup/save-property-step', [FrontendController::class, 'savePropertyStep'])->name('frontend.setup.save-property');
 Route::post('/frontend/setup/save-address-step', [FrontendController::class, 'saveAddressStep'])->name('frontend.setup.save-address');

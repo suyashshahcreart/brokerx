@@ -128,6 +128,26 @@
                     </div>
                </li> <!-- end Pages Menu -->
 
+               <li class="nav-item">
+                    <a class="nav-link menu-arrow" href="#sidebarPortfolio" data-bs-toggle="collapse" role="button"
+                         aria-expanded="false" aria-controls="sidebarCustomers">
+                         <span class="nav-icon">
+                              <i class="ri-profile-line"></i>
+                         </span>
+                         <span class="nav-text"> Portfolios </span>
+                    </a>
+                    <div class="collapse" id="sidebarPortfolio">
+                         <ul class="nav sub-navbar-nav">
+                              <li class="sub-nav-item">
+                                   <a class="sub-nav-link" href="{{ route('admin.portfolios.index') }}">List View</a>
+                              </li>
+                              <li class="sub-nav-item">
+                                   <a class="sub-nav-link" href="{{ route('admin.portfolios.create') }}">Create Portfolio</a>
+                              </li>
+                         </ul>
+                    </div>
+               </li> <!-- end Pages Menu -->
+
                @canany(['user_view', 'role_view', 'permission_view', 'activity_view', 'media_view'])
                     <li class="menu-title">System</li>
 
