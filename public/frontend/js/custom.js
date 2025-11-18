@@ -35,7 +35,6 @@
 31. Isotope Active Masonry Gallery
 32. Skills Bar
 
-
 ------------------------------------------------------------------- */
 (function () {
     'use strict';
