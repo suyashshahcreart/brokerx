@@ -46,6 +46,12 @@ class PermissionsRolesSeeder extends Seeder
             'scheduler_create',
             'scheduler_edit',
             'scheduler_delete',
+
+            // Setting management
+            'setting_view',
+            'setting_create',
+            'setting_edit',
+            'setting_delete',
         ];
 
         foreach ($permissions as $permissionName) {

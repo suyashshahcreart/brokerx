@@ -205,6 +205,17 @@
                               </a>
                          </li>
                     @endcan
+
+                    @can('setting_view')
+                         <li class="nav-item">
+                              <a class="nav-link" href="#">
+                                   <span class="nav-icon">
+                                        <i class="ri-home-gear-line"></i>
+                                   </span>
+                                   <span class="nav-text">Settingsy</span>
+                              </a>
+                         </li>
+                    @endcan
                @endcanany
 
           </ul>
