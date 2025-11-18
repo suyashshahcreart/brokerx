@@ -336,7 +336,8 @@
     /*----------------------------------------------------
       14. Testimonials owlCarousel
     ----------------------------------------------------*/
-    $('.testimonials .owl-carousel').owlCarousel({
+    if (typeof $.fn.owlCarousel !== 'undefined' && $('.testimonials .owl-carousel').length > 0) {
+        $('.testimonials .owl-carousel').owlCarousel({
         loop: true
         , margin: 30
         , mouseDrag: true
@@ -357,6 +358,7 @@
             }
         }
     });
+    }
     
     /*----------------------------------------------------
       15. MagnificPopup

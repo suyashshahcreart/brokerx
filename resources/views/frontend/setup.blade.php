@@ -39,58 +39,6 @@
     <link rel="stylesheet" href="{{ asset('frontend/css/plugins.css') }}">
     <link rel="stylesheet" href="{{ asset('frontend/css/style.css') }}">
     <style>
-        .booking-card {
-            cursor: pointer;
-            border: 1px solid #e5e7eb;
-            transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
-            background: #ffffff;
-        }
-        .booking-card:hover {
-            border-color: #0d6efd;
-            box-shadow: 0 1rem 2rem rgba(13, 110, 253, 0.15);
-            transform: translateY(-2px);
-        }
-        .booking-card-active {
-            border-color: #0d6efd;
-            box-shadow: 0 1rem 2rem rgba(13, 110, 253, 0.2);
-            background: #eef5ff;
-        }
-        .booking-card .status-badge {
-            font-size: 0.75rem;
-            font-weight: 600;
-            padding: 0.15rem 0.55rem;
-            border-radius: 999px;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-        }
-        .booking-card .status-paid {
-            color: #0f5132;
-            background: #d1e7dd;
-        }
-        .booking-card .status-pending {
-            color: #664d03;
-            background: #fff3cd;
-        }
-        .booking-card .status-unpaid,
-        .booking-card .status-failed {
-            color: #842029;
-            background: #f8d7da;
-        }
-        .booking-card .status-pill {
-            font-size: 0.7rem;
-            text-transform: uppercase;
-            letter-spacing: 0.04em;
-        }
-        .booking-card-add {
-            border-style: dashed;
-            border-color: #94a3b8;
-            background: #f8fafc;
-        }
-        .booking-card-add:hover {
-            border-color: #0d6efd;
-            background: #eef5ff;
-        }
         .form-readonly {
             position: relative;
         }
@@ -103,6 +51,84 @@
         .form-readonly .top-pill,
         .form-readonly .chip {
             opacity: 0.6;
+        }
+        
+        /* SweetAlert Custom Styling */
+        .swal2-popup {
+            border-radius: 16px !important;
+            padding: 2rem !important;
+            font-family: 'Urbanist', sans-serif !important;
+        }
+        
+        .swal2-title {
+            font-size: 1.5rem !important;
+            font-weight: 600 !important;
+            color: #1a1a1a !important;
+            margin-bottom: 1rem !important;
+        }
+        
+        .swal2-content {
+            font-size: 0.95rem !important;
+            color: #555 !important;
+            line-height: 1.6 !important;
+        }
+        
+        .swal2-icon.swal2-error {
+            border-color: #dc3545 !important;
+            color: #dc3545 !important;
+            margin: 1.5rem auto 1rem !important;
+        }
+        
+        .swal2-icon.swal2-error [class^=swal2-x-line] {
+            background-color: #dc3545 !important;
+        }
+        
+        .swal2-icon.swal2-warning {
+            border-color: #ffc107 !important;
+            color: #ffc107 !important;
+        }
+        
+        .swal2-icon.swal2-info {
+            border-color: #0dcaf0 !important;
+            color: #0dcaf0 !important;
+        }
+        
+        .swal2-confirm {
+            border-radius: 8px !important;
+            padding: 0.6rem 2rem !important;
+            font-weight: 600 !important;
+            font-size: 0.95rem !important;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+            transition: all 0.3s ease !important;
+        }
+        
+        .swal2-confirm:hover {
+            transform: translateY(-1px) !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+        }
+        
+        .swal2-html-container {
+            text-align: left !important;
+            padding: 0.5rem 0 !important;
+            margin: 1rem 0 !important;
+        }
+        
+        .swal2-html-container ul {
+            list-style: none !important;
+            padding-left: 0 !important;
+            margin: 0 !important;
+        }
+        
+        .swal2-html-container li,
+        .swal2-html-container div {
+            padding: 0.4rem 0 !important;
+            color: #333 !important;
+            font-size: 0.95rem !important;
+            line-height: 1.8 !important;
+        }
+        
+        .swal2-html-container div {
+            padding-left: 0.5rem !important;
         }
     </style>
 @endsection
@@ -172,6 +198,7 @@
                                 <div id="otpSentBadge" class="muted-small text-success hidden">OTP sent</div>
                             </div>
                             <div id="otpRow" class="mt-3 hidden">
+                                
                                 <div class="row g-3 align-items-center">
                                     <div class="col-md-4">
                                         <input id="inputOtp" class="form-control" maxlength="6" placeholder="Enter 6-digit OTP" />
@@ -179,6 +206,10 @@
                                     </div>
                                     <div class="col-12 col-sm-auto text-center text-sm-start">
                                         <button type="button" class="btn btn-primary" id="verifyOtpBtn">Verify OTP</button>
+                                    </div>
+                                    <div id="otpInfoAlert" class="alert alert-info mb-3" role="alert">
+                                        <i class="fa-solid fa-circle-info me-2"></i>
+                                        <strong>OTP Sent!</strong> Your verification code has been delivered to your Phone and WhatsApp. Enter the OTP to continue.
                                     </div>
                                     <div class="col-12 muted-small">Didn't receive? <a href="#" class="text-primary fw-semibold" id="resendOtp">Resend</a></div>
                                 </div>
@@ -190,31 +221,6 @@
                         </div>
                     </div>
 
-                    <!-- STEP: PROPERTY DETAILS -->
-                    <div id="step-{{ $stepNumbers['property'] }}" class="step-pane {{ $initialStepNumber === $stepNumbers['property'] ? '' : 'hidden' }}">
-                        <div class="d-flex justify-content-between align-items-start mb-2">
-                            <div>
-                                <h2 class="app-title">Your bookings</h2>
-                                <div class="muted-small">Select an existing property or add a new one to continue.</div>
-                            </div>
-                            <div class="d-flex gap-2">
-                                <button type="button" class="btn btn-sm btn-outline-primary" id="refreshBookingsBtn">Refresh</button>
-                            </div>
-                        </div>
-                        <div class="card p-3 mb-3" style="border-radius:12px;">
-                            <div id="bookingGridLoader" class="text-center py-3 d-none">
-                                <div class="spinner-border text-primary" role="status">
-                                    <span class="visually-hidden">Loading...</span>
-                                </div>
-                            </div>
-                            <div id="bookingGrid" class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3"></div>
-                            <div id="bookingGridEmpty" class="muted-small text-muted mt-2"></div>
-                        </div>
-                        <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2">
-                            <div class="muted-small text-muted">Tip: choose a saved booking or click “Add new booking”.</div>
-                            <button type="button" class="btn btn-primary" id="bookingToProperty" disabled>Proceed to Booking</button>
-                        </div>
-                    </div>
                     @endif
 
                     <!-- STEP: PROPERTY DETAILS -->
@@ -225,7 +231,7 @@
                                 <div class="muted-small">All selections below are required to continue.</div>
                             </div>
                         </div>
-                        <div id="propertyCard" class="card p-3 mb-3" style="border-radius:12px; max-height:62vh; overflow:auto;">
+                         <div id="propertyCard" class="card p-3 mb-3" style="border-radius:12px; "> {{--max-height:62vh; overflow:auto; --}}
                             <input type="hidden" id="choice_ownerType" name="owner_type">
                             <input type="hidden" id="choice_resType" name="residential_property_type">
                             <input type="hidden" id="choice_resFurnish" name="residential_furnish">
@@ -598,13 +604,13 @@
     <script src="{{ asset('frontend/js/plugins/jquery.isotope.v3.0.2.js') }}"></script>
     <script src="{{ asset('frontend/js/plugins/smooth-scroll.min.js') }}"></script>
     <script src="{{ asset('frontend/js/plugins/wow.js') }}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         window.SetupContext = {
             authenticated: @json($isLoggedIn),
             user: @json($setupUserPayload),
             steps: @json($stepNumbers),
             initialStep: @json($initialStepNumber),
-            bookingTabEnabled: false,
         };
         window.SetupData = {
             types: @json($propTypes ?? []),

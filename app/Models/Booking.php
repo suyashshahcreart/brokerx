@@ -30,6 +30,7 @@ class Booking extends Model
         'full_address',
         'pin_code',
         'booking_date',
+        'booking_notes',
         'payment_status',
         'status',
         'created_by',

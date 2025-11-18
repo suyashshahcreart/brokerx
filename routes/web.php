@@ -55,7 +55,7 @@ Route::middleware('auth')->group(function () {
 });
 
 Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
-    Route::get('/', [AdminDashboardController::class, 'index'])->name('root');
+    Route::get('admin/', [AdminDashboardController::class, 'index'])->name('root');
     // Route::get('', [RoutingController::class, 'index'])->name('root');
     // Route::get('{first}/{second}/{third}', [RoutingController::class, 'thirdLevel'])->name('third');
     // Route::get('{first}/{second}', [RoutingController::class, 'secondLevel'])->name('second');
@@ -83,7 +83,7 @@ Route::group(['prefix' => 'brokerx', 'as' => 'brokerx.', 'middleware' => ['web',
 });
 
 // Public frontend routes
-Route::get('/front', [FrontendController::class, 'index'])->name('frontend.index');
+Route::get('/', [FrontendController::class, 'index'])->name('frontend.index');
 Route::get('/setup', [FrontendController::class, 'setup'])->name('frontend.setup');
 Route::post('/setup', [FrontendController::class, 'storeBooking'])->name('frontend.setup.store');
 Route::get('/privacy-policy', [FrontendController::class, 'privacyPolicy'])->name('frontend.privacy-policy');
@@ -105,6 +105,7 @@ Route::post('/frontend/setup/save-property-step', [FrontendController::class, 's
 Route::post('/frontend/setup/save-address-step', [FrontendController::class, 'saveAddressStep'])->name('frontend.setup.save-address');
 Route::post('/frontend/setup/get-booking-summary', [FrontendController::class, 'getBookingSummary'])->name('frontend.setup.summary');
 Route::post('/frontend/setup/finalize-payment-step', [FrontendController::class, 'finalizePaymentStep'])->name('frontend.setup.finalize-payment');
+Route::post('/frontend/setup/update-booking', [FrontendController::class, 'updateBooking'])->name('frontend.setup.update-booking');
 Route::middleware('auth')->get('/frontend/setup/user-bookings', [FrontendController::class, 'listUserBookings'])->name('frontend.setup.bookings');
 Route::post('/frontend/setup/payment/create-session', [FrontendController::class, 'createCashfreeSession'])->name('frontend.setup.payment.session');
 Route::post('/frontend/setup/payment/status', [FrontendController::class, 'refreshCashfreeStatus'])->name('frontend.setup.payment.status');

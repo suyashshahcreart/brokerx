@@ -23,10 +23,10 @@
             <div class="col-lg-3 col-md-12">
                 <h5>Follow Us</h5>
                 <ul class="footer-social-link">
-                    <li><a href="https://duruthemes.com/demo/html/gloom/" target="_blank"><i class="fa-brands fa-instagram"></i></a></li>
-                    <li><a href="https://duruthemes.com/demo/html/gloom/" target="_blank"><i class="fa-brands fa-facebook"></i></a></li>
-                    <li><a href="https://duruthemes.com/demo/html/gloom/" target="_blank"><i class="fa-brands fa-youtube"></i></a></li>
-                    <li><a href="https://duruthemes.com/demo/html/gloom/" target="_blank"><i class="fa-brands fa-tiktok"></i></a></li>
+                    <li><a href="#" target="_blank"><i class="fa-brands fa-instagram"></i></a></li>
+                    <li><a href="#" target="_blank"><i class="fa-brands fa-facebook"></i></a></li>
+                    <li><a href="#" target="_blank"><i class="fa-brands fa-youtube"></i></a></li>
+                    <li><a href="#" target="_blank"><i class="fa-brands fa-tiktok"></i></a></li>
                 </ul>
             </div>
         </div>
