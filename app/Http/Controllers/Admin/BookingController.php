@@ -9,11 +9,20 @@ use App\Models\City;
 use App\Models\PropertySubType;
 use App\Models\PropertyType;
 use App\Models\State;
+
 use App\Models\User;
 use Illuminate\Http\Request;
+use Spatie\Activitylog\Models\Activity;
 
 class BookingController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('permission:booking_view')->only(['index', 'show']);
+        $this->middleware('permission:booking_create')->only(['create', 'store']);
+        $this->middleware('permission:booking_edit')->only(['edit', 'update']);
+        $this->middleware('permission:booking_delete')->only(['destroy']);
+    }
     public function index()
     {
         $bookings = Booking::with(['user', 'propertyType', 'propertySubType', 'bhk', 'city', 'state'])
@@ -67,7 +76,16 @@ class BookingController extends Controller
 
         $validated['created_by'] = $request->user()->id ?? null;
 
-        Booking::create($validated);
+        $booking = Booking::create($validated);
+
+        activity('bookings')
+            ->performedOn($booking)
+            ->causedBy($request->user())
+            ->withProperties([
+                'event' => 'created',
+                'after' => $booking->toArray()
+            ])
+            ->log('Booking created');
 
         return redirect()->route('admin.bookings.index')->with('success', 'Booking created successfully.');
     }
@@ -121,14 +139,52 @@ class BookingController extends Controller
 
         $validated['updated_by'] = $request->user()->id ?? null;
 
+        $before = $booking->getOriginal();
         $booking->update($validated);
+        $after = $booking->toArray();
+        $changes = [];
+        foreach ($after as $key => $value) {
+            if (!isset($before[$key]) || $before[$key] !== $value) {
+                $changes[$key] = [
+                    'old' => $before[$key] ?? null,
+                    'new' => $value
+                ];
+            }
+        }
+        activity('bookings')
+            ->performedOn($booking)
+            ->causedBy($request->user())
+            ->withProperties([
+                'event' => 'updated',
+                'before' => $before,
+                'after' => $after,
+                'changes' => $changes
+            ])
+            ->log('Booking updated');
 
         return redirect()->route('admin.bookings.index')->with('success', 'Booking updated successfully.');
     }
 
     public function destroy(Booking $booking)
     {
+        $before = $booking->toArray();
+        $bookingId = $booking->id;
+        $bookingType = get_class($booking);
         $booking->delete();
+
+        Activity::create([
+            'log_name' => 'bookings',
+            'description' => 'Booking deleted',
+            'subject_type' => $bookingType,
+            'subject_id' => $bookingId,
+            'causer_type' => get_class(auth()->user()),
+            'causer_id' => auth()->id(),
+            'properties' => [
+                'event' => 'deleted',
+                'before' => $before,
+                'deleted_id' => $bookingId,
+            ]
+        ]);
         return redirect()->route('admin.bookings.index')->with('success', 'Booking deleted successfully.');
     }
 }
