@@ -206,6 +206,17 @@
                          </li>
                     @endcan
 
+                    @can('holiday_view')
+                         <li class="nav-item">
+                              <a class="nav-link" href="{{ route('admin.holidays.index') }}">
+                                   <span class="nav-icon">
+                                        <i class="ri-calendar-event-line"></i>
+                                   </span>
+                                   <span class="nav-text">Holidays</span>
+                              </a>
+                         </li>
+                    @endcan
+                    
                     @can('setting_view')
                          <li class="nav-item">
                               <a class="nav-link" href="#">

@@ -1,4 +1,5 @@
 <?php
+use App\Http\Controllers\Admin\HolidayController;
 use App\Http\Controllers\OtpController;
 use App\Http\Controllers\EmailOtpController;
 use App\Http\Controllers\BrokerController;
@@ -76,6 +77,7 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'middleware' => ['web','aut
     Route::resource('users', AdminUserController::class);
     Route::resource('bookings', BookingController::class);
     Route::resource('portfolios', AdminPortfolioController::class);
+    Route::resource('holidays', HolidayController::class);
     Route::resource('settings', SettingController::class);
     Route::get('activity', [ActivityLogController::class, 'index'])->name('activity.index');
 });

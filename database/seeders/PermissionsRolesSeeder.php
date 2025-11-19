@@ -41,11 +41,17 @@ class PermissionsRolesSeeder extends Seeder
             'media_upload',
             'media_delete',
 
-            //scheduler management
+            // Scheduler management
             'scheduler_view',
             'scheduler_create',
             'scheduler_edit',
             'scheduler_delete',
+
+            // Holiday management
+            'holiday_view',
+            'holiday_create',
+            'holiday_edit',
+            'holiday_delete',
 
             // Setting management
             'setting_view',
