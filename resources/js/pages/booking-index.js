@@ -1,4 +1,3 @@
-
 import $ from "jquery";
 import flatpickr from "flatpickr";
 import "flatpickr/dist/flatpickr.min.css";
@@ -46,17 +45,22 @@ document.addEventListener('DOMContentLoaded', function () {
 
 	function fetchHolidaysAndInitPicker(selectedDate) {
 		$.get('/api/holidays', function (data) {
-			holidays = data.map(h => h.date);
-			initFlatpickr(selectedDate);
+			// data.holidays is an array of {id, name, date}, data.day_limit is the setting object
+			holidays = (data.holidays || []).map(h => h.date);
+			let dayLimit = 30;
+			if (data.day_limit && data.day_limit.value) {
+				dayLimit = parseInt(data.day_limit.value, 10) || 30;
+			}
+			initFlatpickr(selectedDate, dayLimit);
 		});
 	}
 
-	function initFlatpickr(selectedDate) {
+	function initFlatpickr(selectedDate, dayLimit = 30) {
 		if (flatpickrInstance) flatpickrInstance.destroy();
 		const today = new Date();
 		const minDate = today.toISOString().split('T')[0];
 		const max = new Date();
-		max.setDate(today.getDate() + 60);
+		max.setDate(today.getDate() + dayLimit);
 		const maxDate = max.toISOString().split('T')[0];
 		flatpickrInstance = window.flatpickr('#schedule-date', {
 			dateFormat: 'Y-m-d',

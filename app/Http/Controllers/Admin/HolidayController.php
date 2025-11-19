@@ -8,7 +8,7 @@ use App\Models\Setting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
-class HolidayController extends Controller 
+class HolidayController extends Controller
 {
     public function __construct()
     {
@@ -23,15 +23,15 @@ class HolidayController extends Controller
         return view('admin.holidays.index', compact('holidays'));
     }
     public function indexAPI()
-    {   
-        $avaliable_day = Setting::where('name','avaliable_days')->first();
+    {
+        $avaliable_day = Setting::where('name', 'avaliable_days')->first();
         $start = \Carbon\Carbon::today()->toDateString();
-        $end = \Carbon\Carbon::today()->addDays((int)$avaliable_day->value)->toDateString();
+        $end = \Carbon\Carbon::today()->addDays((int) $avaliable_day->value)->toDateString();
         $holidays = Holiday::whereBetween('date', [$start, $end])
             ->orderBy('date')
             ->get(['id', 'name', 'date']);
 
-        return response()->json($holidays);
+        return response()->json(['holidays' => $holidays, 'day_limit' => $avaliable_day]);
     }
 
     public function create()
