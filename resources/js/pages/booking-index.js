@@ -42,6 +42,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
 	let holidays = [];
 	let flatpickrInstance = null;
+	let lastSelectedDate = null;
+	let lastDayLimit = 30;
 
 	function fetchHolidaysAndInitPicker(selectedDate) {
 		$.get('/api/holidays', function (data) {
@@ -51,25 +53,31 @@ document.addEventListener('DOMContentLoaded', function () {
 			if (data.day_limit && data.day_limit.value) {
 				dayLimit = parseInt(data.day_limit.value, 10) || 30;
 			}
+			lastDayLimit = dayLimit;
 			initFlatpickr(selectedDate, dayLimit);
 		});
 	}
 
-	function initFlatpickr(selectedDate, dayLimit = 30) {
+	function initFlatpickr(selectedDate, dayLimit = 30, mode = 'default') {
 		if (flatpickrInstance) flatpickrInstance.destroy();
 		const today = new Date();
 		const minDate = today.toISOString().split('T')[0];
-		const max = new Date();
-		max.setDate(today.getDate() + dayLimit);
-		const maxDate = max.toISOString().split('T')[0];
+		let maxDate = null;
+		let disable = [];
+		if (mode === 'default') {
+			const max = new Date();
+			max.setDate(today.getDate() + dayLimit);
+			maxDate = max.toISOString().split('T')[0];
+			disable = holidays;
+		}
 		flatpickrInstance = window.flatpickr('#schedule-date', {
 			dateFormat: 'Y-m-d',
 			minDate: minDate,
 			maxDate: maxDate,
-			disable: holidays,
+			disable: disable,
 			defaultDate: selectedDate || null,
 			onChange: function (selectedDates, dateStr) {
-				if (holidays.includes(dateStr)) {
+				if (mode === 'default' && holidays.includes(dateStr)) {
 					if (typeof Swal !== 'undefined') {
 						Swal.fire({
 							icon: 'warning',
@@ -85,6 +93,17 @@ document.addEventListener('DOMContentLoaded', function () {
 		});
 	}
 
+	document.addEventListener('change', function (e) {
+		if (e.target && e.target.name === 'schedule_mode') {
+			const mode = e.target.value;
+			if (mode === 'any') {
+				initFlatpickr(lastSelectedDate, 0, 'any');
+			} else {
+				initFlatpickr(lastSelectedDate, lastDayLimit, 'default');
+			}
+		}
+	});
+
 	table.on('click', '.btn-soft-warning', function (e) {
 		e.preventDefault();
 		const row = $(this).closest('tr');
@@ -98,6 +117,9 @@ document.addEventListener('DOMContentLoaded', function () {
 			} else {
 				$('#current-booking-date').text('Not set');
 			}
+			lastSelectedDate = selectedDate;
+			// Always default to 'default' mode on open
+			$('#schedule-mode-default').prop('checked', true);
 			fetchHolidaysAndInitPicker(selectedDate);
 			const modal = new bootstrap.Modal(document.getElementById('scheduleModal'));
 			modal.show();

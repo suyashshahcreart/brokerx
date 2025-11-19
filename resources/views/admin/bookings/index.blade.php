@@ -81,11 +81,22 @@
                                     <form id="scheduleForm">
                                         <div class="mb-3">
                                             <label class="form-label">Current Booking Date</label>
-                                            <div id="current-booking-date" class="form-control-plaintext text-primary mb-2">
+                                            <div id="current-booking-date" class="form-control-plaintext text-primary mb-2"></div>
+                                            <div class="mb-2">
+                                                <label class="form-label">Schedule Mode</label>
+                                                <div>
+                                                    <div class="form-check form-check-inline">
+                                                        <input class="form-check-input" type="radio" name="schedule_mode" id="schedule-mode-default" value="default" checked>
+                                                        <label class="form-check-label" for="schedule-mode-default">Default</label>
+                                                    </div>
+                                                    <div class="form-check form-check-inline">
+                                                        <input class="form-check-input" type="radio" name="schedule_mode" id="schedule-mode-any" value="any">
+                                                        <label class="form-check-label" for="schedule-mode-any">Pick Any Day</label>
+                                                    </div>
+                                                </div>
                                             </div>
                                             <label for="schedule-date" class="form-label">Select Date</label>
-                                            <input type="text" class="form-control" id="schedule-date" name="schedule_date"
-                                                required autocomplete="off">
+                                            <input type="text" class="form-control" id="schedule-date" name="schedule_date" required autocomplete="off">
                                         </div>
                                         <input type="hidden" id="schedule-booking-id" name="booking_id">
                                     </form>
