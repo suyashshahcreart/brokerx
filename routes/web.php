@@ -76,6 +76,7 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'middleware' => ['web','aut
     Route::resource('roles', RoleController::class);
     Route::resource('users', AdminUserController::class);
     Route::resource('bookings', BookingController::class);
+    Route::post('bookings/{booking}/reschedule', [BookingController::class, 'reschedule'])->name('admin.bookings.reschedule');
     Route::resource('portfolios', AdminPortfolioController::class);
     Route::resource('holidays', HolidayController::class);
     Route::resource('settings', SettingController::class);
