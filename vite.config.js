@@ -40,6 +40,7 @@ export default defineConfig({
                 'resources/js/pages/app-calendar.js',
                 'resources/js/pages/coming-soon.js',
                 'resources/js/pages/widgets.js',
+                'resources/js/pages/setting-index.js',
                 'resources/js/components/maps-google.js',
                 'resources/js/components/maps-vector.js',
                 'resources/js/components/maps-canada.js',

@@ -21,45 +21,13 @@ class SettingController extends Controller
      * Display a listing of the resource.
      */
     public function index(Request $request)
-    {
-        if ($request->ajax()) {
-            $query = Setting::query()
-                ->with(['creator:id,firstname,lastname', 'updater:id,firstname,lastname'])
-                ->latest();
-            
-            $canEdit = $request->user()->can('setting_edit');
-            $canDelete = $request->user()->can('setting_delete');
-
-            return DataTables::of($query)
-                ->addColumn('created_by_name', function (Setting $setting) {
-                    return $setting->creator 
-                        ? e($setting->creator->firstname . ' ' . $setting->creator->lastname)
-                        : '-';
-                })
-                ->addColumn('updated_by_name', function (Setting $setting) {
-                    return $setting->updater 
-                        ? e($setting->updater->firstname . ' ' . $setting->updater->lastname)
-                        : '-';
-                })
-                ->addColumn('actions', function (Setting $setting) use ($canEdit, $canDelete) {
-                    return view('admin.settings.partials.actions', compact('setting', 'canEdit', 'canDelete'))->render();
-                })
-                ->editColumn('name', fn(Setting $setting) => e($setting->name))
-                ->editColumn('value', function (Setting $setting) {
-                    $value = e($setting->value);
-                    return strlen($value) > 50 ? substr($value, 0, 50) . '...' : $value;
-                })
-                ->editColumn('created_at', fn(Setting $setting) => $setting->created_at ? $setting->created_at->format('M d, Y h:i A') : '-')
-                ->editColumn('updated_at', fn(Setting $setting) => $setting->updated_at ? $setting->updated_at->format('M d, Y h:i A') : '-')
-                ->rawColumns(['actions'])
-                ->toJson();
-        }
-
-        $canCreate = $request->user()->can('setting_create');
+    {   $canCreate = $request->user()->can('setting_create');
         $canEdit = $request->user()->can('setting_edit');
         $canDelete = $request->user()->can('setting_delete');
 
-        return view('admin.settings.index', compact('canCreate', 'canEdit', 'canDelete'));
+        $settings = Setting::pluck('value', 'name')->toArray();
+        // dd($settings);
+        return view('admin.settings.index', compact('settings'));
     }
 
     /**
@@ -76,32 +44,45 @@ class SettingController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255', 'unique:settings,name'],
-            'value' => ['nullable', 'string'],
+            'avaliable_days' => ['nullable', 'string'],
+            'holidays' => ['nullable', 'string'],
         ]);
 
-        $setting = Setting::create([
-            'name' => $validated['name'],
-            'value' => $validated['value'] ?? null,
-            'created_by' => $request->user()->id,
-            'updated_by' => $request->user()->id,
-        ]);
+        // Update or create avaliable_days setting
+        if ($request->has('avaliable_days')) {
+            Setting::updateOrCreate(
+                ['name' => 'avaliable_days'],
+                [
+                    'value' => $validated['avaliable_days'],
+                    'created_by' => $request->user()->id,
+                    'updated_by' => $request->user()->id,
+                ]
+            );
+        }
+
+        // Update or create holidays setting
+        if ($request->has('holidays')) {
+            Setting::updateOrCreate(
+                ['name' => 'holidays'],
+                [
+                    'value' => $validated['holidays'], // Already JSON string from frontend
+                    'created_by' => $request->user()->id,
+                    'updated_by' => $request->user()->id,
+                ]
+            );
+        }
 
         activity('settings')
-            ->performedOn($setting)
             ->causedBy($request->user())
             ->withProperties([
-                'event' => 'created',
-                'after' => [
-                    'name' => $setting->name,
-                    'value' => $setting->value,
-                ]
+                'event' => 'updated',
+                'data' => $validated
             ])
-            ->log('Setting created');
+            ->log('Settings updated');
 
         return redirect()
             ->route('admin.settings.index')
-            ->with('success', 'Setting created successfully.');
+            ->with('success', 'Settings updated successfully.');
     }
 
     /**
@@ -182,5 +163,83 @@ class SettingController extends Controller
         return redirect()
             ->route('admin.settings.index')
             ->with('success', 'Setting deleted successfully.');
+    }
+
+    /**
+     * Update setting via API (for AJAX requests)
+     */
+    public function apiUpdate(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'value' => ['required'],
+        ]);
+
+        // Find or create the setting
+        $setting = Setting::firstOrNew(['name' => $validated['name']]);
+        
+        $isNew = !$setting->exists;
+        $oldValue = $setting->value;
+
+        $setting->value = is_array($validated['value']) 
+            ? json_encode($validated['value']) 
+            : $validated['value'];
+        
+        if ($isNew) {
+            $setting->created_by = $request->user()->id;
+        }
+        $setting->updated_by = $request->user()->id;
+        $setting->save();
+
+        activity('settings')
+            ->performedOn($setting)
+            ->causedBy($request->user())
+            ->withProperties([
+                'event' => $isNew ? 'created' : 'updated',
+                'before' => ['name' => $setting->name, 'value' => $oldValue],
+                'after' => ['name' => $setting->name, 'value' => $setting->value],
+            ])
+            ->log($isNew ? 'Setting created via API' : 'Setting updated via API');
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Setting updated successfully',
+            'data' => [
+                'id' => $setting->id,
+                'name' => $setting->name,
+                'value' => $setting->value,
+            ]
+        ]);
+    }
+
+    /**
+     * Get setting via API
+     */
+    public function apiGet(Request $request, $name)
+    {
+        $setting = Setting::where('name', $name)->first();
+
+        if (!$setting) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Setting not found'
+            ], 404);
+        }
+
+        // Try to decode JSON if it's a JSON string
+        $value = $setting->value;
+        $decoded = json_decode($value, true);
+        if (json_last_error() === JSON_ERROR_NONE) {
+            $value = $decoded;
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'id' => $setting->id,
+                'name' => $setting->name,
+                'value' => $value,
+            ]
+        ]);
     }
 }
