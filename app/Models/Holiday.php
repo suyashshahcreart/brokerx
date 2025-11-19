@@ -23,6 +23,9 @@ class Holiday extends Model
         'created_by',
         'updated_by',
     ];
+    protected $casts = [
+    'date' => 'date',
+];
 
     public function creator()
     {

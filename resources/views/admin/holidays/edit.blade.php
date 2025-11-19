@@ -9,7 +9,7 @@
                     <ol class="breadcrumb mb-0">
                         <li class="breadcrumb-item"><a href="{{ route('root') }}">Home</a></li>
                         <li class="breadcrumb-item"><a href="#">System</a></li>
-                        <li class="breadcrumb-item"><a href="{{ route('admin.settings.index') }}">Settings</a></li>
+                        <li class="breadcrumb-item"><a href="{{ route('admin.holidays.index') }}">Holiday</a></li>
                         <li class="breadcrumb-item active" aria-current="page">Edit</li>
                     </ol>
                 </nav>
@@ -39,43 +39,45 @@
                 </div>
             </div>
             <div class="card-body">
-                <form method="POST" action="{{ route('admin.settings.update', $setting) }}" class="needs-validation" novalidate>
+                <form method="POST" action="{{ route('admin.holidays.update', $holiday) }}" class="needs-validation" novalidate>
                     @csrf
                     @method('PUT')
                     <div class="mb-3">
-                        <label for="name" class="form-label">Name <span class="text-danger">*</span></label>
-                        <input type="text" name="name" id="name" value="{{ old('name', $setting->name) }}" 
-                            class="form-control @error('name') is-invalid @enderror" 
-                            placeholder="e.g., holiday_2025_01_01" required minlength="2" maxlength="255">
+                        <label for="name" class="form-label">Holiday Name <span class="text-danger">*</span></label>
+                        <input type="text" name="name" id="name" value="{{ old('name', $holiday->name) }}"
+                            class="form-control @error('name') is-invalid @enderror"
+                            placeholder="e.g., New Year's Day" required minlength="2" maxlength="255">
                         <div class="invalid-feedback">
                             @error('name')
                                 {{ $message }}
                             @else
-                                Please provide a valid setting name (minimum 2 characters).
+                                Please provide a valid holiday name (minimum 2 characters).
                             @enderror
                         </div>
                         @if(!$errors->has('name'))
                             <div class="valid-feedback">Looks good!</div>
                         @endif
-                        <small class="form-text text-muted">Unique identifier for the setting (e.g., holiday_2025_01_01, maintenance_mode)</small>
                     </div>
                     <div class="mb-3">
-                        <label for="value" class="form-label">Value</label>
-                        <textarea name="value" id="value" rows="5" 
-                            class="form-control @error('value') is-invalid @enderror" 
-                            placeholder="Enter setting value">{{ old('value', $setting->value) }}</textarea>
+                        <label for="date" class="form-label">Date <span class="text-danger">*</span></label>
+                        <input type="date" name="date" id="date" value="{{ old('date', $holiday->date ? $holiday->date->format('Y-m-d') : null) }}"
+                            class="form-control @error('date') is-invalid @enderror" required>
                         <div class="invalid-feedback">
-                            @error('value')
+                            @error('date')
                                 {{ $message }}
+                            @else
+                                Please provide a valid date.
                             @enderror
                         </div>
-                        <small class="form-text text-muted">The value or description for this setting (e.g., "New Year's Day", "2025-01-01", JSON data, etc.)</small>
+                        @if(!$errors->has('date'))
+                            <div class="valid-feedback">Looks good!</div>
+                        @endif
                     </div>
                     <div class="d-flex gap-2">
                         <button type="submit" class="btn btn-primary">
-                            <i class="ri-save-line me-1"></i> Update Setting
+                            <i class="ri-save-line me-1"></i> Update Holiday
                         </button>
-                        <a href="{{ route('admin.settings.index') }}" class="btn btn-outline-secondary">
+                        <a href="{{ route('admin.holidays.index') }}" class="btn btn-outline-secondary">
                             <i class="ri-close-line me-1"></i> Cancel
                         </a>
                     </div>

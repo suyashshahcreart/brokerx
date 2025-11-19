@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Holiday;
+use App\Models\Setting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -20,6 +21,17 @@ class HolidayController extends Controller
     {
         $holidays = Holiday::orderBy('date', 'desc')->paginate(15);
         return view('admin.holidays.index', compact('holidays'));
+    }
+    public function indexAPI()
+    {   
+        $avaliable_day = Setting::where('name','avaliable_days')->first();
+        $start = \Carbon\Carbon::today()->toDateString();
+        $end = \Carbon\Carbon::today()->addDays((int)$avaliable_day->value)->toDateString();
+        $holidays = Holiday::whereBetween('date', [$start, $end])
+            ->orderBy('date')
+            ->get(['id', 'name', 'date']);
+
+        return response()->json($holidays);
     }
 
     public function create()

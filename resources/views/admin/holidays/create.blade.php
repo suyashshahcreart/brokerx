@@ -9,7 +9,7 @@
                     <ol class="breadcrumb mb-0">
                         <li class="breadcrumb-item"><a href="{{ route('root') }}">Home</a></li>
                         <li class="breadcrumb-item"><a href="#">System</a></li>
-                        <li class="breadcrumb-item"><a href="{{ route('admin.settings.index') }}">Settings</a></li>
+                        <li class="breadcrumb-item"><a href="{{ route('admin.holidays.index') }}">Holiday</a></li>
                         <li class="breadcrumb-item active" aria-current="page">Create</li>
                     </ol>
                 </nav>
