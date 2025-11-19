@@ -219,11 +219,11 @@
                     
                     @can('setting_view')
                          <li class="nav-item">
-                              <a class="nav-link" href="#">
+                              <a class="nav-link" href="{{ route('admin.settings.index') }}">
                                    <span class="nav-icon">
                                         <i class="ri-home-gear-line"></i>
                                    </span>
-                                   <span class="nav-text">Settingsy</span>
+                                   <span class="nav-text">Settings</span>
                               </a>
                          </li>
                     @endcan

@@ -86,15 +86,6 @@
                                     placeholder="e.g., 7" required minlength="1" maxlength="255">
                                 <small class="form-text text-muted">Number of available days for booking</small>
                             </div>
-                            <!-- HOLIDAY DATES -->
-                            <div class="mb-3">
-                                <label for="avaliable_days" class="form-label"> Holiday <span
-                                        class="text-danger">*</span></label>
-                                <input type="date" name="holiday" id="holiday"
-                                    value="{{ $settings['holiday'] ?? '' }}" class="form-control"
-                                    placeholder="e.g., 7" required minlength="1" maxlength="255">
-                                <small class="form-text text-muted">Number of available days for booking</small>
-                            </div>
                             <!-- // submit buttons -->
                             <div class="d-flex gap-2">
                                 <button type="submit" class="btn btn-primary" id="updateSettingsBtn">
@@ -111,4 +102,4 @@
         </div>
     </div>
 @endsection
-@vite(['resources/js/pages/setting-index-calendar.js'])
+@vite(['resources/js/pages/setting-index.js'])
