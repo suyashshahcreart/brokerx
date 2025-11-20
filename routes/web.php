@@ -1,5 +1,6 @@
 <?php
 use App\Http\Controllers\Admin\HolidayController;
+use App\Http\Controllers\Admin\QRController;
 use App\Http\Controllers\OtpController;
 use App\Http\Controllers\EmailOtpController;
 use App\Http\Controllers\BrokerController;
@@ -81,6 +82,7 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'middleware' => ['web','aut
     Route::resource('holidays', HolidayController::class);
     Route::resource('settings', SettingController::class);
     Route::get('activity', [ActivityLogController::class, 'index'])->name('activity.index');
+    Route::resource('qr', QRController::class);
 });
 
 Route::group(['prefix' => 'brokerx', 'as' => 'brokerx.', 'middleware' => ['web','auth']], function () {
