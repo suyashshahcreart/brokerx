@@ -41,11 +41,35 @@ class PermissionsRolesSeeder extends Seeder
             'media_upload',
             'media_delete',
 
-            //scheduler management
+            // Scheduler management
             'scheduler_view',
             'scheduler_create',
             'scheduler_edit',
             'scheduler_delete',
+
+            // Portfolio view of the setup
+            'portfolio_view',
+            'portfolio_create',
+            'portfolio_edit',
+            'portfolio_delete',
+            
+            //booking 
+            'booking_view',
+            'booking_create',
+            'booking_edit',
+            'booking_delete',
+
+            // Holiday management
+            'holiday_view',
+            'holiday_create',
+            'holiday_edit',
+            'holiday_delete',
+
+            // Setting management
+            'setting_view',
+            'setting_create',
+            'setting_edit',
+            'setting_delete',
         ];
 
         foreach ($permissions as $permissionName) {
@@ -70,7 +94,7 @@ class PermissionsRolesSeeder extends Seeder
             'role_edit',
             'role_delete',
             'role_assign_permissions',
-            
+
             // user
             'user_view',
             'user_create',

@@ -4,7 +4,9 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400..800&family=Urbanist:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Syne:wght@400..800&family=Urbanist:ital,wght@0,100..900;1,100..900&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('frontend/css/plugins.css') }}">
     <link rel="stylesheet" href="{{ asset('frontend/css/style.css') }}">
     
@@ -156,9 +158,9 @@
         <a href="#" target="_blank" class="social-ico"><i class="fa-brands fa-tiktok"></i></a> 
         <a href="#" target="_blank" class="social-ico"><i class="fa-brands fa-flickr"></i></a> 
     </div>
-    
+
     @include('frontend.layouts.partials.page-header', ['title' => 'Booking Dashboard'])
-    
+
     <section class="page bg-light section-padding-bottom section-padding-top">
         <div class="container">
             <div class="row">
@@ -370,6 +372,7 @@
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content" style="border-radius:12px;">
                 <div class="modal-header">
+                    <h5 class="modal-title">Schedule Booking Date</h5>
                     <h5 class="modal-title">Schedule Booking Date</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
@@ -732,6 +735,8 @@
                     </div>
                     <h5 class="mb-3" id="successTitle">Success!</h5>
                     <p class="muted-small mb-3" id="successMessage">Operation completed successfully.</p>
+                    <h5 class="mb-3" id="successTitle">Success!</h5>
+                    <p class="muted-small mb-3" id="successMessage">Operation completed successfully.</p>
                     <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
                 </div>
             </div>
@@ -819,7 +824,7 @@
         }
 
         // Initialize dashboard
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             // Set minimum date to today for schedule modal
             const scheduleDateInput = document.getElementById('scheduleDate');
             if (scheduleDateInput) {

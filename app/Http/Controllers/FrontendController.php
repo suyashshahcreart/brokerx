@@ -109,6 +109,7 @@ class FrontendController extends Controller
 
             // TODO: Integrate SMS gateway here
             // Example: SMS::send($mobile, "Your OTP is: {$otp}. Valid for 5 minutes.");
+            log::info('User OTP:'.$otp);
 
             // Return success response
             return response()->json([
