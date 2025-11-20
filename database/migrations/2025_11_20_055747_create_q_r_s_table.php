@@ -18,6 +18,7 @@ return new class extends Migration
             $table->string('image')->nullable();
             $table->unsignedBigInteger('booking_id')->nullable();
             $table->string('qr_link')->nullable();
+            $table->boolean('is_print')->default(0);
             $table->unsignedBigInteger('created_by')->nullable();
             $table->unsignedBigInteger('updated_by')->nullable();
             $table->softDeletes();
