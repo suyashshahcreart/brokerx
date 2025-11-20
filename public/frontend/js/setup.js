@@ -24,6 +24,13 @@ const state = {
     returningFromPayment: false,
     isAuthenticated: setupContext.authenticated || false,
     attemptedOtherTabs: false, // Track if user tried to access other tabs without verification
+    priceSettings: {
+        basePrice: 599,
+        baseArea: 1500,
+        extraArea: 500,
+        extraAreaPrice: 200
+    },
+    settingsLoaded: false
 };
 
 // Resend OTP countdown timer
@@ -1064,16 +1071,85 @@ function getActiveAreaValue() {
 function calculateDynamicPrice(areaValue) {
     const area = Number(areaValue);
     if (!area || area <= 0) return 0;
-    const baseArea = 1500;
-    const basePrice = 599;
-    const extraBlockPrice = 200;
+    
+    // Use settings from state, fallback to defaults if not loaded
+    const baseArea = state.priceSettings.baseArea || 1500;
+    const basePrice = state.priceSettings.basePrice || 599;
+    const extraArea = state.priceSettings.extraArea || 500;
+    const extraAreaPrice = state.priceSettings.extraAreaPrice || 200;
+    
     let price = basePrice;
     if (area > baseArea) {
         const extra = area - baseArea;
-        const blocks = Math.ceil(extra / 500);
-        price += blocks * extraBlockPrice;
+        const blocks = Math.ceil(extra / extraArea);
+        price += blocks * extraAreaPrice;
     }
     return price;
+}
+
+// Function to fetch price settings from API
+async function fetchPriceSettings() {
+    try {
+        const settingsToFetch = ['base_price', 'base_area', 'extra_area', 'extra_area_price'];
+        const settings = {};
+        
+        // Fetch all settings in parallel
+        const promises = settingsToFetch.map(async (settingName) => {
+            try {
+                const response = await fetch(`${baseUrl}/api/settings/${settingName}`, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    credentials: 'same-origin'
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success && data.data && data.data.value) {
+                        return { name: settingName, value: data.data.value };
+                    }
+                }
+            } catch (error) {
+                console.warn(`Failed to fetch setting ${settingName}:`, error);
+            }
+            return null;
+        });
+        
+        const results = await Promise.all(promises);
+        
+        // Update state with fetched settings
+        results.forEach(result => {
+            if (result) {
+                const value = parseFloat(result.value) || 0;
+                switch (result.name) {
+                    case 'base_price':
+                        state.priceSettings.basePrice = value;
+                        break;
+                    case 'base_area':
+                        state.priceSettings.baseArea = value;
+                        break;
+                    case 'extra_area':
+                        state.priceSettings.extraArea = value;
+                        break;
+                    case 'extra_area_price':
+                        state.priceSettings.extraAreaPrice = value;
+                        break;
+                }
+            }
+        });
+        
+        state.settingsLoaded = true;
+        
+        // Update price display if area is already entered
+        if (getActiveAreaValue()) {
+            updatePriceDisplay();
+        }
+    } catch (error) {
+        console.warn('Failed to fetch price settings, using defaults:', error);
+        // Keep default values if fetch fails
+    }
 }
 
 function updatePriceDisplay() {
@@ -2204,3 +2280,8 @@ window.selectChip = selectChip;
 window.topPillClick = topPillClick;
 window.handlePropertyTabChange = handlePropertyTabChange;
 window.goToStep = goToStep;
+
+// Fetch price settings on page load
+document.addEventListener('DOMContentLoaded', function() {
+    fetchPriceSettings();
+});

@@ -13,9 +13,9 @@
     @include("admin.layouts.partials/topbar")
     @include("admin.layouts.partials/main-nav")
 
-    <div class="page-content">
+    <div class="page-content pt-2">
 
-        <div class="container-fluid">
+        <div class="px-2">
 
             @include("admin.layouts.partials/page-title")
             @include('admin.layouts.partials.alerts')

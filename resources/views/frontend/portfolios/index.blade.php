@@ -3,7 +3,7 @@
 @section('content')
 <div class="row">
     <div class="col-12">
-        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
             <div>
                 <h3 class="mb-0">My Portfolios</h3>
                 <p class="text-muted mb-0">Manage your portfolio items</p>

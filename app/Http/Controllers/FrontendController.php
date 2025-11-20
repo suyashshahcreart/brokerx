@@ -10,6 +10,7 @@ use App\Models\State;
 use App\Models\BHK;
 use App\Models\PropertyType;
 use App\Models\PropertySubType;
+use App\Models\Setting;
 use App\Services\CashfreeService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
@@ -27,7 +28,10 @@ class FrontendController extends Controller
     }
     public function index()
     {
-        return view('frontend.index');
+        // Get base price for display on landing page
+        $basePrice = (int) (Setting::where('name', 'base_price')->value('value') ?? 599);
+        
+        return view('frontend.index', compact('basePrice'));
     }
 
     public function setup(Request $request)
@@ -988,20 +992,31 @@ class FrontendController extends Controller
 
     /**
      * Simple dynamic price estimator (same logic as frontend)
+     * Uses settings from database for dynamic pricing
      */
     protected function calculateEstimate($area): int
     {
         $areaVal = (int) $area;
         if ($areaVal <= 0) return 0;
-        $baseArea = 1500;
-        $basePrice = 599;
-        $extraBlockPrice = 200;
+        
+        // Fetch price settings from database with defaults
+        $settings = Setting::whereIn('name', ['base_price', 'base_area', 'extra_area', 'extra_area_price'])
+            ->pluck('value', 'name')
+            ->toArray();
+        
+        // Use settings from database or fallback to defaults
+        $baseArea = (int) ($settings['base_area'] ?? 1500);
+        $basePrice = (int) ($settings['base_price'] ?? 599);
+        $extraArea = (int) ($settings['extra_area'] ?? 500);
+        $extraAreaPrice = (int) ($settings['extra_area_price'] ?? 200);
+        
         $price = $basePrice;
         if ($areaVal > $baseArea) {
             $extra = $areaVal - $baseArea;
-            $blocks = (int) ceil($extra / 500);
-            $price += $blocks * $extraBlockPrice;
+            $blocks = (int) ceil($extra / $extraArea);
+            $price += $blocks * $extraAreaPrice;
         }
+        
         return $price;
     }
 
@@ -1429,7 +1444,12 @@ class FrontendController extends Controller
         $types = PropertyType::with(['subTypes:id,property_type_id,name,icon'])->get(['id','name','icon']);
         $bhk = BHK::all();
         
-        return view('frontend.booking-dashboard', compact('bookings', 'types', 'bhk'));
+        // Get price settings for dynamic pricing
+        $priceSettings = Setting::whereIn('name', ['base_price', 'base_area', 'extra_area', 'extra_area_price'])
+            ->pluck('value', 'name')
+            ->toArray();
+        
+        return view('frontend.booking-dashboard', compact('bookings', 'types', 'bhk', 'priceSettings'));
     }
 
     /**

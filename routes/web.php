@@ -56,13 +56,7 @@ Route::middleware('auth')->group(function () {
     Route::resource('broker', BrokerController::class);
 });
 
-Route::group(['prefix' => '/', 'middleware' => 'auth'], function () {
-    Route::get('admin/', [AdminDashboardController::class, 'index'])->name('root');
-    // Route::get('', [RoutingController::class, 'index'])->name('root');
-    // Route::get('{first}/{second}/{third}', [RoutingController::class, 'thirdLevel'])->name('third');
-    // Route::get('{first}/{second}', [RoutingController::class, 'secondLevel'])->name('second');
-    // Route::get('{any}', [RoutingController::class, 'root'])->name('any');
-});
+
 
 Route::group(['prefix' => 'themes', 'middleware' => 'auth'], function () {
     Route::get('', [RoutingController::class, 'index'])->name('root');
@@ -72,6 +66,7 @@ Route::group(['prefix' => 'themes', 'middleware' => 'auth'], function () {
 });
 
 Route::group(['prefix' => 'admin', 'as' => 'admin.', 'middleware' => ['web','auth']], function () {
+    Route::get('/', [AdminDashboardController::class, 'index'])->name('root');
     Route::resource('permissions', PermissionController::class);
     Route::resource('roles', RoleController::class);
     Route::resource('users', AdminUserController::class);

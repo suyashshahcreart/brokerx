@@ -186,17 +186,18 @@
                         
                         @forelse($bookings ?? [] as $booking)
                             @php
-                                // Calculate price
-                                $baseArea = 1500;
-                                $basePrice = 599;
-                                $extraBlockPrice = 200;
+                                // Calculate price using dynamic settings
+                                $baseArea = (int) ($priceSettings['base_area'] ?? 1500);
+                                $basePrice = (int) ($priceSettings['base_price'] ?? 599);
+                                $extraArea = (int) ($priceSettings['extra_area'] ?? 500);
+                                $extraAreaPrice = (int) ($priceSettings['extra_area_price'] ?? 200);
                                 $areaValue = $booking->area ?? 0;
                                 $price = $booking->price ?? $basePrice;
                                 
                                 if ($areaValue > $baseArea) {
                                     $extra = $areaValue - $baseArea;
-                                    $blocks = ceil($extra / 500);
-                                    $price = $basePrice + ($blocks * $extraBlockPrice);
+                                    $blocks = ceil($extra / $extraArea);
+                                    $price = $basePrice + ($blocks * $extraAreaPrice);
                                 }
                                 
                                 // Get property details
@@ -1570,21 +1571,89 @@
             editUpdatePaymentButtonState();
         }
         
+        // Price settings from server (will be updated via API)
+        let dashboardPriceSettings = {
+            basePrice: {{ $priceSettings['base_price'] ?? 599 }},
+            baseArea: {{ $priceSettings['base_area'] ?? 1500 }},
+            extraArea: {{ $priceSettings['extra_area'] ?? 500 }},
+            extraAreaPrice: {{ $priceSettings['extra_area_price'] ?? 200 }}
+        };
+        
+        // Fetch latest price settings from API
+        async function fetchDashboardPriceSettings() {
+            try {
+                const settingsToFetch = ['base_price', 'base_area', 'extra_area', 'extra_area_price'];
+                const promises = settingsToFetch.map(async (settingName) => {
+                    try {
+                        const response = await fetch(`/api/settings/${settingName}`, {
+                            method: 'GET',
+                            headers: {
+                                'Accept': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            },
+                            credentials: 'same-origin'
+                        });
+                        
+                        if (response.ok) {
+                            const data = await response.json();
+                            if (data.success && data.data && data.data.value) {
+                                return { name: settingName, value: parseFloat(data.data.value) || 0 };
+                            }
+                        }
+                    } catch (error) {
+                        console.warn(`Failed to fetch setting ${settingName}:`, error);
+                    }
+                    return null;
+                });
+                
+                const results = await Promise.all(promises);
+                results.forEach(result => {
+                    if (result) {
+                        switch (result.name) {
+                            case 'base_price':
+                                dashboardPriceSettings.basePrice = result.value;
+                                break;
+                            case 'base_area':
+                                dashboardPriceSettings.baseArea = result.value;
+                                break;
+                            case 'extra_area':
+                                dashboardPriceSettings.extraArea = result.value;
+                                break;
+                            case 'extra_area_price':
+                                dashboardPriceSettings.extraAreaPrice = result.value;
+                                break;
+                        }
+                    }
+                });
+            } catch (error) {
+                console.warn('Failed to fetch price settings, using defaults:', error);
+            }
+        }
+        
         // Calculate price based on area (same logic as backend)
         function calculatePriceFromArea(area) {
             const areaVal = parseInt(area) || 0;
             if (areaVal <= 0) return 0;
-            const baseArea = 1500;
-            const basePrice = 599;
-            const extraBlockPrice = 200;
+            
+            // Use dynamic settings
+            const baseArea = dashboardPriceSettings.baseArea || 1500;
+            const basePrice = dashboardPriceSettings.basePrice || 599;
+            const extraArea = dashboardPriceSettings.extraArea || 500;
+            const extraAreaPrice = dashboardPriceSettings.extraAreaPrice || 200;
+            
             let price = basePrice;
             if (areaVal > baseArea) {
                 const extra = areaVal - baseArea;
-                const blocks = Math.ceil(extra / 500);
-                price += blocks * extraBlockPrice;
+                const blocks = Math.ceil(extra / extraArea);
+                price += blocks * extraAreaPrice;
             }
             return price;
         }
+        
+        // Fetch settings on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            fetchDashboardPriceSettings();
+        });
         
         // Update price field when area changes
         function updateEditPrice() {

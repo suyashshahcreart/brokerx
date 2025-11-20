@@ -7,4 +7,4 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge" />
 
 <!-- App favicon -->
-<link rel="shortcut icon" href="{{ asset('images/favicon.ico') }}">
+<link rel="shortcut icon" href="{{ asset('images/proppik-favicon.png') }}">
