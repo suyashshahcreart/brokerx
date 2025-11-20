@@ -48,7 +48,7 @@ Route::middleware('auth')->group(function () {
 });
 
 // Optional dashboard alias (to avoid Route [dashboard] not defined errors)
-Route::middleware('auth')->get('/dashboard', function() {
+Route::middleware('auth')->get('/dashboard', function () {
     return redirect()->route('root');
 })->name('dashboard');
 
@@ -72,7 +72,7 @@ Route::group(['prefix' => 'themes', 'middleware' => 'auth'], function () {
     Route::get('{any}', [RoutingController::class, 'root'])->name('any');
 });
 
-Route::group(['prefix' => 'admin', 'as' => 'admin.', 'middleware' => ['web','auth']], function () {
+Route::group(['prefix' => 'admin', 'as' => 'admin.', 'middleware' => ['web', 'auth']], function () {
     Route::resource('permissions', PermissionController::class);
     Route::resource('roles', RoleController::class);
     Route::resource('users', AdminUserController::class);
@@ -85,7 +85,7 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'middleware' => ['web','aut
     Route::resource('qr', QRController::class);
 });
 
-Route::group(['prefix' => 'brokerx', 'as' => 'brokerx.', 'middleware' => ['web','auth']], function () {
+Route::group(['prefix' => 'brokerx', 'as' => 'brokerx.', 'middleware' => ['web', 'auth']], function () {
     Route::get('/', [BrokerXController::class, 'index'])->name('index');
 });
 

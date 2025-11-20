@@ -9,7 +9,6 @@ use App\Models\City;
 use App\Models\PropertySubType;
 use App\Models\PropertyType;
 use App\Models\State;
-
 use App\Models\User;
 use Illuminate\Http\Request;
 use Spatie\Activitylog\Models\Activity;
@@ -74,6 +73,51 @@ class BookingController extends Controller
         return view('admin.bookings.index', compact('canCreate', 'canEdit', 'canDelete'));
     }
 
+    /**
+     * API: Return bookings with filters (for modal, returns JSON)
+     */
+    public function apiList(Request $request)
+    {
+        $query = Booking::query()
+            ->with(['user', 'propertyType', 'propertySubType'])
+            ->whereDoesntHave('qr');
+        // Filters
+        if ($request->filled('status')) {
+            $query->where('status', $request->input('status'));
+        }
+        if ($request->filled('user_id')) {
+            $query->where('user_id', $request->input('user_id'));
+        }
+        if ($request->filled('property_type_id')) {
+            $query->where('property_type_id', $request->input('property_type_id'));
+        }
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->where(function ($q) use ($search) {
+                $q->where('id', 'like', "%$search%")
+                    ->orWhereHas('user', function ($uq) use ($search) {
+                        $uq->where('firstname', 'like', "%$search%")
+                            ->orWhere('lastname', 'like', "%$search%")
+                            ->orWhere('email', 'like', "%$search%")
+                            ->orWhere('mobile', 'like', "%$search%")
+                        ;
+                    })
+                    ->orWhereHas('propertyType', function ($pq) use ($search) {
+                        $pq->where('name', 'like', "%$search%");
+                    });
+            });
+        }
+        $bookings = $query->orderByDesc('created_at')->limit(20)->get();
+        $result = $bookings->map(function ($booking) {
+            return [
+                'id' => $booking->id,
+                'customer' => $booking->user ? $booking->user->firstname . ' ' . $booking->user->lastname : null,
+                'property' => $booking->propertyType?->name . ' / ' . $booking->propertySubType?->name,
+                'status' => $booking->status,
+            ];
+        });
+        return response()->json(['data' => $result]);
+    }
     public function create()
     {
         $users = User::orderBy('firstname')->get();
@@ -265,31 +309,33 @@ class BookingController extends Controller
 
         return response()->json(['success' => true, 'new_date' => $booking->booking_date->format('Y-m-d')]);
     }
+
+    /**
+     * API: Assign a booking to a QR code
+     * POST: /api/qr/assign-booking
+     * Params: qr_id, booking_id
+     */
+    public function assignBookingToQr(Request $request)
+    {
+        $request->validate([
+            'qr_id' => 'required|exists:qr_code,id',
+            'booking_id' => 'required|exists:bookings,id',
+        ]);
+
+        $qr = \App\Models\QR::findOrFail($request->qr_id);
+        $booking = Booking::findOrFail($request->booking_id);
+
+        // Only allow assignment if QR is not already assigned and booking is not already assigned
+        if ($qr->booking_id) {
+            return response()->json(['success' => false, 'message' => 'QR already assigned to a booking.'], 422);
+        }
+        if ($booking->qr) {
+            return response()->json(['success' => false, 'message' => 'Booking already assigned to a QR.'], 422);
+        }
+
+        $qr->booking_id = $booking->id;
+        $qr->save();
+
+        return response()->json(['success' => true, 'message' => 'Booking assigned to QR successfully.']);
+    }
 }
-// public function reschedule(Request $request, Booking $booking)
-// {
-//     $request->validate([
-//         'schedule_date' => ['required', 'date'],
-//     ]);
-//     $oldDate = $booking->booking_date;
-//     $booking->booking_date = $request->input('schedule_date');
-//     $booking->save();
-
-//     activity('bookings')
-//         ->performedOn($booking)
-//         ->causedBy($request->user())
-//         ->withProperties([
-//             'event' => 'rescheduled',
-//             'old_date' => $oldDate,
-//             'new_date' => $booking->booking_date,
-//         ])
-//         ->log('Booking rescheduled');
-
-//     $date = $booking->booking_date;
-//     if ($date instanceof \Illuminate\Support\Carbon || $date instanceof \Carbon\Carbon) {
-//         $date = $date->format('Y-m-d');
-//     } else {
-//         $date = (string) $date;
-//     }
-//     return response()->json(['success' => true, 'new_date' => $date]);
-// }

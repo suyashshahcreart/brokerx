@@ -44,18 +44,25 @@
                     </div>
                 </div>
                 <div class="card-body">
-                    <ul class="nav nav-pills mb-3" id="qrTab" role="tablist">
-                        <li class="nav-item" role="presentation">
-                            <a class="nav-link active" id="qr-list-tab" data-bs-toggle="tab" href="#qr-list-view" role="tab" aria-controls="qr-list-view" aria-selected="true">
-                                <i class="ri-list-check-2 me-1"></i> List View
-                            </a>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <a class="nav-link" id="qr-grid-tab" data-bs-toggle="tab" href="#qr-grid-view" role="tab" aria-controls="qr-grid-view" aria-selected="false">
-                                <i class="ri-layout-grid-line me-1"></i> Grid View
-                            </a>
-                        </li>
-                    </ul>
+                    <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                        <ul class="nav nav-pills" id="qrTab" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <a class="nav-link active" id="qr-list-tab" data-bs-toggle="tab" href="#qr-list-view" role="tab" aria-controls="qr-list-view" aria-selected="true">
+                                    <i class="ri-list-check-2 me-1"></i> List View
+                                </a>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <a class="nav-link" id="qr-grid-tab" data-bs-toggle="tab" href="#qr-grid-view" role="tab" aria-controls="qr-grid-view" aria-selected="false">
+                                    <i class="ri-layout-grid-line me-1"></i> Grid View
+                                </a>
+                            </li>
+                        </ul>
+                        <div class="ms-auto d-flex gap-2">
+                            <button class="btn btn-success" id="filter-active-qr">Active</button>
+                            <button class="btn btn-outline-danger" id="filter-inactive-qr">Inactive</button>
+                            <button class="btn btn-outline-secondary" id="filter-all-qr">All</button>
+                        </div>
+                    </div>
                     <div class="tab-content pt-2">
                         <div class="tab-pane fade show active" id="qr-list-view" role="tabpanel" aria-labelledby="qr-list-tab">
                             <div class="table-responsive">
@@ -80,6 +87,23 @@
                                 <!-- Grid cards will be loaded here by JS -->
                             </div>
                         </div>
+                        <!-- Assign Booking Modal -->
+                        <div class="modal fade" id="assignBookingModal" data-booking-list-api="{{ route('bookings.api-list') }}" data-assign-api="{{ route('qr.assign-booking') }}" tabindex="-1" aria-labelledby="assignBookingModalLabel" aria-hidden="true">
+                                <div class="modal-dialog modal-lg modal-dialog-centered">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="assignBookingModalLabel">Assign QR To Booking</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <div id="assign-modal-qr-details" class="mb-3"></div>
+                                        <div id="assign-modal-booking-list">
+                                            <div class="text-center text-muted">Loading bookings...</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -88,5 +112,6 @@
 @endsection
 
 @section('script')
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     @vite(['resources/js/pages/qr-index.js'])
 @endsection

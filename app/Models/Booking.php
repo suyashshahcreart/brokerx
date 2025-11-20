@@ -8,6 +8,13 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Booking extends Model
 {
+    /**
+     * Get the QR code assigned to this booking (if any)
+     */
+    public function qr()
+    {
+        return $this->hasOne(\App\Models\QR::class, 'booking_id');
+    }
     /** @use HasFactory<\Database\Factories\BookingFactory> */
     use HasFactory, SoftDeletes;
 
