@@ -20,7 +20,7 @@
                     panel.</p>
 
                 <div class="px-4">
-                    <form method="POST" action="{{ route('login') }}" class="authentication-form" data-otp-send="{{ route('otp.send') }}" data-otp-verify="{{ route('otp.verify') }}" data-email-otp-send="{{ route('email_otp.send') }}" data-email-otp-verify="{{ route('email_otp.verify') }}">
+                    <form method="POST" action="{{ route('admin.login') }}" class="authentication-form" data-otp-send="{{ route('otp.send') }}" data-otp-verify="{{ route('otp.verify') }}" data-email-otp-send="{{ route('email_otp.send') }}" data-email-otp-verify="{{ route('email_otp.verify') }}">
 
                         @csrf
                         @if (sizeof($errors) > 0)
@@ -36,7 +36,7 @@
                                    placeholder="Enter email or mobile">
                         </div>
                         <div class="mb-3">
-                            <a href="#"
+                            <a href="{{ route('admin.password.request') }}"
                                class="float-end text-muted text-unline-dashed ms-1">Reset
                                 password</a>
                             <label class="form-label" for="login-password">Password</label>
@@ -82,7 +82,7 @@
             </div> <!-- end card-body -->
         </div> <!-- end card -->
 
-        <p class="mb-0 text-center text-white">New here? <a href="{{ route('register')}}"
+        <p class="mb-0 text-center text-white">New here? <a href="{{ route('admin.register') }}"
 
             class="text-reset text-unline-dashed fw-bold ms-1">Sign Up</a>
     </p>

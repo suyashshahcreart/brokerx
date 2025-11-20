@@ -1,4 +1,4 @@
-@extends('frontend.layouts.base', ['title' => 'Gloom - Photography Portfolio Template'])
+@extends('frontend.layouts.base', ['title' => 'PROP PIK'])
 
 @section('css')
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -26,11 +26,11 @@
     <div class="cursor js-cursor"></div>
 
     <div class="social-ico-block">
-        <a href="https://duruthemes.com/demo/html/gloom/" target="_blank" class="social-ico"><i class="fa-brands fa-instagram"></i></a>
-        <a href="https://duruthemes.com/demo/html/gloom/" target="_blank" class="social-ico"><i class="fa-brands fa-x-twitter"></i></a>
-        <a href="https://duruthemes.com/demo/html/gloom/" target="_blank" class="social-ico"><i class="fa-brands fa-youtube"></i></a>
-        <a href="https://duruthemes.com/demo/html/gloom/" target="_blank" class="social-ico"><i class="fa-brands fa-tiktok"></i></a>
-        <a href="https://duruthemes.com/demo/html/gloom/" target="_blank" class="social-ico"><i class="fa-brands fa-flickr"></i></a>
+        <a href="#" target="_blank" class="social-ico"><i class="fa-brands fa-instagram"></i></a>
+        <a href="#" target="_blank" class="social-ico"><i class="fa-brands fa-x-twitter"></i></a>
+        <a href="#" target="_blank" class="social-ico"><i class="fa-brands fa-youtube"></i></a>
+        <a href="#" target="_blank" class="social-ico"><i class="fa-brands fa-tiktok"></i></a>
+        <a href="#" target="_blank" class="social-ico"><i class="fa-brands fa-flickr"></i></a>
     </div>
 
     <section id="home" data-scroll-index="0" class="section-padding">
@@ -364,7 +364,19 @@ From The Blog            <div class="row align-items-center gy-4">
             if (gyroEnabled || !viewer.startOrientation || !viewer.stopOrientation) return;
             const start = () => { try { viewer.startOrientation(); gyroEnabled = true; if (gyroControl) gyroControl.classList.add('active'); } catch (err) { console.warn('Motion sensors unavailable', err); } };
             if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-                DeviceOrientationEvent.requestPermission().then(response => { if (response === 'granted') start(); }).catch(err => console.warn('Motion permission denied', err));
+                try {
+                    DeviceOrientationEvent.requestPermission().then(response => { if (response === 'granted') start(); }).catch(err => {
+                        // Silently handle permission errors - don't log to console
+                        if (err.name !== 'NotAllowedError' && err.name !== 'SecurityError') {
+                            console.warn('Motion permission error', err);
+                        }
+                    });
+                } catch (err) {
+                    // Silently handle permission errors
+                    if (err.name !== 'NotAllowedError' && err.name !== 'SecurityError') {
+                        console.warn('Motion permission error', err);
+                    }
+                }
             } else { start(); }
         };
         const disableGyro = () => { if (!gyroEnabled || !viewer.stopOrientation) return; viewer.stopOrientation(); gyroEnabled = false; if (gyroControl) gyroControl.classList.remove('active'); };
@@ -376,7 +388,31 @@ From The Blog            <div class="row align-items-center gy-4">
         const isFullscreen = () => { if (typeof viewer.isFullscreen === 'function') { try { return viewer.isFullscreen(); } catch (err) { console.warn('Unable to determine fullscreen state', err); } } return !!(document.fullscreenElement || document.webkitFullscreenElement); };
         const fallbackEnterFullscreen = () => { const target = getFullscreenTarget(); if (!target) return; if (target.requestFullscreen) { return target.requestFullscreen(); } if (target.webkitRequestFullscreen) { return target.webkitRequestFullscreen(); } };
         const fallbackExitFullscreen = () => { if (document.exitFullscreen) { return document.exitFullscreen(); } if (document.webkitExitFullscreen) { return document.webkitExitFullscreen(); } };
-        const enterFullscreen = () => { const logBlocked = err => console.warn('Fullscreen request blocked', err); if (typeof viewer.enterFullscreen === 'function') { try { const result = viewer.enterFullscreen(); if (result && typeof result.catch === 'function') { result.catch(err => { logBlocked(err); fallbackEnterFullscreen(); }); } return result; } catch (err) { logBlocked(err); } } return fallbackEnterFullscreen(); };
+        const enterFullscreen = () => { 
+            const logBlocked = err => {
+                // Only log if it's not a user gesture error
+                if (err && err.name !== 'NotAllowedError' && err.message && !err.message.includes('user gesture')) {
+                    console.warn('Fullscreen request blocked', err);
+                }
+            };
+            if (typeof viewer.enterFullscreen === 'function') { 
+                try { 
+                    const result = viewer.enterFullscreen(); 
+                    if (result && typeof result.catch === 'function') { 
+                        result.catch(err => { logBlocked(err); try { fallbackEnterFullscreen(); } catch (e) {} }); 
+                    } 
+                    return result; 
+                } catch (err) { 
+                    logBlocked(err); 
+                } 
+            }
+            try {
+                return fallbackEnterFullscreen();
+            } catch (err) {
+                // Silently handle - fullscreen requires user gesture
+                logBlocked(err);
+            }
+        };
         const exitFullscreen = () => { const logBlocked = err => console.warn('Exit fullscreen blocked', err); if (typeof viewer.exitFullscreen === 'function') { try { const result = viewer.exitFullscreen(); if (result && typeof result.catch === 'function') { result.catch(err => { logBlocked(err); fallbackExitFullscreen(); }); } return result; } catch (err) { logBlocked(err); } } return fallbackExitFullscreen(); };
         const toggleFullscreen = () => { if (isFullscreen()) { exitFullscreen(); } else { enterFullscreen(); } };
         if (viewer.addCustomControl) {
@@ -399,7 +435,8 @@ From The Blog            <div class="row align-items-center gy-4">
             sceneOrder.forEach(id => { const scene = scenes[id]; const thumb = document.createElement('div'); thumb.className = 'thumb'; thumb.setAttribute('data-scene-id', id); const img = document.createElement('img'); img.src = scene.panorama; img.alt = scene.title; const label = document.createElement('div'); label.textContent = scene.title; thumb.appendChild(img); thumb.appendChild(label); thumb.addEventListener('click', () => loadScene(id)); thumbContainer.appendChild(thumb); });
             const firstThumb = document.querySelector('.thumb'); if (firstThumb) firstThumb.classList.add('active');
             resetTimer(); if (window.innerWidth <= 768) { hideSidebar(); } else { showSidebar(); }
-            enableGyro(); enterFullscreen();
+            // Don't auto-enable gyro or fullscreen on page load - requires user gesture
+            // enableGyro(); enterFullscreen();
         });
         viewer.on('mousedown', () => { clearInterval(timer); viewer.stopAutoRotate(); });
         viewer.on('mouseup', () => { viewer.startAutoRotate(-1.5); resetTimer(); });

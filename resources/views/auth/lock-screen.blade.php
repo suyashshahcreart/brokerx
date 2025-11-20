@@ -34,7 +34,7 @@
             </div> <!-- end col -->
         </div> <!-- end card-body -->
     </div> <!-- end card -->
-    <p class="mb-0 text-center text-white">Not you? return <a href="{{ route('second', ['auth', 'login'])}}" class="text-reset text-unline-dashed fw-bold ms-1">Sign In</a></p>
+    <p class="mb-0 text-center text-white">Not you? return <a href="{{ route('admin.login') }}" class="text-reset text-unline-dashed fw-bold ms-1">Sign In</a></p>
 </div> <!-- end col -->
 
 @endsection

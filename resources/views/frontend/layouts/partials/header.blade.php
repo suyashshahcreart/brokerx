@@ -3,7 +3,7 @@
     <div class="container">
         <div class="logo-wrapper">
             <a class="logo" href="{{ route('frontend.index') }}">
-                <img src="{{ asset('frontend/images/logo.png') }}" class="logo-img" alt="Gloom" loading="lazy">
+                <img src="{{ asset('frontend/images/logo.png') }}" class="logo-img" alt="PROP PIK" loading="lazy">
             </a>
         </div>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -11,22 +11,24 @@
         </button>
         <div class="collapse navbar-collapse" id="navbar">
             <ul class="navbar-nav ms-auto">
-                <li class="nav-item"><a class="nav-link" href="#" data-scroll-nav="0">Home</a></li>
-                <li class="nav-item"><a class="nav-link" href="#" data-scroll-nav="1">Our Benefits</a></li>
-                <li class="nav-item"><a class="nav-link" href="#" data-scroll-nav="2">Our Portfolio</a></li>
-                <li class="nav-item"><a class="nav-link" href="#" data-scroll-nav="3">Pricing</a></li>
-                <li class="nav-item"><a class="nav-link" href="#" data-scroll-nav="4">Blog</a></li>
-                <li class="nav-item"><a class="nav-link" href="#" data-scroll-nav="5">Testimonials</a></li>
+                <li class="nav-item"><a class="nav-link" href="{{ route('frontend.index') }}">Home</a></li>
+                <li class="nav-item"><a class="nav-link" href="{{ route('frontend.index') }}#benefits">Our Benefits</a></li>
+                <li class="nav-item"><a class="nav-link" href="{{ route('frontend.index') }}#portfolio">Our Portfolio</a></li>
+                <li class="nav-item"><a class="nav-link" href="{{ route('frontend.index') }}#pricing">Pricing</a></li>
+                <li class="nav-item"><a class="nav-link" href="{{ route('frontend.index') }}#blog">Blog</a></li>
+                <li class="nav-item"><a class="nav-link" href="{{ route('frontend.index') }}#testimonials">Testimonials</a></li>
                 @auth
-                    <li class="nav-item ms-0 ms-lg-3">
-                        <form action="{{ route('logout') }}" method="POST" class="d-inline">
+                    {{-- <li class="nav-item"><a class="nav-link" href="{{ route('frontend.booking-dashboard') }}">My Bookings</a></li> --}}
+                    <li class="nav-item">
+                        <form id="logout-form" method="POST" action="{{ route('admin.logout') }}" style="display: none;">
                             @csrf
-                            <button type="submit" class="btn btn-primary">Logout</button>
                         </form>
+                        <a class="nav-link" href="#" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">Logout</a>
                     </li>
                 @else
-                    <li class="nav-item ms-0 ms-lg-3"><a class="btn btn-primary" href="{{ route('login') }}">Dashboard Login</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ route('frontend.login') }}">Login</a></li>
                 @endauth
+                <li class="nav-item ms-0 ms-lg-3"><a class="btn btn-primary" href="{{ route('frontend.setup') }}">Get Virtual Tour</a></li>
             </ul>
         </div>
     </div>

@@ -241,13 +241,16 @@
                     <div class="collapse" id="sidebarAuthentication">
                          <ul class="nav sub-navbar-nav">
                               <li class="sub-nav-item">
-                                   <a class="sub-nav-link" href="{{ route('second', ['auth', 'login'])}}">Sign In</a>
+                                   {{-- <a class="sub-nav-link" href="{{ route('second', ['auth', 'login'])}}">Sign In</a> --}}
+                                   <a class="sub-nav-link" href="{{ route('admin.login') }}">Sign In</a>
                               </li>
                               <li class="sub-nav-item">
-                                   <a class="sub-nav-link" href="{{ route('second', ['auth', 'signup'])}}">Sign Up</a>
+                                   {{-- <a class="sub-nav-link" href="{{ route('second', ['auth', 'signup'])}}">Sign Up</a> --}}
+                                   <a class="sub-nav-link" href="{{ route('admin.register') }}">Sign Up</a>
                               </li>
                               <li class="sub-nav-item">
-                                   <a class="sub-nav-link" href="{{ route('second', ['auth', 'password'])}}">Reset Password</a>
+                                   {{-- <a class="sub-nav-link" href="{{ route('second', ['auth', 'password'])}}">Reset Password</a> --}}
+                                   <a class="sub-nav-link" href="{{ route('admin.password.request') }}">Reset Password</a>
                               </li>
                               <li class="sub-nav-item">
                                    <a class="sub-nav-link" href="{{ route('second', ['auth', 'lock-screen'])}}">Lock Screen</a>

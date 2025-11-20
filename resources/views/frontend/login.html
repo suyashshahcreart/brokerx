@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Login - PROP PIK</title>
+    <meta name="description" content="Login to your PROP PIK dashboard">
+    <meta name="keywords" content="login, dashboard, property, virtual tour">
+    <meta name="author" content="PROP PIK">
+    <link rel="icon" type="image/x-icon" href="images/favicon.ico">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400..800&family=Urbanist:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/plugins.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body class="setup-flow">
+    
+    <!-- Progress scroll totop -->
+    <div class="progress-wrap cursor-pointer">
+        <svg class="progress-circle svg-content" width="100%" height="100%" viewBox="-1 -1 102 102">
+            <path d="M50,1 a49,49 0 0,1 0,98 a49,49 0 0,1 0,-98" />
+        </svg>
+    </div>
+    <!-- Cursor -->
+    <div class="cursor js-cursor"></div>
+    <!-- Social Icons -->
+    <div class="social-ico-block"> <a href="#" target="_blank" class="social-ico"><i class="fa-brands fa-instagram"></i></a> <a href="#" target="_blank" class="social-ico"><i class="fa-brands fa-x-twitter"></i></a> <a href="#" target="_blank" class="social-ico"><i class="fa-brands fa-youtube"></i></a> <a href="#" target="_blank" class="social-ico"><i class="fa-brands fa-tiktok"></i></a> <a href="#" target="_blank" class="social-ico"><i class="fa-brands fa-flickr"></i></a> </div>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg">
+        <div class="container">
+            <!-- Logo -->
+            <div class="logo-wrapper">
+                <a class="logo" href="index.html"> <img src="images/logo.png" class="logo-img" alt="PROP PIK" loading="lazy"> </a>
+            </div>
+            <!-- Button -->
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation"> <span class="navbar-toggler-icon"><i class="ti-menu"></i></span> </button>
+            <!-- Menu -->
+            <div class="collapse navbar-collapse" id="navbar">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="index.html">Home</a></li>
+                    <li class="nav-item"><a class="nav-link" href="index.html#benefits">Our Benefits</a></li>
+                    <li class="nav-item"><a class="nav-link" href="index.html#portfolio">Our Portfolio</a></li>
+                    <li class="nav-item"><a class="nav-link" href="index.html#pricing">Pricing</a></li>
+                    <li class="nav-item"><a class="nav-link" href="index.html#blog">Blog</a></li>
+                    <li class="nav-item"><a class="nav-link" href="index.html#testimonials">Testimonials</a></li>
+                    <li class="nav-item ms-0 ms-lg-3"><a class="btn btn-primary" href="setup.html">Get Virtual Tour</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    <section class="page-header section-padding-bottom-b section-padding-top-t page-header">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-12">
+                    <h1 class="wow page-title" data-splitting data-delay="100"> Dashboard Login</h1>
+                </div>
+            </div>
+        </div>
+    </section>
+    <div class="page bg-light section-padding-bottom section-padding-top">
+        <div class="panel container">
+            <div class="content">
+                <div class="login-container">
+                    <h2 class="app-title text-center mb-2">Dashboard Login</h2>
+                    <p class="muted-small text-center mb-4">Enter your phone number. We'll send an OTP to verify.</p>
+                    
+                    <form id="loginForm" class="login-form" onsubmit="return false;">
+                        <div class="mb-3">
+                            <label class="form-label">Phone Number <span class="text-danger">*</span></label>
+                            <input id="loginPhone" class="form-control" type="text" placeholder="10-digit mobile number" maxlength="10" required />
+                            <div id="err-phone" class="error">Enter a valid 10-digit mobile number.</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <button type="button" class="btn btn-primary w-100" id="sendOtpBtn">Send OTP</button>
+                            <div id="otpSentBadge" class="muted-small text-success hidden mt-2">OTP sent</div>
+                            <div id="demoOtp" class="muted-small text-muted hidden mt-2">[demo OTP: <strong id="demoOtpCode"></strong>]</div>
+                        </div>
+                        
+                        <!-- OTP input -->
+                        <div id="otpRow" class="mb-3 hidden">
+                            <label class="form-label">Enter OTP <span class="text-danger">*</span></label>
+                            <div class="row g-2">
+                                <div class="col-12">
+                                    <input id="inputOtp" class="form-control" maxlength="6" placeholder="Enter 6-digit OTP" />
+                                    <div id="err-otp" class="error">Enter the correct OTP.</div>
+                                </div>
+                                <div class="col-12">
+                                    <button type="button" class="btn btn-primary w-100" id="verifyOtpBtn">Verify OTP</button>
+                                </div>
+                                <div class="col-12">
+                                    <div class="muted-small text-center">Didn't receive? <a href="#" class="text-primary fw-semibold" id="resendOtp">Resend</a></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="text-center mt-3">
+                            <p class="muted-small mb-0">Don't have an account? <a href="setup.html" style="color: var(--color-primary); text-decoration: none; font-weight: 600;">Get Started</a></p>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div class="modal fade" id="loginSuccessModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="border-radius:12px;">
+                <div class="modal-body text-center p-4">
+                    <div class="mb-3">
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="color: #28a745;">
+                            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/>
+                            <path d="M8 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <h5 class="mb-3">Login Successful!</h5>
+                    <p class="muted-small mb-3">Redirecting to your dashboard...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+    
+    <!-- Footer -->
+    <footer class="footer-section" id="footer">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-lg-3 col-md-12 mb-4 mb-lg-0">
+                    <a href="index.html"><img src="images/logo-w.png" alt=""></a>
+                </div>
+                <div class="col-lg-3 col-md-12 mb-4 mb-lg-0">
+                    <h5>Get in touch</h5>
+                    <p>hello@proppik.com
+                        <br>+91 9876543210
+                    </p>
+                    <h5 class="mt-4">Locations</h5>
+                    <p>San Francisco — California
+                        <br>Palo Alto — Santa Clara
+                    </p>
+                </div>
+                <div class="col-lg-3 col-md-12 mb-4 mb-lg-0">
+                    <h5>Quick Links</h5>
+                    <ul class="footer-links">
+                        <li><a href="termandcondtion.html">Terms and Conditions</a></li>
+                        <li><a href="refundpolicy.html">Refund Policy</a></li>
+                        <li><a href="privacypolicy.html">Privacy Policy</a></li>
+                        <li><a href="login.html">Login</a></li>
+                    </ul>
+                </div>
+                <div class="col-lg-3 col-md-12">
+                    <h5>Follow Us</h5>
+                    <ul class="footer-social-link">
+                        <li><a href="#" target="_blank"><i class="fa-brands fa-instagram"></i></a></li>
+                        <li><a href="#" target="_blank"><i class="fa-brands fa-facebook"></i></a></li>
+                        <li><a href="#" target="_blank"><i class="fa-brands fa-youtube"></i></a></li>
+                        <li><a href="#" target="_blank"><i class="fa-brands fa-tiktok"></i></a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="row justify-content-center mt-4">
+                <div class="col-md-10 text-center">
+                    <p class="mb-0 copyright">© 2025 PROP PIK is a product of <a href="https://www.proppik.com" target="_blank">PROP PIK</a>.</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+    <!-- jQuery -->
+    <script src="js/plugins/jquery-3.7.1.min.js"></script>
+    <script src="js/plugins/jquery-migrate-3.5.0.min.js"></script>
+    <script src="js/plugins/popper.min.js"></script>
+    <script src="js/plugins/bootstrap.min.js"></script>
+    <script src="js/plugins/smooth-scroll.min.js"></script>
+    <script src="js/plugins/wow.js"></script>
+    <script src="js/custom.js"></script>
+    <script>
+        // Helper function
+        function el(id) { return document.getElementById(id); }
+
+        // State management
+        const loginState = {
+            otp: null,
+            otpVerified: false
+        };
+
+        // Send OTP
+        el('sendOtpBtn').addEventListener('click', function() {
+            const phone = el('loginPhone').value.trim();
+            const phoneError = el('err-phone');
+            
+            // Clear previous error
+            if (phoneError) phoneError.style.display = 'none';
+            
+            // Validate phone
+            if (!/^[0-9]{10}$/.test(phone)) {
+                if (phoneError) {
+                    phoneError.style.display = 'block';
+                    phoneError.textContent = 'Enter a valid 10-digit mobile number.';
+                }
+                return;
+            }
+            
+            // Generate demo OTP (6-digit for login)
+            loginState.otp = String(Math.floor(100000 + Math.random() * 900000));
+            loginState.otpVerified = false;
+            
+            // Show OTP input section
+            el('otpRow').classList.remove('hidden');
+            el('otpSentBadge').classList.remove('hidden');
+            el('demoOtp').classList.remove('hidden');
+            el('demoOtpCode').innerText = loginState.otp;
+            
+            // Disable phone input and send button
+            el('loginPhone').disabled = true;
+            el('sendOtpBtn').disabled = true;
+            el('sendOtpBtn').textContent = 'OTP Sent';
+            
+            console.log('Demo OTP:', loginState.otp);
+        });
+
+        // Resend OTP
+        el('resendOtp').addEventListener('click', function(e) {
+            e.preventDefault();
+            const phone = el('loginPhone').value.trim();
+            
+            if (!/^[0-9]{10}$/.test(phone)) {
+                alert('Enter phone number to resend OTP');
+                return;
+            }
+            
+            // Generate new OTP
+            loginState.otp = String(Math.floor(100000 + Math.random() * 900000));
+            loginState.otpVerified = false;
+            
+            el('demoOtpCode').innerText = loginState.otp;
+            el('otpSentBadge').classList.remove('hidden');
+            el('demoOtp').classList.remove('hidden');
+            el('inputOtp').value = '';
+            el('err-otp').style.display = 'none';
+            
+            console.log('Resent demo OTP:', loginState.otp);
+        });
+
+        // Verify OTP
+        el('verifyOtpBtn').addEventListener('click', function() {
+            const entered = el('inputOtp').value.trim();
+            const otpError = el('err-otp');
+            
+            // Clear previous error
+            if (otpError) otpError.style.display = 'none';
+            
+            // Validate OTP
+            if (!entered || entered !== loginState.otp) {
+                if (otpError) {
+                    otpError.style.display = 'block';
+                    otpError.textContent = 'Enter the correct OTP.';
+                }
+                return;
+            }
+            
+            // OTP verified
+            loginState.otpVerified = true;
+            el('otpRow').classList.add('hidden');
+            el('otpSentBadge').innerText = 'Verified ✓';
+            el('otpSentBadge').classList.remove('hidden');
+            
+            // Disable OTP input
+            el('inputOtp').disabled = true;
+            el('verifyOtpBtn').disabled = true;
+            el('verifyOtpBtn').textContent = 'Verified';
+            
+            // Show success modal and redirect
+            const modal = new bootstrap.Modal(el('loginSuccessModal'));
+            modal.show();
+            
+            // Simulate redirect (replace with actual redirect)
+            setTimeout(function() {
+                // window.location.href = 'dashboard.html';
+                console.log('Login successful. Redirect to dashboard.');
+            }, 2000);
+        });
+        
+        // Clear errors on input
+        el('loginPhone').addEventListener('input', function() {
+            const errorEl = el('err-phone');
+            if (errorEl) errorEl.style.display = 'none';
+        });
+        
+        el('inputOtp').addEventListener('input', function() {
+            const errorEl = el('err-otp');
+            if (errorEl) errorEl.style.display = 'none';
+        });
+        
+        // Enter key support
+        el('loginPhone').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                el('sendOtpBtn').click();
+            }
+        });
+        
+        el('inputOtp').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                el('verifyOtpBtn').click();
+            }
+        });
+    </script>
+</body>
+
+</html>
+

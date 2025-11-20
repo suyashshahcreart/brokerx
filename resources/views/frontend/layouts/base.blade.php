@@ -7,7 +7,7 @@
     @yield('css')
 </head>
 
-<body>
+<body @yield('body_attribute')>
 
 @include('frontend.layouts.partials.header')
 
@@ -16,6 +16,8 @@
 @include('frontend.layouts.partials.footer')
 
 @include('frontend.layouts.partials/footer-scripts')
+
+@yield('scripts')
 
 </body>
 
