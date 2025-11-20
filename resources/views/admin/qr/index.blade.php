@@ -58,9 +58,9 @@
                             </li>
                         </ul>
                         <div class="ms-auto d-flex gap-2">
-                            <button class="btn btn-success" id="filter-active-qr">Active</button>
+                            <button class="btn btn-outline-success" id="filter-active-qr">Active</button>
                             <button class="btn btn-outline-danger" id="filter-inactive-qr">Inactive</button>
-                            <button class="btn btn-outline-secondary" id="filter-all-qr">All</button>
+                            <button class="btn btn-secondary" id="filter-all-qr">All</button>
                         </div>
                     </div>
                     <div class="tab-content pt-2">

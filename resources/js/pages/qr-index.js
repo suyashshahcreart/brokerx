@@ -220,8 +220,13 @@ $(function() {
                                             .done(function(res) {
                                                 if (res && (res.success === true || res.status === 'success')) {
                                                     const modalEl = document.getElementById('assignBookingModal');
-                                                    const modalInstance = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
-                                                    modalInstance.hide();
+                                                    const modalInstance = bootstrap.Modal.getInstance(modalEl);
+                                                    if (modalInstance) {
+                                                        modalInstance.hide();
+                                                    }
+                                                    // Remove backdrop and restore body
+                                                    $('.modal-backdrop').remove();
+                                                    $('body').removeClass('modal-open').css('overflow', '');
                                                     if (table.length && $.fn.DataTable.isDataTable(table)) table.DataTable().ajax.reload(null, false);
                                                     if (typeof loadGridView === 'function') loadGridView();
                                                 } else {
