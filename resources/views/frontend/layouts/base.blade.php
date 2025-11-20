@@ -7,7 +7,7 @@
     @yield('css')
 </head>
 
-<body>
+<body @yield('body_attribute')>
 
 @include('frontend.layouts.partials.header')
 

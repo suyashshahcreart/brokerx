@@ -20,11 +20,13 @@
                 @auth
                     {{-- <li class="nav-item"><a class="nav-link" href="{{ route('frontend.booking-dashboard') }}">My Bookings</a></li> --}}
                     <li class="nav-item">
-                        <form id="logout-form" method="POST" action="{{ route('logout') }}" style="display: none;">
+                        <form id="logout-form" method="POST" action="{{ route('admin.logout') }}" style="display: none;">
                             @csrf
                         </form>
                         <a class="nav-link" href="#" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">Logout</a>
                     </li>
+                @else
+                    <li class="nav-item"><a class="nav-link" href="{{ route('frontend.login') }}">Login</a></li>
                 @endauth
                 <li class="nav-item ms-0 ms-lg-3"><a class="btn btn-primary" href="{{ route('frontend.setup') }}">Get Virtual Tour</a></li>
             </ul>

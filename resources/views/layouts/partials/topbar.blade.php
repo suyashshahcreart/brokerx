@@ -174,7 +174,7 @@
 
                               <div class="dropdown-divider my-1"></div>
 
-                              <form method="POST" action="{{ route('logout') }}" id="logout-form">
+                              <form method="POST" action="{{ route('admin.logout') }}" id="logout-form">
                                    @csrf
                                    <a class="dropdown-item text-danger" href="#" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
                                         <iconify-icon icon="solar:logout-3-broken" class="align-middle me-2 fs-18"></iconify-icon><span class="align-middle">Logout</span>

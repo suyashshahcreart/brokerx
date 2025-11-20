@@ -15,14 +15,20 @@ const state = {
     currentStepKey: stepKeyByNumber[initialStepNumber] || null,
     highestStepUnlocked: initialStepNumber,
     otp: 524163,
-    otpVerified: true,
-    activePropertyTab: 'res',
+    otpVerified: setupContext.authenticated ? true : false, // Only verified if already authenticated
+    activePropertyTab: null,
+    propertyTypeInitialized: false, // Track if property type has been set initially
     contactLocked: setupContext.authenticated ? true : false,
     currentPrice: 0,
     bookingId: null,
     returningFromPayment: false,
     isAuthenticated: setupContext.authenticated || false,
+    attemptedOtherTabs: false, // Track if user tried to access other tabs without verification
 };
+
+// Resend OTP countdown timer
+let resendCountdown = null;
+let resendTimerInterval = null;
 
 const cashfreeSelectors = {};
 
@@ -120,6 +126,92 @@ function runWithReadOnlyBypass(fn) {
     }
 }
 
+// Helper functions for form validation and error display
+function showFieldError(fieldId, errorId, message = null) {
+    const field = el(fieldId);
+    const errorEl = el(errorId);
+    
+    if (field) {
+        field.classList.add('is-invalid');
+        field.classList.remove('is-valid');
+    }
+    
+    if (errorEl) {
+        if (message) errorEl.textContent = message;
+        errorEl.style.display = 'block';
+        errorEl.classList.add('show');
+    }
+}
+
+function hideFieldError(fieldId, errorId) {
+    const field = el(fieldId);
+    const errorEl = el(errorId);
+    
+    if (field) {
+        field.classList.remove('is-invalid');
+        // Don't add is-valid automatically - let user input trigger it
+    }
+    
+    if (errorEl) {
+        errorEl.style.display = 'none';
+        errorEl.classList.remove('show');
+    }
+}
+
+function markFieldValid(fieldId) {
+    const field = el(fieldId);
+    if (field) {
+        field.classList.remove('is-invalid');
+        field.classList.add('is-valid');
+    }
+}
+
+function showPillContainerError(containerId, errorId, message = null) {
+    const container = el(containerId);
+    const errorEl = el(errorId);
+    
+    if (container) {
+        container.classList.add('has-error');
+    }
+    
+    if (errorEl) {
+        if (message) errorEl.textContent = message;
+        errorEl.style.display = 'block';
+        errorEl.classList.add('show');
+    }
+}
+
+function hidePillContainerError(containerId, errorId) {
+    const container = el(containerId);
+    const errorEl = el(errorId);
+    
+    if (container) {
+        container.classList.remove('has-error');
+    }
+    
+    if (errorEl) {
+        errorEl.style.display = 'none';
+        errorEl.classList.remove('show');
+    }
+}
+
+function clearAllFieldErrors() {
+    // Clear all error classes and hide error messages
+    document.querySelectorAll('.is-invalid').forEach(el => {
+        el.classList.remove('is-invalid');
+    });
+    document.querySelectorAll('.is-valid').forEach(el => {
+        el.classList.remove('is-valid');
+    });
+    document.querySelectorAll('.has-error').forEach(el => {
+        el.classList.remove('has-error');
+    });
+    document.querySelectorAll('.error').forEach(el => {
+        el.style.display = 'none';
+        el.classList.remove('show');
+    });
+}
+
 function canMutateForm() {
     return true;
 }
@@ -179,11 +271,33 @@ async function goToStep(key) {
     
     // If going backward to an already unlocked step, allow it without validation
     // BUT: Always check address completion before allowing navigation to verify
+    // Also check OTP verification for property/address/verify/payment steps
     if (num <= (state.highestStepUnlocked ?? state.step)) {
+        // Check OTP verification for steps other than contact
+        if (targetKey !== 'contact' && !state.otpVerified) {
+            const contactStepNum = getStepNumber('contact');
+            if (contactStepNum) {
+                await showSweetAlert('info', 'First Verify Account', 'Please verify your account by completing the Contact details & verification step first.');
+                showStep(contactStepNum);
+                return;
+            }
+        }
         // Special check: If trying to go to verify, ensure address is completed
         if (targetKey === 'verify') {
             if (!isAddressStepCompleted()) {
                 await showSweetAlert('warning', 'Address Required', 'Please complete the Address step before viewing the verification summary.');
+                // Navigate to address step instead
+                const addressStepNum = getStepNumber('address');
+                if (addressStepNum) {
+                    showStep(addressStepNum);
+                }
+                return;
+            }
+        }
+        // Special check: If trying to go to payment, ensure address is completed
+        if (targetKey === 'payment') {
+            if (!isAddressStepCompleted()) {
+                await showSweetAlert('warning', 'Address Required', 'Please complete the Address step before proceeding to payment.');
                 // Navigate to address step instead
                 const addressStepNum = getStepNumber('address');
                 if (addressStepNum) {
@@ -222,6 +336,19 @@ async function goToStep(key) {
     if (targetKey === 'verify') {
         if (!isAddressStepCompleted()) {
             await showSweetAlert('warning', 'Address Required', 'Please complete the Address step before viewing the verification summary.');
+            // Navigate to address step instead
+            const addressStepNum = getStepNumber('address');
+            if (addressStepNum) {
+                showStep(addressStepNum);
+            }
+            return;
+        }
+    }
+    
+    // Special check: If trying to go to payment, ensure address is completed
+    if (targetKey === 'payment') {
+        if (!isAddressStepCompleted()) {
+            await showSweetAlert('warning', 'Address Required', 'Please complete the Address step before proceeding to payment.');
             // Navigate to address step instead
             const addressStepNum = getStepNumber('address');
             if (addressStepNum) {
@@ -314,7 +441,8 @@ function applyAddressFromBooking(booking) {
 
 // init
 showStep(state.step);
-switchMainTab('res');
+// Don't show any tab initially - wait for user to select property type
+hideAllPropertyTabs();
 hydrateAuthUser();
 updateReadOnlyUI();
 
@@ -427,6 +555,22 @@ if (sendOtpBtn) sendOtpBtn.addEventListener('click', async () => {
             el('otpRow').classList.remove('hidden');
             el('otpSentBadge').classList.remove('hidden');
             el('toStep2').disabled = true;
+            
+            // Show demo OTP if available (for development)
+            if (result.data.otp) {
+                const demoOtpEl = el('demoOtp');
+                if (demoOtpEl) {
+                    demoOtpEl.classList.remove('hidden');
+                    const demoOtpCodeEl = el('demoOtpCode');
+                    if (demoOtpCodeEl) {
+                        demoOtpCodeEl.innerText = result.data.otp;
+                    }
+                }
+            }
+            
+            // Start resend countdown timer
+            startResendCountdown();
+            
             // Optional status log without OTP content
             if (result.data.is_new_user) {
                 console.log('✅ New user created and OTP sent');
@@ -448,6 +592,12 @@ if (sendOtpBtn) sendOtpBtn.addEventListener('click', async () => {
 const resendOtpBtn = el('resendOtp');
 if (resendOtpBtn) resendOtpBtn.addEventListener('click', async (e) => {
     e.preventDefault();
+    
+    // Check if countdown is active
+    if (resendCountdown > 0) {
+        return; // Don't allow resend during countdown
+    }
+    
     const phone = el('inputPhone').value.trim();
     const name = el('inputName').value.trim();
     
@@ -478,6 +628,30 @@ if (resendOtpBtn) resendOtpBtn.addEventListener('click', async (e) => {
 
         if (result.success && result.data) {
             el('otpSentBadge').classList.remove('hidden');
+            
+            // Show demo OTP if available (for development)
+            if (result.data.otp) {
+                const demoOtpEl = el('demoOtp');
+                if (demoOtpEl) {
+                    demoOtpEl.classList.remove('hidden');
+                    const demoOtpCodeEl = el('demoOtpCode');
+                    if (demoOtpCodeEl) {
+                        demoOtpCodeEl.innerText = result.data.otp;
+                    }
+                }
+            }
+            
+            // Clear OTP input and restart countdown
+            const inputOtp = el('inputOtp');
+            if (inputOtp) {
+                inputOtp.value = '';
+                inputOtp.focus();
+            }
+            el('err-otp').style.display = 'none';
+            
+            // Restart countdown timer after successful resend
+            startResendCountdown();
+            
             console.log('📱 Resent OTP');
         } else {
             await showSweetAlert('error', 'Error', result.message || 'Failed to resend OTP.');
@@ -522,12 +696,19 @@ if (verifyOtpBtn) verifyOtpBtn.addEventListener('click', async () => {
         const result = await response.json();
 
         if (result.success) {
+            // Clear resend countdown timer
+            if (resendTimerInterval) {
+                clearInterval(resendTimerInterval);
+                resendTimerInterval = null;
+            }
+            
             if (result.csrf_token) {
                 const meta = document.querySelector('meta[name="csrf-token"]');
                 if (meta) meta.content = result.csrf_token;
             }
             el('err-otp').style.display = 'none';
             state.otpVerified = true;
+            state.attemptedOtherTabs = false; // Reset flag when OTP is verified
             el('otpRow').classList.add('hidden');
             el('otpSentBadge').classList.remove('hidden');
             el('otpSentBadge').innerText = 'Verified ✓';
@@ -536,11 +717,12 @@ if (verifyOtpBtn) verifyOtpBtn.addEventListener('click', async () => {
             state.isAuthenticated = true;
             setupContext.authenticated = true;
             updateReadOnlyUI();
+            lockContactSection();
+            // Unlock and navigate to property step
             const propertyStepNumber = getStepNumber('property');
             if (propertyStepNumber) {
-                state.step = propertyStepNumber;
-                state.highestStepUnlocked = propertyStepNumber;
-                goToStep('property');
+                state.highestStepUnlocked = Math.max(state.highestStepUnlocked ?? state.step, propertyStepNumber);
+                showStep(propertyStepNumber);
             }
         } else {
             el('err-otp').style.display = 'block';
@@ -566,13 +748,53 @@ if (toStep2Btn) toStep2Btn.addEventListener('click', async () => {
     const nextKey = 'property';
     const nextNumber = getStepNumber(nextKey);
     if (nextNumber) {
-        state.highestStepUnlocked = Math.max(state.highestStepUnlocked, nextNumber);
-        goToStep(nextKey);
+        state.highestStepUnlocked = Math.max(state.highestStepUnlocked ?? state.step, nextNumber);
+        showStep(nextNumber);
     }
 });
 
+// Start resend OTP countdown timer
+function startResendCountdown() {
+    const resendOtpBtn = el('resendOtp');
+    if (!resendOtpBtn) return;
+
+    // Clear any existing timer
+    if (resendTimerInterval) {
+        clearInterval(resendTimerInterval);
+    }
+
+    // Set initial countdown
+    resendCountdown = 60;
+    resendOtpBtn.style.pointerEvents = 'none';
+    resendOtpBtn.style.opacity = '0.6';
+    resendOtpBtn.textContent = `Resend in ${resendCountdown}s`;
+
+    // Update countdown every second
+    resendTimerInterval = setInterval(function() {
+        resendCountdown--;
+        
+        if (resendCountdown > 0) {
+            resendOtpBtn.textContent = `Resend in ${resendCountdown}s`;
+        } else {
+            // Countdown finished, enable resend
+            clearInterval(resendTimerInterval);
+            resendTimerInterval = null;
+            resendOtpBtn.style.pointerEvents = 'auto';
+            resendOtpBtn.style.opacity = '1';
+            resendOtpBtn.textContent = 'Resend';
+        }
+    }, 1000);
+}
+
 const skipContactBtn = el('skipContact');
 if (skipContactBtn) skipContactBtn.addEventListener('click', () => {
+    // Clear resend countdown timer
+    if (resendTimerInterval) {
+        clearInterval(resendTimerInterval);
+        resendTimerInterval = null;
+    }
+    resendCountdown = null;
+    
     // clear contact fields
     el('inputName').value = '';
     el('inputPhone').value = '';
@@ -583,6 +805,15 @@ if (skipContactBtn) skipContactBtn.addEventListener('click', () => {
     el('otpSentBadge').classList.add('hidden');
     el('toStep2').disabled = true;
     state.contactLocked = false;
+    
+    // Reset resend button
+    const resendOtpBtn = el('resendOtp');
+    if (resendOtpBtn) {
+        resendOtpBtn.style.pointerEvents = 'auto';
+        resendOtpBtn.style.opacity = '1';
+        resendOtpBtn.textContent = 'Resend';
+    }
+    
     ['btn-step-1', 'backToContact', 'sendOtpBtn', 'verifyOtpBtn', 'resendOtp', 'skipContact'].forEach(id => {
         const node = el(id);
         if (node) node.disabled = false;
@@ -596,16 +827,46 @@ if (skipContactBtn) skipContactBtn.addEventListener('click', () => {
 /**********************
  Step 2: property selections
 ***********************/
+function hideAllPropertyTabs() {
+    el('tab-res').style.display = 'none';
+    el('tab-com').style.display = 'none';
+    el('tab-oth').style.display = 'none';
+    // Remove active state from all property type pills
+    ['pillResidential', 'pillCommercial', 'pillOther'].forEach(id => {
+        const pill = el(id);
+        if (pill) pill.classList.remove('active');
+    });
+    // Clear main property type hidden field
+    el('mainPropertyType').value = '';
+    state.activePropertyTab = null;
+}
+
 function switchMainTab(key) {
+    if (!key) {
+        hideAllPropertyTabs();
+        state.propertyTypeInitialized = false;
+        return;
+    }
     state.activePropertyTab = key;
     el('tab-res').style.display = (key === 'res') ? 'block' : 'none';
     el('tab-com').style.display = (key === 'com') ? 'block' : 'none';
     el('tab-oth').style.display = (key === 'oth') ? 'block' : 'none';
-    // active pill
-    ['pillResidential', 'pillCommercial', 'pillOther'].forEach(id => el(id).classList.remove('active'));
-    if (key === 'res') el('pillResidential').classList.add('active');
-    if (key === 'com') el('pillCommercial').classList.add('active');
-    if (key === 'oth') el('pillOther').classList.add('active');
+    ['pillResidential', 'pillCommercial', 'pillOther'].forEach(id => {
+        const pill = el(id);
+        if (pill) pill.classList.remove('active');
+    });
+    if (key === 'res') {
+        const pill = el('pillResidential');
+        if (pill) pill.classList.add('active');
+    }
+    if (key === 'com') {
+        const pill = el('pillCommercial');
+        if (pill) pill.classList.add('active');
+    }
+    if (key === 'oth') {
+        const pill = el('pillOther');
+        if (pill) pill.classList.add('active');
+    }
     
     // Update main property type hidden field
     const typeMap = { 'res': 'Residential', 'com': 'Commercial', 'oth': 'Other' };
@@ -618,8 +879,16 @@ function selectCard(dom) {
     document.querySelectorAll(`[data-group="${group}"]`).forEach(n => n.classList.remove('active'));
     dom.classList.add('active');
     const v = dom.dataset.value;
-    if (group === 'resType') el('choice_resType').value = v;
-    if (group === 'comType') el('choice_comType').value = v;
+    if (group === 'resType') {
+        el('choice_resType').value = v;
+        // Clear error when residential sub type is selected
+        hidePillContainerError('resTypeContainer', 'err-resType');
+    }
+    if (group === 'comType') {
+        el('choice_comType').value = v;
+        // Clear error when commercial sub type is selected
+        hidePillContainerError('comTypeContainer', 'err-comType');
+    }
 }
 
 function resetAddressFields(){
@@ -632,7 +901,43 @@ function resetAddressFields(){
     });
 }
 
+// Check if any property data has been filled
+function hasPropertyDataFilled() {
+    if (!state.activePropertyTab) return false;
+    
+    // Check based on active tab
+    if (state.activePropertyTab === 'res') {
+        const resType = el('choice_resType')?.value;
+        const resFurnish = el('choice_resFurnish')?.value;
+        const resSize = el('choice_resSize')?.value;
+        const resArea = el('resArea')?.value?.trim();
+        return !!(resType || resFurnish || resSize || resArea);
+    } else if (state.activePropertyTab === 'com') {
+        const comType = el('choice_comType')?.value;
+        const comFurnish = el('choice_comFurnish')?.value;
+        const comArea = el('comArea')?.value?.trim();
+        return !!(comType || comFurnish || comArea);
+    } else if (state.activePropertyTab === 'oth') {
+        const othLooking = el('choice_othLooking')?.value;
+        const othDesc = el('othDesc')?.value?.trim();
+        const othArea = el('othArea')?.value?.trim();
+        return !!(othLooking || othDesc || othArea);
+    }
+    
+    return false;
+}
+
+// Check if address data has been filled
+function hasAddressDataFilled() {
+    const h = el('addrHouse')?.value?.trim();
+    const b = el('addrBuilding')?.value?.trim();
+    const p = el('addrPincode')?.value?.trim();
+    const f = el('addrFull')?.value?.trim();
+    return !!(h || b || p || f);
+}
+
 function clearAllPropertySelections() {
+    // Clear property-related selections
     ['choice_resType', 'choice_resFurnish', 'choice_resSize', 'choice_comType', 'choice_comFurnish', 'choice_othLooking'].forEach(id => {
         if (el(id)) el(id).value = '';
     });
@@ -645,6 +950,11 @@ function clearAllPropertySelections() {
     ['err-resArea', 'err-comArea', 'err-othDesc', 'err-othArea', 'err-othLooking'].forEach(id => {
         if (el(id)) el(id).style.display = 'none';
     });
+    
+    // Also clear address fields when property type changes
+    resetAddressFields();
+    
+    // Note: Billing details (firm name, GST) are NOT cleared - they persist when property type changes
     updatePriceDisplay();
 }
 
@@ -665,16 +975,87 @@ function lockContactSection() {
     if (backBtn) backBtn.disabled = true;
 }
 
-function handlePropertyTabChange(key) {
+async function handlePropertyTabChange(key) {
     if (!canMutateForm()) return;
+    
+    // Check if property type was already set, user is trying to change it, AND there's actual data filled
+    if (state.activePropertyTab && state.activePropertyTab !== key && (hasPropertyDataFilled() || hasAddressDataFilled())) {
+        // Get current property type name
+        const typeMap = { 'res': 'Residential', 'com': 'Commercial', 'oth': 'Other' };
+        const currentType = typeMap[state.activePropertyTab] || 'Current';
+        const newType = typeMap[key] || 'New';
+        
+        // Build message based on what data exists
+        let messageParts = [];
+        messageParts.push(`You are changing Property Type from <strong>${currentType}</strong> to <strong>${newType}</strong>.<br><br>`);
+        
+        if (hasPropertyDataFilled()) {
+            messageParts.push(`This will clear the following property details:<br>
+                • Property Sub Type<br>
+                • Furnish Type<br>
+                • Size (BHK/RK)<br>
+                • Super Built-up Area<br>`);
+        }
+        
+        if (hasAddressDataFilled()) {
+            if (hasPropertyDataFilled()) {
+                messageParts.push(`<br>This will also clear the following address details:<br>
+                    • House / Office No.<br>
+                    • Society / Building Name<br>
+                    • Pincode<br>
+                    • Full Address<br>`);
+            } else {
+                messageParts.push(`This will clear the following address details:<br>
+                    • House / Office No.<br>
+                    • Society / Building Name<br>
+                    • Pincode<br>
+                    • Full Address<br>`);
+            }
+        }
+        
+        messageParts.push(`<br><strong>Note:</strong> Your billing details (Company Name, GST No) will be preserved.`);
+        
+        // Show confirmation dialog only if there's data that will be lost
+        const result = await Swal.fire({
+            icon: 'warning',
+            title: 'Change Property Type?',
+            html: `<div style="text-align: left; padding: 10px 0; color: #333; font-size: 14px; line-height: 1.8;">
+                ${messageParts.join('')}
+            </div>`,
+            showCancelButton: true,
+            confirmButtonColor: '#0d6efd',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Yes, Change It',
+            cancelButtonText: 'Cancel',
+            customClass: {
+                popup: 'sweetalert-popup',
+                title: 'sweetalert-title',
+                content: 'sweetalert-content',
+                confirmButton: 'sweetalert-confirm-btn'
+            },
+            buttonsStyling: true,
+            allowOutsideClick: true,
+            allowEscapeKey: true
+        });
+        
+        // If user cancels, don't change property type
+        if (!result.isConfirmed) {
+            return;
+        }
+    }
+    
+    // Proceed with property type change
     clearAllPropertySelections();
-    // Don't reset address fields when property type changes
-    // resetAddressFields();
     switchMainTab(key);
+    // Mark property type as initialized
+    state.propertyTypeInitialized = true;
+    // Clear error when property type is selected
+    hidePillContainerError('propertyTypeContainer', 'err-propertyType');
     updatePriceDisplay();
 }
 
 function getActiveAreaValue() {
+    if (!state.activePropertyTab) return '';
     if (state.activePropertyTab === 'com') return el('comArea').value.trim();
     if (state.activePropertyTab === 'oth') return el('othArea').value.trim();
     return el('resArea').value.trim();
@@ -712,28 +1093,97 @@ function selectChip(dom) {
     document.querySelectorAll(`[data-group="${group}"]`).forEach(n => n.classList.remove('active'));
     dom.classList.add('active');
     const v = dom.dataset.value;
-    if (group === 'resFurnish') el('choice_resFurnish').value = v;
-    if (group === 'resSize') el('choice_resSize').value = v;
-    if (group === 'comFurnish') el('choice_comFurnish').value = v;
+    if (group === 'resFurnish') {
+        el('choice_resFurnish').value = v;
+        // Clear error when residential furnish is selected
+        hidePillContainerError('resFurnishContainer', 'err-resFurnish');
+    }
+    if (group === 'resSize') {
+        el('choice_resSize').value = v;
+        // Clear error when residential size is selected
+        hidePillContainerError('resSizeContainer', 'err-resSize');
+    }
+    if (group === 'comFurnish') {
+        el('choice_comFurnish').value = v;
+        // Clear error when commercial furnish is selected
+        hidePillContainerError('comFurnishContainer', 'err-comFurnish');
+    }
 }
 
 ['resArea', 'comArea', 'othArea'].forEach(id => {
     const input = el(id);
     if (input) {
-        input.addEventListener('input', updatePriceDisplay);
+        input.addEventListener('input', function() {
+            updatePriceDisplay();
+            // Clear error when user starts typing
+            if (this.value.trim() && Number(this.value.trim()) > 0) {
+                hideFieldError(id, 'err-' + id);
+                markFieldValid(id);
+            }
+            // If user is on payment tab, update the payment amount display immediately
+            if (state.currentStepKey === 'payment') {
+                const areaValue = getActiveAreaValue();
+                const latestPrice = calculateDynamicPrice(areaValue);
+                updateCashfreeAmountDisplay(latestPrice);
+            }
+        });
     }
 });
 updatePriceDisplay();
+
+// Add real-time validation for billing fields
+['firmName', 'gstNo'].forEach(id => {
+    const input = el(id);
+    if (input) {
+        input.addEventListener('input', function() {
+            // Clear error when user starts typing
+            if (this.value.trim()) {
+                hideFieldError(id, 'err-' + id);
+                markFieldValid(id);
+            }
+        });
+    }
+});
+
+// Add real-time validation for address fields
+['addrHouse', 'addrBuilding', 'addrPincode', 'addrFull'].forEach(id => {
+    const input = el(id);
+    if (input) {
+        input.addEventListener('input', function() {
+            // Clear error when user starts typing
+            const value = this.value.trim();
+            if (value) {
+                // Special validation for pincode
+                if (id === 'addrPincode') {
+                    if (/^[0-9]{6}$/.test(value)) {
+                        hideFieldError(id, 'err-' + id);
+                        markFieldValid(id);
+                    }
+                } else {
+                    hideFieldError(id, 'err-' + id);
+                    markFieldValid(id);
+                }
+            }
+        });
+    }
+});
 
 function topPillClick(dom) {
     if (!canMutateForm()) return;
     const group = dom.dataset.group;
     document.querySelectorAll(`[data-group="${group}"]`).forEach(n => n.classList.remove('active'));
     dom.classList.add('active');
-    if (group === 'othLooking') el('choice_othLooking').value = dom.dataset.value;
+    if (group === 'othLooking') {
+        el('choice_othLooking').value = dom.dataset.value;
+        // Clear error when other looking option is selected
+        hidePillContainerError('othLookingContainer', 'err-othLooking');
+        hideFieldError('othDesc', 'err-othDesc');
+    }
     if (group === 'ownerType') {
         // Only update owner type value, don't clear other fields
         el('choice_ownerType').value = dom.dataset.value;
+        // Clear error when owner type is selected
+        hidePillContainerError('ownerTypeContainer', 'err-ownerType');
     }
 }
 
@@ -745,6 +1195,60 @@ if (backToContactBtn) backToContactBtn.addEventListener('click', async () => {
     }
     goToStep('contact');
 });
+
+// Different Billing Name checkbox - show/hide billing details
+const differentBillingNameCheckbox = el('differentBillingName');
+if (differentBillingNameCheckbox) {
+    differentBillingNameCheckbox.addEventListener('change', function() {
+        const billingDetailsRow = el('billingDetailsRow');
+        const firmNameInput = el('firmName');
+        const gstNoInput = el('gstNo');
+        
+        if (this.checked) {
+            // Show billing details and make required
+            if (billingDetailsRow) {
+                // Remove inline style to show (Bootstrap row will use flex by default)
+                billingDetailsRow.style.display = '';
+            }
+            if (firmNameInput) {
+                firmNameInput.required = true;
+                firmNameInput.removeAttribute('readonly');
+            }
+            if (gstNoInput) {
+                gstNoInput.required = true;
+                gstNoInput.removeAttribute('readonly');
+            }
+            // Clear any previous errors
+            hideFieldError('firmName', 'err-firmName');
+            hideFieldError('gstNo', 'err-gstNo');
+        } else {
+            // Hide billing details and make optional
+            if (billingDetailsRow) billingDetailsRow.style.display = 'none';
+            if (firmNameInput) {
+                firmNameInput.required = false;
+                firmNameInput.value = '';
+            }
+            if (gstNoInput) {
+                gstNoInput.required = false;
+                gstNoInput.value = '';
+            }
+            // Clear errors
+            hideFieldError('firmName', 'err-firmName');
+            hideFieldError('gstNo', 'err-gstNo');
+        }
+    });
+}
+
+
+const agreeTermsCheckbox = el('agreeTerms');
+if (agreeTermsCheckbox) {
+    agreeTermsCheckbox.addEventListener('change', function() {
+        const errorEl = el('err-agreeTerms');
+        if (errorEl && this.checked) {
+            errorEl.style.display = 'none';
+        }
+    });
+}
 
 el('toStepAddress').addEventListener('click', async () => {
     const validationPassed = await validateAndSavePropertyStep();
@@ -920,7 +1424,7 @@ function collectPayload() {
         name: getContactNameValue(),
         phone: getContactPhoneValue(),
         ownerType: el('choice_ownerType').value || null,
-        mainType: state.activePropertyTab === 'com' ? 'Commercial' : state.activePropertyTab === 'oth' ? 'Other' : 'Residential',
+        mainType: state.activePropertyTab === 'com' ? 'Commercial' : state.activePropertyTab === 'oth' ? 'Other' : (state.activePropertyTab === 'res' ? 'Residential' : null),
         residential: {
             propertyType: el('choice_resType').value || null,
             furnish: el('choice_resFurnish').value || null,
@@ -996,10 +1500,15 @@ function setCashfreeStatus(statusText, message, theme = 'pending') {
 }
 
 function updateCashfreeMeta(summary = null) {
+    // Always use the latest calculated price from current area for display
+    const areaValue = getActiveAreaValue();
+    const latestPrice = calculateDynamicPrice(areaValue);
+    state.currentPrice = latestPrice;
+    
     if (!summary) {
         summary = {
             order_id: cashfreeState.orderId,
-            amount: cashfreeState.amount,
+            amount: latestPrice, // Use latest price instead of cashfreeState.amount
             currency: cashfreeState.currency,
             reference_id: null,
             payment_method: null,
@@ -1008,7 +1517,9 @@ function updateCashfreeMeta(summary = null) {
     if (cashfreeSelectors.orderId) {
         cashfreeSelectors.orderId.textContent = summary.order_id || '-';
     }
-    updateCashfreeAmountDisplay(summary.amount || cashfreeState.amount || state.currentPrice);
+    // Always use the latest calculated price for display (even if summary has different amount)
+    // This ensures the displayed amount matches the current area value
+    updateCashfreeAmountDisplay(latestPrice);
     if (cashfreeSelectors.reference) {
         cashfreeSelectors.reference.textContent = summary.reference_id || '-';
     }
@@ -1030,7 +1541,11 @@ function prepareCashfreeStep() {
         setCashfreeStatus('Missing booking', 'Please complete previous steps before paying.', 'failed');
         return;
     }
-    updateCashfreeAmountDisplay(state.currentPrice);
+    // Always recalculate price from current area value to ensure it's up to date
+    const areaValue = getActiveAreaValue();
+    const latestPrice = calculateDynamicPrice(areaValue);
+    state.currentPrice = latestPrice;
+    updateCashfreeAmountDisplay(latestPrice);
     updateCashfreeMeta(cashfreeState.lastSummary);
     if (state.returningFromPayment) {
         setCashfreeStatus('Checking payment status', 'Fetching latest update from Cashfree...', 'pending');
@@ -1082,11 +1597,18 @@ async function initCashfreeSession({ autoLaunch = false, force = false } = {}) {
             cashfreeState.amount = data.amount;
             cashfreeState.currency = data.currency;
             cashfreeState.autoAttempted = true;
+            // Update meta with server data, but display will use latest calculated price
             updateCashfreeMeta({
                 order_id: data.order_id,
                 amount: data.amount,
                 currency: data.currency,
             });
+            // Ensure displayed amount matches current area calculation
+            const areaValue = getActiveAreaValue();
+            const latestPrice = calculateDynamicPrice(areaValue);
+            if (latestPrice > 0) {
+                updateCashfreeAmountDisplay(latestPrice);
+            }
             setCashfreeStatus('Ready for payment', 'Click the button below to pay securely with Cashfree.', 'pending');
             if (autoLaunch) {
                 launchCashfreeCheckout();
@@ -1251,9 +1773,8 @@ async function validateAndSavePropertyStep() {
     const tabComVisible = el('tab-com').style.display !== 'none';
     const tabOthVisible = el('tab-oth').style.display !== 'none';
 
-    // clear previous errors
-    document.querySelectorAll('.error').forEach(e => e.style.display = 'none');
-
+    // Clear previous errors
+    clearAllFieldErrors();
     const errors = [];
     const errorFields = [];
 
@@ -1261,6 +1782,17 @@ async function validateAndSavePropertyStep() {
     const ownerType = el('choice_ownerType').value;
     if (!ownerType) {
         errors.push('Owner Type is required');
+        showPillContainerError('ownerTypeContainer', 'err-ownerType', 'Owner Type is required.');
+    } else {
+        hidePillContainerError('ownerTypeContainer', 'err-ownerType');
+    }
+
+    // Property Type validation - must be selected
+    if (!state.activePropertyTab) {
+        errors.push('Property Type is required');
+        showPillContainerError('propertyTypeContainer', 'err-propertyType', 'Property Type is required.');
+    } else {
+        hidePillContainerError('propertyTypeContainer', 'err-propertyType');
     }
 
     // Residential validations
@@ -1272,16 +1804,30 @@ async function validateAndSavePropertyStep() {
         
         if (!rType) {
             errors.push('Residential Property Sub Type is required');
+            showPillContainerError('resTypeContainer', 'err-resType', 'Property Sub Type is required.');
+        } else {
+            hidePillContainerError('resTypeContainer', 'err-resType');
         }
+        
         if (!rFurn) {
             errors.push('Furnish Type is required');
+            showPillContainerError('resFurnishContainer', 'err-resFurnish', 'Furnish Type is required.');
+        } else {
+            hidePillContainerError('resFurnishContainer', 'err-resFurnish');
         }
+        
         if (!rSize) {
             errors.push('Size (BHK/RK) is required');
+            showPillContainerError('resSizeContainer', 'err-resSize', 'Size (BHK / RK) is required.');
+        } else {
+            hidePillContainerError('resSizeContainer', 'err-resSize');
         }
+        
         if (!rArea || Number(rArea) <= 0) {
             errors.push('Super Built-up Area is required and must be greater than 0');
-            errorFields.push('err-resArea');
+            showFieldError('resArea', 'err-resArea', 'Super Built-up Area is required and must be greater than 0');
+        } else {
+            markFieldValid('resArea');
         }
     }
 
@@ -1293,13 +1839,23 @@ async function validateAndSavePropertyStep() {
         
         if (!cType) {
             errors.push('Commercial Property Sub Type is required');
+            showPillContainerError('comTypeContainer', 'err-comType', 'Property Sub Type is required.');
+        } else {
+            hidePillContainerError('comTypeContainer', 'err-comType');
         }
+        
         if (!cFurn) {
             errors.push('Furnish Type is required');
+            showPillContainerError('comFurnishContainer', 'err-comFurnish', 'Furnish Type is required.');
+        } else {
+            hidePillContainerError('comFurnishContainer', 'err-comFurnish');
         }
+        
         if (!cArea || Number(cArea) <= 0) {
             errors.push('Super Built-up Area is required and must be greater than 0');
-            errorFields.push('err-comArea');
+            showFieldError('comArea', 'err-comArea', 'Super Built-up Area is required and must be greater than 0');
+        } else {
+            markFieldValid('comArea');
         }
     }
 
@@ -1313,15 +1869,18 @@ async function validateAndSavePropertyStep() {
         
         if (!hasSelection && !hasOther) {
             errors.push('Please select an option or enter Other option');
-            errorFields.push('err-othLooking');
-            errorFields.push('err-othDesc');
+            showPillContainerError('othLookingContainer', 'err-othLooking', 'Select an option or enter Other option.');
+            showFieldError('othDesc', 'err-othDesc', 'Other option is required if none of the options are selected.');
         } else {
-            el('err-othLooking').style.display = 'none';
-            el('err-othDesc').style.display = 'none';
+            hidePillContainerError('othLookingContainer', 'err-othLooking');
+            hideFieldError('othDesc', 'err-othDesc');
         }
+        
         if (!oArea || Number(oArea) <= 0) {
             errors.push('Super Built-up Area is required and must be greater than 0');
-            errorFields.push('err-othArea');
+            showFieldError('othArea', 'err-othArea', 'Super Built-up Area is required and must be greater than 0');
+        } else {
+            markFieldValid('othArea');
         }
     }
 
@@ -1332,15 +1891,48 @@ async function validateAndSavePropertyStep() {
         errors.push('Contact name and phone are required. Please complete the Contact step first.');
     }
 
+    // Different Billing Name validation - if checked, Company Name and GST No are required
+    const differentBillingName = el('differentBillingName');
+    if (differentBillingName && differentBillingName.checked) {
+        const firmName = el('firmName')?.value?.trim();
+        const gstNo = el('gstNo')?.value?.trim();
+        
+        if (!firmName) {
+            errors.push('Company Name is required when using company billing details');
+            showFieldError('firmName', 'err-firmName', 'Company Name is required.');
+        } else {
+            markFieldValid('firmName');
+        }
+        if (!gstNo) {
+            errors.push('GST No is required when using company billing details');
+            showFieldError('gstNo', 'err-gstNo', 'GST No is required.');
+        } else {
+            markFieldValid('gstNo');
+        }
+    } else {
+        // Clear billing field errors if checkbox is not checked
+        hideFieldError('firmName', 'err-firmName');
+        hideFieldError('gstNo', 'err-gstNo');
+    }
+
+
+    // Terms and Conditions checkbox validation
+    const agreeTerms = el('agreeTerms');
+    if (!agreeTerms || !agreeTerms.checked) {
+        errors.push('You must agree to the Terms and Conditions, Refund Policy, and Privacy Policy to continue');
+        const errorEl = el('err-agreeTerms');
+        if (errorEl) {
+            errorEl.style.display = 'block';
+            errorEl.classList.add('show');
+        }
+    } else {
+        // Hide error if checkbox is checked
+        hideFieldError('agreeTerms', 'err-agreeTerms');
+    }
+
     // Show all errors at once if any
     if (errors.length > 0) {
         // Show error fields
-        errorFields.forEach(fieldId => {
-            const errorEl = el(fieldId);
-            if (errorEl) errorEl.style.display = 'block';
-        });
-        
-        // Show SweetAlert with all errors
         const errorMessage = '• ' + errors.join('<br>• ');
         await showSweetAlert('error', 'Validation Error', errorMessage, true);
         return false;
@@ -1360,14 +1952,20 @@ async function validateAndSavePropertyStep() {
         commercial_furnish: el('choice_comFurnish').value || null,
         commercial_area: el('comArea').value || null,
         other_looking: el('choice_othLooking').value || null,
-        other_description: el('othDesc').value || null,
+        other_option_details: el('othDesc').value || null,
         other_area: el('othArea').value || null,
+        firm_name: el('firmName')?.value?.trim() || null,
+        gst_no: el('gstNo')?.value?.trim() || null,
     };
     try {
         const result = await postJson('/frontend/setup/save-property-step', payload);
         if (result.success) {
             state.bookingId = result.booking_id;
             el('bookingId').value = state.bookingId;
+            // Mark property type as initialized after successful save
+            if (state.activePropertyTab) {
+                state.propertyTypeInitialized = true;
+            }
             return true;
         } else {
             await showSweetAlert('error', 'Error', result.message || 'Failed to save property details');
@@ -1381,12 +1979,9 @@ async function validateAndSavePropertyStep() {
 }
 
 async function validateAndSaveAddressStep() {
-    // clear errors
-    document.querySelectorAll('.error').forEach(e => e.style.display = 'none');
-
+    // Clear previous errors
+    clearAllFieldErrors();
     const errors = [];
-    const errorFields = [];
-
     const h = el('addrHouse').value.trim();
     const b = el('addrBuilding').value.trim();
     const p = el('addrPincode').value.trim();
@@ -1394,33 +1989,38 @@ async function validateAndSaveAddressStep() {
 
     if (!h) {
         errors.push('House / Office No. is required');
-        errorFields.push('err-addrHouse');
+        showFieldError('addrHouse', 'err-addrHouse', 'House / Office No. is required.');
+    } else {
+        markFieldValid('addrHouse');
     }
+    
     if (!b) {
         errors.push('Society / Building Name is required');
-        errorFields.push('err-addrBuilding');
+        showFieldError('addrBuilding', 'err-addrBuilding', 'Society / Building Name is required.');
+    } else {
+        markFieldValid('addrBuilding');
     }
+    
     if (!p) {
         errors.push('Pincode is required');
-        errorFields.push('err-addrPincode');
+        showFieldError('addrPincode', 'err-addrPincode', 'Pincode is required.');
     } else if (!/^[0-9]{6}$/.test(p)) {
         errors.push('Pincode must be a valid 6-digit number');
-        errorFields.push('err-addrPincode');
+        showFieldError('addrPincode', 'err-addrPincode', 'Pincode must be a valid 6-digit number');
+    } else {
+        markFieldValid('addrPincode');
     }
+    
     if (!f) {
         errors.push('Full address is required');
-        errorFields.push('err-addrFull');
+        showFieldError('addrFull', 'err-addrFull', 'Full address is required.');
+    } else {
+        markFieldValid('addrFull');
     }
 
     // Show all errors at once if any
     if (errors.length > 0) {
         // Show error fields
-        errorFields.forEach(fieldId => {
-            const errorEl = el(fieldId);
-            if (errorEl) errorEl.style.display = 'block';
-        });
-        
-        // Show SweetAlert with all errors
         const errorMessage = '• ' + errors.join('<br>• ');
         await showSweetAlert('error', 'Validation Error', errorMessage, true);
         return false;
@@ -1498,10 +2098,31 @@ document.querySelectorAll('.step-btn').forEach(b => {
             return;
         }
         
-        // If trying to go to property step but OTP not verified
-        if (propertyStepNumber && target === propertyStepNumber && !state.otpVerified && contactStepNumber) {
-            showSweetAlert('warning', 'OTP Verification Required', 'Please complete the Contact step and verify OTP first.');
-            return;
+        // If trying to go to property/address/verify/payment steps but OTP not verified
+        if (!state.otpVerified && contactStepNumber) {
+            const addressStepNum = getStepNumber('address');
+            const verifyStepNum = getStepNumber('verify');
+            const paymentStepNum = getStepNumber('payment');
+            
+            // Check if trying to access any step other than contact
+            if ((propertyStepNumber && target === propertyStepNumber) ||
+                (addressStepNum && target === addressStepNum) ||
+                (verifyStepNum && target === verifyStepNum) ||
+                (paymentStepNum && target === paymentStepNum)) {
+                // Mark that user attempted to access other tabs
+                state.attemptedOtherTabs = true;
+                // Show notification
+                await showSweetAlert('info', 'First Verify Account', 'Please verify your account by completing the Contact details & verification step first.');
+                // Navigate back to contact step
+                showStep(contactStepNumber);
+                return;
+            }
+        }
+        
+        // If returning to contact tab after attempting other tabs, show popup
+        if (targetKey === 'contact' && state.attemptedOtherTabs && !state.otpVerified) {
+            await showSweetAlert('info', 'Contact Locked', 'Contact details are locked after verification. Please verify your OTP to continue.');
+            state.attemptedOtherTabs = false; // Reset flag after showing popup
         }
         
         // Always validate and save current step before navigating (if it's a form step)
@@ -1539,6 +2160,19 @@ document.querySelectorAll('.step-btn').forEach(b => {
         if (targetKey === 'verify') {
             if (!isAddressStepCompleted()) {
                 await showSweetAlert('warning', 'Address Required', 'Please complete the Address step before viewing the verification summary.');
+                // Navigate to address step instead
+                const addressStepNum = getStepNumber('address');
+                if (addressStepNum) {
+                    showStep(addressStepNum);
+                }
+                return;
+            }
+        }
+        
+        // Special check: If trying to go to payment, ensure address is completed
+        if (targetKey === 'payment') {
+            if (!isAddressStepCompleted()) {
+                await showSweetAlert('warning', 'Address Required', 'Please complete the Address step before proceeding to payment.');
                 // Navigate to address step instead
                 const addressStepNum = getStepNumber('address');
                 if (addressStepNum) {

@@ -84,6 +84,7 @@ Route::group(['prefix' => 'brokerx', 'as' => 'brokerx.', 'middleware' => ['web',
 
 // Public frontend routes
 Route::get('/', [FrontendController::class, 'index'])->name('frontend.index');
+Route::get('/login', [FrontendController::class, 'login'])->name('frontend.login');
 Route::get('/setup', [FrontendController::class, 'setup'])->name('frontend.setup');
 Route::post('/setup', [FrontendController::class, 'storeBooking'])->name('frontend.setup.store');
 Route::get('/privacy-policy', [FrontendController::class, 'privacyPolicy'])->name('frontend.privacy-policy');
@@ -110,7 +111,9 @@ Route::middleware('auth')->get('/frontend/setup/user-bookings', [FrontendControl
 Route::post('/frontend/setup/payment/create-session', [FrontendController::class, 'createCashfreeSession'])->name('frontend.setup.payment.session');
 Route::post('/frontend/setup/payment/status', [FrontendController::class, 'refreshCashfreeStatus'])->name('frontend.setup.payment.status');
 Route::get('/frontend/setup/payment/callback', [FrontendController::class, 'cashfreeCallback'])->name('frontend.cashfree.callback');
+Route::get('/frontend/receipt/download/{booking_id}', [FrontendController::class, 'downloadReceipt'])->name('frontend.download-receipt')->middleware('auth');
 
 // Public OTP routes for frontend (no auth required)
 Route::post('/frontend/check-user-send-otp', [FrontendController::class, 'checkUserAndSendOtp'])->name('frontend.check-user-send-otp');
 Route::post('/frontend/verify-user-otp', [FrontendController::class, 'verifyUserOtp'])->name('frontend.verify-user-otp');
+Route::post('/frontend/login/send-otp', [FrontendController::class, 'sendLoginOtp'])->name('frontend.login.send-otp');

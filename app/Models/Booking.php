@@ -20,6 +20,11 @@ class Booking extends Model
         'city_id',
         'state_id',
         'furniture_type',
+        'other_option_details',
+        'firm_name',
+        'gst_no',
+        'tour_final_link',
+        'tour_code',
         'area',
         'price',
         'house_no',
@@ -100,5 +105,119 @@ class Booking extends Model
     public function deleter()
     {
         return $this->belongsTo(User::class, 'deleted_by');
+    }
+
+    /**
+     * Check if booking has complete property data
+     * Based on validation logic from setup page
+     */
+    public function hasCompletePropertyData(): bool
+    {
+        // Owner Type is required
+        if (empty($this->owner_type)) {
+            return false;
+        }
+
+        // Property Type is required
+        if (empty($this->property_type_id)) {
+            return false;
+        }
+
+        // Get property type name to determine which validations apply
+        $propertyTypeName = $this->propertyType?->name ?? '';
+        $isResidential = stripos($propertyTypeName, 'residential') !== false;
+        $isCommercial = stripos($propertyTypeName, 'commercial') !== false;
+        $isOther = !$isResidential && !$isCommercial;
+
+        // Residential validations
+        if ($isResidential) {
+            // Property Sub Type is required
+            if (empty($this->property_sub_type_id)) {
+                return false;
+            }
+            // Furnish Type is required
+            if (empty($this->furniture_type)) {
+                return false;
+            }
+            // Size (BHK/RK) is required
+            if (empty($this->bhk_id)) {
+                return false;
+            }
+            // Area is required and must be greater than 0
+            if (empty($this->area) || floatval($this->area) <= 0) {
+                return false;
+            }
+        }
+
+        // Commercial validations
+        if ($isCommercial) {
+            // Property Sub Type is required
+            if (empty($this->property_sub_type_id)) {
+                return false;
+            }
+            // Furnish Type is required
+            if (empty($this->furniture_type)) {
+                return false;
+            }
+            // Area is required and must be greater than 0
+            if (empty($this->area) || floatval($this->area) <= 0) {
+                return false;
+            }
+        }
+
+        // Other validations
+        if ($isOther) {
+            // For "Other" property type, we need either:
+            // 1. Property Sub Type selected (if available), OR
+            // 2. Other option details filled
+            // Area is required and must be greater than 0
+            if (empty($this->area) || floatval($this->area) <= 0) {
+                return false;
+            }
+            // Check if either property_sub_type_id or other_option_details is filled
+            if (empty($this->property_sub_type_id) && empty($this->other_option_details)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Check if booking has complete address data
+     * Based on validation logic from setup page
+     */
+    public function hasCompleteAddressData(): bool
+    {
+        // House / Office No. is required
+        if (empty($this->house_no)) {
+            return false;
+        }
+
+        // Society / Building Name is required
+        if (empty($this->building)) {
+            return false;
+        }
+
+        // Pincode is required and must be 6 digits
+        if (empty($this->pin_code) || !preg_match('/^[0-9]{6}$/', $this->pin_code)) {
+            return false;
+        }
+
+        // Full address is required
+        if (empty($this->full_address)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Check if booking is ready for payment
+     * Both property and address data must be complete
+     */
+    public function isReadyForPayment(): bool
+    {
+        return $this->hasCompletePropertyData() && $this->hasCompleteAddressData();
     }
 }

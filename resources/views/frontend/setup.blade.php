@@ -130,6 +130,83 @@
         .swal2-html-container div {
             padding-left: 0.5rem !important;
         }
+        
+        /* Form Validation Error Styling */
+        .error {
+            display: none;
+            color: #dc3545;
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+            font-weight: 500;
+        }
+        
+        .error.show {
+            display: block;
+        }
+        
+        .form-control.is-invalid,
+        .form-select.is-invalid,
+        textarea.form-control.is-invalid {
+            border-color: #dc3545 !important;
+            box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
+        }
+        
+        .form-control.is-valid,
+        .form-select.is-valid,
+        textarea.form-control.is-valid {
+            border-color: #28a745 !important;
+            box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25) !important;
+        }
+        
+        .form-control:focus.is-invalid,
+        .form-select:focus.is-invalid,
+        textarea.form-control:focus.is-invalid {
+            border-color: #dc3545 !important;
+            box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
+        }
+        
+        .form-control:focus.is-valid,
+        .form-select:focus.is-valid,
+        textarea.form-control:focus.is-valid {
+            border-color: #28a745 !important;
+            box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25) !important;
+        }
+        
+        /* Error styling for pill containers */
+        #ownerTypeContainer.has-error,
+        #propertyTypeContainer.has-error {
+            border: 2px solid #dc3545;
+            border-radius: 8px;
+            padding: 8px;
+            background-color: rgba(220, 53, 69, 0.05);
+        }
+        
+        #ownerTypeContainer.has-error .top-pill,
+        #propertyTypeContainer.has-error .top-pill {
+            border: 1px solid rgba(220, 53, 69, 0.3);
+        }
+        
+        /* Error styling for chip and pill containers */
+        #resTypeContainer.has-error,
+        #comTypeContainer.has-error,
+        #resFurnishContainer.has-error,
+        #comFurnishContainer.has-error,
+        #resSizeContainer.has-error,
+        #othLookingContainer.has-error {
+            border: 2px solid #dc3545;
+            border-radius: 8px;
+            padding: 8px;
+            background-color: rgba(220, 53, 69, 0.05);
+        }
+        
+        #resTypeContainer.has-error .top-pill,
+        #comTypeContainer.has-error .top-pill,
+        #resFurnishContainer.has-error .chip,
+        #comFurnishContainer.has-error .chip,
+        #resSizeContainer.has-error .chip,
+        #othLookingContainer.has-error .top-pill {
+            border: 1px solid rgba(220, 53, 69, 0.3);
+        }
     </style>
 @endsection
 
@@ -211,6 +288,7 @@
                                         <i class="fa-solid fa-circle-info me-2"></i>
                                         <strong>OTP Sent!</strong> Your verification code has been delivered to your Phone and WhatsApp. Enter the OTP to continue.
                                     </div>
+                                    <div id="demoOtp" class="muted-small text-muted hidden mt-2 mb-2">[demo OTP: <strong id="demoOtpCode"></strong>]</div>
                                     <div class="col-12 muted-small">Didn't receive? <a href="#" class="text-primary fw-semibold" id="resendOtp">Resend</a></div>
                                 </div>
                             </div>
@@ -249,15 +327,17 @@
 
                             <div class="mb-3">
                                 <div class="section-title">Owner Type <span class="text-danger">*</span></div>
-                                <div class="d-flex gap-2">
+                                <div class="d-flex gap-2" id="ownerTypeContainer">
                                     <div class="top-pill" data-group="ownerType" data-value="Owner" onclick="topPillClick(this)">Owner</div>
                                     <div class="top-pill" data-group="ownerType" data-value="Broker" onclick="topPillClick(this)">Broker</div>
                                 </div>
+                                <div id="err-ownerType" class="error">Owner Type is required.</div>
                             </div>
+                            
                             <!-- PROPERTY TYPE TAB -->
                             <div class="mb-3">
                                 <div class="section-title">Property Type<span class="text-danger">*</span></div>
-                                <div class="d-flex flex-column flex-sm-row gap-2">
+                                <div class="d-flex flex-column flex-sm-row gap-2" id="propertyTypeContainer">
                                     @foreach($propTypes as $type)
                                         @php
                                             $map = [
@@ -281,12 +361,13 @@
                                         </div>
                                     @endforeach
                                 </div>
+                                <div id="err-propertyType" class="error">Property Type is required.</div>
                             </div>
 
                             <!-- PROPERTY SUB TYPE TAB -->
-                            <div id="tab-res">
+                            <div id="tab-res" style="display:none;">
                                 <div class="section-title">Property Sub Type<span class="text-danger">*</span></div>
-                                <div class="d-wrap gap-2 mb-3">
+                                <div class="d-wrap gap-2 mb-3" id="resTypeContainer">
                                     @php
                                         $residentialType = $propTypes->firstWhere('name', 'Residential');
                                         $residentialSubTypes = $residentialType ? $residentialType->subTypes : [];
@@ -302,20 +383,23 @@
                                         <div class="text-muted">No residential types available</div>
                                     @endforelse
                                 </div>
+                                <div id="err-resType" class="error">Property Sub Type is required.</div>
                                 <div class="section-title">Furnish Type<span class="text-danger">*</span></div>
-                                <div class="d-flex flex-column flex-sm-row gap-2 mb-3">
+                                <div class="d-flex flex-column flex-sm-row gap-2 mb-3" id="resFurnishContainer">
                                     <div class="chip" data-group="resFurnish" data-value="Fully Furnished" onclick="selectChip(this)"><i class="bi bi-sofa"></i> Fully Furnished</div>
                                     <div class="chip" data-group="resFurnish" data-value="Semi Furnished" onclick="selectChip(this)"><i class="bi bi-lamp"></i> Semi Furnished</div>
                                     <div class="chip" data-group="resFurnish" data-value="Unfurnished" onclick="selectChip(this)"><i class="bi bi-door-closed"></i> Unfurnished</div>
                                 </div>
-                                <div class="section-title">Size (BHK / RK)</div>
-                                <div class="d-flex flex-column flex-sm-row gap-2 mb-3">
+                                <div id="err-resFurnish" class="error">Furnish Type is required.</div>
+                                <div class="section-title">Size (BHK / RK) <span class="text-danger">*</span></div>
+                                <div class="d-flex flex-column flex-sm-row gap-2 mb-3" id="resSizeContainer">
                                     @forelse($bhk as $bhkItem)
                                     <div class="chip" data-group="resSize" data-value="{{ $bhkItem->id }}" onclick="selectChip(this)">{{ $bhkItem->name }}</div>
                                     @empty
                                         <div class="chip" data-group="resSize" data-value="null" onclick="selectChip(this)">Not Found</div>
                                     @endforelse
                                 </div>
+                                <div id="err-resSize" class="error">Size (BHK / RK) is required.</div>
                                 <div class="mb-3">
                                     <div class="section-title">Super Built-up Area (sq. ft.) <span class="text-danger">*</span></div>
                                     <input id="resArea" name="residential_area" class="form-control" type="number" min="1" placeholder="e.g., 1200" />
@@ -326,7 +410,7 @@
                             <!-- COMMERCIAL TAB -->
                             <div id="tab-com" style="display:none;">
                                 <div class="section-title">Property Sub Type<span class="text-danger">*</span></div>
-                                <div class="d-flex flex-column flex-sm-row gap-2 mb-3">
+                                <div class="d-flex flex-column flex-sm-row gap-2 mb-3" id="comTypeContainer">
                                     @php
                                         $commercialType = $propTypes->firstWhere('name', 'Commercial');
                                         $commercialSubTypes = $commercialType ? $commercialType->subTypes : [];
@@ -342,13 +426,15 @@
                                         <div class="text-muted">No commercial types available</div>
                                     @endforelse
                                 </div>
+                                <div id="err-comType" class="error">Property Sub Type is required.</div>
                                 <!-- FURNATURE TABL -->
                                 <div class="section-title">Furnish Type<span class="text-danger">*</span></div>
-                                <div class="d-flex flex-column flex-sm-row gap-2 mb-3">
+                                <div class="d-flex flex-column flex-sm-row gap-2 mb-3" id="comFurnishContainer">
                                     <div class="chip" data-group="comFurnish" data-value="Fully Furnished" onclick="selectChip(this)">Fully Furnished</div>
                                     <div class="chip" data-group="comFurnish" data-value="Semi Furnished" onclick="selectChip(this)">Semi Furnished</div>
                                     <div class="chip" data-group="comFurnish" data-value="Unfurnished" onclick="selectChip(this)">Unfurnished</div>
                                 </div>
+                                <div id="err-comFurnish" class="error">Furnish Type is required.</div>
                                 <div class="mb-3">
                                     <div class="section-title">Super Built-up Area (sq. ft.) <span class="text-danger">*</span></div>
                                     <input id="comArea" name="commercial_area" class="form-control" type="number" min="1" placeholder="e.g., 900" />
@@ -360,7 +446,7 @@
                             <div id="tab-oth" style="display:none;">
                                 <div class="mb-3">
                                     <div style="font-weight:700; margin-bottom:8px">Select Option <span class="text-danger">*</span></div>
-                                    <div class="d-flex flex-column flex-sm-row gap-2">
+                                    <div class="d-flex flex-column flex-sm-row gap-2" id="othLookingContainer">
                                         @php
                                             $otherType = $propTypes->firstWhere('name', 'Other');
                                             $otherSubTypes = $otherType ? $otherType->subTypes : [];
@@ -379,14 +465,58 @@
                                     <div id="err-othLooking" class="error">Select an option or enter Other option.</div>
                                 </div>
                                 <div class="mb-3">
-                                    <div class="section-title">Other Option</div>
-                                    <textarea id="othDesc" name="other_description" class="form-control" rows="3"></textarea>
+                                    <div class="section-title">Other Option Details</div>
+                                    <textarea id="othDesc" name="other_option_details" class="form-control" rows="3" placeholder="Enter other option details"></textarea>
                                     <div id="err-othDesc" class="error">Other option is required if none of the options are selected.</div>
                                 </div>
                                 <div class="mb-3">
                                     <div class="section-title">Super Built-up Area (sq. ft.)<span class="text-danger">*</span></div>
                                     <input id="othArea" name="other_area" class="form-control" type="number" min="1" />
                                     <div id="err-othArea" class="error">Area is required.</div>
+                                </div>
+                            </div>
+
+                            
+                            <!-- Different Billing Name Checkbox -->
+                            <div class="mb-3 mt-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="differentBillingName" name="different_billing_name">
+                                    <label class="form-check-label" for="differentBillingName">
+                                        Use company billing details
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Firm Name and GST No (hidden by default) -->
+                            <div id="billingDetailsRow" class="row" style="display:none;">
+                                <div class="col-md-6">
+                                    <div class="">
+                                        <div class="section-title">Company Name <span class="text-danger">*</span></div>
+                                        <input id="firmName" name="firm_name" class="form-control mb-0" type="text" placeholder="Enter Company Name" />
+                                        <div id="err-firmName" class="error">Company Name is required.</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="">
+                                        <div class="section-title">GST No <span class="text-danger">*</span></div>
+                                        <input id="gstNo" name="gst_no" class="form-control mb-0" type="text" placeholder="Enter GST number" />
+                                        <div id="err-gstNo" class="error">GST No is required.</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Terms and Conditions Checkbox -->
+                            <div class="mb-3 mt-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="agreeTerms" name="agree_terms" checked required>
+                                    <label class="form-check-label" for="agreeTerms">
+                                        I agree to PROP PIK 
+                                        <a href="{{ route('frontend.terms') }}" target="_blank" class="text-primary fw-semibold">Terms and Conditions</a> AND 
+                                        <a href="{{ route('frontend.refund-policy') }}" target="_blank" class="text-primary fw-semibold">Refund Policy</a> AND 
+                                        <a href="{{ route('frontend.privacy-policy') }}" target="_blank" class="text-primary fw-semibold">Privacy Policy</a>
+                                        <span class="text-danger">*</span>
+                                    </label>
+                                    <div id="err-agreeTerms" class="error">You must agree to the terms and conditions to continue.</div>
                                 </div>
                             </div>
 
@@ -433,7 +563,7 @@
                                 </div>
                                 <div class="col-12">
                                     <label class="form-label">Full address (street / area) <span class="text-danger">*</span></label>
-                                    <textarea id="addrFull" name="full_address" class="form-control" rows="3" placeholder="Complete address..."></textarea>
+                                    <textarea id="addrFull" name="full_address" class="form-control mb-0" rows="3" placeholder="Complete address..."></textarea>
                                     <div id="err-addrFull" class="error">Full address is required.</div>
                                 </div>
                             </div>

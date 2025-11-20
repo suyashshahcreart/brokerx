@@ -17,7 +17,7 @@
                     <li><a href="{{ route('frontend.terms') }}">Terms and Conditions</a></li>
                     <li><a href="{{ route('frontend.refund-policy') }}">Refund Policy</a></li>
                     <li><a href="{{ route('frontend.privacy-policy') }}">Privacy Policy</a></li>
-                    <li><a href="{{ route('login') }}">Login</a></li>
+                    <li><a href="{{ route('frontend.login') }}">Login</a></li>
                 </ul>
             </div>
             <div class="col-lg-3 col-md-12">

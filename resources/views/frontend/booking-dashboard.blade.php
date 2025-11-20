@@ -59,6 +59,83 @@
             border-radius: 8px !important;
             padding: 0.6rem 2rem !important;
         }
+        
+        /* Validation Styles - Matching Setup Page */
+        .error {
+            display: none;
+            color: #dc3545;
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+            font-weight: 500;
+        }
+        
+        .error.show {
+            display: block;
+        }
+        
+        .form-control.is-invalid,
+        .form-select.is-invalid,
+        textarea.form-control.is-invalid {
+            border-color: #dc3545 !important;
+            box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
+        }
+        
+        .form-control.is-valid,
+        .form-select.is-valid,
+        textarea.form-control.is-valid {
+            border-color: #28a745 !important;
+            box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25) !important;
+        }
+        
+        .form-control:focus.is-invalid,
+        .form-select:focus.is-invalid,
+        textarea.form-control:focus.is-invalid {
+            border-color: #dc3545 !important;
+            box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
+        }
+        
+        .form-control:focus.is-valid,
+        .form-select:focus.is-valid,
+        textarea.form-control:focus.is-valid {
+            border-color: #28a745 !important;
+            box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25) !important;
+        }
+        
+        /* Error styling for pill containers */
+        #editOwnerTypeContainer.has-error,
+        #editPropertyTypeContainer.has-error {
+            border: 2px solid #dc3545;
+            border-radius: 8px;
+            padding: 8px;
+            background-color: rgba(220, 53, 69, 0.05);
+        }
+        
+        #editOwnerTypeContainer.has-error .top-pill,
+        #editPropertyTypeContainer.has-error .top-pill {
+            border: 1px solid rgba(220, 53, 69, 0.3);
+        }
+        
+        /* Error styling for chip and pill containers */
+        #editResTypesContainer.has-error,
+        #editComTypesContainer.has-error,
+        #editOthTypesContainer.has-error,
+        .edit-res-furnish-container.has-error,
+        .edit-com-furnish-container.has-error,
+        .edit-res-size-container.has-error {
+            border: 2px solid #dc3545;
+            border-radius: 8px;
+            padding: 8px;
+            background-color: rgba(220, 53, 69, 0.05);
+        }
+        
+        #editResTypesContainer.has-error .top-pill,
+        #editComTypesContainer.has-error .top-pill,
+        #editOthTypesContainer.has-error .top-pill,
+        .edit-res-furnish-container.has-error .chip,
+        .edit-com-furnish-container.has-error .chip,
+        .edit-res-size-container.has-error .chip {
+            border: 1px solid rgba(220, 53, 69, 0.3);
+        }
     </style>
 @endsection
 
@@ -163,9 +240,16 @@
                                 $userPhone = $booking->user->mobile ?? 'N/A';
                                 $ownerType = $booking->user ? 'Owner' : 'N/A';
                                 
-                                // Address
-                                $addressDisplay =  $booking->full_address ?? $booking->address_area ?? 'N/A';
-                                $addressDisplay = $booking->house_no . ', ' . $booking->building . ', ' . $booking->society_name . ', ' . $booking->address_area . ', ' . $booking->landmark . ', ' . $booking->full_address;
+                                // Address - only show fields that have values
+                                $addressParts = [];
+                                if (!empty($booking->house_no)) $addressParts[] = $booking->house_no;
+                                if (!empty($booking->building)) $addressParts[] = $booking->building;
+                                if (!empty($booking->society_name)) $addressParts[] = $booking->society_name;
+                                if (!empty($booking->address_area)) $addressParts[] = $booking->address_area;
+                                if (!empty($booking->landmark)) $addressParts[] = $booking->landmark;
+                                if (!empty($booking->full_address)) $addressParts[] = $booking->full_address;
+                                
+                                $addressDisplay = !empty($addressParts) ? implode(', ', $addressParts) : 'N/A';
                             @endphp
                             
                             <div class="col-md-6 col-lg-4">
@@ -173,7 +257,20 @@
                                     <div class="card-body">
                                         <div class="d-flex justify-content-between align-items-start mb-3">
                                             <h5 class="card-title mb-0">{{ $propertyType ?: 'Property' }}</h5>
-                                            <span class="badge bg-{{ $statusClass }}">{{ $statusText }}</span>
+                                            <div class="d-flex gap-1">
+                                                @if($isPaymentPaid)
+                                                    {{-- Payment is paid - show Paid tag (green) and scheduling status --}}
+                                                    <span class="badge bg-success">Paid</span>
+                                                    @if($scheduledDate)
+                                                        <span class="badge bg-success">Scheduled</span>
+                                                    @else
+                                                        <span class="badge bg-warning">Not Scheduled</span>
+                                                    @endif
+                                                @else
+                                                    {{-- Payment not paid - show only Pending tag --}}
+                                                    <span class="badge bg-warning">Pending</span>
+                                                @endif
+                                            </div>
                                         </div>
                                         
                                         @if($propertyDetails)
@@ -183,14 +280,14 @@
                                         @endif
                                         
                                         <div class="mb-2">
-                                            <small class="text-muted"><i class="fa-solid fa-location-dot me-1"></i><strong>Address:</strong></small>
+                                            <small class="text-muted"><i class="fa-solid fa-location-dot me-1"></i><strong>Address: </strong>  {{ $addressDisplay }}</small>
                                             <div class="ms-4 mt-1">
-                                                <small class="text-muted d-block">{{ $addressDisplay }}</small>
+                                                <small class="text-muted d-block"></small>
                                             </div>
                                         </div>
                                         
                                         
-                                        
+                                        {{-- Show scheduling details only when payment is paid --}}
                                         @if($scheduledDate)
                                             <div class="mb-2">
                                                 <small class="text-success"><i class="fa-solid fa-calendar-check me-1"></i><strong>Scheduled:</strong> {{ $scheduledDate }} at {{ $booking->scheduled_time ?? 'TBD' }}</small>
@@ -236,13 +333,17 @@
                                                     </button>
                                                 @endif
                                             @else
-                                                {{-- Payment not paid - show View, Edit, and Make Payment buttons --}}
+                                                {{-- Payment not paid - show View and Edit buttons always --}}
                                                 <button class="btn btn-sm btn-warning flex-fill" onclick="openEditModal({{ $booking->id }})">
                                                     <i class="fa-solid fa-edit me-1"></i>Edit
                                                 </button>
-                                                <button class="btn btn-sm btn-success flex-fill" onclick="initiatePayment({{ $booking->id }})">
-                                                    <i class="fa-solid fa-credit-card me-1"></i>Pay
-                                                </button>
+                                                
+                                                {{-- Pay button - only show if property and address data are complete --}}
+                                                @if($booking->isReadyForPayment())
+                                                    <button class="btn btn-sm btn-success flex-fill" onclick="initiatePayment({{ $booking->id }})">
+                                                        <i class="fa-solid fa-credit-card me-1"></i>Pay
+                                                    </button>
+                                                @endif
                                             @endif
                                         </div>
                                     </div>
@@ -363,16 +464,18 @@
                                 <input type="hidden" id="editChoiceOthLooking" name="other_looking">
                                 <input type="hidden" id="editMainPropertyType" name="main_property_type" value="Residential">
 
-                                <div class="mb-3">
+                                <div class="mb-3" id="editOwnerTypeContainer">
                                     <div class="section-title">Owner Type <span class="text-danger">*</span></div>
                                     <div class="d-flex gap-2">
                                         <div class="top-pill" data-group="editOwnerType" data-value="Owner" onclick="editTopPillClick(this)">Owner</div>
                                         <div class="top-pill" data-group="editOwnerType" data-value="Broker" onclick="editTopPillClick(this)">Broker</div>
                                     </div>
+                                    <div id="err-editOwnerType" class="error">Owner Type is required.</div>
                                 </div>
+                                
 
                                 <!-- PROPERTY TYPE TAB -->
-                                <div class="mb-3">
+                                <div class="mb-3" id="editPropertyTypeContainer">
                                     <div class="section-title">Property Type<span class="text-danger">*</span></div>
                                     <div class="d-flex flex-column flex-sm-row gap-2">
                                         @foreach($types ?? [] as $type)
@@ -398,10 +501,11 @@
                                             </div>
                                         @endforeach
                                     </div>
+                                    <div id="err-editPropertyType" class="error">Property Type is required.</div>
                                 </div>
 
                                 <!-- RESIDENTIAL TAB -->
-                                <div id="editTabRes">
+                                <div id="editTabRes" style="display:none;">
                                     <div class="section-title">Property Sub Type<span class="text-danger">*</span></div>
                                     <div class="d-wrap gap-2 mb-3" id="editResTypesContainer">
                                         @php
@@ -419,24 +523,27 @@
                                             <div class="text-muted">No residential types available</div>
                                         @endforelse
                                     </div>
+                                    <div id="err-editResType" class="error">Property Sub Type is required.</div>
                                     <div class="section-title">Furnish Type<span class="text-danger">*</span></div>
-                                    <div class="d-flex flex-column flex-sm-row gap-2 mb-3">
+                                    <div class="d-flex flex-column flex-sm-row gap-2 mb-3 edit-res-furnish-container">
                                         <div class="chip" data-group="editResFurnish" data-value="Fully Furnished" onclick="editSelectChip(this)"><i class="bi bi-sofa"></i> Fully Furnished</div>
                                         <div class="chip" data-group="editResFurnish" data-value="Semi Furnished" onclick="editSelectChip(this)"><i class="bi bi-lamp"></i> Semi Furnished</div>
                                         <div class="chip" data-group="editResFurnish" data-value="Unfurnished" onclick="editSelectChip(this)"><i class="bi bi-door-closed"></i> Unfurnished</div>
                                     </div>
-                                    <div class="section-title">Size (BHK / RK)</div>
-                                    <div class="d-flex flex-column flex-sm-row gap-2 mb-3">
+                                    <div id="err-editResFurnish" class="error">Furnish Type is required.</div>
+                                    <div class="section-title">Size (BHK / RK) <span class="text-danger">*</span></div>
+                                    <div class="d-flex flex-column flex-sm-row gap-2 mb-3 edit-res-size-container">
                                         @forelse($bhk ?? [] as $bhkItem)
                                         <div class="chip" data-group="editResSize" data-value="{{ $bhkItem->id }}" onclick="editSelectChip(this)">{{ $bhkItem->name }}</div>
                                         @empty
                                             <div class="chip" data-group="editResSize" data-value="null" onclick="editSelectChip(this)">Not Found</div>
                                         @endforelse
                                     </div>
+                                    <div id="err-editResSize" class="error">Size (BHK / RK) is required.</div>
                                     <div class="mb-3">
                                         <div class="section-title">Super Built-up Area (sq. ft.) <span class="text-danger">*</span></div>
                                         <input id="editResArea" name="residential_area" class="form-control" type="number" min="1" placeholder="e.g., 1200" oninput="updateEditPrice()" />
-                                        <div id="err-editResArea" class="error">Area is required.</div>
+                                        <div id="err-editResArea" class="error">Super Built-up Area is required and must be greater than 0.</div>
                                     </div>
                                 </div>
 
@@ -459,16 +566,18 @@
                                             <div class="text-muted">No commercial types available</div>
                                         @endforelse
                                     </div>
+                                    <div id="err-editComType" class="error">Property Sub Type is required.</div>
                                     <div class="section-title">Furnish Type<span class="text-danger">*</span></div>
-                                    <div class="d-flex flex-column flex-sm-row gap-2 mb-3">
+                                    <div class="d-flex flex-column flex-sm-row gap-2 mb-3 edit-com-furnish-container">
                                         <div class="chip" data-group="editComFurnish" data-value="Fully Furnished" onclick="editSelectChip(this)">Fully Furnished</div>
                                         <div class="chip" data-group="editComFurnish" data-value="Semi Furnished" onclick="editSelectChip(this)">Semi Furnished</div>
                                         <div class="chip" data-group="editComFurnish" data-value="Unfurnished" onclick="editSelectChip(this)">Unfurnished</div>
                                     </div>
+                                    <div id="err-editComFurnish" class="error">Furnish Type is required.</div>
                                     <div class="mb-3">
                                         <div class="section-title">Super Built-up Area (sq. ft.) <span class="text-danger">*</span></div>
                                         <input id="editComArea" name="commercial_area" class="form-control" type="number" min="1" placeholder="e.g., 2000" oninput="updateEditPrice()" />
-                                        <div id="err-editComArea" class="error">Area is required.</div>
+                                        <div id="err-editComArea" class="error">Super Built-up Area is required and must be greater than 0.</div>
                                     </div>
                                 </div>
 
@@ -491,14 +600,26 @@
                                             <div class="text-muted">No other types available</div>
                                         @endforelse
                                     </div>
+                                    <div id="err-editOthLooking" class="error">Please select an option or enter Other option.</div>
                                     <div class="mb-3">
-                                        <div class="section-title">Other Description</div>
-                                        <textarea id="editOthDesc" name="other_description" class="form-control" rows="2" placeholder="Describe what you're looking for..."></textarea>
+                                        <div class="section-title">Other Option Details</div>
+                                        <textarea id="editOthDesc" name="other_option_details" class="form-control" rows="2" placeholder="Enter other option details"></textarea>
+                                        <div id="err-editOthDesc" class="error">Other option is required if none of the options are selected.</div>
                                     </div>
                                     <div class="mb-3">
                                         <div class="section-title">Super Built-up Area (sq. ft.) <span class="text-danger">*</span></div>
                                         <input id="editOthArea" name="other_area" class="form-control" type="number" min="1" placeholder="e.g., 1500" oninput="updateEditPrice()" />
-                                        <div id="err-editOthArea" class="error">Area is required.</div>
+                                        <div id="err-editOthArea" class="error">Super Built-up Area is required and must be greater than 0.</div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="section-title">Firm Name</div>
+                                        <input id="editFirmName" name="firm_name" class="form-control" type="text" placeholder="Enter firm name (optional)" />
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="section-title">GST No</div>
+                                        <input id="editGstNo" name="gst_no" class="form-control" type="text" placeholder="Enter GST number (optional)" />
                                     </div>
                                 </div>
                             </div>
@@ -514,14 +635,17 @@
                                     <div class="col-md-6">
                                         <label class="form-label">House/Office No. <span class="text-danger">*</span></label>
                                         <input type="text" class="form-control" id="editHouseNo" required>
+                                        <div id="err-editHouseNo" class="error">House / Office No. is required.</div>
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label">Building/Society Name <span class="text-danger">*</span></label>
                                         <input type="text" class="form-control" id="editBuilding" required>
+                                        <div id="err-editBuilding" class="error">Society / Building Name is required.</div>
                                     </div>
                                     <div class="col-md-4">
                                         <label class="form-label">Pincode <span class="text-danger">*</span></label>
                                         <input type="text" class="form-control" id="editPincode" maxlength="6" required>
+                                        <div id="err-editPincode" class="error">Pincode is required and must be a valid 6-digit number.</div>
                                     </div>
                                     <div class="col-md-4">
                                         <label class="form-label">City <span class="text-danger">*</span></label>
@@ -536,30 +660,33 @@
                                     <div class="col-12">
                                         <label class="form-label">Full Address <span class="text-danger">*</span></label>
                                         <textarea class="form-control" id="editFullAddress" rows="3" required></textarea>
+                                        <div id="err-editFullAddress" class="error">Full address is required.</div>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Payment Required Notice (if payment pending) -->
-                        <div class="card mb-3" id="editPaymentRequiredCard" style="border-radius:12px; display:none;">
-                            <div class="card-header bg-warning">
-                                <h6 class="mb-0"><i class="fa-solid fa-exclamation-triangle me-2"></i>Payment Required</h6>
-                            </div>
-                            <div class="card-body">
-                                <div class="alert alert-info mb-3" role="alert">
-                                    <i class="fa-solid fa-info-circle me-2"></i>
-                                    <strong>Make payment first, then schedule your deals.</strong> Please complete the payment to proceed with scheduling.
+                        <div class="d-none">
+                            <div class="card mb-3" id="editPaymentRequiredCard" style="border-radius:12px; display:none;">
+                                <div class="card-header bg-warning">
+                                    <h6 class="mb-0"><i class="fa-solid fa-exclamation-triangle me-2"></i>Payment Required</h6>
                                 </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Price (₹) <span class="text-danger">*</span></label>
-                                    <input type="number" class="form-control" id="editPaymentPrice" readonly>
-                                    <small class="text-muted">Calculated based on area (sq. ft.)</small>
+                                <div class="card-body">
+                                    <div class="alert alert-info mb-3" role="alert">
+                                        <i class="fa-solid fa-info-circle me-2"></i>
+                                        <strong>Make payment first, then schedule your deals.</strong> Please complete the payment to proceed with scheduling.
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Price (₹) <span class="text-danger">*</span></label>
+                                        <input type="number" class="form-control" id="editPaymentPrice" readonly>
+                                        <small class="text-muted">Calculated based on area (sq. ft.)</small>
+                                    </div>
+                                    <button type="button" class="btn btn-success w-100" id="editMakePaymentBtn" onclick="initiatePaymentFromEdit()" disabled>
+                                        <i class="fa-solid fa-credit-card me-2"></i>Make Payment
+                                    </button>
+                                    <small class="text-muted d-block text-center mt-2">Secure payment via Cashfree</small>
                                 </div>
-                                <button type="button" class="btn btn-success w-100" id="editMakePaymentBtn" onclick="initiatePaymentFromEdit()" disabled>
-                                    <i class="fa-solid fa-credit-card me-2"></i>Make Payment
-                                </button>
-                                <small class="text-muted d-block text-center mt-2">Secure payment via Cashfree</small>
                             </div>
                         </div>
 
@@ -579,6 +706,7 @@
                                 </div>
                             </div>
                         </div>
+
                     </form>
                 </div>
                 <div class="modal-footer">
@@ -875,11 +1003,34 @@
                                     </div>
                                     <div class="card-body">
                                         <div class="mb-2"><strong>Owner Type:</strong> ${b.owner_type || '-'}</div>
+                                        ${b.firm_name ? `<div class="mb-2"><strong>Firm Name:</strong> ${b.firm_name}</div>` : ''}
+                                        ${b.gst_no ? `<div class="mb-2"><strong>GST No:</strong> ${b.gst_no}</div>` : ''}
                                         <div class="mb-2"><strong>Property Type:</strong> ${b.property_type || '-'}</div>
+                                        
+                                        ${b.property_type === 'Residential' ? `
+                                        <!-- Residential Property Details -->
+                                        <div class="mb-2"><strong>Property Sub Type:</strong> ${b.property_sub_type || '-'}</div>
+                                        <div class="mb-2"><strong>Furnish Type:</strong> ${b.furniture_type || '-'}</div>
+                                        ${b.bhk ? `<div class="mb-2"><strong>Size (BHK / RK):</strong> ${b.bhk}</div>` : ''}
+                                        <div class="mb-0"><strong>Super Built-up Area (sq. ft.):</strong> ${b.area ? b.area.toLocaleString() + ' sq. ft.' : '-'}</div>
+                                        ` : b.property_type === 'Commercial' ? `
+                                        <!-- Commercial Property Details -->
+                                        <div class="mb-2"><strong>Property Sub Type:</strong> ${b.property_sub_type || '-'}</div>
+                                        <div class="mb-2"><strong>Furnish Type:</strong> ${b.furniture_type || '-'}</div>
+                                        <div class="mb-0"><strong>Super Built-up Area (sq. ft.):</strong> ${b.area ? b.area.toLocaleString() + ' sq. ft.' : '-'}</div>
+                                        ` : b.property_type === 'Other' ? `
+                                        <!-- Other Property Details -->
+                                        ${b.property_sub_type ? `<div class="mb-2"><strong>Select Option:</strong> ${b.property_sub_type}</div>` : ''}
+                                        ${b.other_option_details ? `<div class="mb-2"><strong>Other Option Details:</strong> ${b.other_option_details}</div>` : ''}
+                                        <div class="mb-0"><strong>Super Built-up Area (sq. ft.):</strong> ${b.area ? b.area.toLocaleString() + ' sq. ft.' : '-'}</div>
+                                        ` : `
+                                        <!-- Fallback for unknown property type -->
                                         <div class="mb-2"><strong>Property Sub Type:</strong> ${b.property_sub_type || '-'}</div>
                                         <div class="mb-2"><strong>Furniture Type:</strong> ${b.furniture_type || '-'}</div>
-                                        <div class="mb-2"><strong>BHK/Size:</strong> ${b.bhk || '-'}</div>
-                                        <div class="mb-0"><strong>Area:</strong> ${b.area ? b.area + ' sq. ft.' : '-'}</div>
+                                        ${b.other_option_details ? `<div class="mb-2"><strong>Other Option Details:</strong> ${b.other_option_details}</div>` : ''}
+                                        ${b.bhk ? `<div class="mb-2"><strong>BHK/Size:</strong> ${b.bhk}</div>` : ''}
+                                        <div class="mb-0"><strong>Area:</strong> ${b.area ? b.area.toLocaleString() + ' sq. ft.' : '-'}</div>
+                                        `}
                                     </div>
                                 </div>
                             </div>
@@ -945,8 +1096,23 @@
                                 </div>
                             </div>
                             
-                            ${b.payment_status !== 'paid' ? `
-                            <!-- Payment Required Card -->
+                            ${(b.payment_status === 'paid' && b.tour_code && String(b.tour_code).trim() && b.tour_final_link && String(b.tour_final_link).trim()) ? `
+                            <!-- Tour Details (Only shown when payment is paid AND both tour fields have data) -->
+                            <div class="col-md-6">
+                                <div class="card" style="border-radius:12px;">
+                                    <div class="card-header bg-light">
+                                        <h6 class="mb-0"><i class="fa-solid fa-link me-2"></i>Tour Details</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="mb-2"><strong>Tour Code:</strong> ${b.tour_code}</div>
+                                        <div class="mb-0"><strong>Tour Final Link:</strong><br><a href="${b.tour_final_link}" target="_blank" class="text-primary">${b.tour_final_link}</a></div>
+                                    </div>
+                                </div>
+                            </div>
+                            ` : ''}
+                            
+                            ${b.payment_status !== 'paid' && b.is_ready_for_payment ? `
+                            <!-- Payment Required Card - Only show if data is complete -->
                             <div class="col-12">
                                 <div class="card mb-3" style="border-radius:12px;">
                                     <div class="card-header bg-warning">
@@ -961,6 +1127,30 @@
                                             <i class="fa-solid fa-credit-card me-2"></i>Make Payment
                                         </button>
                                         <small class="text-muted d-block text-center mt-2">Secure payment via Cashfree</small>
+                                    </div>
+                                </div>
+                            </div>
+                            ` : ''}
+                            
+                            ${b.payment_status !== 'paid' && !b.is_ready_for_payment ? `
+                            <!-- Incomplete Data Notice -->
+                            <div class="col-12">
+                                <div class="card mb-3" style="border-radius:12px; border: 2px solid #ffc107;">
+                                    <div class="card-header bg-warning">
+                                        <h6 class="mb-0"><i class="fa-solid fa-exclamation-triangle me-2"></i>Complete Required Information</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="alert alert-warning mb-3" role="alert">
+                                            <i class="fa-solid fa-info-circle me-2"></i>
+                                            <strong>Please complete all required property and address details before making payment.</strong>
+                                            <ul class="mb-0 mt-2" style="padding-left: 20px;">
+                                                ${!b.has_complete_property_data ? '<li>Property details are incomplete</li>' : ''}
+                                                ${!b.has_complete_address_data ? '<li>Address details are incomplete</li>' : ''}
+                                            </ul>
+                                        </div>
+                                        <button type="button" class="btn btn-warning w-100" onclick="openEditModal(${b.id})">
+                                            <i class="fa-solid fa-edit me-2"></i>Edit Booking to Complete Details
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -983,6 +1173,80 @@
             }
         }
 
+        // Edit Modal Validation Helper Functions (matching setup.js)
+        function editShowFieldError(fieldId, errorId, message) {
+            const field = document.getElementById(fieldId);
+            const errorEl = document.getElementById(errorId);
+            if (field) {
+                field.classList.remove('is-valid');
+                field.classList.add('is-invalid');
+            }
+            if (errorEl) {
+                errorEl.textContent = message;
+                errorEl.style.display = 'block';
+                errorEl.classList.add('show');
+            }
+        }
+
+        function editHideFieldError(fieldId, errorId) {
+            const field = document.getElementById(fieldId);
+            const errorEl = document.getElementById(errorId);
+            if (field) {
+                field.classList.remove('is-invalid');
+            }
+            if (errorEl) {
+                errorEl.style.display = 'none';
+                errorEl.classList.remove('show');
+            }
+        }
+
+        function editMarkFieldValid(fieldId) {
+            const field = document.getElementById(fieldId);
+            if (field) {
+                field.classList.remove('is-invalid');
+                field.classList.add('is-valid');
+            }
+        }
+
+        function editShowPillContainerError(containerId, errorId, message) {
+            const container = document.getElementById(containerId);
+            const errorEl = document.getElementById(errorId);
+            if (container) {
+                container.classList.add('has-error');
+            }
+            if (errorEl) {
+                errorEl.textContent = message;
+                errorEl.style.display = 'block';
+                errorEl.classList.add('show');
+            }
+        }
+
+        function editHidePillContainerError(containerId, errorId) {
+            const container = document.getElementById(containerId);
+            const errorEl = document.getElementById(errorId);
+            if (container) {
+                container.classList.remove('has-error');
+            }
+            if (errorEl) {
+                errorEl.style.display = 'none';
+                errorEl.classList.remove('show');
+            }
+        }
+
+        function editClearAllFieldErrors() {
+            // Clear all field errors
+            document.querySelectorAll('#editBookingForm .error').forEach(el => {
+                el.style.display = 'none';
+                el.classList.remove('show');
+            });
+            document.querySelectorAll('#editBookingForm .form-control, #editBookingForm .form-select, #editBookingForm textarea').forEach(el => {
+                el.classList.remove('is-invalid', 'is-valid');
+            });
+            document.querySelectorAll('#editBookingForm .has-error').forEach(el => {
+                el.classList.remove('has-error');
+            });
+        }
+
         // Edit Modal Selection Functions (same logic as setup page)
         function editTopPillClick(dom) {
             const group = dom.dataset.group;
@@ -990,8 +1254,13 @@
             dom.classList.add('active');
             if (group === 'editOwnerType') {
                 document.getElementById('editChoiceOwnerType').value = dom.dataset.value;
+                editHidePillContainerError('editOwnerTypeContainer', 'err-editOwnerType');
+                editUpdatePaymentButtonState();
             } else if (group === 'editOthLooking') {
                 document.getElementById('editChoiceOthLooking').value = dom.dataset.value;
+                editHidePillContainerError('editOthTypesContainer', 'err-editOthLooking');
+                editHideFieldError('editOthDesc', 'err-editOthDesc');
+                editUpdatePaymentButtonState();
             }
         }
 
@@ -1000,8 +1269,16 @@
             document.querySelectorAll(`[data-group="${group}"]`).forEach(n => n.classList.remove('active'));
             dom.classList.add('active');
             const v = dom.dataset.value;
-            if (group === 'editResType') document.getElementById('editChoiceResType').value = v;
-            if (group === 'editComType') document.getElementById('editChoiceComType').value = v;
+            if (group === 'editResType') {
+                document.getElementById('editChoiceResType').value = v;
+                editHidePillContainerError('editResTypesContainer', 'err-editResType');
+                editUpdatePaymentButtonState();
+            }
+            if (group === 'editComType') {
+                document.getElementById('editChoiceComType').value = v;
+                editHidePillContainerError('editComTypesContainer', 'err-editComType');
+                editUpdatePaymentButtonState();
+            }
         }
 
         function editSelectChip(dom) {
@@ -1009,12 +1286,208 @@
             document.querySelectorAll(`[data-group="${group}"]`).forEach(n => n.classList.remove('active'));
             dom.classList.add('active');
             const v = dom.dataset.value;
-            if (group === 'editResFurnish') document.getElementById('editChoiceResFurnish').value = v;
-            if (group === 'editResSize') document.getElementById('editChoiceResSize').value = v;
-            if (group === 'editComFurnish') document.getElementById('editChoiceComFurnish').value = v;
+            if (group === 'editResFurnish') {
+                document.getElementById('editChoiceResFurnish').value = v;
+                editHidePillContainerError('edit-res-furnish-container', 'err-editResFurnish');
+                editUpdatePaymentButtonState();
+            }
+            if (group === 'editResSize') {
+                document.getElementById('editChoiceResSize').value = v;
+                editHidePillContainerError('edit-res-size-container', 'err-editResSize');
+                editUpdatePaymentButtonState();
+            }
+            if (group === 'editComFurnish') {
+                document.getElementById('editChoiceComFurnish').value = v;
+                editHidePillContainerError('edit-com-furnish-container', 'err-editComFurnish');
+                editUpdatePaymentButtonState();
+            }
         }
 
-        function editHandlePropertyTabChange(key) {
+        // Track active property tab in edit modal
+        let editActivePropertyTab = null;
+
+        // Check if any property data has been filled in edit modal
+        function editHasPropertyDataFilled() {
+            if (!editActivePropertyTab) return false;
+            
+            // Check based on active tab
+            if (editActivePropertyTab === 'res') {
+                const resType = document.getElementById('editChoiceResType')?.value;
+                const resFurnish = document.getElementById('editChoiceResFurnish')?.value;
+                const resSize = document.getElementById('editChoiceResSize')?.value;
+                const resArea = document.getElementById('editResArea')?.value?.trim();
+                return !!(resType || resFurnish || resSize || resArea);
+            } else if (editActivePropertyTab === 'com') {
+                const comType = document.getElementById('editChoiceComType')?.value;
+                const comFurnish = document.getElementById('editChoiceComFurnish')?.value;
+                const comArea = document.getElementById('editComArea')?.value?.trim();
+                return !!(comType || comFurnish || comArea);
+            } else if (editActivePropertyTab === 'oth') {
+                const othLooking = document.getElementById('editChoiceOthLooking')?.value;
+                const othDesc = document.getElementById('editOthDesc')?.value?.trim();
+                const othArea = document.getElementById('editOthArea')?.value?.trim();
+                return !!(othLooking || othDesc || othArea);
+            }
+            
+            return false;
+        }
+
+        // Check if address data has been filled in edit modal
+        function editHasAddressDataFilled() {
+            const h = document.getElementById('editHouseNo')?.value?.trim();
+            const b = document.getElementById('editBuilding')?.value?.trim();
+            const p = document.getElementById('editPincode')?.value?.trim();
+            const f = document.getElementById('editFullAddress')?.value?.trim();
+            return !!(h || b || p || f);
+        }
+
+        // Check if all required property data is filled (matching setup page logic)
+        function editIsPropertyStepCompleted() {
+            if (!editActivePropertyTab) return false;
+
+            // Owner Type is required
+            const ownerType = document.getElementById('editChoiceOwnerType')?.value;
+            if (!ownerType) return false;
+
+            // Check based on active tab
+            if (editActivePropertyTab === 'res') {
+                const resType = document.getElementById('editChoiceResType')?.value;
+                const resFurnish = document.getElementById('editChoiceResFurnish')?.value;
+                const resSize = document.getElementById('editChoiceResSize')?.value;
+                const resArea = document.getElementById('editResArea')?.value?.trim();
+                return !!(resType && resFurnish && resSize && resArea && Number(resArea) > 0);
+            } else if (editActivePropertyTab === 'com') {
+                const comType = document.getElementById('editChoiceComType')?.value;
+                const comFurnish = document.getElementById('editChoiceComFurnish')?.value;
+                const comArea = document.getElementById('editComArea')?.value?.trim();
+                return !!(comType && comFurnish && comArea && Number(comArea) > 0);
+            } else if (editActivePropertyTab === 'oth') {
+                const oLooking = document.getElementById('editChoiceOthLooking')?.value;
+                const oDesc = document.getElementById('editOthDesc')?.value?.trim();
+                const oArea = document.getElementById('editOthArea')?.value?.trim();
+                const hasSelection = Boolean(oLooking);
+                const hasOther = Boolean(oDesc);
+                return !!(hasSelection || hasOther) && !!(oArea && Number(oArea) > 0);
+            }
+
+            return false;
+        }
+
+        // Check if all required address data is filled (matching setup page logic)
+        function editIsAddressStepCompleted() {
+            const h = document.getElementById('editHouseNo')?.value?.trim();
+            const b = document.getElementById('editBuilding')?.value?.trim();
+            const p = document.getElementById('editPincode')?.value?.trim();
+            const f = document.getElementById('editFullAddress')?.value?.trim();
+            
+            // Check if all required address fields are filled
+            return !!(h && b && p && /^[0-9]{6}$/.test(p) && f);
+        }
+
+        // Check if booking is ready for payment (both property and address complete)
+        function editIsReadyForPayment() {
+            return editIsPropertyStepCompleted() && editIsAddressStepCompleted();
+        }
+
+        // Update payment button state based on validation
+        function editUpdatePaymentButtonState() {
+            const paymentBtn = document.getElementById('editMakePaymentBtn');
+            if (!paymentBtn) return;
+
+            const isReady = editIsReadyForPayment();
+            
+            if (isReady) {
+                paymentBtn.disabled = false;
+                paymentBtn.classList.remove('btn-secondary');
+                paymentBtn.classList.add('btn-success');
+            } else {
+                paymentBtn.disabled = true;
+                paymentBtn.classList.remove('btn-success');
+                paymentBtn.classList.add('btn-secondary');
+            }
+        }
+
+        async function editHandlePropertyTabChange(key) {
+            // If key is null, hide all tabs and clear selection
+            if (!key) {
+                document.getElementById('editTabRes').style.display = 'none';
+                document.getElementById('editTabCom').style.display = 'none';
+                document.getElementById('editTabOth').style.display = 'none';
+                ['editPillResidential', 'editPillCommercial', 'editPillOther'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.classList.remove('active');
+                });
+                editActivePropertyTab = null;
+                editHidePillContainerError('editPropertyTypeContainer', 'err-editPropertyType');
+                return;
+            }
+
+            // Check if property type was already set, user is trying to change it, AND there's actual data filled
+            if (editActivePropertyTab && editActivePropertyTab !== key && (editHasPropertyDataFilled() || editHasAddressDataFilled())) {
+                // Get current property type name
+                const typeMap = { 'res': 'Residential', 'com': 'Commercial', 'oth': 'Other' };
+                const currentType = typeMap[editActivePropertyTab] || 'Current';
+                const newType = typeMap[key] || 'New';
+                
+                // Build message based on what data exists
+                let messageParts = [];
+                messageParts.push(`You are changing Property Type from <strong>${currentType}</strong> to <strong>${newType}</strong>.<br><br>`);
+                
+                if (editHasPropertyDataFilled()) {
+                    messageParts.push(`This will clear the following property details:<br>
+                        • Property Sub Type<br>
+                        • Furnish Type<br>
+                        • Size (BHK/RK)<br>
+                        • Super Built-up Area<br>`);
+                }
+                
+                if (editHasAddressDataFilled()) {
+                    if (editHasPropertyDataFilled()) {
+                        messageParts.push(`<br>This will also clear the following address details:<br>
+                            • House / Office No.<br>
+                            • Society / Building Name<br>
+                            • Pincode<br>
+                            • Full Address<br>`);
+                    } else {
+                        messageParts.push(`This will clear the following address details:<br>
+                            • House / Office No.<br>
+                            • Society / Building Name<br>
+                            • Pincode<br>
+                            • Full Address<br>`);
+                    }
+                }
+                
+                messageParts.push(`<br><strong>Note:</strong> Your billing details (Company Name, GST No) will be preserved.`);
+                
+                // Show confirmation dialog only if there's data that will be lost
+                const result = await Swal.fire({
+                    icon: 'warning',
+                    title: 'Change Property Type?',
+                    html: `<div style="text-align: left; padding: 10px 0; color: #333; font-size: 14px; line-height: 1.8;">
+                        ${messageParts.join('')}
+                    </div>`,
+                    showCancelButton: true,
+                    confirmButtonColor: '#0d6efd',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Yes, Change It',
+                    cancelButtonText: 'Cancel',
+                    customClass: {
+                        popup: 'sweetalert-popup',
+                        title: 'sweetalert-title',
+                        content: 'sweetalert-content',
+                        confirmButton: 'sweetalert-confirm-btn'
+                    },
+                    buttonsStyling: true,
+                    allowOutsideClick: true,
+                    allowEscapeKey: true
+                });
+                
+                // If user cancels, don't change property type
+                if (!result.isConfirmed) {
+                    return;
+                }
+            }
+
             // Clear related fields when property type changes
             // Clear Property Sub Type
             document.querySelectorAll('[data-group="editResType"]').forEach(el => el.classList.remove('active'));
@@ -1038,6 +1511,17 @@
             
             // Clear Other Description
             document.getElementById('editOthDesc').value = '';
+            
+            // Clear area fields
+            document.getElementById('editResArea').value = '';
+            document.getElementById('editComArea').value = '';
+            document.getElementById('editOthArea').value = '';
+            
+            // Also clear address fields when property type changes (matching setup page behavior)
+            document.getElementById('editHouseNo').value = '';
+            document.getElementById('editBuilding').value = '';
+            document.getElementById('editPincode').value = '';
+            document.getElementById('editFullAddress').value = '';
             
             // Hide all tabs
             document.getElementById('editTabRes').style.display = 'none';
@@ -1065,12 +1549,20 @@
                 if (pill) pill.classList.add('active');
             }
             
+            editActivePropertyTab = key;
+            
             // Update main property type hidden field
             const typeMap = { 'res': 'Residential', 'com': 'Commercial', 'oth': 'Other' };
             document.getElementById('editMainPropertyType').value = typeMap[key] || 'Residential';
             
+            // Clear property type error
+            editHidePillContainerError('editPropertyTypeContainer', 'err-editPropertyType');
+            
             // Recalculate price when property type changes
             updateEditPrice();
+            
+            // Update payment button state
+            editUpdatePaymentButtonState();
         }
         
         // Calculate price based on area (same logic as backend)
@@ -1118,19 +1610,8 @@
                 paymentPriceField.value = calculatedPrice;
             }
             
-            // Enable/disable payment button based on area
-            const paymentBtn = document.getElementById('editMakePaymentBtn');
-            if (paymentBtn) {
-                if (area > 0 && calculatedPrice > 0) {
-                    paymentBtn.disabled = false;
-                    paymentBtn.classList.remove('btn-secondary');
-                    paymentBtn.classList.add('btn-success');
-                } else {
-                    paymentBtn.disabled = true;
-                    paymentBtn.classList.remove('btn-success');
-                    paymentBtn.classList.add('btn-secondary');
-                }
-            }
+            // Update payment button state based on complete validation (property + address)
+            editUpdatePaymentButtonState();
         }
         
         // Lock/unlock property and address fields based on payment status
@@ -1236,8 +1717,20 @@
                 if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') el.value = '';
             });
             
-            // Reset tabs to Residential
-            editHandlePropertyTabChange('res');
+            // Clear all errors
+            editClearAllFieldErrors();
+            
+            // Reset tabs - no default selection (matching setup page)
+            editHandlePropertyTabChange(null);
+            editActivePropertyTab = null;
+            
+            // Disable payment button initially
+            const paymentBtn = document.getElementById('editMakePaymentBtn');
+            if (paymentBtn) {
+                paymentBtn.disabled = true;
+                paymentBtn.classList.remove('btn-success');
+                paymentBtn.classList.add('btn-secondary');
+            }
             
             // Show loading state (optional - you can add a loading indicator)
             modal.show();
@@ -1295,6 +1788,7 @@
                     else if (propertyType === 'other') tabKey = 'oth';
                     
                     editHandlePropertyTabChange(tabKey);
+                    editActivePropertyTab = tabKey;
                     
                     // Set Property Sub Type based on property type
                     if (b.property_sub_type) {
@@ -1351,9 +1845,17 @@
                         }
                     }
                     
-                    // Set Other Description
-                    if (b.other_details && tabKey === 'oth') {
-                        document.getElementById('editOthDesc').value = b.other_details;
+                    // Set Other Option Details
+                    if (b.other_option_details && tabKey === 'oth') {
+                        document.getElementById('editOthDesc').value = b.other_option_details;
+                    }
+                    
+                    // Set Firm Name and GST No
+                    if (b.firm_name) {
+                        document.getElementById('editFirmName').value = b.firm_name;
+                    }
+                    if (b.gst_no) {
+                        document.getElementById('editGstNo').value = b.gst_no;
                     }
                     
                     // Address fields
@@ -1405,6 +1907,9 @@
                     
                     // Always update price based on area (this will also enable/disable payment button)
                     updateEditPrice();
+                    
+                    // Update payment button state after loading booking data
+                    editUpdatePaymentButtonState();
                 } else {
                     await showSweetAlert('error', 'Error', 'Failed to load booking details. Please try again.');
                     modal.hide();
@@ -1482,12 +1987,9 @@
             }
             
             // Payment not done - allow full updates including property and address
-            // Collect all validation errors first
+            // Clear previous errors
+            editClearAllFieldErrors();
             const errors = [];
-            
-            // Get main property type (check if element exists first)
-            const mainPropertyTypeEl = document.getElementById('editMainPropertyType');
-            const mainPropertyType = mainPropertyTypeEl ? mainPropertyTypeEl.value || 'Residential' : 'Residential';
             
             // Check tab visibility safely
             const editTabRes = document.getElementById('editTabRes');
@@ -1498,116 +2000,151 @@
             const tabComVisible = editTabCom && editTabCom.style.display !== 'none';
             const tabOthVisible = editTabOth && editTabOth.style.display !== 'none';
             
-            // Validate required fields
-            const ownerTypeEl = document.getElementById('editChoiceOwnerType');
-            if (!ownerTypeEl) {
-                errors.push('Owner Type field not found. Please refresh the page and try again.');
+            // Owner Type validation
+            const ownerType = document.getElementById('editChoiceOwnerType')?.value;
+            if (!ownerType) {
+                errors.push('Owner Type is required');
+                editShowPillContainerError('editOwnerTypeContainer', 'err-editOwnerType', 'Owner Type is required.');
             } else {
-                const ownerType = ownerTypeEl.value;
-                if (!ownerType) {
-                    errors.push('Please select Owner Type.');
+                editHidePillContainerError('editOwnerTypeContainer', 'err-editOwnerType');
+            }
+            
+            // Property Type validation - must be selected
+            if (!editActivePropertyTab) {
+                errors.push('Property Type is required');
+                editShowPillContainerError('editPropertyTypeContainer', 'err-editPropertyType', 'Property Type is required.');
+            } else {
+                editHidePillContainerError('editPropertyTypeContainer', 'err-editPropertyType');
+            }
+            
+            // Residential validations
+            let area = 0;
+            if (tabResVisible) {
+                const rType = document.getElementById('editChoiceResType')?.value;
+                const rFurn = document.getElementById('editChoiceResFurnish')?.value;
+                const rSize = document.getElementById('editChoiceResSize')?.value;
+                const rArea = document.getElementById('editResArea')?.value.trim();
+                
+                if (!rType) {
+                    errors.push('Residential Property Sub Type is required');
+                    editShowPillContainerError('editResTypesContainer', 'err-editResType', 'Property Sub Type is required.');
+                } else {
+                    editHidePillContainerError('editResTypesContainer', 'err-editResType');
+                }
+                
+                if (!rFurn) {
+                    errors.push('Furnish Type is required');
+                    editShowPillContainerError('edit-res-furnish-container', 'err-editResFurnish', 'Furnish Type is required.');
+                } else {
+                    editHidePillContainerError('edit-res-furnish-container', 'err-editResFurnish');
+                }
+                
+                if (!rSize) {
+                    errors.push('Size (BHK/RK) is required');
+                    editShowPillContainerError('edit-res-size-container', 'err-editResSize', 'Size (BHK / RK) is required.');
+                } else {
+                    editHidePillContainerError('edit-res-size-container', 'err-editResSize');
+                }
+                
+                if (!rArea || Number(rArea) <= 0) {
+                    errors.push('Super Built-up Area is required and must be greater than 0');
+                    editShowFieldError('editResArea', 'err-editResArea', 'Super Built-up Area is required and must be greater than 0');
+                } else {
+                    area = parseFloat(rArea);
+                    editMarkFieldValid('editResArea');
                 }
             }
             
-            // Validate property type specific fields
-            let area = 0;
-            if (tabResVisible) {
-                const resTypeEl = document.getElementById('editChoiceResType');
-                const resFurnishEl = document.getElementById('editChoiceResFurnish');
-                const resAreaEl = document.getElementById('editResArea');
+            // Commercial validations
+            if (tabComVisible) {
+                const cType = document.getElementById('editChoiceComType')?.value;
+                const cFurn = document.getElementById('editChoiceComFurnish')?.value;
+                const cArea = document.getElementById('editComArea')?.value.trim();
                 
-                if (!resTypeEl || !resFurnishEl || !resAreaEl) {
-                    errors.push('Residential property fields not found. Please refresh the page and try again.');
+                if (!cType) {
+                    errors.push('Commercial Property Sub Type is required');
+                    editShowPillContainerError('editComTypesContainer', 'err-editComType', 'Property Sub Type is required.');
                 } else {
-                    const resType = resTypeEl.value;
-                    const resFurnish = resFurnishEl.value;
-                    const resArea = resAreaEl.value.trim();
-                    
-                    if (!resType) {
-                        errors.push('Please select Property Sub Type.');
-                    }
-                    if (!resFurnish) {
-                        errors.push('Please select Furnish Type.');
-                    }
-                    if (!resArea || Number(resArea) <= 0) {
-                        errors.push('Please enter a valid Area (sq. ft.).');
-                    } else {
-                        area = parseFloat(resArea);
-                    }
+                    editHidePillContainerError('editComTypesContainer', 'err-editComType');
                 }
-            } else if (tabComVisible) {
-                const comTypeEl = document.getElementById('editChoiceComType');
-                const comFurnishEl = document.getElementById('editChoiceComFurnish');
-                const comAreaEl = document.getElementById('editComArea');
                 
-                if (!comTypeEl || !comFurnishEl || !comAreaEl) {
-                    errors.push('Commercial property fields not found. Please refresh the page and try again.');
+                if (!cFurn) {
+                    errors.push('Furnish Type is required');
+                    editShowPillContainerError('edit-com-furnish-container', 'err-editComFurnish', 'Furnish Type is required.');
                 } else {
-                    const comType = comTypeEl.value;
-                    const comFurnish = comFurnishEl.value;
-                    const comArea = comAreaEl.value.trim();
-                    
-                    if (!comType) {
-                        errors.push('Please select Property Sub Type.');
-                    }
-                    if (!comFurnish) {
-                        errors.push('Please select Furnish Type.');
-                    }
-                    if (!comArea || Number(comArea) <= 0) {
-                        errors.push('Please enter a valid Area (sq. ft.).');
-                    } else {
-                        area = parseFloat(comArea);
-                    }
+                    editHidePillContainerError('edit-com-furnish-container', 'err-editComFurnish');
                 }
-            } else if (tabOthVisible) {
-                const othLookingEl = document.getElementById('editChoiceOthLooking');
-                const othAreaEl = document.getElementById('editOthArea');
-                const othDescEl = document.getElementById('editOthDesc');
                 
-                if (!othAreaEl) {
-                    errors.push('Other property fields not found. Please refresh the page and try again.');
+                if (!cArea || Number(cArea) <= 0) {
+                    errors.push('Super Built-up Area is required and must be greater than 0');
+                    editShowFieldError('editComArea', 'err-editComArea', 'Super Built-up Area is required and must be greater than 0');
                 } else {
-                    const othLooking = othLookingEl ? othLookingEl.value : null;
-                    const othArea = othAreaEl.value.trim();
-                    const othDesc = othDescEl ? othDescEl.value.trim() : '';
-                    
-                    if (!othLooking && !othDesc) {
-                        errors.push('Please select an option or enter Other description.');
-                    }
-                    if (!othArea || Number(othArea) <= 0) {
-                        errors.push('Please enter a valid Area (sq. ft.).');
-                    } else {
-                        area = parseFloat(othArea);
-                    }
+                    area = parseFloat(cArea);
+                    editMarkFieldValid('editComArea');
+                }
+            }
+            
+            // Other validations
+            if (tabOthVisible) {
+                const oLooking = document.getElementById('editChoiceOthLooking')?.value;
+                const oDesc = document.getElementById('editOthDesc')?.value.trim();
+                const oArea = document.getElementById('editOthArea')?.value.trim();
+                const hasSelection = Boolean(oLooking);
+                const hasOther = Boolean(oDesc);
+                
+                if (!hasSelection && !hasOther) {
+                    errors.push('Please select an option or enter Other option');
+                    editShowPillContainerError('editOthTypesContainer', 'err-editOthLooking', 'Select an option or enter Other option.');
+                    editShowFieldError('editOthDesc', 'err-editOthDesc', 'Other option is required if none of the options are selected.');
+                } else {
+                    editHidePillContainerError('editOthTypesContainer', 'err-editOthLooking');
+                    editHideFieldError('editOthDesc', 'err-editOthDesc');
+                }
+                
+                if (!oArea || Number(oArea) <= 0) {
+                    errors.push('Super Built-up Area is required and must be greater than 0');
+                    editShowFieldError('editOthArea', 'err-editOthArea', 'Super Built-up Area is required and must be greater than 0');
+                } else {
+                    area = parseFloat(oArea);
+                    editMarkFieldValid('editOthArea');
                 }
             }
             
             // Validate address fields
-            const houseNoEl = document.getElementById('editHouseNo');
-            const buildingEl = document.getElementById('editBuilding');
-            const pincodeEl = document.getElementById('editPincode');
-            const fullAddressEl = document.getElementById('editFullAddress');
+            const h = document.getElementById('editHouseNo')?.value.trim();
+            const b = document.getElementById('editBuilding')?.value.trim();
+            const p = document.getElementById('editPincode')?.value.trim();
+            const f = document.getElementById('editFullAddress')?.value.trim();
             
-            if (!houseNoEl || !buildingEl || !pincodeEl || !fullAddressEl) {
-                errors.push('Address fields not found. Please refresh the page and try again.');
+            if (!h) {
+                errors.push('House / Office No. is required');
+                editShowFieldError('editHouseNo', 'err-editHouseNo', 'House / Office No. is required.');
             } else {
-                const houseNo = houseNoEl.value.trim();
-                const building = buildingEl.value.trim();
-                const pincode = pincodeEl.value.trim();
-                const fullAddress = fullAddressEl.value.trim();
-                
-                if (!houseNo) {
-                    errors.push('Please enter House/Office No.');
-                }
-                if (!building) {
-                    errors.push('Please enter Building/Society Name.');
-                }
-                if (!pincode || !/^[0-9]{6}$/.test(pincode)) {
-                    errors.push('Please enter a valid 6-digit Pincode.');
-                }
-                if (!fullAddress) {
-                    errors.push('Please enter Full Address.');
-                }
+                editMarkFieldValid('editHouseNo');
+            }
+            
+            if (!b) {
+                errors.push('Society / Building Name is required');
+                editShowFieldError('editBuilding', 'err-editBuilding', 'Society / Building Name is required.');
+            } else {
+                editMarkFieldValid('editBuilding');
+            }
+            
+            if (!p) {
+                errors.push('Pincode is required');
+                editShowFieldError('editPincode', 'err-editPincode', 'Pincode is required.');
+            } else if (!/^[0-9]{6}$/.test(p)) {
+                errors.push('Pincode must be a valid 6-digit number');
+                editShowFieldError('editPincode', 'err-editPincode', 'Pincode must be a valid 6-digit number');
+            } else {
+                editMarkFieldValid('editPincode');
+            }
+            
+            if (!f) {
+                errors.push('Full address is required');
+                editShowFieldError('editFullAddress', 'err-editFullAddress', 'Full address is required.');
+            } else {
+                editMarkFieldValid('editFullAddress');
             }
             
             // Show all errors at once if any
@@ -1618,45 +2155,32 @@
             }
             
             // Get values for data preparation (after validation passes)
-            const ownerType = ownerTypeEl.value;
-            const houseNo = houseNoEl.value.trim();
-            const building = buildingEl.value.trim();
-            const pincode = pincodeEl.value.trim();
-            const fullAddress = fullAddressEl.value.trim();
-            
-            // Prepare data (same format as setup page)
-            const editCityEl = document.getElementById('editCity');
-            const editScheduledDateEl = document.getElementById('editScheduledDate');
-            const editScheduleNotesEl = document.getElementById('editScheduleNotes');
-            const editChoiceResTypeEl = tabResVisible ? document.getElementById('editChoiceResType') : null;
-            const editChoiceResFurnishEl = tabResVisible ? document.getElementById('editChoiceResFurnish') : null;
-            const editChoiceResSizeEl = tabResVisible ? document.getElementById('editChoiceResSize') : null;
-            const editChoiceComTypeEl = tabComVisible ? document.getElementById('editChoiceComType') : null;
-            const editChoiceComFurnishEl = tabComVisible ? document.getElementById('editChoiceComFurnish') : null;
-            const editChoiceOthLookingEl = tabOthVisible ? document.getElementById('editChoiceOthLooking') : null;
-            const editOthDescEl = tabOthVisible ? document.getElementById('editOthDesc') : null;
+            const mainPropertyTypeEl = document.getElementById('editMainPropertyType');
+            const mainPropertyType = mainPropertyTypeEl ? mainPropertyTypeEl.value || 'Residential' : 'Residential';
             
             const bookingData = {
                 booking_id: bookingId,
                 owner_type: ownerType,
                 main_property_type: mainPropertyType,
-                residential_property_type: tabResVisible && editChoiceResTypeEl && editChoiceResTypeEl.value ? editChoiceResTypeEl.value : null,
-                residential_furnish: tabResVisible && editChoiceResFurnishEl && editChoiceResFurnishEl.value ? editChoiceResFurnishEl.value : null,
-                residential_size: tabResVisible && editChoiceResSizeEl && editChoiceResSizeEl.value ? editChoiceResSizeEl.value : null,
+                residential_property_type: tabResVisible ? document.getElementById('editChoiceResType')?.value || null : null,
+                residential_furnish: tabResVisible ? document.getElementById('editChoiceResFurnish')?.value || null : null,
+                residential_size: tabResVisible ? document.getElementById('editChoiceResSize')?.value || null : null,
                 residential_area: tabResVisible ? area : null,
-                commercial_property_type: tabComVisible && editChoiceComTypeEl && editChoiceComTypeEl.value ? editChoiceComTypeEl.value : null,
-                commercial_furnish: tabComVisible && editChoiceComFurnishEl && editChoiceComFurnishEl.value ? editChoiceComFurnishEl.value : null,
+                commercial_property_type: tabComVisible ? document.getElementById('editChoiceComType')?.value || null : null,
+                commercial_furnish: tabComVisible ? document.getElementById('editChoiceComFurnish')?.value || null : null,
                 commercial_area: tabComVisible ? area : null,
-                other_looking: tabOthVisible && editChoiceOthLookingEl && editChoiceOthLookingEl.value ? editChoiceOthLookingEl.value : null,
-                other_description: tabOthVisible && editOthDescEl && editOthDescEl.value ? editOthDescEl.value.trim() : null,
+                other_looking: tabOthVisible ? document.getElementById('editChoiceOthLooking')?.value || null : null,
+                other_option_details: tabOthVisible ? document.getElementById('editOthDesc')?.value?.trim() || null : null,
                 other_area: tabOthVisible ? area : null,
-                house_number: houseNo,
-                building_name: building,
-                pincode: pincode,
-                city: editCityEl ? editCityEl.value : 'Ahmedabad',
-                full_address: fullAddress,
-                scheduled_date: editScheduledDateEl ? editScheduledDateEl.value || null : null,
-                notes: editScheduleNotesEl ? editScheduleNotesEl.value.trim() : null,
+                firm_name: document.getElementById('editFirmName')?.value?.trim() || null,
+                gst_no: document.getElementById('editGstNo')?.value?.trim() || null,
+                house_number: h,
+                building_name: b,
+                pincode: p,
+                city: document.getElementById('editCity')?.value || 'Ahmedabad',
+                full_address: f,
+                scheduled_date: document.getElementById('editScheduledDate')?.value || null,
+                notes: document.getElementById('editScheduleNotes')?.value?.trim() || null,
                 price: (() => {
                     // Try to get price from editPaymentPrice field first
                     const paymentPriceField = document.getElementById('editPaymentPrice');
@@ -1961,6 +2485,72 @@
             }
         }
 
+        // Add real-time validation listeners for edit modal (matching setup.js)
+        document.addEventListener('DOMContentLoaded', function() {
+            // Area fields
+            ['editResArea', 'editComArea', 'editOthArea'].forEach(id => {
+                const input = document.getElementById(id);
+                if (input) {
+                    input.addEventListener('input', function() {
+                        const value = this.value.trim();
+                        if (value && Number(value) > 0) {
+                            editHideFieldError(id, 'err-' + id);
+                            editMarkFieldValid(id);
+                        }
+                        // Update payment button state
+                        editUpdatePaymentButtonState();
+                    });
+                }
+            });
+
+            // Address fields
+            ['editHouseNo', 'editBuilding', 'editPincode', 'editFullAddress'].forEach(id => {
+                const input = document.getElementById(id);
+                if (input) {
+                    input.addEventListener('input', function() {
+                        const value = this.value.trim();
+                        if (id === 'editPincode') {
+                            if (value && /^[0-9]{6}$/.test(value)) {
+                                editHideFieldError(id, 'err-' + id);
+                                editMarkFieldValid(id);
+                            }
+                        } else {
+                            if (value) {
+                                editHideFieldError(id, 'err-' + id);
+                                editMarkFieldValid(id);
+                            }
+                        }
+                        // Update payment button state
+                        editUpdatePaymentButtonState();
+                    });
+                }
+            });
+
+            // Other description field
+            const othDescInput = document.getElementById('editOthDesc');
+            if (othDescInput) {
+                othDescInput.addEventListener('input', function() {
+                    const value = this.value.trim();
+                    const othLooking = document.getElementById('editChoiceOthLooking')?.value;
+                    if (value || othLooking) {
+                        editHideFieldError('editOthDesc', 'err-editOthDesc');
+                        editHidePillContainerError('editOthTypesContainer', 'err-editOthLooking');
+                    }
+                    // Update payment button state
+                    editUpdatePaymentButtonState();
+                });
+            }
+
+            // Property selection fields - update payment button when selections change
+            document.querySelectorAll('[data-group^="edit"]').forEach(el => {
+                el.addEventListener('click', function() {
+                    // Small delay to allow value to be set
+                    setTimeout(() => {
+                        editUpdatePaymentButtonState();
+                    }, 100);
+                });
+            });
+        });
     </script>
     
     <!-- Cashfree SDK -->

@@ -41,6 +41,21 @@
                             <dt class="col-sm-4">Furniture</dt>
                             <dd class="col-sm-8">{{ $booking->furniture_type ?? '-' }}</dd>
 
+                            @if($booking->other_option_details)
+                            <dt class="col-sm-4">Other Option Details</dt>
+                            <dd class="col-sm-8">{{ $booking->other_option_details }}</dd>
+                            @endif
+
+                            @if($booking->firm_name)
+                            <dt class="col-sm-4">Firm Name</dt>
+                            <dd class="col-sm-8">{{ $booking->firm_name }}</dd>
+                            @endif
+
+                            @if($booking->gst_no)
+                            <dt class="col-sm-4">GST No</dt>
+                            <dd class="col-sm-8">{{ $booking->gst_no }}</dd>
+                            @endif
+
                             <dt class="col-sm-4">Area</dt>
                             <dd class="col-sm-8">{{ number_format($booking->area) }} sq ft</dd>
 
@@ -62,6 +77,16 @@
 
                             <dt class="col-sm-4">Created By</dt>
                             <dd class="col-sm-8">{{ $booking->creator?->firstname }} {{ $booking->creator?->lastname }}</dd>
+
+                            @if($booking->tour_code)
+                            <dt class="col-sm-4">Tour Code</dt>
+                            <dd class="col-sm-8">{{ $booking->tour_code }}</dd>
+                            @endif
+
+                            @if($booking->tour_final_link)
+                            <dt class="col-sm-4">Tour Final Link</dt>
+                            <dd class="col-sm-8"><a href="{{ $booking->tour_final_link }}" target="_blank" class="text-primary">{{ $booking->tour_final_link }}</a></dd>
+                            @endif
                         </dl>
                     </div>
                 </div>

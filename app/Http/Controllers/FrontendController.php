@@ -232,6 +232,107 @@ class FrontendController extends Controller
         ]);
     }
 
+    /**
+     * Show frontend login page
+     */
+    public function login()
+    {
+        // If already logged in, redirect to booking dashboard
+        if (Auth::check()) {
+            return redirect()->route('frontend.booking-dashboard');
+        }
+        return view('frontend.login');
+    }
+
+    /**
+     * Send OTP for login (mobile only, creates user if doesn't exist)
+     */
+    public function sendLoginOtp(Request $request)
+    {
+        try {
+            // Validate request
+            $validated = $request->validate([
+                'mobile' => ['required', 'string', 'regex:/^[0-9]{10}$/'],
+            ]);
+
+            $mobile = $validated['mobile'];
+
+            // Check if user exists by mobile
+            $user = User::where('mobile', $mobile)->first();
+            $isNewUser = false;
+
+            if (!$user) {
+                // Create new user with mobile number only
+                $isNewUser = true;
+                $user = User::create([
+                    'mobile' => $mobile,
+                    'firstname' => 'User',
+                    'lastname' => '',
+                    'email' => 'user_' . $mobile . '@temp.com', // Temporary email
+                    'password' => bcrypt(Str::random(32)), // Random password
+                    'role_type' => 'user',
+                ]);
+
+                Log::info('✅ New user created during login', [
+                    'mobile' => $mobile,
+                    'user_id' => $user->id,
+                ]);
+            }
+
+            // Generate 6-digit OTP
+            $otp = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+
+            // Save OTP to user (expires in 10 minutes)
+            $user->update([
+                'otp' => $otp,
+                'otp_expires_at' => now()->addMinutes(10),
+            ]);
+
+            // TODO: Send OTP via SMS service
+            // For now, we'll log it (remove in production)
+            Log::info('📱 Login OTP sent', [
+                'mobile' => $mobile,
+                'otp' => $otp, // Remove this in production
+                'is_new_user' => $isNewUser,
+                'expires_at' => $user->otp_expires_at,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'OTP sent successfully',
+                'data' => [
+                    'mobile' => $mobile,
+                    'is_new_user' => $isNewUser,
+                    'is_existing_user' => !$isNewUser,
+                    // In development, include OTP for testing (remove in production)
+                    'otp' => config('app.debug') ? $otp : null,
+                ],
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+
+        } catch (\Exception $e) {
+            Log::error('❌ ERROR in sendLoginOtp', [
+                'timestamp' => now()->toDateTimeString(),
+                'error_message' => $e->getMessage(),
+                'error_file' => $e->getFile(),
+                'error_line' => $e->getLine(),
+                'request_data' => $request->all()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to send OTP. Please try again.',
+                'error' => config('app.debug') ? $e->getMessage() : 'Internal server error'
+            ], 500);
+        }
+    }
+
     public function storeBooking(Request $request)
     {
         // Validate the request
@@ -321,8 +422,10 @@ class FrontendController extends Controller
             'commercial_area' => 'nullable|numeric|min:1',
             // Other
             'other_looking' => 'nullable|string',
-            'other_description' => 'nullable|string',
+            'other_option_details' => 'nullable|string',
             'other_area' => 'nullable|numeric|min:1',
+            'firm_name' => 'nullable|string|max:255',
+            'gst_no' => 'nullable|string|max:50',
             'booking_id' => 'nullable|integer|exists:bookings,id',
         ]);
 
@@ -364,6 +467,9 @@ class FrontendController extends Controller
         $booking->owner_type = $validated['owner_type'];
         $booking->bhk_id = $mapping['bhk_id'];
         $booking->furniture_type = $mapping['furniture_type'];
+        $booking->other_option_details = $validated['other_option_details'] ?? null;
+        $booking->firm_name = $validated['firm_name'] ?? null;
+        $booking->gst_no = $validated['gst_no'] ?? null;
         $booking->area = $mapping['area'] ?? 0;
         $booking->price = $this->calculateEstimate($mapping['area'] ?? 0);
         $booking->payment_status = $booking->payment_status ?: 'pending';
@@ -441,8 +547,10 @@ class FrontendController extends Controller
                 'commercial_furnish' => 'nullable|string',
                 'commercial_area' => 'nullable|numeric|min:0',
                 'other_looking' => 'nullable|string',
-                'other_description' => 'nullable|string',
+                'other_option_details' => 'nullable|string',
                 'other_area' => 'nullable|numeric|min:0',
+                'firm_name' => 'nullable|string|max:255',
+                'gst_no' => 'nullable|string|max:50',
                 'house_number' => 'nullable|string|max:255',
                 'building_name' => 'nullable|string|max:255',
                 'pincode' => 'nullable|string|regex:/^[0-9]{6}$/',
@@ -587,6 +695,16 @@ class FrontendController extends Controller
                 if (isset($propertyData['furniture_type'])) {
                     $updateData['furniture_type'] = $propertyData['furniture_type'];
                 }
+                if (isset($validated['other_option_details'])) {
+                    $updateData['other_option_details'] = $validated['other_option_details'];
+                }
+                if (isset($validated['firm_name'])) {
+                    $updateData['firm_name'] = $validated['firm_name'];
+                }
+                if (isset($validated['gst_no'])) {
+                    $updateData['gst_no'] = $validated['gst_no'];
+                }
+                // Note: tour_code and tour_final_link are admin-only fields, not editable by frontend users
                 if (isset($propertyData['area'])) {
                     $updateData['area'] = (int) $propertyData['area'];
                 } elseif (isset($validated['residential_area'])) {
@@ -714,7 +832,12 @@ class FrontendController extends Controller
                 'bhk' => $booking->bhk?->name,
                 'bhk_id' => $booking->bhk_id,
                 'area' => $booking->area,
-                    'other_details' => $booking->other_details ?? null,
+                    'other_option_details' => $booking->other_option_details ?? null,
+                    'other_details' => $booking->other_option_details ?? null, // Keep for backward compatibility
+                    'firm_name' => $booking->firm_name ?? null,
+                    'gst_no' => $booking->gst_no ?? null,
+                    'tour_code' => $booking->tour_code ?? null,
+                    'tour_final_link' => $booking->tour_final_link ?? null,
                     'house_number' => $booking->house_no,
                     'building_name' => $booking->building ?? null,
                     'city' => $booking->city?->name ?? 'Ahmedabad',
@@ -729,6 +852,10 @@ class FrontendController extends Controller
                     'payment_amount' => $booking->cashfree_payment_amount ?? $booking->price ?? null,
                     'cashfree_order_id' => $booking->cashfree_order_id ?? null,
                     'cashfree_payment_session_id' => $booking->cashfree_payment_session_id ?? null,
+                    // Validation flags for payment button visibility
+                    'has_complete_property_data' => $booking->hasCompletePropertyData(),
+                    'has_complete_address_data' => $booking->hasCompleteAddressData(),
+                    'is_ready_for_payment' => $booking->isReadyForPayment(),
                 ],
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -835,7 +962,7 @@ class FrontendController extends Controller
             $area = $data['commercial_area'] ?? null;
         } else { // Other
             $subTypeName = $data['other_looking'] ?? null;
-            $otherDetails = $data['other_description'] ?? null;
+            $otherDetails = $data['other_option_details'] ?? $data['other_description'] ?? null;
             $area = $data['other_area'] ?? null;
         }
 
@@ -854,6 +981,7 @@ class FrontendController extends Controller
             'furniture_type' => $furnish,
             'area' => $area ? (float) $area : null,
             'other_details' => $otherDetails,
+            'other_option_details' => $otherDetails,
         ];
     }
 
@@ -1325,5 +1453,45 @@ class FrontendController extends Controller
     public function termsConditions()
     {
         return view('frontend.terms-conditions');
+    }
+
+    /**
+     * Download payment receipt
+     */
+    public function downloadReceipt($bookingId)
+    {
+        $booking = Booking::where('id', $bookingId)
+            ->where('user_id', Auth::id())
+            ->with(['user', 'propertyType', 'propertySubType', 'bhk', 'city', 'state'])
+            ->first();
+
+        if (!$booking) {
+            abort(404, 'Booking not found');
+        }
+
+        if ($booking->payment_status !== 'paid') {
+            abort(403, 'Receipt is only available for paid bookings');
+        }
+
+        $receiptData = [
+            'booking' => $booking,
+            'order_id' => $booking->cashfree_order_id,
+            'amount' => $booking->cashfree_payment_amount ?? $booking->price,
+            'currency' => $booking->cashfree_payment_currency ?? 'INR',
+            'payment_method' => $booking->cashfree_payment_method ?? 'Online Payment',
+            'reference_id' => $booking->cashfree_reference_id,
+            'payment_at' => $booking->cashfree_payment_at ?? $booking->updated_at,
+            'user' => $booking->user,
+            'property_type' => $booking->propertyType?->name ?? 'N/A',
+            'property_sub_type' => $booking->propertySubType?->name ?? 'N/A',
+            'furniture_type' => $booking->furniture_type ?? 'N/A',
+            'bhk' => $booking->bhk?->name ?? 'N/A',
+            'area' => $booking->area ?? 'N/A',
+            'city' => $booking->city?->name ?? 'N/A',
+            'state' => $booking->state?->name ?? 'N/A',
+            'address' => $booking->full_address ?? 'N/A',
+        ];
+
+        return view('frontend.receipt', $receiptData);
     }
 }

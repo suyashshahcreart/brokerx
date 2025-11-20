@@ -29,7 +29,7 @@ class RoutingController extends BaseController
         if (Auth::user()) {
             return redirect('/themes/dashboards/analytics');
         } else {
-            return redirect('login');
+            return redirect()->route('admin.login');
         }
     }
 

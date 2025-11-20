@@ -1,76 +1,310 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cashfree Payment Status</title>
+@extends('frontend.layouts.base', ['title' => 'Payment Status - PROP PIK'])
+
+@section('css')
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400..800&family=Urbanist:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ asset('frontend/css/plugins.css') }}">
+    <link rel="stylesheet" href="{{ asset('frontend/css/style.css') }}">
     <style>
-        body { font-family: 'Segoe UI', Arial, sans-serif; background: #0f172a; color: #f8fafc; margin: 0; padding: 0; }
-        .container { max-width: 520px; margin: 60px auto; background: #1e293b; border-radius: 16px; padding: 32px; box-shadow: 0 24px 60px rgba(15, 23, 42, 0.6); }
-        h1 { margin-top: 0; font-size: 26px; text-align: center; }
-        .status-success { background: #22c55e22; border: 1px solid #22c55e; }
-        .status-failed { background: #ef444422; border: 1px solid #ef4444; }
-        .status-pending { background: #eab30822; border: 1px solid #eab308; }
-        .status-box { border-radius: 12px; padding: 16px; margin-bottom: 20px; }
-        .label { font-weight: 600; color: #cbd5f5; display: block; margin-bottom: 4px; }
-        .value { font-size: 15px; margin-bottom: 12px; }
-        pre { background: #0f172a; color: #e2e8f0; padding: 16px; border-radius: 12px; overflow-x: auto; font-size: 12px; }
-        a.button { display: inline-block; margin-top: 16px; padding: 11px 18px; border-radius: 999px; background: #38bdf8; color: #0f172a; text-decoration: none; font-weight: 600; }
-        a.button:hover { background: #0ea5e9; }
+        .payment-status-container {
+            max-width: 700px;
+            margin: 0 auto;
+            padding: 2rem 0;
+        }
+        .status-card {
+            background: #fff;
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            margin-bottom: 1.5rem;
+        }
+        .status-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .status-icon {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem;
+            font-size: 2.5rem;
+        }
+        .status-success-icon {
+            background: #d1fae5;
+            color: #10b981;
+        }
+        .status-failed-icon {
+            background: #fee2e2;
+            color: #ef4444;
+        }
+        .status-pending-icon {
+            background: #fef3c7;
+            color: #f59e0b;
+        }
+        .status-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+        .status-message {
+            color: #6b7280;
+            font-size: 1rem;
+        }
+        .status-box {
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .status-success-box {
+            background: #d1fae5;
+            border: 1px solid #10b981;
+        }
+        .status-failed-box {
+            background: #fee2e2;
+            border: 1px solid #ef4444;
+        }
+        .status-pending-box {
+            background: #fef3c7;
+            border: 1px solid #f59e0b;
+        }
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .info-row:last-child {
+            border-bottom: none;
+        }
+        .info-label {
+            font-weight: 600;
+            color: #374151;
+            font-size: 0.95rem;
+        }
+        .info-value {
+            color: #1f2937;
+            font-size: 0.95rem;
+            text-align: right;
+            font-weight: 500;
+        }
+        .amount-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #10b981;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+            flex-wrap: wrap;
+        }
+        .btn-action {
+            flex: 1;
+            min-width: 150px;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            text-align: center;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+        .btn-primary-action {
+            background: var(--color-primary, #2563eb);
+            color: #fff;
+        }
+        .btn-primary-action:hover {
+            background: var(--color-primary-dark, #1d4ed8);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        }
+        .btn-secondary-action {
+            background: #fff;
+            color: var(--color-primary, #2563eb);
+            border: 2px solid var(--color-primary, #2563eb);
+        }
+        .btn-secondary-action:hover {
+            background: var(--color-primary, #2563eb);
+            color: #fff;
+        }
+        .details-section {
+            margin-top: 1.5rem;
+        }
+        .details-toggle {
+            cursor: pointer;
+            padding: 0.75rem;
+            background: #f9fafb;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-weight: 600;
+            color: #374151;
+        }
+        .details-toggle:hover {
+            background: #f3f4f6;
+        }
+        .raw-response {
+            background: #1f2937;
+            color: #e5e7eb;
+            padding: 1.5rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 0.875rem;
+            font-family: 'Courier New', monospace;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .page-header {
+            margin-bottom: 2rem;
+        }
     </style>
-</head>
-<body>
+@endsection
+
+@section('content')
+<section class="page-header section-padding-bottom-b section-padding-top-t page-header">
     <div class="container">
-        <h1>Payment Status</h1>
-
-        @php
-            $status = strtoupper($status ?? 'UNKNOWN');
-            $statusClass = match(true) {
-                $status === 'PAID' => 'status-success',
-                in_array($status, ['FAILED', 'EXPIRED', 'TERMINATED', 'TERMINATION_REQUESTED']) => 'status-failed',
-                default => 'status-pending',
-            };
-        @endphp
-
-        <div class="status-box {{ $statusClass }}">
-            <span class="label">Cashfree Order ID</span>
-            <div class="value">{{ $orderId ?? '-' }}</div>
-
-            <span class="label">Status</span>
-            <div class="value">{{ $status }}</div>
-
-            <p>{{ $message ?? 'Status received from Cashfree.' }}</p>
-        </div>
-
-        @if(!empty($details))
-            <div class="status-box">
-                <span class="label">Amount</span>
-                <div class="value">
-                    ₹{{ number_format($details['amount'] ?? 0) }} {{ $details['currency'] ?? '' }}
-                </div>
-                <span class="label">Payment Reference</span>
-                <div class="value">{{ $details['reference_id'] ?? '-' }}</div>
-                <span class="label">Payment Method</span>
-                <div class="value">{{ $details['payment_method'] ?? '-' }}</div>
-                <span class="label">Paid At</span>
-                <div class="value">{{ $details['payment_at'] ?? '-' }}</div>
+        <div class="row">
+            <div class="col-md-12">
+                <h1 class="wow page-title" data-splitting data-delay="100">Payment Status</h1>
             </div>
-
-            <details>
-                <summary style="cursor:pointer; margin-bottom: 12px;">Show Raw Response</summary>
-                <pre>{{ json_encode($details['raw'] ?? [], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) }}</pre>
-            </details>
-        @endif
-
-        @php
-            $returnParams = array_filter([
-                'booking_id' => $details['booking_id'] ?? null,
-                'order_id' => $details['order_id'] ?? ($orderId ?? null),
-                'open_payment' => 1,
-            ]);
-        @endphp
-        <a href="{{ route('frontend.setup', array_filter($returnParams)) }}" class="button">Return to Setup</a>
+        </div>
     </div>
-</body>
-</html>
+</section>
+
+<div class="page bg-light section-padding-bottom section-padding-top">
+    <div class="panel container">
+        <div class="content">
+            <div class="payment-status-container">
+                @php
+                    $status = strtoupper($status ?? 'UNKNOWN');
+                    $isSuccess = $status === 'PAID';
+                    $isFailed = in_array($status, ['FAILED', 'EXPIRED', 'TERMINATED', 'TERMINATION_REQUESTED']);
+                    $isPending = !$isSuccess && !$isFailed;
+                    
+                    $statusIconClass = $isSuccess ? 'status-success-icon' : ($isFailed ? 'status-failed-icon' : 'status-pending-icon');
+                    $statusBoxClass = $isSuccess ? 'status-success-box' : ($isFailed ? 'status-failed-box' : 'status-pending-box');
+                    $statusIcon = $isSuccess ? '✓' : ($isFailed ? '✕' : '⏳');
+                    $statusTitle = $isSuccess ? 'Payment Successful!' : ($isFailed ? 'Payment Failed' : 'Payment Pending');
+                @endphp
+
+                <div class="status-card">
+                    <div class="status-header">
+                        <div class="status-icon {{ $statusIconClass }}">
+                            {{ $statusIcon }}
+                        </div>
+                        <h2 class="status-title">{{ $statusTitle }}</h2>
+                        <p class="status-message">{{ $message ?? 'Status received from Cashfree.' }}</p>
+                    </div>
+
+                    <div class="status-box {{ $statusBoxClass }}">
+                        <div class="info-row">
+                            <span class="info-label">Order ID</span>
+                            <span class="info-value">{{ $orderId ?? '-' }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Payment Status</span>
+                            <span class="info-value" style="font-weight: 700; text-transform: uppercase;">{{ $status }}</span>
+                        </div>
+                    </div>
+
+                    @if(!empty($details))
+                        <div class="status-card">
+                            <h3 class="app-title mb-3">Payment Details</h3>
+                            
+                            <div class="info-row">
+                                <span class="info-label">Amount Paid</span>
+                                <span class="info-value amount-value">
+                                    ₹{{ number_format($details['amount'] ?? 0, 2) }} 
+                                    <span style="font-size: 0.875rem; font-weight: 500; color: #6b7280;">
+                                        {{ strtoupper($details['currency'] ?? 'INR') }}
+                                    </span>
+                                </span>
+                            </div>
+                            
+                            @if(!empty($details['reference_id']))
+                            <div class="info-row">
+                                <span class="info-label">Payment Reference ID</span>
+                                <span class="info-value" style="font-family: monospace;">{{ $details['reference_id'] }}</span>
+                            </div>
+                            @endif
+                            
+                            @if(!empty($details['payment_method']))
+                            <div class="info-row">
+                                <span class="info-label">Payment Method</span>
+                                <span class="info-value">{{ ucfirst(str_replace('_', ' ', $details['payment_method'])) }}</span>
+                            </div>
+                            @endif
+                            
+                            @if(!empty($details['payment_at']))
+                            <div class="info-row">
+                                <span class="info-label">Payment Date & Time</span>
+                                <span class="info-value">{{ \Carbon\Carbon::parse($details['payment_at'])->format('d M Y, h:i A') }}</span>
+                            </div>
+                            @endif
+                            
+                            @if(!empty($details['booking_id']))
+                            <div class="info-row">
+                                <span class="info-label">Booking ID</span>
+                                <span class="info-value">#{{ $details['booking_id'] }}</span>
+                            </div>
+                            @endif
+                        </div>
+
+                        @if(!empty($details['raw']))
+                        <div class="details-section">
+                            <details>
+                                <summary class="details-toggle">
+                                    <span>Show Technical Details</span>
+                                    <span>▼</span>
+                                </summary>
+                                <div class="raw-response">
+                                    <pre>{{ json_encode($details['raw'], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) }}</pre>
+                                </div>
+                            </details>
+                        </div>
+                        @endif
+                    @endif
+
+                    <div class="action-buttons">
+                        @if($isSuccess && !empty($details['booking_id']))
+                            <a href="{{ route('frontend.download-receipt', ['booking_id' => $details['booking_id']]) }}" class="btn-action btn-primary-action" target="_blank">
+                                <i class="fa-solid fa-download me-2"></i>Download Receipt
+                            </a>
+                        @endif
+                        
+                        @if(!empty($details['booking_id']))
+                            <a href="{{ route('frontend.booking-dashboard') }}" class="btn-action btn-primary-action">
+                                <i class="fa-solid fa-list me-2"></i>View My Bookings
+                            </a>
+                        @endif
+                        
+                        @php
+                            $returnParams = array_filter([
+                                'booking_id' => $details['booking_id'] ?? null,
+                                'order_id' => $details['order_id'] ?? ($orderId ?? null),
+                                'open_payment' => 1,
+                            ]);
+                        @endphp
+                        
+                        <a href="{{ route('frontend.setup', array_filter($returnParams)) }}" class="btn-action btn-secondary-action">
+                            <i class="fa-solid fa-arrow-left me-2"></i>Back to Setup
+                        </a>
+                        
+                        <a href="{{ route('frontend.index') }}" class="btn-action btn-secondary-action">
+                            <i class="fa-solid fa-home me-2"></i>Go to Home
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@endsection
 

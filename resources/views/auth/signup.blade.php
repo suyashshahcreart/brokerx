@@ -19,7 +19,7 @@
             <p class="text-muted text-center mt-1 mb-4">New to our platform? Sign up now! It only takes a minute.</p>
 
             <div class="px-4">
-                <form action="{{ route('register') }}" method="post" class="authentication-form" data-otp-send="{{ route('registration.otp.send') }}" data-otp-verify="{{ route('registration.otp.verify') }}">
+                <form action="{{ route('admin.register') }}" method="post" class="authentication-form" data-otp-send="{{ route('registration.otp.send') }}" data-otp-verify="{{ route('registration.otp.verify') }}">
                     @csrf
                     
                     @if ($errors->any())
@@ -162,7 +162,7 @@
         </div> <!-- end card-body -->
     </div> <!-- end card -->
 
-    <p class="mb-0 text-center text-white">I already have an account <a href="{{ route('second', ['auth', 'login'])}}" class="text-reset text-unline-dashed fw-bold ms-1">Sign In</a></p>
+    <p class="mb-0 text-center text-white">I already have an account <a href="{{ route('admin.login') }}" class="text-reset text-unline-dashed fw-bold ms-1">Sign In</a></p>
 </div> <!-- end col -->
 
 @endsection

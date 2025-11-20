@@ -640,37 +640,42 @@
       27. Scroll back to top
     ----------------------------------------------------*/
     var progressPath = document.querySelector('.progress-wrap path');
-    var pathLength = progressPath.getTotalLength();
-    progressPath.style.transition = progressPath.style.WebkitTransition = 'none';
-    progressPath.style.strokeDasharray = pathLength + ' ' + pathLength;
-    progressPath.style.strokeDashoffset = pathLength;
-    progressPath.getBoundingClientRect();
-    progressPath.style.transition = progressPath.style.WebkitTransition = 'stroke-dashoffset 10ms linear';
-    var updateProgress = function () {
-        var scroll = $(window).scrollTop();
-        var height = $(document).height() - $(window).height();
-        var progress = pathLength - (scroll * pathLength / height);
-        progressPath.style.strokeDashoffset = progress;
+    if (progressPath) {
+        var pathLength = progressPath.getTotalLength();
+        progressPath.style.transition = progressPath.style.WebkitTransition = 'none';
+        progressPath.style.strokeDasharray = pathLength + ' ' + pathLength;
+        progressPath.style.strokeDashoffset = pathLength;
+        progressPath.getBoundingClientRect();
+        progressPath.style.transition = progressPath.style.WebkitTransition = 'stroke-dashoffset 10ms linear';
+        var updateProgress = function () {
+            var scroll = $(window).scrollTop();
+            var height = $(document).height() - $(window).height();
+            var progress = pathLength - (scroll * pathLength / height);
+            progressPath.style.strokeDashoffset = progress;
+        }
+        updateProgress();
+        $(window).scroll(updateProgress);
     }
-    updateProgress();
-    $(window).scroll(updateProgress);
     var offset = 150;
     var duration = 550;
-    $(window).on('scroll', function () {
-        if ($(this).scrollTop() > offset) {
-            $('.progress-wrap').addClass('active-progress');
-        }
-        else {
-            $('.progress-wrap').removeClass('active-progress');
-        }
-    });
-    $('.progress-wrap').on('click', function (event) {
-        event.preventDefault();
-        $('html, body').animate({
-            scrollTop: 0
-        }, duration);
-        return false;
-    });
+    var progressWrap = document.querySelector('.progress-wrap');
+    if (progressWrap) {
+        $(window).on('scroll', function () {
+            if ($(this).scrollTop() > offset) {
+                $(progressWrap).addClass('active-progress');
+            }
+            else {
+                $(progressWrap).removeClass('active-progress');
+            }
+        });
+        $(progressWrap).on('click', function (event) {
+            event.preventDefault();
+            $('html, body').animate({
+                scrollTop: 0
+            }, duration);
+            return false;
+        });
+    }
     
     /*----------------------------------------------------
       28. Portfolio - Observers
@@ -1039,31 +1044,56 @@
                 headers: {
                     'Accept': 'application/json'
                 }
+            }).catch(err => {
+                // Silently handle network errors
+                console.warn('Blog API request failed:', err);
+                setPlaceholder('<p>Unable to load blog posts at this time.</p>');
+                return null;
             });
     
-            if (!response.ok) {
-                throw new Error(`Request failed with status ${response.status}`);
+            if (!response || !response.ok) {
+                setPlaceholder('<p>Unable to load blog posts at this time.</p>');
+                return;
             }
     
-            const posts = await response.json();
-            if (!Array.isArray(posts) || !posts.length) {
+            const posts = await response.json().catch(err => {
+                console.warn('Failed to parse blog posts:', err);
+                setPlaceholder('<p>Unable to load blog posts at this time.</p>');
+                return null;
+            });
+            
+            if (!posts || !Array.isArray(posts) || !posts.length) {
                 setPlaceholder('<p>No blog posts available right now. Check back soon!</p>');
                 return;
             }
     
-            const mediaMap = await fetchFeaturedMediaMap(posts);
-            const cards = await Promise.all(posts.map(async post => {
-                const imageSrc = await resolvePostImage(post, mediaMap);
-                return buildBlogCard(post, imageSrc);
-            }));
-            container.innerHTML = cards.join('');
+            try {
+                const mediaMap = await fetchFeaturedMediaMap(posts);
+                const cards = await Promise.all(posts.map(async post => {
+                    const imageSrc = await resolvePostImage(post, mediaMap);
+                    return buildBlogCard(post, imageSrc);
+                }));
+                container.innerHTML = cards.join('');
+            } catch (err) {
+                console.warn('Failed to render blog posts:', err);
+                setPlaceholder('<p>Unable to load blog posts at this time.</p>');
+            }
         } catch (error) {
-            console.error('Error fetching posts:', error);
-            setPlaceholder('<p>We couldn’t load the latest posts. Please try again later.</p>');
+            // Silently handle errors - don't log to console unless it's a critical error
+            if (error.name !== 'TypeError' && error.name !== 'NetworkError') {
+                console.warn('Failed to load recent posts:', error);
+            }
+            setPlaceholder('<p>Unable to load blog posts at this time.</p>');
         }
     }
     
-    window.addEventListener('DOMContentLoaded', loadRecentPosts);
+    // Only load blog posts if the container exists
+    window.addEventListener('DOMContentLoaded', () => {
+        const container = document.getElementById('blog-grid');
+        if (container) {
+            loadRecentPosts();
+        }
+    });
     
     
     
