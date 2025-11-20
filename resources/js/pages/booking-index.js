@@ -46,7 +46,8 @@ document.addEventListener('DOMContentLoaded', function () {
 	let lastDayLimit = 30;
 
 	function fetchHolidaysAndInitPicker(selectedDate) {
-		$.get('/api/holidays', function (data) {
+		const apiUrl = (window.apiBaseUrl || '') + '/holidays';
+		$.get(apiUrl, function (data) {
 			// data.holidays is an array of {id, name, date}, data.day_limit is the setting object
 			holidays = (data.holidays || []).map(h => h.date);
 			let dayLimit = 30;
@@ -136,8 +137,9 @@ document.addEventListener('DOMContentLoaded', function () {
 		}
 		$('#schedule-date').removeClass('is-invalid');
 		// Use correct route for reschedule
+		const baseUrl = window.appBaseUrl || '';
 		$.ajax({
-			url: `/admin/bookings/${bookingId}/reschedule`,
+			url: `${baseUrl}/admin/bookings/${bookingId}/reschedule`,
 			method: 'POST',
 			data: {
 				schedule_date: date,

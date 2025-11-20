@@ -113,4 +113,14 @@
         </div>
     </div>
 @endsection
+
+@section('script')
+<script>
+    // Set base URL and API routes for JavaScript
+    window.appBaseUrl = '{{ url("/") }}';
+    window.apiBaseUrl = '{{ url("/api") }}';
+    window.bookingIndexUrl = '{{ route("admin.bookings.index") }}';
+    window.bookingCsrfToken = '{{ csrf_token() }}';
+</script>
 @vite(['resources/js/pages/booking-index.js'])
+@endsection
