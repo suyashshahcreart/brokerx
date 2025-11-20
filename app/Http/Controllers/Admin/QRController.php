@@ -21,21 +21,25 @@ class QRController extends Controller
         if ($request->ajax()) {
             $data = QR::with(['booking', 'creator'])->select('qr_code.*');
             return DataTables::of($data)
-                ->addColumn('actions', function($row) {
+                ->addColumn('actions', function ($row) {
                     $editUrl = route('admin.qr.edit', $row->id);
                     $showUrl = route('admin.qr.show', $row->id);
                     $deleteUrl = route('admin.qr.destroy', $row->id);
-                    return '<a href="'.$showUrl.'" class="btn btn-info btn-sm">View</a> '
-                        .'<a href="'.$editUrl.'" class="btn btn-warning btn-sm">Edit</a> '
-                        .'<form action="'.$deleteUrl.'" method="POST" style="display:inline-block;">'
-                        .csrf_field().method_field('DELETE')
-                        .'<button type="submit" class="btn btn-danger btn-sm" onclick="return confirm(\'Delete this QR code?\')">Delete</button></form>';
+                    $csrf = csrf_field();
+                    $method = method_field('DELETE');
+                    $actions = '<div class="btn-group" role="group">';
+                    $actions .= '<a href="' . $showUrl . '" class="btn btn-light btn-sm border me-1" title="View"><i class="ri-eye-line"></i></a>';
+                    $actions .= '<a href="' . $editUrl . '" class="btn btn-soft-primary btn-sm border me-1" title="Edit"><i class="ri-edit-line"></i></a>';
+                    $actions .= '<form action="' . $deleteUrl . '" method="POST" class="d-inline">' . $csrf . $method .
+                        '<button type="submit" class="btn btn-soft-danger btn-sm border" onclick="return confirm(\'Delete this QR code?\')" title="Delete"><i class="ri-delete-bin-line"></i></button></form>';
+                    $actions .= '</div>';
+                    return $actions;
                 })
-                ->editColumn('image', function($row) {
-                    return $row->image ? '<img src="/storage/'.$row->image.'" width="50"/>' : '';
+                ->editColumn('image', function ($row) {
+                    return $row->image ? '<img src="/storage/' . $row->image . '" width="50"/>' : '';
                 })
-                ->editColumn('created_by', function($row) {
-                    return $row->creator ? $row->creator->firstname.' '.$row->creator->lastname : '';
+                ->editColumn('created_by', function ($row) {
+                    return $row->creator ? $row->creator->firstname . ' ' . $row->creator->lastname : '';
                 })
                 ->rawColumns(['actions', 'image'])
                 ->make(true);
