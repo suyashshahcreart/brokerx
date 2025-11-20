@@ -7,15 +7,17 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\Activitylog\Traits\LogsActivity;
 
-
 class QR extends Model
 {
     use SoftDeletes, LogsActivity;
+
+    protected $table = 'qr_code';
 
     protected $fillable = [
         'name',
         'code',
         'image',
+        'qr_link',
         'booking_id',
         'created_by',
         'updated_by',
@@ -25,6 +27,7 @@ class QR extends Model
         'name',
         'code',
         'image',
+        'qr_link',
         'booking_id',
         'created_by',
         'updated_by'

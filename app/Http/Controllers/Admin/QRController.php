@@ -19,7 +19,7 @@ class QRController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $data = QR::with(['booking', 'creator'])->select('q_r_s.*');
+            $data = QR::with(['booking', 'creator'])->select('qr_code.*');
             return DataTables::of($data)
                 ->addColumn('actions', function($row) {
                     $editUrl = route('admin.qr.edit', $row->id);
@@ -61,10 +61,11 @@ class QRController extends Controller
             'name' => 'required|string|max:255',
             'booking_id' => 'nullable|exists:bookings,id',
             'image' => 'nullable|image|max:2048',
+            'qr_link' => 'nullable|string|max:255',
         ]);
 
         $code = $this->generateUniqueCode();
-        $data = $request->only(['name', 'booking_id']);
+        $data = $request->only(['name', 'booking_id', 'qr_link']);
         $data['code'] = $code;
         $data['created_by'] = Auth::id();
         $data['updated_by'] = Auth::id();
@@ -107,8 +108,9 @@ class QRController extends Controller
             'name' => 'required|string|max:255',
             'booking_id' => 'nullable|exists:bookings,id',
             'image' => 'nullable|image|max:2048',
+            'qr_link' => 'nullable|string|max:255',
         ]);
-        $data = $request->only(['name', 'booking_id']);
+        $data = $request->only(['name', 'booking_id', 'qr_link']);
         $data['updated_by'] = Auth::id();
         if ($request->hasFile('image')) {
             $data['image'] = $request->file('image')->store('qr_images', 'public');

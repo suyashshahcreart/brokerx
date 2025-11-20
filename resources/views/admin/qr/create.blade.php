@@ -20,6 +20,10 @@
             <label>Image</label>
             <input type="file" name="image" class="form-control">
         </div>
+        <div class="mb-3">
+            <label>QR Link</label>
+            <input type="text" name="qr_link" class="form-control">
+        </div>
         <button type="submit" class="btn btn-success">Save</button>
     </form>
 </div>

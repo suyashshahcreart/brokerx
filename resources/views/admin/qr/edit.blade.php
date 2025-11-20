@@ -24,6 +24,10 @@
                 <img src="/storage/{{ $qr->image }}" width="100"/>
             @endif
         </div>
+        <div class="mb-3">
+            <label>QR Link</label>
+            <input type="text" name="qr_link" class="form-control" value="{{ $qr->qr_link }}">
+        </div>
         <button type="submit" class="btn btn-success">Update</button>
     </form>
 </div>

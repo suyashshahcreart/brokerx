@@ -1,64 +1,71 @@
-@extends('admin.layouts.vertical',['title' => 'QR Code', 'subTitle' => 'System'])
+@extends('admin.layouts.vertical', ['title' => 'QR Codes', 'subTitle' => 'System'])
 
 @section('content')
-<div class="container">
-    <h1>QR Codes</h1>
-    <a href="{{ route('admin.qr.create') }}" class="btn btn-primary mb-3">Add QR Code</a>
-    <table class="table table-bordered" id="qr-table">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Name</th>
-                <th>Code</th>
-                <th>Booking</th>
-                <th>Image</th>
-                <th>Created By</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-        @isset($qrs)
-            @foreach($qrs as $qr)
-                <tr>
-                    <td>{{ $qr->id }}</td>
-                    <td>{{ $qr->name }}</td>
-                    <td>{{ $qr->code }}</td>
-                    <td>{{ $qr->booking_id }}</td>
-                    <td>@if($qr->image)<img src="/storage/{{ $qr->image }}" width="50"/>@endif</td>
-                    <td>{{ $qr->creator ? $qr->creator->firstname.' '.$qr->creator->lastname : '' }}</td>
-                    <td>
-                        <a href="{{ route('admin.qr.show', $qr->id) }}" class="btn btn-info btn-sm">View</a>
-                        <a href="{{ route('admin.qr.edit', $qr->id) }}" class="btn btn-warning btn-sm">Edit</a>
-                        <form action="{{ route('admin.qr.destroy', $qr->id) }}" method="POST" style="display:inline-block;">
-                            @csrf
-                            @method('DELETE')
-                            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Delete this QR code?')">Delete</button>
-                        </form>
-                    </td>
-                </tr>
-            @endforeach
-        @endisset
-        </tbody>
-    </table>
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+            <div>
+                <nav aria-label="breadcrumb" class="mb-1">
+                    <ol class="breadcrumb mb-0">
+                        <li class="breadcrumb-item"><a href="{{ route('root') }}">Home</a></li>
+                        <li class="breadcrumb-item"><a href="#">System</a></li>
+                        <li class="breadcrumb-item active" aria-current="page">QR Codes</li>
+                    </ol>
+                </nav>
+                <h3 class="mb-0">QR Code Management</h3>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <x-admin.back-button :classes="['btn', 'btn-soft-secondary']" :merge="false" icon="ri-arrow-go-back-line" />
+                <a href="{{ route('admin.qr.create') }}" class="btn btn-primary" title="Add QR Code" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Add QR Code">
+                    <i class="ri-qr-code-line me-1"></i> New QR Code
+                </a>
+            </div>
+        </div>
+
+        <div class="card panel-card border-primary border-top" data-panel-card>
+            <div class="card-header d-flex justify-content-between align-items-start flex-wrap gap-2">
+                <div>
+                    <h4 class="card-title mb-1">QR Code List</h4>
+                    <p class="text-muted mb-0">Review QR codes, links, and actions</p>
+                </div>
+                <div class="panel-actions d-flex gap-2">
+                    <button type="button" class="btn btn-light border" data-panel-action="refresh" title="Refresh">
+                        <i class="ri-refresh-line"></i>
+                    </button>
+                    <button type="button" class="btn btn-light border" data-panel-action="collapse" title="Collapse">
+                        <i class="ri-arrow-up-s-line"></i>
+                    </button>
+                    <button type="button" class="btn btn-light border" data-panel-action="fullscreen" title="Fullscreen">
+                        <i class="ri-fullscreen-line"></i>
+                    </button>
+                    <button type="button" class="btn btn-light border" data-panel-action="close" title="Close">
+                        <i class="ri-close-line"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" id="qr-table">
+                        <thead class="table-light">
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Code</th>
+                                <th>Booking</th>
+                                <th>Image</th>
+                                <th>Created By</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 @endsection
-@push('scripts')
-<script>
-$(function() {
-    $('#qr-table').DataTable({
-        processing: true,
-        serverSide: true,
-        ajax: '{{ route('admin.qr.index') }}',
-        columns: [
-            { data: 'id' },
-            { data: 'name' },
-            { data: 'code' },
-            { data: 'booking_id' },
-            { data: 'image', render: function(data) { return data ? `<img src="/storage/${data}" width="50"/>` : ''; } },
-            { data: 'created_by' },
-            { data: 'actions', orderable: false, searchable: false }
-        ]
-    });
-});
-</script>
-@endpush
+
+@section('script')
+    @vite(['resources/js/pages/qr-index.js'])
+@endsection

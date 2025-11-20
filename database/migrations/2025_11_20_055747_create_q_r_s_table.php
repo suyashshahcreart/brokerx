@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('code', 9)->unique();
             $table->string('image')->nullable();
             $table->unsignedBigInteger('booking_id')->nullable();
+            $table->string('qr_link')->nullable();
             $table->unsignedBigInteger('created_by')->nullable();
             $table->unsignedBigInteger('updated_by')->nullable();
             $table->softDeletes();
@@ -33,6 +34,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('q_r_s');
+        Schema::dropIfExists('qr_code');
     }
 };

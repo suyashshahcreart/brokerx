@@ -19,6 +19,9 @@
             N/A
         @endif
     </div>
+    <div class="mb-3">
+        <strong>QR Link:</strong> {{ $qr->qr_link }}
+    </div>
     <a href="{{ route('admin.qr.index') }}" class="btn btn-secondary">Back</a>
 </div>
 @endsection
