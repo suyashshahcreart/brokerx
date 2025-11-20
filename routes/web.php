@@ -1,4 +1,5 @@
 <?php
+use App\Http\Controllers\Admin\HolidayController;
 use App\Http\Controllers\OtpController;
 use App\Http\Controllers\EmailOtpController;
 use App\Http\Controllers\BrokerController;
@@ -13,6 +14,7 @@ use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Admin\ActivityLogController;
 use App\Http\Controllers\Admin\BookingController;
 use App\Http\Controllers\Admin\PortfolioController as AdminPortfolioController;
+use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\FrontendController;
 use App\Http\Controllers\PortfolioController;
 use App\Http\Controllers\BrokerX\BrokerXController;
@@ -74,7 +76,10 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'middleware' => ['web','aut
     Route::resource('roles', RoleController::class);
     Route::resource('users', AdminUserController::class);
     Route::resource('bookings', BookingController::class);
+    Route::post('bookings/{booking}/reschedule', [BookingController::class, 'reschedule'])->name('admin.bookings.reschedule');
     Route::resource('portfolios', AdminPortfolioController::class);
+    Route::resource('holidays', HolidayController::class);
+    Route::resource('settings', SettingController::class);
     Route::get('activity', [ActivityLogController::class, 'index'])->name('activity.index');
 });
 
