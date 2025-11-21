@@ -29,6 +29,7 @@ Route::middleware(['web', 'auth'])->group(function () {
     // QR code 
     // API route to get booking detail by ID (returns JSON)
     Route::get('/bookings/api/list', [BookingController::class, 'apiList'])->name('bookings.api-list');
+    Route::get('/bookings/details', [BookingController::class, 'getBookingDetails'])->name('bookings.details');
     // Assign booking to QR
     Route::post('/qr/assign-booking', [BookingController::class, 'assignBookingToQr'])->name('qr.assign-booking');
 });

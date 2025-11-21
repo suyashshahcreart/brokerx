@@ -118,6 +118,37 @@ class BookingController extends Controller
         });
         return response()->json(['data' => $result]);
     }
+
+    /**
+     * API: Get booking details by ID (for QR modal)
+     */
+    public function getBookingDetails(Request $request)
+    {
+        $request->validate([
+            'booking_id' => 'required|exists:bookings,id',
+        ]);
+
+        $booking = Booking::with(['user', 'propertyType', 'propertySubType', 'bhk', 'city', 'state'])
+            ->findOrFail($request->booking_id);
+
+        $bookingData = [
+            'id' => $booking->id,
+            'customer' => $booking->user ? $booking->user->firstname . ' ' . $booking->user->lastname : null,
+            'property_type' => $booking->propertyType?->name,
+            'property_sub_type' => $booking->propertySubType?->name,
+            'bhk' => $booking->bhk?->name,
+            'city' => $booking->city?->name,
+            'state' => $booking->state?->name,
+            'area' => $booking->area ? number_format($booking->area) : null,
+            'price' => $booking->price ? '₹ ' . number_format($booking->price) : null,
+            'booking_date' => optional($booking->booking_date)->format('Y-m-d'),
+            'status' => $booking->status,
+            'payment_status' => $booking->payment_status,
+            'address' => $booking->full_address,
+        ];
+
+        return response()->json(['booking' => $bookingData]);
+    }
     public function create()
     {
         $users = User::orderBy('firstname')->get();
