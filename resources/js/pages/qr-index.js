@@ -122,6 +122,7 @@ $(function() {
             data: qrFilter === 'all' ? {} : (qrFilter === 'active' ? { active: 1 } : { active: 0 }),
             success: function(response) {
                 let data = response.data || response;
+                console.log(data);
                 let html = '';
                 if (Array.isArray(data) && data.length === 0) {
                     html = '<div class="col-12 text-center text-muted">No QR codes found.</div>';
@@ -131,21 +132,32 @@ $(function() {
                     if (qrFilter === 'inactive') data = data.filter(qr => !qr.booking_id);
                     data.forEach(function(qr) {
                         const statusBadge = qr.booking_id ? `<span class="badge bg-success">Active</span>` : `<span class="badge bg-danger">Inactive</span>`;
+                        
+                        // Display generated QR code or fallback image
+                        let qrImageHtml = '';
+                        if (qr.qr_code_svg) {
+                            qrImageHtml = `<div class="qr-code-container" style="width: 300px; height: 300px;">${qr.qr_code_svg}</div>`;
+                        } else if (qr.image) {
+                            qrImageHtml = `<img src="/storage/${qr.image}" alt="QR Image" class="img-fluid rounded" style="max-height:300px; max-width:300px;">`;
+                        } else {
+                            qrImageHtml = `<div class="text-muted"><i class="ri-qr-code-line" style="font-size: 150px;"></i><div>No QR Code</div></div>`;
+                        }
+                        
                         html += `<div class="col-12 col-md-6 col-lg-4">
                             <div class="card shadow-lg">
                                 <div class="card-body d-flex flex-column">
                                     <div class="fs-5">
                                         ${statusBadge}
                                     </div>
-                                    <div class="m-3 d-flex justify-content-center">
-                                        ${qr.image ? `<img src="/storage/${qr.image}" alt="QR Image" class="img-fluid rounded" style="max-height:200px;">` : '<img src="/images/qr_code.png" alt="QR Image" class="img-fluid rounded" style="max-height:200px;">'}
+                                    <div class="m-3 d-flex justify-content-center align-items-center" style="min-height: 300px;">
+                                        ${qrImageHtml}
                                     </div>
                                     <div class="d-flex gap-3">
                                         <h5 class="card-title">${qr.name}</h5>
                                         <span class=" fs-4 badge bg-primary">${qr.code}</span>
                                     </div>
                                     <div class="mb-1 text-muted">Booking: ${qr.booking_id ?? '-'}</div>
-                                    <div class="mb-1 ">${qr.qr_link ? `<a href="${qr.qr_link}" class="btn btn-soft-info" target="_blank">QR Link</a>` : ''}</div>
+                                    <div class="mb-1 ">${qr.qr_link ? `<a href="${qr.qr_link}" class="btn btn-soft-info btn-sm" target="_blank"><i class="ri-external-link-line me-1"></i>QR Link</a>` : ''}</div>
                                     <div class="mb-2">
                                         <button class="btn btn-outline-secondary btn-sm assign-booking-btn" data-qr-id="${qr.id}" data-qr-name="${qr.name}" data-qr-code="${qr.code}" data-qr-image="${qr.image}" data-booking-id="${qr.booking_id || ''}">
                                             <i class="ri-link"></i> ${qr.booking_id ? 'View Booking' : 'Assign'}

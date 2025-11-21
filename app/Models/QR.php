@@ -46,6 +46,20 @@ class QR extends Model
     {
         return $this->belongsTo(User::class, 'updated_by');
     }
+
+    /**
+     * Get the QR code image as base64 data URL
+     */
+    public function getQrCodeImageAttribute()
+    {
+        if ($this->qr_link) {
+            return \SimpleSoftwareIO\QrCode\Facades\QrCode::size(300)
+                ->format('svg')
+                ->generate($this->qr_link);
+        }
+        return null;
+    }
+
     public function getActivitylogOptions(): \Spatie\Activitylog\LogOptions
     {
         return \Spatie\Activitylog\LogOptions::defaults();

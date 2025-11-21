@@ -10,6 +10,7 @@ use App\Models\Booking;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Yajra\DataTables\DataTables;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class QRController extends Controller
 {
@@ -35,13 +36,23 @@ class QRController extends Controller
                     $actions .= '</div>';
                     return $actions;
                 })
+                ->addColumn('qr_code_svg', function ($row) {
+                    try {
+                        if ($row->qr_link) {
+                            return QrCode::size(300)->generate($row->qr_link);
+                        }
+                    } catch (\Exception $e) {
+                        \Log::error('QR Code Generation Error: ' . $e->getMessage());
+                    }
+                    return '';
+                })
                 ->editColumn('image', function ($row) {
                     return $row->image ? '<img src="/storage/' . $row->image . '" width="50"/>' : '';
                 })
                 ->editColumn('created_by', function ($row) {
                     return $row->creator ? $row->creator->firstname . ' ' . $row->creator->lastname : '';
                 })
-                ->rawColumns(['actions', 'image'])
+                ->rawColumns(['actions', 'image', 'qr_code_svg'])
                 ->make(true);
         }
         return view('admin.qr.index');
