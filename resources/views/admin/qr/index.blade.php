@@ -44,27 +44,27 @@
                     </div>
                 </div>
                 <div class="card-body">
-                    <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
                         <ul class="nav nav-pills" id="qrTab" role="tablist">
                             <li class="nav-item" role="presentation">
-                                <a class="nav-link active" id="qr-list-tab" data-bs-toggle="tab" href="#qr-list-view" role="tab" aria-controls="qr-list-view" aria-selected="true">
-                                    <i class="ri-list-check-2 me-1"></i> List View
-                                </a>
-                            </li>
-                            <li class="nav-item" role="presentation">
-                                <a class="nav-link" id="qr-grid-tab" data-bs-toggle="tab" href="#qr-grid-view" role="tab" aria-controls="qr-grid-view" aria-selected="false">
+                                <a class="nav-link active" id="qr-grid-tab" data-bs-toggle="tab" href="#qr-grid-view" role="tab" aria-controls="qr-grid-view" aria-selected="true">
                                     <i class="ri-layout-grid-line me-1"></i> Grid View
                                 </a>
                             </li>
+                            <li class="nav-item" role="presentation">
+                                <a class="nav-link" id="qr-list-tab" data-bs-toggle="tab" href="#qr-list-view" role="tab" aria-controls="qr-list-view" aria-selected="false">
+                                    <i class="ri-list-check-2 me-1"></i> List View
+                                </a>
+                            </li>
                         </ul>
-                        <div class="ms-auto d-flex gap-2">
+                        <div class="d-flex gap-2">
                             <button class="btn btn-outline-success" id="filter-active-qr">Active</button>
                             <button class="btn btn-outline-danger" id="filter-inactive-qr">Inactive</button>
                             <button class="btn btn-secondary" id="filter-all-qr">All</button>
                         </div>
                     </div>
                     <div class="tab-content pt-2">
-                        <div class="tab-pane fade show active" id="qr-list-view" role="tabpanel" aria-labelledby="qr-list-tab">
+                        <div class="tab-pane fade" id="qr-list-view" role="tabpanel" aria-labelledby="qr-list-tab">
                             <div class="table-responsive">
                                 <table class="table table-hover align-middle mb-0" id="qr-table" data-ajax="{{ route('admin.qr.index') }}">
                                     <thead class="table-light">
@@ -82,7 +82,7 @@
                                 </table>
                             </div>
                         </div>
-                        <div class="tab-pane fade" id="qr-grid-view" role="tabpanel" aria-labelledby="qr-grid-tab">
+                        <div class="tab-pane fade show active" id="qr-grid-view" role="tabpanel" aria-labelledby="qr-grid-tab">
                             <div class="row g-5" id="qr-grid-container">
                                 <!-- Grid cards will be loaded here by JS -->
                             </div>

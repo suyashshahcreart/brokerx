@@ -104,6 +104,12 @@ $(function() {
         }
     });
 
+    // Load grid view by default on page load
+    if (gridView.hasClass('active')) {
+        loadGridView();
+        gridLoaded = true;
+    }
+
     // Optionally reload grid on tab re-entry
     // gridTab.on('click', function(e) { loadGridView(); });
 
