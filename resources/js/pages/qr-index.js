@@ -157,7 +157,12 @@ $(function() {
                                         <span class=" fs-4 badge bg-primary">${qr.code}</span>
                                     </div>
                                     <div class="mb-1 text-muted">Booking: ${qr.booking_id ?? '-'}</div>
-                                    <div class="mb-1 ">${qr.qr_link ? `<a href="${qr.qr_link}" class="btn btn-soft-info btn-sm" target="_blank"><i class="ri-external-link-line me-1"></i>QR Link</a>` : ''}</div>
+                                    <div class="mb-2 d-flex gap-2 flex-wrap">
+                                        ${qr.qr_link ? `<a href="${qr.qr_link}" class="btn btn-soft-info btn-sm" target="_blank"><i class="ri-external-link-line me-1"></i>QR Link</a>` : ''}
+                                        <a href="/admin/qr/${qr.id}/download" class="btn btn-soft-success btn-sm" title="Download QR with Details" download>
+                                            <i class="ri-download-2-line me-1"></i>Download
+                                        </a>
+                                    </div>
                                     <div class="mb-2">
                                         <button class="btn btn-outline-secondary btn-sm assign-booking-btn" data-qr-id="${qr.id}" data-qr-name="${qr.name}" data-qr-code="${qr.code}" data-qr-image="${qr.image}" data-booking-id="${qr.booking_id || ''}">
                                             <i class="ri-link"></i> ${qr.booking_id ? 'View Booking' : 'Assign'}

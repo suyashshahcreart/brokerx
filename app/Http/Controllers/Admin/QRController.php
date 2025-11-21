@@ -40,6 +40,8 @@ class QRController extends Controller
                     try {
                         if ($row->qr_link) {
                             return QrCode::size(300)->generate($row->qr_link);
+                        }else{
+                            return QrCode::size(300)->generate('https://github.com/deepeshsuryawanshi');
                         }
                     } catch (\Exception $e) {
                         \Log::error('QR Code Generation Error: ' . $e->getMessage());
@@ -138,6 +140,53 @@ class QRController extends Controller
     /**
      * Remove the specified resource from storage.
      */
+    /**
+     * Download QR code with details
+     */
+    public function download($id)
+    {
+        $qr = QR::with(['booking.user', 'booking.propertyType', 'booking.propertySubType', 'booking.bhk', 'booking.city', 'booking.state'])->findOrFail($id);
+        
+        // Generate QR code
+        $qrCode = '';
+        if ($qr->qr_link) {
+            $qrCode = QrCode::size(400)->generate($qr->qr_link);
+        }
+        
+        // Prepare booking details
+        $bookingDetails = null;
+        if ($qr->booking) {
+            $b = $qr->booking;
+            $bookingDetails = [
+                'id' => $b->id,
+                'customer' => $b->user ? $b->user->firstname . ' ' . $b->user->lastname : 'N/A',
+                'mobile' => $b->user?->mobile ?? 'N/A',
+                'property_type' => $b->propertyType?->name ?? 'N/A',
+                'property_sub_type' => $b->propertySubType?->name ?? 'N/A',
+                'bhk' => $b->bhk?->name ?? 'N/A',
+                'city' => $b->city?->name ?? 'N/A',
+                'state' => $b->state?->name ?? 'N/A',
+                'area' => $b->area ? number_format($b->area) . ' sq.ft' : 'N/A',
+                'price' => $b->price ? '₹ ' . number_format($b->price) : 'N/A',
+                'booking_date' => optional($b->booking_date)->format('d M Y') ?? 'N/A',
+                'address' => $b->full_address ?? 'N/A',
+                'pin_code' => $b->pin_code ?? 'N/A',
+                'status' => $b->status ?? 'N/A',
+            ];
+        }
+        
+        // Generate HTML for download
+        $html = view('admin.qr.download', [
+            'qr' => $qr,
+            'qrCode' => $qrCode,
+            'bookingDetails' => $bookingDetails
+        ])->render();
+        
+        return response($html)
+            ->header('Content-Type', 'text/html')
+            ->header('Content-Disposition', 'attachment; filename="QR-' . $qr->code . '.html"');
+    }
+
     public function destroy($id)
     {
         $qr = QR::findOrFail($id);

@@ -82,6 +82,7 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'middleware' => ['web', 'au
     Route::resource('holidays', HolidayController::class);
     Route::resource('settings', SettingController::class);
     Route::get('activity', [ActivityLogController::class, 'index'])->name('activity.index');
+    Route::get('qr/{qr}/download', [QRController::class, 'download'])->name('admin.qr.download');
     Route::resource('qr', QRController::class);
 });
 
