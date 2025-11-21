@@ -107,12 +107,22 @@ class BookingController extends Controller
                     });
             });
         }
-        $bookings = $query->orderByDesc('created_at')->limit(20)->get();
+        $bookings = $query->with(['city', 'state', 'bhk'])->orderByDesc('created_at')->limit(50)->get();
         $result = $bookings->map(function ($booking) {
             return [
                 'id' => $booking->id,
                 'customer' => $booking->user ? $booking->user->firstname . ' ' . $booking->user->lastname : null,
-                'property' => $booking->propertyType?->name . ' / ' . $booking->propertySubType?->name,
+                'customer_mobile' => $booking->user?->mobile,
+                'property_type' => $booking->propertyType?->name,
+                'property_sub_type' => $booking->propertySubType?->name,
+                'bhk' => $booking->bhk?->name,
+                'city' => $booking->city?->name,
+                'state' => $booking->state?->name,
+                'address' => $booking->full_address,
+                'pin_code' => $booking->pin_code,
+                'area' => $booking->area,
+                'price' => $booking->price,
+                'booking_date' => optional($booking->booking_date)->format('d M Y'),
                 'status' => $booking->status,
             ];
         });

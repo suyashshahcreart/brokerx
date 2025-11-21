@@ -89,7 +89,7 @@
                         </div>
                         <!-- Assign Booking Modal -->
                         <div class="modal fade" id="assignBookingModal" data-booking-list-api="{{ route('bookings.api-list') }}" data-assign-api="{{ route('qr.assign-booking') }}" data-booking-details-api="{{ route('bookings.details') }}" tabindex="-1" aria-labelledby="assignBookingModalLabel" aria-hidden="true">
-                                <div class="modal-dialog modal-lg modal-dialog-centered">
+                                <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
                                 <div class="modal-content">
                                     <div class="modal-header">
                                         <h5 class="modal-title" id="assignBookingModalLabel">QR & Booking Details</h5>

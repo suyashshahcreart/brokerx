@@ -1,5 +1,6 @@
 import $ from 'jquery';
 import 'datatables.net-bs5';
+import Swal from 'sweetalert2';
 
 const model = $('#assignBookingModal');
 
@@ -253,80 +254,281 @@ $(function() {
                                     }
                                 });
                             } else {
-                                // QR is not assigned - show booking list for assignment
+                                // QR is not assigned - show booking list for assignment with DataTable
                                 $('#assignBookingModalLabel').text('Assign QR To Booking');
-                                $('#assign-modal-content').html('<div class="text-center text-muted">Loading bookings...</div>');
-                                
-                                const bookingApiUrl = $('#assignBookingModal').data('booking-list-api');
-                                $.ajax({
-                                    url: bookingApiUrl,
-                                    data: { qr_id: qrId },
-                                    success: function(data) {
-                                        let bookings = Array.isArray(data) ? data : (data.data || data.bookings || []);
-                                        if (!bookings || bookings.length === 0) {
-                                            $('#assign-modal-content').html('<div class="text-center text-muted">No bookings available for assignment.</div>');
-                                        } else {
-                                            let html = '<div class="mt-3"><h6 class="mb-3">Select Booking to Assign</h6><div class="list-group">';
-                                            bookings.forEach(function(b) {
-                                                const id = b.id || b.booking_id || '';
-                                                const title = b.reference || b.name || b.title || ('Booking #' + id);
-                                                const meta = b.customer_name || b.customer || b.email || '';
-                                                const property = b.property || '';
-                                                const date = b.date || b.created_at || '';
-                                                html += `<label class="list-group-item d-flex justify-content-between align-items-start">
-                                                            <div class="ms-2 me-auto">
-                                                              <div class="fw-bold">${title}</div>
-                                                              <div class="text-muted small">${meta}${property ? ' · ' + property : ''}${date ? ' · ' + date : ''}</div>
-                                                            </div>
-                                                            <input type="radio" name="assign_booking_radio" value="${id}">
-                                                         </label>`;
-                                            });
-                                            html += '</div>';
-                                            html += '<div class="mt-3 text-end"><button type="button" class="btn btn-primary" id="confirm-assign-btn">Assign Booking</button></div></div>';
-                                            $('#assign-modal-content').html(html);
+                                let html = `
+                                    <div class="mt-3">
+                                        <div class="d-flex justify-content-between align-items-center mb-3">
+                                            <h6 class="mb-0"><i class="ri-file-list-3-line me-2"></i>Available Bookings</h6>
+                                            <span class="badge bg-primary" id="total-bookings-count">Loading...</span>
+                                        </div>
+                                        <div class="table-responsive">
+                                            <table class="table table-hover table-bordered align-middle mb-0" id="assign-bookings-table" style="width:100%">
+                                                <thead class="table-dark">
+                                                    <tr>
+                                                        <th style="width: 20px;">ID</th>
+                                                        <th style="width: 150px;">Customer</th>
+                                                        <th style="width: 180px;">Property Details</th>
+                                                        <th style="width: 150px;">Location</th>
+                                                        <th style="width: 120px;">Booking Date</th>
+                                                        <th style="width: 90px;">Status</th>
+                                                        <th style="width: 70px;" class="text-center">Select</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody></tbody>
+                                            </table>
+                                        </div>
+                                        <div class="mt-3 d-flex justify-content-between align-items-center bg-light p-3 rounded">
+                                            <div id="selected-booking-info" class="text-muted small"><i class="ri-information-line me-1"></i>Please select a booking to assign</div>
+                                            <button type="button" class="btn btn-primary" id="confirm-assign-btn" disabled>
+                                                <i class="ri-checkbox-circle-line me-1"></i>Assign Booking
+                                            </button>
+                                        </div>
+                                    </div>
+                                `;
+                                $('#assign-modal-content').html(html);
 
-                                            // Confirm assign button
-                                            $('#confirm-assign-btn').off('click').on('click', function() {
-                                                const selected = $('input[name="assign_booking_radio"]:checked').val();
-                                                if (!selected) {
-                                                    alert('Please select a booking.');
-                                                    return;
-                                                }
-                                                const assignApi = $('#assignBookingModal').data('assign-api');
-                                                if (!assignApi) {
-                                                    alert('Assign API not configured.');
-                                                    return;
-                                                }
-                                                $.post(assignApi, {
-                                                    qr_id: qrId,
-                                                    booking_id: selected,
-                                                    _token: $('meta[name="csrf-token"]').attr('content')
-                                                })
-                                                .done(function(res) {
-                                                    if (res && (res.success === true || res.status === 'success')) {
-                                                        const modalEl = document.getElementById('assignBookingModal');
-                                                        const modalInstance = bootstrap.Modal.getInstance(modalEl);
-                                                        if (modalInstance) {
-                                                            modalInstance.hide();
-                                                        }
-                                                        // Remove backdrop and restore body
-                                                        $('.modal-backdrop').remove();
-                                                        $('body').removeClass('modal-open').css('overflow', '');
-                                                        if (table.length && $.fn.DataTable.isDataTable(table)) table.DataTable().ajax.reload(null, false);
-                                                        if (typeof loadGridView === 'function') loadGridView();
-                                                    } else {
-                                                        alert(res.message || 'Assignment failed.');
-                                                    }
-                                                })
-                                                .fail(function() {
-                                                    alert('Assignment request failed.');
-                                                });
-                                            });
+                                // Initialize DataTable for bookings
+                                const bookingApiUrl = $('#assignBookingModal').data('booking-list-api');
+                                let selectedBookingId = null;
+                                
+                                const assignBookingsTable = $('#assign-bookings-table').DataTable({
+                                    processing: true,
+                                    serverSide: false,
+                                    ajax: {
+                                        url: bookingApiUrl,
+                                        dataSrc: function(json) {
+                                            const data = json.data || json.bookings || json || [];
+                                            $('#total-bookings-count').text(data.length + ' Bookings');
+                                            return data;
+                                        },
+                                        error: function() {
+                                            $('#assign-modal-content').html('<div class="alert alert-danger text-center"><i class="ri-error-warning-line me-2"></i>Failed to load bookings.</div>');
                                         }
                                     },
-                                    error: function() {
-                                        $('#assign-modal-content').html('<div class="text-danger text-center">Failed to load bookings.</div>');
+                                    columns: [
+                                        { 
+                                            data: 'id', 
+                                            name: 'id',
+                                            render: function(data) {
+                                                return `<span class="badge bg-success">#${data}</span>`;
+                                            }
+                                        },
+                                        { 
+                                            data: 'customer', 
+                                            name: 'customer',
+                                            render: function(data, type, row) {
+                                                const customerName = data || 'N/A';
+                                                const mobile = row.customer_mobile ? `<div class="text-muted small"><i class="ri-phone-line"></i> ${row.customer_mobile}</div>` : '';
+                                                return `<div class="fw-semibold">${customerName}</div>${mobile}`;
+                                            }
+                                        },
+                                        { 
+                                            data: 'property_type', 
+                                            name: 'property_type',
+                                            render: function(data, type, row) {
+                                                const propertyType = data || '-';
+                                                const subType = row.property_sub_type ? `<div class="text-muted small">${row.property_sub_type}</div>` : '';
+                                                const bhk = row.bhk ? `<span class="badge bg-info badge-sm">${row.bhk}</span>` : '';
+                                                const area = row.area ? `<span class="text-muted small ms-1">${parseFloat(row.area).toLocaleString()} sq.ft</span>` : '';
+                                                return `<div>${propertyType} ${bhk}</div>${subType}${area}`;
+                                            }
+                                        },
+                                        { 
+                                            data: 'city', 
+                                            name: 'city',
+                                            render: function(data, type, row) {
+                                                const city = data || '-';
+                                                const state = row.state ? `<div class="text-muted small">${row.state}</div>` : '';
+                                                const pincode = row.pin_code ? `<div class="text-muted small"><i class="ri-map-pin-line"></i> ${row.pin_code}</div>` : '';
+                                                return `<div class="fw-semibold">${city}</div>${state}${pincode}`;
+                                            }
+                                        },
+                                        { 
+                                            data: 'booking_date', 
+                                            name: 'booking_date',
+                                            render: function(data) {
+                                                return data ? `<div class="text-center"><i class="ri-calendar-line me-1"></i>${data}</div>` : '<span class="text-muted">-</span>';
+                                            }
+                                        },
+                                        { 
+                                            data: 'status', 
+                                            name: 'status',
+                                            render: function(data) {
+                                                const statusColors = {
+                                                    'pending': 'warning',
+                                                    'confirmed': 'success',
+                                                    'cancelled': 'danger',
+                                                    'completed': 'info'
+                                                };
+                                                const statusIcons = {
+                                                    'pending': 'ri-time-line',
+                                                    'confirmed': 'ri-checkbox-circle-line',
+                                                    'cancelled': 'ri-close-circle-line',
+                                                    'completed': 'ri-check-double-line'
+                                                };
+                                                const color = statusColors[data] || 'secondary';
+                                                const icon = statusIcons[data] || 'ri-information-line';
+                                                return `<span class="badge bg-${color} text-uppercase"><i class="${icon} me-1"></i>${data || '-'}</span>`;
+                                            }
+                                        },
+                                        { 
+                                            data: 'id',
+                                            orderable: false,
+                                            searchable: false,
+                                            className: 'text-center',
+                                            render: function(data, type, row) {
+                                                return `<input type="radio" name="assign_booking_radio" value="${data}" class="form-check-input" style="width: 20px; height: 20px; cursor: pointer;">`;
+                                            }
+                                        }
+                                    ],
+                                    pageLength: 10,
+                                    lengthMenu: [[5, 10, 25, 50], [5, 10, 25, 50]],
+                                    order: [[0, 'desc']],
+                                    language: {
+                                        search: "_INPUT_",
+                                        searchPlaceholder: "Search by customer, property, location, pin code...",
+                                        lengthMenu: "Show _MENU_ entries",
+                                        info: "Showing _START_ to _END_ of _TOTAL_ bookings",
+                                        infoEmpty: "No bookings available",
+                                        zeroRecords: "<div class='text-center text-muted py-3'><i class='ri-search-line fs-1'></i><div class='mt-2'>No matching bookings found</div></div>",
+                                        emptyTable: "<div class='text-center text-muted py-3'><i class='ri-inbox-line fs-1'></i><div class='mt-2'>No bookings available for assignment</div></div>",
+                                        processing: '<div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div>'
+                                    },
+                                    dom: '<"row mb-3"<"col-sm-6"l><"col-sm-6"f>><"row"<"col-sm-12"tr>><"row mt-3"<"col-sm-5"i><"col-sm-7"p>>',
+                                    initComplete: function() {
+                                        // Style the search input
+                                        $('#dt-search-1')
+                                            .removeClass('form-control-sm')
+                                            .addClass('form-control')
+                                            .css({
+                                                'width': '80%',
+                                                'border': '2px solid #e0e0e0',
+                                                'border-radius': '2px',
+                                                'box-shadow': '0 2px 4px rgba(0,0,0,0.05)'
+                                            })
+                                            .attr('placeholder', 'Search by customer, property, location, pin code...');
+                                        
+                                        // Add search icon
+                                        $('.dataTables_filter').prepend('<i class="ri-search-line position-absolute" style="left: 30px; top: 50%; transform: translateY(-50%); font-size: 20px; color: #999; z-index: 1;"></i>');
+                                        $('.dataTables_filter input').css('padding-left', '45px');
+                                        $('.dataTables_filter').css('position', 'relative');
+                                        
+                                        // Style the length menu
+                                        $('.dataTables_length select')
+                                            .removeClass('form-select-sm')
+                                            .addClass('form-select');
+                                    },
+                                    drawCallback: function() {
+                                        // Add hover effect styling
+                                        $('#assign-bookings-table tbody tr').hover(
+                                            function() { $(this).addClass('table-active'); },
+                                            function() { $(this).removeClass('table-active'); }
+                                        );
                                     }
+                                });
+
+                                // Handle radio button selection
+                                $('#assign-bookings-table tbody').off('change', 'input[name="assign_booking_radio"]').on('change', 'input[name="assign_booking_radio"]', function() {
+                                    selectedBookingId = $(this).val();
+                                    const row = assignBookingsTable.row($(this).closest('tr')).data();
+                                    const customerInfo = row.customer || 'N/A';
+                                    const propertyInfo = `${row.property_type || ''} ${row.property_sub_type ? '/ ' + row.property_sub_type : ''}`;
+                                    const locationInfo = row.city ? `${row.city}${row.state ? ', ' + row.state : ''}` : '';
+                                    $('#selected-booking-info').html(`
+                                        <div>
+                                            <i class="ri-checkbox-circle-fill text-success me-1"></i>
+                                            <strong>Booking #${row.id}</strong> selected
+                                            <span class="text-muted">| ${customerInfo} | ${propertyInfo}${locationInfo ? ' | ' + locationInfo : ''}</span>
+                                        </div>
+                                    `);
+                                    $('#confirm-assign-btn').prop('disabled', false).removeClass('btn-secondary').addClass('btn-primary');
+                                });
+
+                                // Confirm assign button
+                                $('#confirm-assign-btn').off('click').on('click', function() {
+                                    if (!selectedBookingId) {
+                                        alert('Please select a booking.');
+                                        return;
+                                    }
+                                    const assignApi = $('#assignBookingModal').data('assign-api');
+                                    if (!assignApi) {
+                                        alert('Assign API not configured.');
+                                        return;
+                                    }
+                                    
+                                    // Disable button and show loading
+                                    $(this).prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Assigning...');
+                                    
+                                    $.post(assignApi, {
+                                        qr_id: qrId,
+                                        booking_id: selectedBookingId,
+                                        _token: $('meta[name="csrf-token"]').attr('content')
+                                    })
+                                    .done(function(res) {
+                                        if (res && (res.success === true || res.status === 'success')) {
+                                            const modalEl = document.getElementById('assignBookingModal');
+                                            const modalInstance = bootstrap.Modal.getInstance(modalEl);
+                                            if (modalInstance) {
+                                                modalInstance.hide();
+                                            }
+                                            // Destroy DataTable before closing
+                                            if ($.fn.DataTable.isDataTable('#assign-bookings-table')) {
+                                                $('#assign-bookings-table').DataTable().destroy();
+                                            }
+                                            // Remove backdrop and restore body
+                                            $('.modal-backdrop').remove();
+                                            $('body').removeClass('modal-open').css('overflow', '');
+                                            
+                                            // Show success alert with SweetAlert
+                                            Swal.fire({
+                                                icon: 'success',
+                                                title: 'Success!',
+                                                text: res.message || 'QR code has been successfully assigned to the booking.',
+                                                confirmButtonText: 'OK',
+                                                timer: 3000,
+                                                timerProgressBar: true
+                                            }).then(() => {
+                                                // Reload tables after alert
+                                                if (table.length && $.fn.DataTable.isDataTable(table)) table.DataTable().ajax.reload(null, false);
+                                                if (typeof loadGridView === 'function') loadGridView();
+                                            });
+                                        } else {
+                                            Swal.fire({
+                                                icon: 'error',
+                                                title: 'Assignment Failed',
+                                                text: res.message || 'Failed to assign QR code to the booking.',
+                                                confirmButtonText: 'OK'
+                                            });
+                                            $('#confirm-assign-btn').prop('disabled', false).html('<i class="ri-checkbox-circle-line me-1"></i>Assign Booking');
+                                        }
+                                    })
+                                    .fail(function(xhr) {
+                                        const errorMsg = xhr.responseJSON?.message || 'Assignment request failed.';
+                                        Swal.fire({
+                                            icon: 'error',
+                                            title: 'Error',
+                                            text: errorMsg,
+                                            confirmButtonText: 'OK'
+                                        });
+                                        $('#confirm-assign-btn').prop('disabled', false).html('<i class="ri-checkbox-circle-line me-1"></i>Assign Booking');
+                                    });
+                                });
+
+                                // Clean up DataTable and modal backdrop when modal is closed
+                                $('#assignBookingModal').off('hidden.bs.modal').on('hidden.bs.modal', function() {
+                                    // Destroy DataTable if exists
+                                    if ($.fn.DataTable.isDataTable('#assign-bookings-table')) {
+                                        $('#assign-bookings-table').DataTable().destroy();
+                                    }
+                                    // Force remove any lingering backdrops and restore body
+                                    setTimeout(function() {
+                                        $('.modal-backdrop').remove();
+                                        $('body').removeClass('modal-open').css({
+                                            'overflow': '',
+                                            'padding-right': ''
+                                        });
+                                    }, 100);
                                 });
                             }
                             
