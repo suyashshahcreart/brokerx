@@ -32,16 +32,19 @@ $(function() {
         // Filter button handlers
         $(document).on('click', '#filter-active-qr', function() {
             qrFilter = 'active';
+            gridPage = 1; // reset pagination
             updateFilterButtons();
             reloadViews();
         });
         $(document).on('click', '#filter-inactive-qr', function() {
             qrFilter = 'inactive';
+            gridPage = 1;
             updateFilterButtons();
             reloadViews();
         });
         $(document).on('click', '#filter-all-qr', function() {
             qrFilter = 'all';
+            gridPage = 1;
             updateFilterButtons();
             reloadViews();
             // Set initial filter button state
@@ -62,6 +65,12 @@ $(function() {
     const gridView = $('#qr-grid-view');
     const gridContainer = $('#qr-grid-container');
     let gridLoaded = false;
+    // Pagination state for grid view
+    let gridPage = 1; // current page
+    let gridPageSize = 9; // cards per page
+    let gridTotalRecords = 0;
+    let gridTotalPages = 1;
+    let gridDraw = 1; // DataTables style draw counter
 
     // Initialize DataTable for List View
     if (table.length) {
@@ -113,21 +122,69 @@ $(function() {
     // Optionally reload grid on tab re-entry
     // gridTab.on('click', function(e) { loadGridView(); });
 
+    // Pagination renderer
+    function renderGridPagination() {
+        let paginationEl = $('#qr-grid-pagination');
+        if (!paginationEl.length) {
+            gridContainer.after('<div id="qr-grid-pagination" class="mt-3"></div>');
+            paginationEl = $('#qr-grid-pagination');
+        }
+        if (gridTotalPages <= 1) { paginationEl.html(''); return; }
+        const maxPagesToShow = 7;
+        let startPage = Math.max(1, gridPage - Math.floor(maxPagesToShow/2));
+        let endPage = startPage + maxPagesToShow - 1;
+        if (endPage > gridTotalPages) { endPage = gridTotalPages; startPage = Math.max(1, endPage - maxPagesToShow + 1); }
+        let html = '<nav aria-label="Grid pagination"><ul class="pagination justify-content-center pagination-sm">';
+        html += `<li class="page-item${gridPage===1?' disabled':''}"><a class="page-link" href="#" data-page="${gridPage-1}">Prev</a></li>`;
+        if (startPage > 1) {
+            html += `<li class="page-item"><a class="page-link" href="#" data-page="1">1</a></li>`;
+            if (startPage > 2) html += '<li class="page-item disabled"><span class="page-link">&hellip;</span></li>';
+        }
+        for (let p=startPage; p<=endPage; p++) {
+            html += `<li class="page-item${p===gridPage?' active':''}"><a class="page-link" href="#" data-page="${p}">${p}</a></li>`;
+        }
+        if (endPage < gridTotalPages) {
+            if (endPage < gridTotalPages - 1) html += '<li class="page-item disabled"><span class="page-link">&hellip;</span></li>';
+            html += `<li class="page-item"><a class="page-link" href="#" data-page="${gridTotalPages}">${gridTotalPages}</a></li>`;
+        }
+        html += `<li class="page-item${gridPage===gridTotalPages?' disabled':''}"><a class="page-link" href="#" data-page="${gridPage+1}">Next</a></li>`;
+        html += '</ul>';
+        html += `<div class="text-center small text-muted mt-1">Page ${gridPage} of ${gridTotalPages} • Total ${gridTotalRecords} QR codes</div>`;
+        paginationEl.html(html);
+    }
+
+    // Pagination click handler
+    $(document).on('click', '#qr-grid-pagination .page-link', function(e){
+        e.preventDefault();
+        const target = parseInt($(this).data('page'),10);
+        if (!isNaN(target) && target>=1 && target<=gridTotalPages && target!==gridPage) {
+            gridPage = target;
+            loadGridView();
+            $('html,body').animate({scrollTop: gridContainer.offset().top - 80},300);
+        }
+    });
+
     function loadGridView() {
         if (!gridContainer.length) return;
         gridContainer.html('<div class="col-12 text-center text-muted">Loading...</div>');
         $.ajax({
             url: table.data('ajax') || table.data('url') || table.attr('data-ajax') || table.attr('data-url') || window.qrIndexAjaxUrl || '',
             dataType: 'json',
-            data: qrFilter === 'all' ? {} : (qrFilter === 'active' ? { active: 1 } : { active: 0 }),
+            data: (function(){
+                let params = { start: (gridPage-1)*gridPageSize, length: gridPageSize, draw: gridDraw++ };
+                if (qrFilter === 'active') params.active = 1;
+                if (qrFilter === 'inactive') params.active = 0;
+                return params;
+            })(),
             success: function(response) {
                 let data = response.data || response;
-                console.log(data);
+                gridTotalRecords = response.recordsFiltered || response.recordsTotal || (Array.isArray(data)?data.length:0);
+                gridTotalPages = Math.max(1, Math.ceil(gridTotalRecords / gridPageSize));
+                if (gridPage > gridTotalPages) { gridPage = 1; }
                 let html = '';
                 if (Array.isArray(data) && data.length === 0) {
                     html = '<div class="col-12 text-center text-muted">No QR codes found.</div>';
                 } else {
-                    // Filter on client side as fallback (if server doesn't filter)
                     if (qrFilter === 'active') data = data.filter(qr => qr.booking_id);
                     if (qrFilter === 'inactive') data = data.filter(qr => !qr.booking_id);
                     data.forEach(function(qr) {
@@ -561,9 +618,11 @@ $(function() {
                         });
                 }
                 gridContainer.html(html);
+                renderGridPagination();
             },
             error: function() {
                 gridContainer.html('<div class="col-12 text-center text-danger">Failed to load QR codes.</div>');
+                gridTotalRecords = 0; gridTotalPages = 1; renderGridPagination();
             }
         });
     }
