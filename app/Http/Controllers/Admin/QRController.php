@@ -12,6 +12,10 @@ use Illuminate\Support\Str;
 use Yajra\DataTables\DataTables;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Endroid\QrCode\Builder\Builder;
+use Endroid\QrCode\Encoding\Encoding;
+use Endroid\QrCode\ErrorCorrectionLevel;
+use Endroid\QrCode\Writer\PngWriter;
 
 class QRController extends Controller
 {
@@ -149,13 +153,37 @@ class QRController extends Controller
         try {
             $qr = QR::with(['booking.user', 'booking.propertyType', 'booking.propertySubType', 'booking.bhk', 'booking.city', 'booking.state'])->findOrFail($id);
             
-            // Generate QR code as SVG for PDF (no extension required)
-            $qrCodeImage = null;
+            // Generate QR code and save as temporary PNG file using endroid/qr-code
+            $qrCodePath = null;
             if ($qr->qr_link) {
-                // Use SVG format which doesn't require imagick or GD
-                $qrCodeSvg = QrCode::size(400)->generate($qr->qr_link);
-                // Convert SVG to base64 data URI for embedding
-                $qrCodeImage = 'data:image/svg+xml;base64,' . base64_encode($qrCodeSvg);
+                try {
+                    // Create temp directory if it doesn't exist
+                    $tempDir = storage_path('app/temp');
+                    if (!file_exists($tempDir)) {
+                        mkdir($tempDir, 0755, true);
+                    }
+                    
+                    // Generate unique filename
+                    $filename = 'qr_' . $qr->code . '_' . time() . '.png';
+                    $qrCodePath = $tempDir . '/' . $filename;
+                    
+                    // Generate QR code using endroid/qr-code with GD (PNG)
+                    $result = Builder::create()
+                        ->writer(new PngWriter())
+                        ->data($qr->qr_link)
+                        ->encoding(new Encoding('UTF-8'))
+                        ->errorCorrectionLevel(ErrorCorrectionLevel::High)
+                        ->size(400)
+                        ->margin(10)
+                        ->build();
+                    
+                    // Save to file
+                    $result->saveToFile($qrCodePath);
+                    
+                } catch (\Exception $e) {
+                    \Log::error('QR Code generation failed for QR ID ' . $qr->id . ': ' . $e->getMessage());
+                    $qrCodePath = null;
+                }
             }
             
             // Prepare booking details
@@ -183,7 +211,7 @@ class QRController extends Controller
             // Generate PDF
             $pdf = Pdf::loadView('admin.qr.pdf', [
                 'qr' => $qr,
-                'qrCodeImage' => $qrCodeImage,
+                'qrCodePath' => $qrCodePath,
                 'bookingDetails' => $bookingDetails,
                 'generatedAt' => now()
             ]);
@@ -191,8 +219,15 @@ class QRController extends Controller
             // Set paper size and orientation
             $pdf->setPaper('A4', 'portrait');
             
-            // Download the PDF with proper headers
-            return $pdf->download('QR-' . $qr->code . '.pdf');
+            // Generate PDF output
+            $output = $pdf->download('QR-' . $qr->code . '.pdf');
+            
+            // Clean up temporary QR code file
+            if ($qrCodePath && file_exists($qrCodePath)) {
+                @unlink($qrCodePath);
+            }
+            
+            return $output;
             
         } catch (\Exception $e) {
             \Log::error('PDF Download Error: ' . $e->getMessage());

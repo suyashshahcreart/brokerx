@@ -41,8 +41,12 @@
     <div class="row">
         <div class="col col-45" style="text-align:center;">
             <div class="qr-box">
-                @if($qrCodeImage)
-                    <img src="{{ $qrCodeImage }}" alt="QR Code" style="width: 220px; height: 220px;" />
+                @if($qrCodePath && file_exists($qrCodePath))
+                    <img src="{{ $qrCodePath }}" alt="QR Code" style="width: 220px; height: 220px;" />
+                @else
+                    <div style="width: 220px; height: 220px; display: flex; align-items: center; justify-content: center; color: #999; border: 1px dashed #ddd;">
+                        <span>No QR Code</span>
+                    </div>
                 @endif
             </div>
             @if($qr->qr_link)
