@@ -9,6 +9,8 @@
         rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('frontend/css/plugins.css') }}">
     <link rel="stylesheet" href="{{ asset('frontend/css/style.css') }}">
+    <!-- Flatpickr CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     
     <style>
         /* SweetAlert Custom Styling */
@@ -101,6 +103,65 @@
         textarea.form-control:focus.is-valid {
             border-color: #28a745 !important;
             box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25) !important;
+        }
+        
+        /* Date Picker Form Group with Icon */
+        .date-input-group {
+            position: relative;
+            display: block;
+        }
+        
+        .date-input-group .form-control {
+            padding-right: 45px !important;
+            cursor: pointer;
+            border: 1px solid #ced4da;
+            border-radius: 0.375rem;
+            transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+        }
+        
+        .date-input-group .form-control:hover {
+            border-color: #86b7fe;
+        }
+        
+        .date-input-group .date-icon {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #6c757d;
+            pointer-events: none;
+            z-index: 5;
+            font-size: 18px;
+            line-height: 1;
+            transition: color 0.15s ease-in-out;
+        }
+        
+        .date-input-group .form-control:focus {
+            border-color: #86b7fe;
+            outline: 0;
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+        }
+        
+        .date-input-group .form-control:focus ~ .date-icon {
+            color: #0d6efd;
+        }
+        
+        .date-input-group .form-control.is-invalid {
+            padding-right: 45px !important;
+            border-color: #dc3545;
+        }
+        
+        .date-input-group .form-control.is-invalid ~ .date-icon {
+            color: #dc3545;
+        }
+        
+        .date-input-group .form-control.is-valid {
+            padding-right: 45px !important;
+            border-color: #28a745;
+        }
+        
+        .date-input-group .form-control.is-valid ~ .date-icon {
+            color: #28a745;
         }
         
         /* Error styling for pill containers */
@@ -374,22 +435,24 @@
             <div class="modal-content" style="border-radius:12px;">
                 <div class="modal-header">
                     <h5 class="modal-title">Schedule Booking Date</h5>
-                    <h5 class="modal-title">Schedule Booking Date</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <form id="scheduleForm">
-                    <input type="hidden" id="scheduleBookingId">
+                        <input type="hidden" id="scheduleBookingId">
                         <div class="mb-3">
                             <label class="form-label">Select Date <span class="text-danger">*</span></label>
-                        <input type="date" class="form-control" id="scheduleDate" required>
-                    </div>
+                            <div class="date-input-group">
+                                <input type="text" class="form-control" id="scheduleDate" placeholder="Select a date" required readonly>
+                                <i class="ri-calendar-line date-icon"></i>
+                            </div>
+                        </div>
                         <div class="mb-3">
                             <label class="form-label">Notes</label>
                             <textarea class="form-control" id="scheduleNotes" rows="3" placeholder="Any additional notes..."></textarea>
-                    </div>
+                        </div>
                     </form>
-                    </div>
+                </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="button" class="btn btn-primary" onclick="saveSchedule()">Save Schedule</button>
@@ -757,7 +820,12 @@
     <script src="{{ asset('frontend/js/plugins/owl.carousel.min.js') }}"></script>
     <script src="{{ asset('frontend/js/plugins/wow.js') }}"></script>
     <script src="{{ asset('frontend/js/custom.js') }}"></script>
+    <!-- Flatpickr JS -->
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script>
+        // Base API URL from Laravel environment
+        const API_BASE_URL = '{{ url("/api") }}';
+        
         // SweetAlert Helper Function (same as setup page)
         function showSweetAlert(icon, title, message, html = false) {
             if (typeof Swal !== 'undefined') {
@@ -824,13 +892,25 @@
             });
         }
 
+        // Flatpickr instance for schedule date
+        let scheduleDatePicker = null;
+        
         // Initialize dashboard
         document.addEventListener('DOMContentLoaded', function () {
-            // Set minimum date to today for schedule modal
-            const scheduleDateInput = document.getElementById('scheduleDate');
-            if (scheduleDateInput) {
-                const today = new Date().toISOString().split('T')[0];
-                scheduleDateInput.setAttribute('min', today);
+            // Clean up Flatpickr when modal is closed
+            const scheduleModal = document.getElementById('scheduleModal');
+            if (scheduleModal) {
+                scheduleModal.addEventListener('hidden.bs.modal', function () {
+                    if (scheduleDatePicker) {
+                        scheduleDatePicker.destroy();
+                        scheduleDatePicker = null;
+                    }
+                    // Clear the input
+                    const scheduleDateInput = document.getElementById('scheduleDate');
+                    if (scheduleDateInput) {
+                        scheduleDateInput.value = '';
+                    }
+                });
             }
         });
 
@@ -839,17 +919,97 @@
             window.location.href = "{{ route('frontend.setup') }}?force_new=true";
         }
 
+        // Fetch holidays and available days from API
+        async function fetchHolidaysAndAvailableDays() {
+            try {
+                const response = await fetch('{{ url("/api/holidays") }}', {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    },
+                    credentials: 'same-origin'
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to fetch holidays');
+                }
+                
+                const data = await response.json();
+                const holidays = (data.holidays || []).map(h => h.date);
+                const availableDays = data.day_limit && data.day_limit.value ? parseInt(data.day_limit.value, 10) : 30;
+                
+                return { holidays, availableDays };
+            } catch (error) {
+                console.error('Error fetching holidays:', error);
+                // Return defaults on error
+                return { holidays: [], availableDays: 30 };
+            }
+        }
+
+        // Initialize Flatpickr with holidays and date restrictions
+        function initScheduleDatePicker(selectedDate = null) {
+            // Destroy existing instance if any
+            if (scheduleDatePicker) {
+                scheduleDatePicker.destroy();
+            }
+            
+            const scheduleDateInput = document.getElementById('scheduleDate');
+            if (!scheduleDateInput) return;
+            
+            // Fetch holidays and available days, then initialize
+            fetchHolidaysAndAvailableDays().then(({ holidays, availableDays }) => {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                
+                // Calculate max date (today + available days)
+                const maxDate = new Date(today);
+                maxDate.setDate(today.getDate() + availableDays);
+                
+                // Initialize Flatpickr
+                scheduleDatePicker = flatpickr(scheduleDateInput, {
+                    dateFormat: 'Y-m-d',
+                    minDate: today,
+                    maxDate: maxDate,
+                    disable: holidays,
+                    defaultDate: selectedDate || null,
+                    allowInput: false,
+                    clickOpens: true,
+                    onChange: function(selectedDates, dateStr, instance) {
+                        // Validate that selected date is not a holiday
+                        if (holidays.includes(dateStr)) {
+                            if (typeof Swal !== 'undefined') {
+                                Swal.fire({
+                                    icon: 'warning',
+                                    title: 'Holiday Selected',
+                                    text: 'The selected date is a holiday. Please choose another date.',
+                                    timer: 2000,
+                                    showConfirmButton: false
+                                });
+                            }
+                            instance.clear();
+                        }
+                    }
+                });
+            });
+        }
+
         // Open schedule modal
-        function openScheduleModal(bookingId) {
+        async function openScheduleModal(bookingId) {
             const booking = bookings.find(b => b.id === bookingId);
             if (!booking) return;
 
             document.getElementById('scheduleBookingId').value = bookingId;
-            document.getElementById('scheduleDate').value = booking.scheduled_date || booking.booking_date || '';
+            const existingDate = booking.scheduled_date || booking.booking_date || '';
             document.getElementById('scheduleNotes').value = booking.booking_notes || booking.notes || '';
 
             const modal = new bootstrap.Modal(document.getElementById('scheduleModal'));
             modal.show();
+            
+            // Initialize Flatpickr after modal is shown
+            setTimeout(() => {
+                initScheduleDatePicker(existingDate || null);
+            }, 100);
         }
 
         // Save schedule
@@ -1585,7 +1745,7 @@
                 const settingsToFetch = ['base_price', 'base_area', 'extra_area', 'extra_area_price'];
                 const promises = settingsToFetch.map(async (settingName) => {
                     try {
-                        const response = await fetch(`/api/settings/${settingName}`, {
+                        const response = await fetch(`${API_BASE_URL}/settings/${settingName}`, {
                             method: 'GET',
                             headers: {
                                 'Accept': 'application/json',
