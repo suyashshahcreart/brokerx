@@ -36,9 +36,9 @@
         "isEnabled": true
       }
     ],
-    "body": "{\n  key:'testing key',\n  content:'sting content'\n}",
+    "body": "{\"json_data\":\"{\\\"key\\\":\\\"value\\\",\\\"custom_field\\\":\\\"data\\\"}\"}",
     "bodyContainer": {
-      "text": "{\n  key:'testing key',\n  content:'sting content'\n}",
+      "text": "{\"json_data\":\"{\\\"key\\\":\\\"value\\\",\\\"custom_field\\\":\\\"data\\\"}\"}",
       "form": [],
       "multipartForm": []
     },

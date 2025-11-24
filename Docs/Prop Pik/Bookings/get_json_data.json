@@ -2,7 +2,7 @@
   "name": "get_json_data",
   "request": {
     "type": "http",
-    "url": "{{Server}}/api/bookings",
+    "url": "{{Server}}/api/bookings/1/json",
     "scripts": {
       "preRequest": "",
       "postResponse": ""
@@ -10,10 +10,10 @@
     "method": "GET",
     "queryParams": [
       {
-        "id": 1763988017670,
-        "key": "per_page",
-        "value": "1",
-        "isEnabled": true
+        "id": 1763989699656,
+        "key": "",
+        "value": "",
+        "isEnabled": false
       }
     ],
     "headers": [
