@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Yajra\DataTables\DataTables;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class QRController extends Controller
 {
@@ -141,50 +142,62 @@ class QRController extends Controller
      * Remove the specified resource from storage.
      */
     /**
-     * Download QR code with details
+     * Download QR code with details as PDF
      */
     public function download($id)
     {
-        $qr = QR::with(['booking.user', 'booking.propertyType', 'booking.propertySubType', 'booking.bhk', 'booking.city', 'booking.state'])->findOrFail($id);
-        
-        // Generate QR code
-        $qrCode = '';
-        if ($qr->qr_link) {
-            $qrCode = QrCode::size(400)->generate($qr->qr_link);
+        try {
+            $qr = QR::with(['booking.user', 'booking.propertyType', 'booking.propertySubType', 'booking.bhk', 'booking.city', 'booking.state'])->findOrFail($id);
+            
+            // Generate QR code as SVG for PDF (no extension required)
+            $qrCodeImage = null;
+            if ($qr->qr_link) {
+                // Use SVG format which doesn't require imagick or GD
+                $qrCodeSvg = QrCode::size(400)->generate($qr->qr_link);
+                // Convert SVG to base64 data URI for embedding
+                $qrCodeImage = 'data:image/svg+xml;base64,' . base64_encode($qrCodeSvg);
+            }
+            
+            // Prepare booking details
+            $bookingDetails = null;
+            if ($qr->booking) {
+                $b = $qr->booking;
+                $bookingDetails = [
+                    'id' => $b->id,
+                    'customer' => $b->user ? $b->user->firstname . ' ' . $b->user->lastname : 'N/A',
+                    'mobile' => $b->user?->mobile ?? 'N/A',
+                    'property_type' => $b->propertyType?->name ?? 'N/A',
+                    'property_sub_type' => $b->propertySubType?->name ?? 'N/A',
+                    'bhk' => $b->bhk?->name ?? 'N/A',
+                    'city' => $b->city?->name ?? 'N/A',
+                    'state' => $b->state?->name ?? 'N/A',
+                    'area' => $b->area ? number_format($b->area) . ' sq.ft' : 'N/A',
+                    'price' => $b->price ? '₹ ' . number_format($b->price) : 'N/A',
+                    'booking_date' => optional($b->booking_date)->format('d M Y') ?? 'N/A',
+                    'address' => $b->full_address ?? 'N/A',
+                    'pin_code' => $b->pin_code ?? 'N/A',
+                    'status' => $b->status ?? 'N/A',
+                ];
+            }
+            
+            // Generate PDF
+            $pdf = Pdf::loadView('admin.qr.pdf', [
+                'qr' => $qr,
+                'qrCodeImage' => $qrCodeImage,
+                'bookingDetails' => $bookingDetails,
+                'generatedAt' => now()
+            ]);
+            
+            // Set paper size and orientation
+            $pdf->setPaper('A4', 'portrait');
+            
+            // Download the PDF with proper headers
+            return $pdf->download('QR-' . $qr->code . '.pdf');
+            
+        } catch (\Exception $e) {
+            \Log::error('PDF Download Error: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Failed to generate PDF: ' . $e->getMessage());
         }
-        
-        // Prepare booking details
-        $bookingDetails = null;
-        if ($qr->booking) {
-            $b = $qr->booking;
-            $bookingDetails = [
-                'id' => $b->id,
-                'customer' => $b->user ? $b->user->firstname . ' ' . $b->user->lastname : 'N/A',
-                'mobile' => $b->user?->mobile ?? 'N/A',
-                'property_type' => $b->propertyType?->name ?? 'N/A',
-                'property_sub_type' => $b->propertySubType?->name ?? 'N/A',
-                'bhk' => $b->bhk?->name ?? 'N/A',
-                'city' => $b->city?->name ?? 'N/A',
-                'state' => $b->state?->name ?? 'N/A',
-                'area' => $b->area ? number_format($b->area) . ' sq.ft' : 'N/A',
-                'price' => $b->price ? '₹ ' . number_format($b->price) : 'N/A',
-                'booking_date' => optional($b->booking_date)->format('d M Y') ?? 'N/A',
-                'address' => $b->full_address ?? 'N/A',
-                'pin_code' => $b->pin_code ?? 'N/A',
-                'status' => $b->status ?? 'N/A',
-            ];
-        }
-        
-        // Generate HTML for download
-        $html = view('admin.qr.download', [
-            'qr' => $qr,
-            'qrCode' => $qrCode,
-            'bookingDetails' => $bookingDetails
-        ])->render();
-        
-        return response($html)
-            ->header('Content-Type', 'text/html')
-            ->header('Content-Disposition', 'attachment; filename="QR-' . $qr->code . '.html"');
     }
 
     public function destroy($id)
