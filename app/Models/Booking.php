@@ -52,6 +52,7 @@ class Booking extends Model
         'cashfree_payment_message',
         'cashfree_payment_meta',
         'cashfree_last_response',
+        'json_data',
     ];
 
     protected $casts = [
@@ -59,6 +60,7 @@ class Booking extends Model
         'cashfree_payment_at' => 'datetime',
         'cashfree_payment_meta' => 'array',
         'cashfree_last_response' => 'array',
+        'json_data' => 'array',
     ];
 
     // Relationships

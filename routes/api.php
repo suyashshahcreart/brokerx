@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\HolidayController;
+use App\Http\Controllers\Api\BookingApiController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -25,4 +26,10 @@ Route::middleware(['web', 'auth'])->group(function () {
     Route::get('/settings/{name}', [SettingController::class, 'apiGet'])->name('api.settings.get');
     // Holidays API
     Route::get('/holidays', [HolidayController::class, 'indexAPI']);
+    
+    // Bookings API
+    Route::get('/bookings', [BookingApiController::class, 'index'])->name('api.bookings.index');
+    Route::get('/bookings/{id}', [BookingApiController::class, 'show'])->name('api.bookings.show');
+    Route::get('/bookings/{id}/json', [BookingApiController::class, 'getJson'])->name('api.bookings.get-json');
+    Route::post('/bookings/{id}/json', [BookingApiController::class, 'setJson'])->name('api.bookings.set-json');
 });

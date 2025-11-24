@@ -1,0 +1,52 @@
+{
+  "name": "set_json_data",
+  "request": {
+    "type": "http",
+    "url": "{{Server}}/api/bookings/1/json",
+    "scripts": {
+      "preRequest": "",
+      "postResponse": ""
+    },
+    "method": "POST",
+    "queryParams": [
+      {
+        "id": 1763989950012,
+        "key": "",
+        "value": "",
+        "isEnabled": false
+      }
+    ],
+    "headers": [
+      {
+        "id": 1763988044629,
+        "key": "Accept",
+        "value": "application/json",
+        "isEnabled": true
+      },
+      {
+        "id": 1763988067977,
+        "key": "Content-Type",
+        "value": "application/json",
+        "isEnabled": true
+      },
+      {
+        "id": 1763989113172,
+        "key": "cookie",
+        "value": "prop_pik_session=eyJpdiI6InJYL3dmc0NpcHZyVHJMdHdpM25VbkE9PSIsInZhbHVlIjoiUXlOT0ZwK21PNjJHQWx6TytpalBqYkNCbTJmMlBUdGRsbnpSUlh3djlyQUZoTW85Wk1OREd3SjQyYkVBQStnOXpJMmgxVXNlektiRzh6QU9zU1huQnFucmJpWkJwa1ZnVzVrUzVFTjVPakRzaDRJRlMveTZzVnFsRm5OZXpjeTMiLCJtYWMiOiJhYzU1MGZiMGY0OWQ0YjBhMmRmZjcyNTRiMzY2NTRhMjhmNDE5YzE3Yjc5YjczOGI1ZjUzM2NkZmE0MjQ4ZjQ1IiwidGFnIjoiIn0%3D; XSRF-TOKEN=eyJpdiI6ImtMSHN5dDNYWUhWWGFteHM3OSs3ZlE9PSIsInZhbHVlIjoiN29uZ1YwelMybm1ScHBIRXNFcWpZcURNdnJsR05UTUdkQW5ySUlqSkNXbzFWeHAydHVCNis4bkdnV0QvQ2dBcXBPUVNpaGp2MXNjYlVnQjVZOWJPbXpOZWpoaytiOE5rNUZIVGc2bGd2Nm1QOGdrQjUxN1N6eHB4RnhENVI0QTAiLCJtYWMiOiI1YWYxMTc2OGY3MGU1Yzg5NzRjMzkyNTk2NDExNmEzYjVkOTQxMTlkNjIxODA4YzU0Y2YxNTVhMzc5MTg3OWZjIiwidGFnIjoiIn0%3D; laravel_session=eyJpdiI6IlJSbTZPbnVYc3JzQmZwZDFLWGVmaEE9PSIsInZhbHVlIjoiODN2QXRZZ0F4Q3QwSFhMMHVKWjg2amZ1ckpQTDN5VURuSTVHTktsWW9zdjREN1FsZGxaTFBhUGN0TTAzQ1NYSnJLVitUNVppWENsUi9WNDdaWjl1NFlMa09SNy9MbWFtUUF3YWthOWgyS0dSSXZXdFVxc3kzdkFwZ2dVNUU1aHkiLCJtYWMiOiJjZDczZGU1MjQ0ZTYzMWY0ZTJhNmI1ZmE2YjA3YzcxN2JkODJmNTRiNDlhYjdjNTQ3NGJkNjFjMTMzNGNlZDE0IiwidGFnIjoiIn0%3D",
+        "isEnabled": true
+      }
+    ],
+    "body": "{\n  key:'testing key',\n  content:'sting content'\n}",
+    "bodyContainer": {
+      "text": "{\n  key:'testing key',\n  content:'sting content'\n}",
+      "form": [],
+      "multipartForm": []
+    },
+    "contentType": "application/json",
+    "auth": {
+      "currentAuthType": "INHERIT",
+      "authConfigStore": {}
+    },
+    "pathVariables": []
+  }
+}
