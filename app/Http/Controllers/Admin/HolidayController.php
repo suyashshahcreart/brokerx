@@ -24,14 +24,20 @@ class HolidayController extends Controller
     }
     public function indexAPI()
     {
-        $avaliable_day = Setting::where('name', 'avaliable_days')->first();
+        // Try 'available_days' first, fallback to 'avaliable_days' for backward compatibility
+        $available_day = Setting::where('name', 'available_days')->first();
+        if (!$available_day) {
+            $available_day = Setting::where('name', 'avaliable_days')->first();
+        }
+        
+        $dayLimit = $available_day && $available_day->value ? (int) $available_day->value : 30;
         $start = \Carbon\Carbon::today()->toDateString();
-        $end = \Carbon\Carbon::today()->addDays((int) $avaliable_day->value)->toDateString();
+        $end = \Carbon\Carbon::today()->addDays($dayLimit)->toDateString();
         $holidays = Holiday::whereBetween('date', [$start, $end])
             ->orderBy('date')
             ->get(['id', 'name', 'date']);
 
-        return response()->json(['holidays' => $holidays, 'day_limit' => $avaliable_day]);
+        return response()->json(['holidays' => $holidays, 'day_limit' => $available_day]);
     }
 
     public function create()

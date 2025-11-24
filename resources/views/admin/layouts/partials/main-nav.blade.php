@@ -2,13 +2,13 @@
      <!-- Sidebar Logo -->
      <div class="logo-box">
           <a href="#" class="logo-dark">
-               <img src="{{ asset('images/logo-sm.png') }}" class="logo-sm" alt="logo sm">
-               <img src="{{ asset('images/logo-dark.png') }}" class="logo-lg" alt="logo dark">
+               <img src="{{ asset('images/proppik-logo-sm.png') }}" class="logo-sm" alt="logo sm">
+               <img src="{{ asset('images/proppik-logo.jpg') }}" class="logo-lg" alt="logo dark">
           </a>
 
           <a href="#" class="logo-light">
-               <img src="{{ asset('images/logo-sm.png') }}" class="logo-sm" alt="logo sm">
-               <img src="{{ asset('images/logo-light.png') }}" class="logo-lg" alt="logo light">
+               <img src="{{ asset('images/proppik-logo-sm.png') }}" class="logo-sm" alt="logo sm">
+               <img src="{{ asset('images/proppik-logo-light.png') }}" class="logo-lg" alt="logo light">
           </a>
      </div>
 
@@ -24,7 +24,7 @@
                <li class="menu-title">Menu</li>
 
                <li class="nav-item">
-                    <a class="nav-link" href="{{ route('root') }}">
+                    <a class="nav-link {{ request()->routeIs('admin.root') ? 'active' : '' }}" href="{{ route('root') }}">
                          <span class="nav-icon">
                               <i class="ri-dashboard-2-line"></i>
                          </span>
@@ -33,127 +33,46 @@
                </li>
 
 
-               <li class="nav-item">
-                    <a class="nav-link menu-arrow" href="#sidebarProperty" data-bs-toggle="collapse" role="button"
-                         aria-expanded="false" aria-controls="sidebarProperty">
-                         <span class="nav-icon">
-                              <i class="ri-community-line"></i>
-                         </span>
-                         <span class="nav-text"> Property </span>
-                    </a>
-                    <div class="collapse" id="sidebarProperty">
-                         <ul class="nav sub-navbar-nav">
-                              <li class="sub-nav-item">
-                                   <a class="sub-nav-link" href="#">Property Grid</a>
-                              </li>
-                              <li class="sub-nav-item">
-                                   <a class="sub-nav-link" href="#">Property List</a>
-                              </li>
-                              <li class="sub-nav-item">
-                                   <a class="sub-nav-link" href="#">Property Details</a>
-                              </li>
-                              <li class="sub-nav-item">
-                                   <a class="sub-nav-link" href="#">Add Property</a>
-                              </li>
-                         </ul>
-                    </div>
-               </li> <!-- end Pages Menu -->
+               @can('user_view')
+                    <li class="nav-item">
+                         <a class="nav-link {{ request()->routeIs('admin.users.*') ? 'active' : '' }}" href="{{ route('admin.users.index') }}">
+                              <span class="nav-icon">
+                                   <i class="ri-user-line"></i>
+                              </span>
+                              <span class="nav-text">Customers</span>
+                         </a>
+                    </li>
+               @endcan
 
-               <li class="nav-item">
-                    <a class="nav-link menu-arrow" href="#sidebarAgents" data-bs-toggle="collapse" role="button"
-                         aria-expanded="false" aria-controls="sidebarAgents">
-                         <span class="nav-icon">
-                              <i class="ri-group-line"></i>
-                         </span>
-                         <span class="nav-text"> Agents </span>
-                    </a>
-                    <div class="collapse" id="sidebarAgents">
-                         <ul class="nav sub-navbar-nav">
-                              <li class="sub-nav-item">
-                                   <a class="sub-nav-link" href="#">List View</a>
-                              </li>
-                              <li class="sub-nav-item">
-                                   <a class="sub-nav-link" href="#">Grid View</a>
-                              </li>
-                              <li class="sub-nav-item">
-                                   <a class="sub-nav-link" href="#">Agent Details</a>
-                              </li>
-                              <li class="sub-nav-item">
-                                   <a class="sub-nav-link" href="#">Add Agent</a>
-                              </li>
-                         </ul>
-                    </div>
-               </li> <!-- end Pages Menu -->
+               @can('booking_view')
+                    <li class="nav-item">
+                         <a class="nav-link {{ request()->routeIs('admin.bookings.*') ? 'active' : '' }}" href="{{ route('admin.bookings.index') }}">
+                              <span class="nav-icon">
+                                   <i class="ri-contacts-book-3-line"></i>
+                              </span>
+                              <span class="nav-text">Bookings</span>
+                         </a>
+                    </li>
+               @endcan
 
-               <li class="nav-item">
-                    <a class="nav-link menu-arrow" href="#sidebarCustomers" data-bs-toggle="collapse" role="button"
-                         aria-expanded="false" aria-controls="sidebarCustomers">
-                         <span class="nav-icon">
-                              <i class="ri-contacts-book-3-line"></i>
-                         </span>
-                         <span class="nav-text"> Customers </span>
-                    </a>
-                    <div class="collapse" id="sidebarCustomers">
-                         <ul class="nav sub-navbar-nav">
-                              <li class="sub-nav-item">
-                                   <a class="sub-nav-link" href="#">List View</a>
-                              </li>
-                              <li class="sub-nav-item">
-                                   <a class="sub-nav-link" href="#">Grid View</a>
-                              </li>
-                              <li class="sub-nav-item">
-                                   <a class="sub-nav-link" href="#">Customer Details</a>
-                              </li>
-                              <li class="sub-nav-item">
-                                   <a class="sub-nav-link" href="#">Add Customer</a>
-                              </li>
-                         </ul>
-                    </div>
-               </li> <!-- end Pages Menu -->
+               {{-- @can('portfolio_view') --}}
+                    <li class="nav-item">
+                         <a class="nav-link {{ request()->routeIs('admin.portfolios.*') ? 'active' : '' }}" href="{{ route('admin.portfolios.index') }}">
+                              <span class="nav-icon">
+                                   <i class="ri-profile-line"></i>
+                              </span>
+                              <span class="nav-text">Portfolio</span>
+                         </a>
+                    </li>
+               {{-- @endcan --}}
 
-               <li class="nav-item">
-                    <a class="nav-link menu-arrow" href="#sidebarBooking" data-bs-toggle="collapse" role="button"
-                         aria-expanded="false" aria-controls="sidebarCustomers">
-                         <span class="nav-icon">
-                              <i class="ri-contacts-book-3-line"></i>
-                         </span>
-                         <span class="nav-text"> Bookings </span>
-                    </a>
-                    <div class="collapse" id="sidebarBooking">
-                         <ul class="nav sub-navbar-nav">
-                              <li class="sub-nav-item">
-                                   <a class="sub-nav-link" href="{{ route('admin.bookings.index') }}">List View</a>
-                              </li>
-                         </ul>
-                    </div>
-               </li> <!-- end Pages Menu -->
-
-               <li class="nav-item">
-                    <a class="nav-link menu-arrow" href="#sidebarPortfolio" data-bs-toggle="collapse" role="button"
-                         aria-expanded="false" aria-controls="sidebarCustomers">
-                         <span class="nav-icon">
-                              <i class="ri-profile-line"></i>
-                         </span>
-                         <span class="nav-text"> Portfolios </span>
-                    </a>
-                    <div class="collapse" id="sidebarPortfolio">
-                         <ul class="nav sub-navbar-nav">
-                              <li class="sub-nav-item">
-                                   <a class="sub-nav-link" href="{{ route('admin.portfolios.index') }}">List View</a>
-                              </li>
-                              <li class="sub-nav-item">
-                                   <a class="sub-nav-link" href="{{ route('admin.portfolios.create') }}">Create Portfolio</a>
-                              </li>
-                         </ul>
-                    </div>
-               </li> <!-- end Pages Menu -->
 
                @canany(['user_view', 'role_view', 'permission_view', 'activity_view', 'media_view'])
                     <li class="menu-title">System</li>
 
                     @can('user_view')
                          <li class="nav-item">
-                              <a class="nav-link" href="{{ route('admin.users.index') }}">
+                              <a class="nav-link {{ request()->routeIs('admin.users.*') ? 'active' : '' }}" href="{{ route('admin.users.index') }}">
                                    <span class="nav-icon">
                                         <i class="ri-user-line"></i>
                                    </span>
@@ -164,7 +83,7 @@
 
                     @can('role_view')
                          <li class="nav-item">
-                              <a class="nav-link" href="{{ route('admin.roles.index') }}">
+                              <a class="nav-link {{ request()->routeIs('admin.roles.*') ? 'active' : '' }}" href="{{ route('admin.roles.index') }}">
                                    <span class="nav-icon">
                                         <i class="ri-id-card-line"></i>
                                    </span>
@@ -175,7 +94,7 @@
 
                     @can('permission_view')
                          <li class="nav-item">
-                              <a class="nav-link" href="{{ route('admin.permissions.index') }}">
+                              <a class="nav-link {{ request()->routeIs('admin.permissions.*') ? 'active' : '' }}" href="{{ route('admin.permissions.index') }}">
                                    <span class="nav-icon">
                                         <i class="ri-lock-2-line"></i>
                                    </span>
@@ -186,7 +105,7 @@
 
                     @can('activity_view')
                          <li class="nav-item">
-                              <a class="nav-link" href="{{ route('admin.activity.index') }}">
+                              <a class="nav-link {{ request()->routeIs('admin.activity.*') ? 'active' : '' }}" href="{{ route('admin.activity.index') }}">
                                    <span class="nav-icon">
                                         <i class="ri-book-line"></i>
                                    </span>
@@ -195,20 +114,9 @@
                          </li>
                     @endcan
 
-                    @can('media_view')
-                         <li class="nav-item">
-                              <a class="nav-link" href="#">
-                                   <span class="nav-icon">
-                                        <i class="ri-image-line"></i>
-                                   </span>
-                                   <span class="nav-text">Media Library</span>
-                              </a>
-                         </li>
-                    @endcan
-
                     @can('holiday_view')
                          <li class="nav-item">
-                              <a class="nav-link" href="{{ route('admin.holidays.index') }}">
+                              <a class="nav-link {{ request()->routeIs('admin.holidays.*') ? 'active' : '' }}" href="{{ route('admin.holidays.index') }}">
                                    <span class="nav-icon">
                                         <i class="ri-calendar-event-line"></i>
                                    </span>
@@ -219,7 +127,7 @@
                     
                     @can('setting_view')
                          <li class="nav-item">
-                              <a class="nav-link" href="{{ route('admin.settings.index') }}">
+                              <a class="nav-link {{ request()->routeIs('admin.settings.*') ? 'active' : '' }}" href="{{ route('admin.settings.index') }}">
                                    <span class="nav-icon">
                                         <i class="ri-home-gear-line"></i>
                                    </span>

@@ -29,9 +29,9 @@
             </div>
         @endif
 
-        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
             <div>
-                <nav aria-label="breadcrumb" class="mb-1">
+                <nav aria-label="breadcrumb" class="mb-0">
                     <ol class="breadcrumb mb-0">
                         <li class="breadcrumb-item"><a href="{{ route('root') }}">Home</a></li>
                         <li class="breadcrumb-item"><a href="#">System</a></li>

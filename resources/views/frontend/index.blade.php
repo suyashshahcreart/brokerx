@@ -171,7 +171,7 @@ From The Blog            <div class="row align-items-center gy-4">
                     <div class="pricing-card">
                         <div class="pricing-left">
                             <small>Get PROP PIK at</small>
-                            <h2>₹599</h2>
+                            <h2>₹{{ number_format($basePrice ?? 599) }}</h2>
                             <small>per month*</small>
                         </div>
                         <div class="pricing-right">
