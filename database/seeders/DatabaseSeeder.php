@@ -31,8 +31,12 @@ class DatabaseSeeder extends Seeder
         $this->call(StateSeeder::class);
         $this->call(CitySeeder::class);
 
+
         // Seed bookings
         $this->call(BookingSeeder::class);
+
+        // Seed QR codes
+        $this->call(QRSeeder::class);
 
         $user = User::factory()->create([
             'firstname' => 'admin',

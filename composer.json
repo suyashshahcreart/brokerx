@@ -6,8 +6,11 @@
     "license": "MIT",
     "require": {
         "php": "^8.2",
+        "barryvdh/laravel-dompdf": "^3.1",
+        "endroid/qr-code": "^5.0",
         "laravel/framework": "^11.9",
         "laravel/tinker": "^2.9",
+        "simplesoftwareio/simple-qrcode": "^4.2",
         "spatie/laravel-activitylog": "^4.10",
         "spatie/laravel-permission": "^6.23",
         "yajra/laravel-datatables-oracle": "11"

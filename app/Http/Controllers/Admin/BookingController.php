@@ -9,7 +9,6 @@ use App\Models\City;
 use App\Models\PropertySubType;
 use App\Models\PropertyType;
 use App\Models\State;
-
 use App\Models\User;
 use Illuminate\Http\Request;
 use Spatie\Activitylog\Models\Activity;
@@ -61,9 +60,9 @@ class BookingController extends Controller
                     }
                     return $schedule .
                         '<a href="' . $view . '" class="btn btn-light btn-sm border" title="View"><i class="ri-eye-line"></i></a>' .
-                        ' <a href="' . $edit . '" class="btn btn-soft-primary btn-sm" title="Edit"><i class="ri-edit-line"></i></a>' .
+                        ' <a href="' . $edit . '" class="btn btn-soft-primary btn-sm border" title="Edit"><i class="ri-edit-line"></i></a>' .
                         ' <form action="' . $delete . '" method="POST" class="d-inline">' . $csrf . $method .
-                        '<button type="submit" class="btn btn-soft-danger btn-sm" onclick="return confirm(\'Delete this booking?\')"><i class="ri-delete-bin-line"></i></button></form>';
+                        '<button type="submit" class="btn btn-soft-danger btn-sm border" onclick="return confirm(\'Delete this booking?\')"><i class="ri-delete-bin-line"></i></button></form>';
                 })
                 ->rawColumns(['type_subtype', 'city_state', 'status', 'payment_status', 'actions', 'schedule'])
                 ->toJson();
@@ -74,6 +73,92 @@ class BookingController extends Controller
         return view('admin.bookings.index', compact('canCreate', 'canEdit', 'canDelete'));
     }
 
+    /**
+     * API: Return bookings with filters (for modal, returns JSON)
+     */
+    public function apiList(Request $request)
+    {
+        $query = Booking::query()
+            ->with(['user', 'propertyType', 'propertySubType'])
+            ->whereDoesntHave('qr');
+        // Filters
+        if ($request->filled('status')) {
+            $query->where('status', $request->input('status'));
+        }
+        if ($request->filled('user_id')) {
+            $query->where('user_id', $request->input('user_id'));
+        }
+        if ($request->filled('property_type_id')) {
+            $query->where('property_type_id', $request->input('property_type_id'));
+        }
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->where(function ($q) use ($search) {
+                $q->where('id', 'like', "%$search%")
+                    ->orWhereHas('user', function ($uq) use ($search) {
+                        $uq->where('firstname', 'like', "%$search%")
+                            ->orWhere('lastname', 'like', "%$search%")
+                            ->orWhere('email', 'like', "%$search%")
+                            ->orWhere('mobile', 'like', "%$search%")
+                        ;
+                    })
+                    ->orWhereHas('propertyType', function ($pq) use ($search) {
+                        $pq->where('name', 'like', "%$search%");
+                    });
+            });
+        }
+        $bookings = $query->with(['city', 'state', 'bhk'])->orderByDesc('created_at')->limit(50)->get();
+        $result = $bookings->map(function ($booking) {
+            return [
+                'id' => $booking->id,
+                'customer' => $booking->user ? $booking->user->firstname . ' ' . $booking->user->lastname : null,
+                'customer_mobile' => $booking->user?->mobile,
+                'property_type' => $booking->propertyType?->name,
+                'property_sub_type' => $booking->propertySubType?->name,
+                'bhk' => $booking->bhk?->name,
+                'city' => $booking->city?->name,
+                'state' => $booking->state?->name,
+                'address' => $booking->full_address,
+                'pin_code' => $booking->pin_code,
+                'area' => $booking->area,
+                'price' => $booking->price,
+                'booking_date' => optional($booking->booking_date)->format('d M Y'),
+                'status' => $booking->status,
+            ];
+        });
+        return response()->json(['data' => $result]);
+    }
+
+    /**
+     * API: Get booking details by ID (for QR modal)
+     */
+    public function getBookingDetails(Request $request)
+    {
+        $request->validate([
+            'booking_id' => 'required|exists:bookings,id',
+        ]);
+
+        $booking = Booking::with(['user', 'propertyType', 'propertySubType', 'bhk', 'city', 'state'])
+            ->findOrFail($request->booking_id);
+
+        $bookingData = [
+            'id' => $booking->id,
+            'customer' => $booking->user ? $booking->user->firstname . ' ' . $booking->user->lastname : null,
+            'property_type' => $booking->propertyType?->name,
+            'property_sub_type' => $booking->propertySubType?->name,
+            'bhk' => $booking->bhk?->name,
+            'city' => $booking->city?->name,
+            'state' => $booking->state?->name,
+            'area' => $booking->area ? number_format($booking->area) : null,
+            'price' => $booking->price ? '₹ ' . number_format($booking->price) : null,
+            'booking_date' => optional($booking->booking_date)->format('Y-m-d'),
+            'status' => $booking->status,
+            'payment_status' => $booking->payment_status,
+            'address' => $booking->full_address,
+        ];
+
+        return response()->json(['booking' => $bookingData]);
+    }
     public function create()
     {
         $users = User::orderBy('firstname')->get();
@@ -265,31 +350,33 @@ class BookingController extends Controller
 
         return response()->json(['success' => true, 'new_date' => $booking->booking_date->format('Y-m-d')]);
     }
+
+    /**
+     * API: Assign a booking to a QR code
+     * POST: /api/qr/assign-booking
+     * Params: qr_id, booking_id
+     */
+    public function assignBookingToQr(Request $request)
+    {
+        $request->validate([
+            'qr_id' => 'required|exists:qr_code,id',
+            'booking_id' => 'required|exists:bookings,id',
+        ]);
+
+        $qr = \App\Models\QR::findOrFail($request->qr_id);
+        $booking = Booking::findOrFail($request->booking_id);
+
+        // Only allow assignment if QR is not already assigned and booking is not already assigned
+        if ($qr->booking_id) {
+            return response()->json(['success' => false, 'message' => 'QR already assigned to a booking.'], 422);
+        }
+        if ($booking->qr) {
+            return response()->json(['success' => false, 'message' => 'Booking already assigned to a QR.'], 422);
+        }
+
+        $qr->booking_id = $booking->id;
+        $qr->save();
+
+        return response()->json(['success' => true, 'message' => 'Booking assigned to QR successfully.']);
+    }
 }
-// public function reschedule(Request $request, Booking $booking)
-// {
-//     $request->validate([
-//         'schedule_date' => ['required', 'date'],
-//     ]);
-//     $oldDate = $booking->booking_date;
-//     $booking->booking_date = $request->input('schedule_date');
-//     $booking->save();
-
-//     activity('bookings')
-//         ->performedOn($booking)
-//         ->causedBy($request->user())
-//         ->withProperties([
-//             'event' => 'rescheduled',
-//             'old_date' => $oldDate,
-//             'new_date' => $booking->booking_date,
-//         ])
-//         ->log('Booking rescheduled');
-
-//     $date = $booking->booking_date;
-//     if ($date instanceof \Illuminate\Support\Carbon || $date instanceof \Carbon\Carbon) {
-//         $date = $date->format('Y-m-d');
-//     } else {
-//         $date = (string) $date;
-//     }
-//     return response()->json(['success' => true, 'new_date' => $date]);
-// }

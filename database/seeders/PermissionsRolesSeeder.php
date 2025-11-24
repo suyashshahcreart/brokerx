@@ -70,6 +70,12 @@ class PermissionsRolesSeeder extends Seeder
             'setting_create',
             'setting_edit',
             'setting_delete',
+
+            // QR management
+            'qr_view',
+            'qr_create',
+            'qr_edit',
+            'qr_delete',
         ];
 
         foreach ($permissions as $permissionName) {

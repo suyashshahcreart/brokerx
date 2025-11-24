@@ -40,9 +40,9 @@
                             title="Fullscreen">
                             <i class="ri-fullscreen-line"></i>
                         </button>
-                        <button type="button" class="btn btn-light border" data-panel-action="close" title="Close">
+                        <!-- <button type="button" class="btn btn-light border" data-panel-action="close" title="Close">
                             <i class="ri-close-line"></i>
-                        </button>
+                        </button> -->
                     </div>
                 </div>
                 <div class="card-body">
