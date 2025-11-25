@@ -9,7 +9,7 @@ use App\Models\City;
 use App\Models\PropertySubType;
 use App\Models\PropertyType;
 use App\Models\State;
-
+use App\Models\Tour;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Spatie\Activitylog\Models\Activity;
@@ -156,8 +156,12 @@ class BookingController extends Controller
         $paymentStatuses = ['pending', 'paid', 'failed', 'refunded'];
         $statuses = ['pending', 'confirmed', 'cancelled', 'completed'];
 
+        // Load tour if linked
+        $tour = Tour::where('booking_id', $booking->id)->first();
+
         return view('admin.bookings.edit', compact(
             'booking',
+            'tour',
             'users',
             'propertyTypes',
             'propertySubTypes',
@@ -265,31 +269,50 @@ class BookingController extends Controller
 
         return response()->json(['success' => true, 'new_date' => $booking->booking_date->format('Y-m-d')]);
     }
+
+    /**
+     * Update booking via AJAX
+     */
+    public function updateAjax(Request $request, Booking $booking)
+    {
+        $validated = $request->validate([
+            'user_id' => ['required', 'exists:users,id'],
+            'property_type_id' => ['required', 'exists:property_types,id'],
+            'property_sub_type_id' => ['required', 'exists:property_sub_types,id'],
+            'area' => ['required', 'numeric', 'min:0'],
+            'price' => ['required', 'numeric', 'min:0'],
+            'payment_status' => ['required', 'in:pending,paid,failed,refunded'],
+            'status' => ['required', 'in:pending,confirmed,cancelled,completed'],
+            'bhk_id' => ['nullable', 'exists:bhks,id'],
+            'city_id' => ['nullable', 'exists:cities,id'],
+            'state_id' => ['nullable', 'exists:states,id'],
+            'furniture_type' => ['nullable', 'string'],
+            'booking_date' => ['nullable', 'date'],
+            'house_no' => ['nullable', 'string', 'max:255'],
+            'building' => ['nullable', 'string', 'max:255'],
+            'society_name' => ['nullable', 'string', 'max:255'],
+            'address_area' => ['nullable', 'string', 'max:255'],
+            'landmark' => ['nullable', 'string', 'max:255'],
+            'pin_code' => ['nullable', 'string', 'max:20'],
+            'full_address' => ['nullable', 'string'],
+        ]);
+
+        $oldData = $booking->toArray();
+        $booking->update($validated);
+
+        activity('bookings')
+            ->performedOn($booking)
+            ->causedBy($request->user())
+            ->withProperties([
+                'old' => $oldData,
+                'attributes' => $booking->toArray(),
+            ])
+            ->log('Booking updated via AJAX');
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Booking updated successfully',
+            'booking' => $booking->fresh(),
+        ]);
+    }
 }
-// public function reschedule(Request $request, Booking $booking)
-// {
-//     $request->validate([
-//         'schedule_date' => ['required', 'date'],
-//     ]);
-//     $oldDate = $booking->booking_date;
-//     $booking->booking_date = $request->input('schedule_date');
-//     $booking->save();
-
-//     activity('bookings')
-//         ->performedOn($booking)
-//         ->causedBy($request->user())
-//         ->withProperties([
-//             'event' => 'rescheduled',
-//             'old_date' => $oldDate,
-//             'new_date' => $booking->booking_date,
-//         ])
-//         ->log('Booking rescheduled');
-
-//     $date = $booking->booking_date;
-//     if ($date instanceof \Illuminate\Support\Carbon || $date instanceof \Carbon\Carbon) {
-//         $date = $date->format('Y-m-d');
-//     } else {
-//         $date = (string) $date;
-//     }
-//     return response()->json(['success' => true, 'new_date' => $date]);
-// }

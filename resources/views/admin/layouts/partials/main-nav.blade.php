@@ -24,7 +24,8 @@
                <li class="menu-title">Menu</li>
 
                <li class="nav-item">
-                    <a class="nav-link {{ request()->routeIs('admin.root') ? 'active' : '' }}" href="{{ route('root') }}">
+                    <a class="nav-link {{ request()->routeIs('admin.root') ? 'active' : '' }}"
+                         href="{{ route('root') }}">
                          <span class="nav-icon">
                               <i class="ri-dashboard-2-line"></i>
                          </span>
@@ -35,7 +36,8 @@
 
                @can('user_view')
                     <li class="nav-item">
-                         <a class="nav-link {{ request()->routeIs('admin.users.*') ? 'active' : '' }}" href="{{ route('admin.users.index') }}">
+                         <a class="nav-link {{ request()->routeIs('admin.users.*') ? 'active' : '' }}"
+                              href="{{ route('admin.users.index') }}">
                               <span class="nav-icon">
                                    <i class="ri-user-line"></i>
                               </span>
@@ -46,7 +48,8 @@
 
                @can('booking_view')
                     <li class="nav-item">
-                         <a class="nav-link {{ request()->routeIs('admin.bookings.*') ? 'active' : '' }}" href="{{ route('admin.bookings.index') }}">
+                         <a class="nav-link {{ request()->routeIs('admin.bookings.*') ? 'active' : '' }}"
+                              href="{{ route('admin.bookings.index') }}">
                               <span class="nav-icon">
                                    <i class="ri-contacts-book-3-line"></i>
                               </span>
@@ -55,15 +58,28 @@
                     </li>
                @endcan
 
-               {{-- @can('portfolio_view') --}}
+               @can('tour_view')
                     <li class="nav-item">
-                         <a class="nav-link {{ request()->routeIs('admin.portfolios.*') ? 'active' : '' }}" href="{{ route('admin.portfolios.index') }}">
+                         <a class="nav-link" href="{{ route('admin.tours.index') }}">
                               <span class="nav-icon">
-                                   <i class="ri-profile-line"></i>
+                                   <i class="ri-map-pin-line"></i>
                               </span>
-                              <span class="nav-text">Portfolio</span>
+                              <span class="nav-text">Tours</span>
                          </a>
                     </li>
+               @endcan
+
+
+               {{-- @can('portfolio_view') --}}
+               <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('admin.portfolios.*') ? 'active' : '' }}"
+                         href="{{ route('admin.portfolios.index') }}">
+                         <span class="nav-icon">
+                              <i class="ri-profile-line"></i>
+                         </span>
+                         <span class="nav-text">Portfolio</span>
+                    </a>
+               </li>
                {{-- @endcan --}}
 
 
@@ -72,7 +88,8 @@
 
                     @can('user_view')
                          <li class="nav-item">
-                              <a class="nav-link {{ request()->routeIs('admin.users.*') ? 'active' : '' }}" href="{{ route('admin.users.index') }}">
+                              <a class="nav-link {{ request()->routeIs('admin.users.*') ? 'active' : '' }}"
+                                   href="{{ route('admin.users.index') }}">
                                    <span class="nav-icon">
                                         <i class="ri-user-line"></i>
                                    </span>
@@ -83,7 +100,8 @@
 
                     @can('role_view')
                          <li class="nav-item">
-                              <a class="nav-link {{ request()->routeIs('admin.roles.*') ? 'active' : '' }}" href="{{ route('admin.roles.index') }}">
+                              <a class="nav-link {{ request()->routeIs('admin.roles.*') ? 'active' : '' }}"
+                                   href="{{ route('admin.roles.index') }}">
                                    <span class="nav-icon">
                                         <i class="ri-id-card-line"></i>
                                    </span>
@@ -94,7 +112,8 @@
 
                     @can('permission_view')
                          <li class="nav-item">
-                              <a class="nav-link {{ request()->routeIs('admin.permissions.*') ? 'active' : '' }}" href="{{ route('admin.permissions.index') }}">
+                              <a class="nav-link {{ request()->routeIs('admin.permissions.*') ? 'active' : '' }}"
+                                   href="{{ route('admin.permissions.index') }}">
                                    <span class="nav-icon">
                                         <i class="ri-lock-2-line"></i>
                                    </span>
@@ -105,7 +124,8 @@
 
                     @can('activity_view')
                          <li class="nav-item">
-                              <a class="nav-link {{ request()->routeIs('admin.activity.*') ? 'active' : '' }}" href="{{ route('admin.activity.index') }}">
+                              <a class="nav-link {{ request()->routeIs('admin.activity.*') ? 'active' : '' }}"
+                                   href="{{ route('admin.activity.index') }}">
                                    <span class="nav-icon">
                                         <i class="ri-book-line"></i>
                                    </span>
@@ -116,7 +136,8 @@
 
                     @can('holiday_view')
                          <li class="nav-item">
-                              <a class="nav-link {{ request()->routeIs('admin.holidays.*') ? 'active' : '' }}" href="{{ route('admin.holidays.index') }}">
+                              <a class="nav-link {{ request()->routeIs('admin.holidays.*') ? 'active' : '' }}"
+                                   href="{{ route('admin.holidays.index') }}">
                                    <span class="nav-icon">
                                         <i class="ri-calendar-event-line"></i>
                                    </span>
@@ -124,10 +145,11 @@
                               </a>
                          </li>
                     @endcan
-                    
+
                     @can('setting_view')
                          <li class="nav-item">
-                              <a class="nav-link {{ request()->routeIs('admin.settings.*') ? 'active' : '' }}" href="{{ route('admin.settings.index') }}">
+                              <a class="nav-link {{ request()->routeIs('admin.settings.*') ? 'active' : '' }}"
+                                   href="{{ route('admin.settings.index') }}">
                                    <span class="nav-icon">
                                         <i class="ri-home-gear-line"></i>
                                    </span>

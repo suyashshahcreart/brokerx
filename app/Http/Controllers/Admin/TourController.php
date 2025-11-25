@@ -258,4 +258,114 @@ class TourController extends Controller
 
         return redirect()->route('admin.tours.index')->with('success', 'Tour deleted successfully.');
     }
+
+    /**
+     * Update tour via AJAX
+     */
+    public function updateAjax(Request $request, Tour $tour)
+    {
+        $validated = $request->validate([
+            'booking_id' => ['nullable', 'exists:bookings,id'],
+            'title' => ['required', 'string', 'max:255'],
+            'slug' => ['nullable', 'string', 'max:255', 'unique:tours,slug,' . $tour->id],
+            'description' => ['nullable', 'string'],
+            'content' => ['nullable', 'string'],
+            'location' => ['nullable', 'string', 'max:255'],
+            'price' => ['nullable', 'numeric', 'min:0'],
+            'duration_days' => ['nullable', 'integer', 'min:1'],
+            'start_date' => ['nullable', 'date'],
+            'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
+            'max_participants' => ['nullable', 'integer', 'min:1'],
+            'featured_image' => ['nullable', 'string'],
+            'status' => ['required', 'in:draft,published,archived'],
+        ]);
+
+        // Generate slug if not provided
+        if (empty($validated['slug'])) {
+            $validated['slug'] = \Illuminate\Support\Str::slug($validated['title']);
+        }
+
+        $oldData = $tour->toArray();
+        $tour->update($validated);
+
+        activity('tours')
+            ->performedOn($tour)
+            ->causedBy($request->user())
+            ->withProperties([
+                'old' => $oldData,
+                'attributes' => $tour->toArray(),
+            ])
+            ->log('Tour updated via AJAX');
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Tour updated successfully',
+            'tour' => $tour->fresh(),
+        ]);
+    }
+
+    /**
+     * Create tour via AJAX
+     */
+    public function createAjax(Request $request)
+    {
+        $validated = $request->validate([
+            'booking_id' => ['required', 'exists:bookings,id'],
+            'title' => ['required', 'string', 'max:255'],
+            'slug' => ['nullable', 'string', 'max:255', 'unique:tours,slug'],
+            'description' => ['nullable', 'string'],
+            'content' => ['nullable', 'string'],
+            'location' => ['nullable', 'string', 'max:255'],
+            'price' => ['nullable', 'numeric', 'min:0'],
+            'duration_days' => ['nullable', 'integer', 'min:1'],
+            'start_date' => ['nullable', 'date'],
+            'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
+            'max_participants' => ['nullable', 'integer', 'min:1'],
+            'featured_image' => ['nullable', 'string'],
+            'status' => ['required', 'in:draft,published,archived'],
+        ]);
+
+        // Generate slug if not provided
+        if (empty($validated['slug'])) {
+            $validated['slug'] = \Illuminate\Support\Str::slug($validated['title']);
+        }
+
+        $tour = Tour::create($validated);
+
+        activity('tours')
+            ->performedOn($tour)
+            ->causedBy($request->user())
+            ->withProperties(['attributes' => $tour->toArray()])
+            ->log('Tour created via AJAX');
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Tour created successfully',
+            'tour' => $tour,
+        ], 201);
+    }
+
+    /**
+     * Unlink tour from booking via AJAX
+     */
+    public function unlinkAjax(Tour $tour)
+    {
+        $oldBookingId = $tour->booking_id;
+        $tour->booking_id = null;
+        $tour->save();
+
+        activity('tours')
+            ->performedOn($tour)
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'event' => 'unlinked',
+                'old_booking_id' => $oldBookingId,
+            ])
+            ->log('Tour unlinked from booking');
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Tour unlinked from booking successfully',
+        ]);
+    }
 }
