@@ -1,8 +1,8 @@
 {{-- Tour Edit Form --}}
-<form id="tourEditForm" class="needs-validation" novalidate>
+<form method="POST" action="{{ route('admin.tours.update', $tour) }}" class="needs-validation" novalidate>
     @csrf
-    <input type="hidden" id="tour_id" value="{{ $tour->id }}">
-    <input type="hidden" id="tour_booking_id" name="booking_id" value="{{ $booking->id }}">
+    @method('PUT')
+    <input type="hidden" name="booking_id" value="{{ $booking->id }}">
 
     <!-- Basic Information -->
     <div class="card border-primary border-top mb-3">
@@ -14,21 +14,24 @@
                 <div class="col-lg-4">
                     <div class="mb-3">
                         <label class="form-label" for="tour_name">Tour Name <span class="text-danger">*</span></label>
-                        <input type="text" name="name" id="tour_name" class="form-control" value="{{ $tour->name }}" required>
+                        <input type="text" name="name" id="tour_name" class="form-control" value="{{ old('name', $tour->name) }}" required>
                         <div class="invalid-feedback">Please enter tour name.</div>
+                        @error('name')<div class="text-danger">{{ $message }}</div>@enderror
                     </div>
                 </div>
                 <div class="col-lg-4">
                     <div class="mb-3">
                         <label class="form-label" for="tour_title">Tour Title <span class="text-danger">*</span></label>
-                        <input type="text" name="title" id="tour_title" class="form-control" value="{{ $tour->title }}" required>
+                        <input type="text" name="title" id="tour_title" class="form-control" value="{{ old('title', $tour->title) }}" required>
                         <div class="invalid-feedback">Please enter tour title.</div>
+                        @error('title')<div class="text-danger">{{ $message }}</div>@enderror
                     </div>
                 </div>
                 <div class="col-lg-4">
                     <div class="mb-3">
                         <label class="form-label" for="tour_slug">Slug</label>
-                        <input type="text" name="slug" id="tour_slug" class="form-control" value="{{ $tour->slug }}" placeholder="Auto-generated">
+                        <input type="text" name="slug" id="tour_slug" class="form-control" value="{{ old('slug', $tour->slug) }}" placeholder="Auto-generated">
+                        @error('slug')<div class="text-danger">{{ $message }}</div>@enderror
                     </div>
                 </div>
             </div>
@@ -37,23 +40,26 @@
                 <div class="col-lg-4">
                     <div class="mb-3">
                         <label class="form-label" for="tour_location">Location</label>
-                        <input type="text" name="location" id="tour_location" class="form-control" value="{{ $tour->location }}">
+                        <input type="text" name="location" id="tour_location" class="form-control" value="{{ old('location', $tour->location) }}">
+                        @error('location')<div class="text-danger">{{ $message }}</div>@enderror
                     </div>
                 </div>
                 <div class="col-lg-4">
                     <div class="mb-3">
                         <label class="form-label" for="tour_status">Status <span class="text-danger">*</span></label>
                         <select name="status" id="tour_status" class="form-select" required>
-                            <option value="draft" @selected($tour->status == 'draft')>Draft</option>
-                            <option value="published" @selected($tour->status == 'published')>Published</option>
-                            <option value="archived" @selected($tour->status == 'archived')>Archived</option>
+                            <option value="draft" @selected(old('status', $tour->status) == 'draft')>Draft</option>
+                            <option value="published" @selected(old('status', $tour->status) == 'published')>Published</option>
+                            <option value="archived" @selected(old('status', $tour->status) == 'archived')>Archived</option>
                         </select>
+                        @error('status')<div class="text-danger">{{ $message }}</div>@enderror
                     </div>
                 </div>
                 <div class="col-lg-4">
                     <div class="mb-3">
                         <label class="form-label" for="tour_revision">Revision</label>
-                        <input type="text" name="revision" id="tour_revision" class="form-control" value="{{ $tour->revision }}" placeholder="v1.0">
+                        <input type="text" name="revision" id="tour_revision" class="form-control" value="{{ old('revision', $tour->revision) }}" placeholder="v1.0">
+                        @error('revision')<div class="text-danger">{{ $message }}</div>@enderror
                     </div>
                 </div>
             </div>

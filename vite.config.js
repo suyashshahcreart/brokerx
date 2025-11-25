@@ -43,6 +43,7 @@ export default defineConfig({
                 'resources/js/pages/bookings-edit.js',
                 'resources/js/pages/booking-index.js',
                 'resources/js/pages/setting-index.js',
+                'resources/js/pages/tours-index.js',
                 
                 //components
                 'resources/js/components/maps-google.js',

@@ -187,6 +187,7 @@ class TourController extends Controller
     public function update(Request $request, Tour $tour)
     {
         $validated = $request->validate([
+            'booking_id' => ['nullable', 'exists:bookings,id'],
             'name' => ['required', 'string', 'max:255'],
             'title' => ['required', 'string', 'max:255'],
             'slug' => ['nullable', 'string', 'max:255', 'unique:tours,slug,' . $tour->id],
@@ -246,6 +247,11 @@ class TourController extends Controller
                 'after' => $tour->fresh()->toArray()
             ])
             ->log('Tour updated');
+
+        // If updated from booking page, redirect back to booking edit
+        if ($request->has('booking_id') && $request->booking_id) {
+            return redirect()->route('admin.bookings.edit', $request->booking_id)->with('success', 'Tour updated successfully.');
+        }
 
         return redirect()->route('admin.tours.index')->with('success', 'Tour updated successfully.');
     }

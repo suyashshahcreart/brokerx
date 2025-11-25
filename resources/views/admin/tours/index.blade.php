@@ -68,42 +68,10 @@
     </div>
 @endsection
 
-@push('scripts')
+@section('scripts')
+    @vite(['resources/js/pages/tours-index.js'])
     <script>
-        $(document).ready(function() {
-            const table = $('#tours-table').DataTable({
-                processing: true,
-                serverSide: true,
-                ajax: '{{ route('admin.tours.index') }}',
-                columns: [
-                    { data: 'id', name: 'id' },
-                    { data: 'title', name: 'title' },
-                    { data: 'location', name: 'location' },
-                    { data: 'price', name: 'price' },
-                    { data: 'duration', name: 'duration_days', orderable: true },
-                    { data: 'dates', name: 'start_date', orderable: true },
-                    { data: 'participants', name: 'max_participants', orderable: true },
-                    { data: 'status', name: 'status' },
-                    { data: 'actions', name: 'actions', orderable: false, searchable: false, className: 'text-end' }
-                ],
-                order: [[0, 'desc']],
-                pageLength: 25,
-                responsive: true,
-                language: {
-                    paginate: {
-                        previous: "<i class='ri-arrow-left-s-line'></i>",
-                        next: "<i class='ri-arrow-right-s-line'></i>"
-                    }
-                },
-                drawCallback: function() {
-                    $('.dataTables_paginate > .pagination').addClass('pagination-rounded');
-                }
-            });
-
-            // Panel card refresh
-            $('[data-panel-action="refresh"]').on('click', function() {
-                table.ajax.reload();
-            });
-        });
+        // Pass data to JavaScript
+        window.tourIndexUrl = '{{ route('admin.tours.index') }}';
     </script>
-@endpush
+@endsection

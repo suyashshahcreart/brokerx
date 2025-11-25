@@ -7,7 +7,6 @@ import Swal from 'sweetalert2';
 
 document.addEventListener('DOMContentLoaded', function () {
     'use strict';
-    alert('100')
     // Get CSRF token
     const csrfTokenElement = document.querySelector('meta[name="csrf-token"]');
     if (!csrfTokenElement) {
@@ -25,128 +24,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const bookingData = window.bookingData || {};
     const bookingId = bookingData.id || bookingData.bookingId;
     const tourData = bookingData.tour || null;
-
-    // ========================
-    // TOUR EDIT FORM HANDLING
-    // ========================
-    const tourEditForm = document.getElementById('tourEditForm');
-    if (tourEditForm) {
-        tourEditForm.addEventListener('submit', async function (event) {
-            event.preventDefault();
-            event.stopPropagation();
-
-            if (!tourEditForm.checkValidity()) {
-                tourEditForm.classList.add('was-validated');
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Validation Error',
-                    text: 'Please fill in all required fields correctly.',
-                });
-                return;
-            }
-
-            const tourId = document.getElementById('tour_id')?.value;
-            if (!tourId) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'Tour ID not found',
-                });
-                return;
-            }
-
-            const formData = new FormData(tourEditForm);
-            const data = Object.fromEntries(formData.entries());
-
-            try {
-                const response = await fetch(`/admin/tours/${tourId}/update-ajax`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': csrfToken,
-                        'Accept': 'application/json',
-                    },
-                    body: JSON.stringify(data),
-                });
-
-                const result = await response.json();
-
-                if (response.ok && result.success) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Success!',
-                        text: result.message || 'Tour updated successfully',
-                        timer: 2000,
-                        showConfirmButton: false,
-                    });
-                    tourEditForm.classList.remove('was-validated');
-                } else {
-                    throw new Error(result.message || 'Failed to update tour');
-                }
-            } catch (error) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: error.message || 'An error occurred while updating the tour',
-                });
-            }
-        });
-
-        // Unlink tour button
-        const unlinkBtn = document.getElementById('unlinkTourBtn');
-        if (unlinkBtn) {
-            unlinkBtn.addEventListener('click', async function () {
-                const tourId = document.getElementById('tour_id')?.value;
-                if (!tourId) return;
-
-                const result = await Swal.fire({
-                    title: 'Unlink Tour?',
-                    text: 'This will remove the link between this booking and the tour. The tour will still exist.',
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#d33',
-                    cancelButtonColor: '#3085d6',
-                    confirmButtonText: 'Yes, unlink it',
-                    cancelButtonText: 'Cancel',
-                });
-
-                if (result.isConfirmed) {
-                    try {
-                        const response = await fetch(`/admin/tours/${tourId}/unlink-ajax`, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRF-TOKEN': csrfToken,
-                                'Accept': 'application/json',
-                            },
-                        });
-
-                        const responseData = await response.json();
-
-                        if (response.ok && responseData.success) {
-                            await Swal.fire({
-                                icon: 'success',
-                                title: 'Unlinked!',
-                                text: responseData.message || 'Tour has been unlinked',
-                                timer: 2000,
-                                showConfirmButton: false,
-                            });
-                            // Reload page to show updated state
-                            window.location.reload();
-                        } else {
-                            throw new Error(responseData.message || 'Failed to unlink tour');
-                        }
-                    } catch (error) {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: error.message || 'An error occurred while unlinking the tour',
-                        });
-                    }
-                }
-            });
-        }
-    }
 
     // ========================
     // TOUR CREATE FORM HANDLING
@@ -169,6 +46,61 @@ document.addEventListener('DOMContentLoaded', function () {
             noTourMessage?.classList.remove('d-none');
             tourCreateForm.reset();
             tourCreateForm.classList.remove('was-validated');
+        });
+    }
+
+    // Unlink tour button
+    const unlinkBtn = document.getElementById('unlinkTourBtn');
+    if (unlinkBtn) {
+        unlinkBtn.addEventListener('click', async function () {
+            const tourId = document.getElementById('tour_id')?.value;
+            if (!tourId) return;
+
+            const result = await Swal.fire({
+                title: 'Unlink Tour?',
+                text: 'This will remove the link between this booking and the tour. The tour will still exist.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Yes, unlink it',
+                cancelButtonText: 'Cancel',
+            });
+
+            if (result.isConfirmed) {
+                try {
+                    const response = await fetch(`/admin/tours/${tourId}/unlink-ajax`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': csrfToken,
+                            'Accept': 'application/json',
+                        },
+                    });
+
+                    const responseData = await response.json();
+
+                    if (response.ok && responseData.success) {
+                        await Swal.fire({
+                            icon: 'success',
+                            title: 'Unlinked!',
+                            text: responseData.message || 'Tour has been unlinked',
+                            timer: 2000,
+                            showConfirmButton: false,
+                        });
+                        // Reload page to show updated state
+                        window.location.reload();
+                    } else {
+                        throw new Error(responseData.message || 'Failed to unlink tour');
+                    }
+                } catch (error) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: error.message || 'An error occurred while unlinking the tour',
+                    });
+                }
+            }
         });
     }
 
