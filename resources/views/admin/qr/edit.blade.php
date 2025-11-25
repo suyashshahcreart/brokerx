@@ -43,8 +43,16 @@
                     @csrf
                     @method('PUT')
                     <div class="mb-3">
-                        <label class="form-label">Name <span class="text-danger">*</span></label>
-                        <input type="text" name="name" class="form-control" value="{{ $qr->name }}" required maxlength="255">
+                        <label class="form-label">Code <span class="text-danger">*</span></label>
+                        <input type="text" name="code" class="form-control" value="{{ $qr->code }}" required maxlength="8" minlength="8" pattern="[A-Za-z0-9]{8}">
+                        <div class="form-text">Code must be exactly 8 characters (A-Z, a-z, 0-9 only)</div>
+                        <div class="invalid-feedback">Please enter a valid 8-character code (A-Z, a-z, 0-9 only)</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Name</label>
+                        <input type="text" name="name" class="form-control" value="{{ $qr->name }}" maxlength="8" minlength="8" pattern="[A-Za-z0-9]{8}">
+                        <div class="form-text">Name is optional, must be exactly 8 characters (A-Z, a-z, 0-9 only) if provided</div>
+                        <div class="invalid-feedback">Please enter a valid 8-character name (A-Z, a-z, 0-9 only)</div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Booking</label>

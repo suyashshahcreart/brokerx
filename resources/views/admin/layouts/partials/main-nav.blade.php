@@ -127,7 +127,7 @@
 
                     @can('qr_view')
                          <li class="nav-item">
-                              <a class="nav-link" href="{{ route('admin.qr.index') }}">
+                              <a class="nav-link {{ request()->routeIs('admin.qr.*') ? 'active' : '' }}" href="{{ route('admin.qr.index') }}">
                                    <span class="nav-icon">
                                         <i class="ri-qr-code-line"></i>
                                    </span>

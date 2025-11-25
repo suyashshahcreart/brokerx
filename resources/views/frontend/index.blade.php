@@ -166,7 +166,8 @@
                     <p class="wow fadeInUp" data-wow-delay=".6s">Everything you need to capture, process, and publish immersive property tours with zero setup stress.</p>
                 </div>
             </div>
-From The Blog            <div class="row align-items-center gy-4">
+            From The Blog            
+        <div class="row align-items-center gy-4">
                 <div class="col-lg-5 wow fadeInUp" data-wow-delay=".2s">
                     <div class="pricing-card">
                         <div class="pricing-left">

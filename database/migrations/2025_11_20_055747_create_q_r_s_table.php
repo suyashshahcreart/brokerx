@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('qr_code', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
+            $table->string('name')->nullable();
             $table->string('code', 9)->unique();
             $table->string('image')->nullable();
             $table->unsignedBigInteger('booking_id')->nullable();

@@ -11,12 +11,13 @@ $(function() {
                 $('#filter-inactive-qr').removeClass('btn-danger').addClass('btn-outline-danger');
                 $('#filter-all-qr').removeClass('btn-secondary').addClass('btn-outline-secondary');
 
-                // Set selected to solid
-                if (qrFilter === 'active') {
+                // Set selected to solid - use window.qrFilter to get current value
+                const currentFilter = window.qrFilter || 'all';
+                if (currentFilter === 'active') {
                     $('#filter-active-qr').addClass('btn-success').removeClass('btn-outline-success');
                     $('#filter-inactive-qr').addClass('btn-outline-danger').removeClass('btn-danger');
                     $('#filter-all-qr').addClass('btn-outline-secondary').removeClass('btn-secondary');
-                } else if (qrFilter === 'inactive') {
+                } else if (currentFilter === 'inactive') {
                     $('#filter-inactive-qr').addClass('btn-danger').removeClass('btn-outline-danger');
                     $('#filter-active-qr').addClass('btn-outline-success').removeClass('btn-success');
                     $('#filter-all-qr').addClass('btn-outline-secondary').removeClass('btn-secondary');
@@ -26,39 +27,35 @@ $(function() {
                     $('#filter-inactive-qr').addClass('btn-outline-danger').removeClass('btn-danger');
                 }
             }
-        // QR filter state
-        let qrFilter = 'all'; // 'all', 'active', 'inactive'
+        // QR filter state - make it globally accessible for DataTable
+        window.qrFilter = 'all'; // 'all', 'active', 'inactive'
+        let qrFilter = window.qrFilter; // Local reference for consistency
 
         // Filter button handlers
         $(document).on('click', '#filter-active-qr', function() {
+            window.qrFilter = 'active';
             qrFilter = 'active';
             gridPage = 1; // reset pagination
             updateFilterButtons();
             reloadViews();
         });
         $(document).on('click', '#filter-inactive-qr', function() {
+            window.qrFilter = 'inactive';
             qrFilter = 'inactive';
             gridPage = 1;
             updateFilterButtons();
             reloadViews();
         });
         $(document).on('click', '#filter-all-qr', function() {
+            window.qrFilter = 'all';
             qrFilter = 'all';
             gridPage = 1;
             updateFilterButtons();
             reloadViews();
-            // Set initial filter button state
-            updateFilterButtons();
         });
-
-        function reloadViews() {
-            // List view
-            if (table.length && $.fn.DataTable.isDataTable(table)) {
-                table.DataTable().draw();
-            }
-            // Grid view
-            if (typeof loadGridView === 'function') loadGridView();
-        }
+        
+        // Initialize filter button state on page load
+        updateFilterButtons();
     const table = $('#qr-table');
     const gridTab = $('#qr-grid-tab');
     const listTab = $('#qr-list-tab');
@@ -71,37 +68,435 @@ $(function() {
     let gridTotalRecords = 0;
     let gridTotalPages = 1;
     let gridDraw = 1; // DataTables style draw counter
+    
+    // Function to reload both views when filter changes
+    function reloadViews() {
+        // Ensure filter is set before reloading
+        const currentFilter = window.qrFilter || 'all';
+        console.log('reloadViews called with filter:', currentFilter);
+        
+        // List view - reload DataTable with new filter
+        if (table.length && $.fn.DataTable.isDataTable(table)) {
+            const dt = table.DataTable();
+            // Reset to first page when filter changes
+            dt.page('first');
+            // Use ajax.reload() with callback to ensure filter is included
+            dt.ajax.reload(function(json) {
+                console.log('DataTable reloaded with filter:', currentFilter);
+            }, false); // false = don't reset pagination (we already did above)
+        }
+        // Grid view - reload with new filter
+        if (typeof loadGridView === 'function') {
+            loadGridView();
+        }
+    }
 
     // Initialize DataTable for List View
-    if (table.length) {
-        table.DataTable({
+    // Use setTimeout to ensure DOM is fully ready
+    setTimeout(function() {
+        if (!table.length) {
+            console.warn('QR table not found');
+            return;
+        }
+        
+        // Destroy existing DataTable if it exists
+        if ($.fn.DataTable.isDataTable(table)) {
+            try {
+                table.DataTable().destroy();
+                table.empty();
+            } catch(e) {
+                console.warn('Error destroying existing DataTable:', e);
+            }
+        }
+        
+        // Verify table structure
+        const headerCount = table.find('thead tr th').length;
+        if (headerCount === 0) {
+            console.error('No table headers found!');
+            return;
+        }
+        
+        if (headerCount !== 8) {
+            console.error('Column count mismatch! Expected 8, found:', headerCount);
+            return;
+        }
+        
+        try {
+            const dt = table.DataTable({
             processing: true,
             serverSide: true,
-            ajax: {
-                url: table.data('ajax') || table.data('url') || table.attr('data-ajax') || table.attr('data-url') || window.qrIndexAjaxUrl || '',
-                data: function(d) {
-                    if (qrFilter === 'active') d.active = 1;
-                    if (qrFilter === 'inactive') d.active = 0;
-                }
+            ajax: function(data, callback, settings) {
+                // Custom ajax function to ensure filter parameter is included
+                const currentFilter = window.qrFilter || 'all';
+                const baseUrl = table.data('ajax') || table.data('url') || table.attr('data-ajax') || table.attr('data-url') || window.qrIndexAjaxUrl || '';
+                
+                // Build URL with filter parameter
+                const separator = baseUrl.indexOf('?') !== -1 ? '&' : '?';
+                const urlWithFilter = baseUrl + separator + 'filter=' + currentFilter;
+                
+                //alert("urlWithFilter: " + urlWithFilter);
+                // Add filter to data object - jQuery will serialize it into URL for GET requests
+                data.filter = currentFilter;
+                
+                console.log('DataTables custom ajax - Filter:', currentFilter);
+                console.log('DataTables custom ajax - URL:', urlWithFilter);
+                console.log('DataTables custom ajax - Data object keys:', Object.keys(data));
+                
+                // Use jQuery ajax to make the request
+                // For GET requests, jQuery will serialize data object and append to URL
+                $.ajax({
+                    url: urlWithFilter,
+                    type: 'GET',
+                    data: data, // This will be serialized and appended to URL as ?param=value&filter=active
+                    dataType: 'json',
+                    success: function(json) {
+                        console.log('DataTables ajax success - Filter was:', currentFilter);
+                        callback(json);
+                    },
+                    error: function(xhr, error, thrown) {
+                        console.error('DataTables AJAX Error:', error, thrown);
+                        callback({
+                            draw: data.draw || 0,
+                            recordsTotal: 0,
+                            recordsFiltered: 0,
+                            data: []
+                        });
+                    }
+                });
             },
             columns: [
-                { data: 'id', name: 'id', className: 'fw-semibold' },
-                { data: 'name', name: 'name' },
-                { data: 'code', name: 'code' },
-                { data: 'booking_id', name: 'booking_id' },
-                { data: 'image', name: 'image', orderable: false, searchable: false, render: function(data) { return data ? `<img src="/storage/${data}" width="50"/>` : ''; } },
-                { data: 'created_by', name: 'created_by' },
-                { data: 'actions', name: 'actions', orderable: false, searchable: false, className: 'text-end' }
-            ],
-            order: [[0, 'desc']],
+                    { 
+                        data: 'checkbox',
+                        orderable: false,
+                        searchable: false,
+                        className: 'text-center',
+                        width: '40px'
+                    },
+                    { 
+                        data: 'id',
+                        className: 'fw-semibold'
+                    },
+                    { 
+                        data: 'name'
+                    },
+                    { 
+                        data: 'code'
+                    },
+                    { 
+                        data: 'booking_id'
+                    },
+                    { 
+                        data: 'image',
+                        orderable: false,
+                        searchable: false
+                    },
+                    { 
+                        data: 'created_by'
+                    },
+                    { 
+                        data: 'actions',
+                        orderable: false,
+                        searchable: false,
+                        className: 'text-end'
+                    }
+                ],
+                order: [[1, 'desc']],
             responsive: true,
+                pageLength: 25,
+                lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
             language: {
                 search: "Search QR Codes:",
                 lengthMenu: "Show _MENU_ entries",
                 info: "Showing _START_ to _END_ of _TOTAL_ entries",
                 infoEmpty: "No entries found",
-                zeroRecords: "No matching QR codes found"
+                    zeroRecords: "No matching QR codes found",
+                    processing: "Processing..."
+                },
+                drawCallback: function(settings) {
+                    //alert("drawCallback called");
+                    // Update select all checkbox state after draw
+                    if (typeof updateDeleteButton === 'function') {
+                        updateDeleteButton();
+                    }
+                }
+            });
+        } catch (error) {
+            console.error('DataTables initialization error:', error);
+            console.error('Error details:', {
+                message: error.message,
+                stack: error.stack,
+                tableExists: table.length > 0,
+                headerCount: headerCount,
+                tbodyExists: table.find('tbody').length > 0
+            });
+        }
+    }, 50);
+
+    // Multiple Delete Functionality
+    let selectedQrIds = new Set();
+    const selectAllCheckbox = $('#selectAll');
+    const deleteSelectedBtn = $('#deleteSelectedBtn');
+    const selectedCountSpan = $('#selectedCount');
+    const deleteSelectedGridBtn = $('#deleteSelectedGridBtn');
+    const selectedGridCountSpan = $('#selectedGridCount');
+
+    // Function to update delete button state
+    function updateDeleteButton() {
+        const count = selectedQrIds.size;
+        selectedCountSpan.text(count);
+        if (selectedGridCountSpan.length) {
+            selectedGridCountSpan.text(count);
+        }
+        const buttonHtml = '<i class="ri-delete-bin-line me-1"></i> Delete Selected (<span id="selectedCount">' + count + '</span>)';
+        const gridButtonHtml = '<i class="ri-delete-bin-line me-1"></i> Delete Selected (<span id="selectedGridCount">' + count + '</span>)';
+        if (count > 0) {
+            deleteSelectedBtn.prop('disabled', false).removeClass('btn-secondary').addClass('btn-danger').html(buttonHtml);
+            if (deleteSelectedGridBtn.length) {
+                deleteSelectedGridBtn.prop('disabled', false).removeClass('btn-secondary').addClass('btn-danger').html(gridButtonHtml);
             }
+        } else {
+            deleteSelectedBtn.prop('disabled', true).removeClass('btn-danger').addClass('btn-secondary').html(buttonHtml);
+            if (deleteSelectedGridBtn.length) {
+                deleteSelectedGridBtn.prop('disabled', true).removeClass('btn-danger').addClass('btn-secondary').html(gridButtonHtml);
+            }
+        }
+        // Update select all checkbox state
+        if (table.length && $.fn.DataTable.isDataTable(table)) {
+            const totalRows = table.DataTable().rows({ filter: 'applied' }).count();
+            selectAllCheckbox.prop('checked', count > 0 && count === totalRows);
+            selectAllCheckbox.prop('indeterminate', count > 0 && count < totalRows);
+        }
+    }
+
+    // Select All checkbox handler
+    selectAllCheckbox.on('change', function() {
+        const isChecked = $(this).prop('checked');
+        if (table.length && $.fn.DataTable.isDataTable(table)) {
+            table.DataTable().$('.qr-checkbox').each(function() {
+                const checkbox = $(this);
+                const qrId = checkbox.data('qr-id');
+                const qrIdStr = qrId.toString(); // Ensure consistent string format
+                if (isChecked) {
+                    selectedQrIds.add(qrIdStr);
+                    checkbox.prop('checked', true);
+                } else {
+                    selectedQrIds.delete(qrIdStr);
+                    checkbox.prop('checked', false);
+                }
+            });
+            updateDeleteButton();
+        }
+    });
+
+    // Individual checkbox handler (using event delegation)
+    $(document).on('change', '.qr-checkbox', function() {
+        const checkbox = $(this);
+        const qrId = checkbox.data('qr-id');
+        const qrIdStr = qrId.toString(); // Ensure consistent string format
+        if (checkbox.prop('checked')) {
+            selectedQrIds.add(qrIdStr);
+        } else {
+            selectedQrIds.delete(qrIdStr);
+            selectAllCheckbox.prop('checked', false);
+        }
+        updateDeleteButton();
+    });
+
+    // Grid checkbox handler - ONLY source of truth for border-primary class
+    // Only checkbox clicks can toggle selection - card clicks are ignored
+    $(document).on('change', '.qr-checkbox-grid', function(e) {
+        const checkbox = $(this);
+        const qrId = checkbox.data('qr-id');
+        const qrIdStr = qrId.toString(); // Ensure consistent string format
+        const card = checkbox.closest('.qr-grid-card');
+        const isChecked = checkbox.prop('checked');
+        
+        // Update selectedQrIds based on checkbox state
+        if (isChecked) {
+            selectedQrIds.add(qrIdStr);
+            // Add border-primary border-2, remove border-0
+            card.addClass('border-primary border-2').removeClass('border-0');
+        } else {
+            selectedQrIds.delete(qrIdStr);
+            // Remove border-primary border-2, add border-0
+            card.removeClass('border-primary border-2').addClass('border-0');
+            selectAllCheckbox.prop('checked', false);
+        }
+        updateDeleteButton();
+    });
+
+    // Delete Selected button handler (for both list and grid)
+    function handleBulkDelete() {
+        if (selectedQrIds.size === 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'No Selection',
+                text: 'Please select at least one QR code to delete.',
+                confirmButtonText: 'OK'
+            });
+            return;
+        }
+
+        Swal.fire({
+            icon: 'warning',
+            title: 'Delete Selected QR Codes?',
+            text: `Are you sure you want to delete ${selectedQrIds.size} QR code(s)? This action cannot be undone.`,
+            showCancelButton: true,
+            confirmButtonText: 'Yes, Delete',
+            cancelButtonText: 'Cancel',
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Disable buttons and show loading
+                deleteSelectedBtn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Deleting...');
+                if (deleteSelectedGridBtn.length) {
+                    deleteSelectedGridBtn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Deleting...');
+                }
+
+                // Get CSRF token and route URL
+                const csrfToken = $('meta[name="csrf-token"]').attr('content');
+                let bulkDeleteUrl = $('#qr-list-view').data('bulk-delete-url') || $('#qr-grid-view').data('bulk-delete-url');
+                if (!bulkDeleteUrl) {
+                    // Fallback: construct URL from current path
+                    const basePath = window.location.pathname.split('/admin')[0] || '';
+                    bulkDeleteUrl = basePath + '/admin/qr/bulk-delete';
+                }
+
+                // Make AJAX request
+                fetch(bulkDeleteUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        ids: Array.from(selectedQrIds)
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    // Determine icon and title based on result
+                    let icon = 'success';
+                    let title = 'Deleted!';
+                    let htmlMessage = '';
+                    
+                    if (data.deleted > 0 && data.skipped > 0) {
+                        // Some deleted, some skipped
+                        icon = 'warning';
+                        title = 'Partially Deleted';
+                        htmlMessage = `<div style="text-align: left;">
+                            <p style="color: #28a745; font-weight: 600; margin-bottom: 10px;">
+                                ✓ Successfully deleted <strong>${data.deleted}</strong> QR code(s).
+                            </p>
+                            <p style="color: #ffc107; font-weight: 600; margin-bottom: 10px;">
+                                ⚠️ <strong>${data.skipped}</strong> QR code(s) could not be deleted because they are assigned to bookings.
+                            </p>`;
+                        if (data.skipped_codes && data.skipped_codes.length > 0 && data.skipped_codes.length <= 5) {
+                            const codesList = data.skipped_codes.map(qr => qr.code).join(', ');
+                            htmlMessage += `<p style="color: #6c757d; font-size: 0.9em; margin-top: 8px;">
+                                <strong>Assigned QR Codes:</strong> ${codesList}
+                            </p>`;
+                        } else if (data.skipped_codes && data.skipped_codes.length > 5) {
+                            htmlMessage += `<p style="color: #6c757d; font-size: 0.9em; margin-top: 8px;">
+                                (${data.skipped_codes.length} QR codes are assigned to bookings)
+                            </p>`;
+                        }
+                        htmlMessage += `<p style="color: #6c757d; font-size: 0.85em; margin-top: 10px; font-style: italic;">
+                            Please unassign them from bookings first if you want to delete them.
+                        </p></div>`;
+                    } else if (data.deleted == 0 && data.skipped > 0) {
+                        // All skipped (assigned to bookings)
+                        icon = 'error';
+                        title = 'Cannot Delete';
+                        htmlMessage = `<div style="text-align: left;">
+                            <p style="color: #dc3545; font-weight: 600; margin-bottom: 10px;">
+                                ❌ Cannot delete selected QR code(s).
+                            </p>
+                            <p style="color: #6c757d; margin-bottom: 10px;">
+                                All <strong>${data.skipped}</strong> selected QR code(s) are assigned to bookings and cannot be deleted.
+                            </p>`;
+                        if (data.skipped_codes && data.skipped_codes.length > 0 && data.skipped_codes.length <= 5) {
+                            const codesList = data.skipped_codes.map(qr => qr.code).join(', ');
+                            htmlMessage += `<p style="color: #6c757d; font-size: 0.9em; margin-top: 8px;">
+                                <strong>Assigned QR Codes:</strong> ${codesList}
+                            </p>`;
+                        }
+                        htmlMessage += `<p style="color: #6c757d; font-size: 0.85em; margin-top: 10px; font-style: italic;">
+                            Please unassign them from bookings first if you want to delete them.
+                        </p></div>`;
+                    } else if (data.deleted == 0) {
+                        // Nothing deleted
+                        icon = 'error';
+                        title = 'Delete Failed';
+                        htmlMessage = data.message || 'Failed to delete QR codes.';
+                    } else {
+                        // All deleted successfully
+                        htmlMessage = data.message || `Successfully deleted ${data.deleted} QR code(s).`;
+                    }
+                    
+                    Swal.fire({
+                        icon: icon,
+                        title: title,
+                        html: htmlMessage || data.message || 'Failed to delete QR codes.',
+                        confirmButtonText: 'OK',
+                        timer: data.deleted > 0 && data.skipped == 0 ? 3000 : null,
+                        timerProgressBar: data.deleted > 0 && data.skipped == 0
+                    }).then(() => {
+                        // Clear selection
+                        selectedQrIds.clear();
+                        selectAllCheckbox.prop('checked', false);
+                        updateDeleteButton();
+                        
+                        // Reload DataTable if any were deleted
+                        if (data.deleted > 0) {
+                            if (table.length && $.fn.DataTable.isDataTable(table)) {
+                                table.DataTable().ajax.reload(null, false);
+                            }
+                            // Reload grid view
+                            if (typeof loadGridView === 'function') {
+                                loadGridView();
+                            }
+                        }
+                    });
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'An error occurred while deleting QR codes.',
+                        confirmButtonText: 'OK'
+                    });
+                    updateDeleteButton();
+                });
+            }
+        });
+    }
+
+    // Attach delete handler to both buttons
+    deleteSelectedBtn.on('click', handleBulkDelete);
+    deleteSelectedGridBtn.on('click', handleBulkDelete);
+
+    // Clear selection when DataTable is redrawn
+    if (table.length && $.fn.DataTable.isDataTable(table)) {
+        table.DataTable().on('draw', function() {
+            // Uncheck select all when table redraws
+            selectAllCheckbox.prop('checked', false);
+            selectAllCheckbox.prop('indeterminate', false);
+            // Clear selection for rows that are no longer visible
+            const visibleIds = new Set();
+            table.DataTable().$('.qr-checkbox').each(function() {
+                visibleIds.add($(this).data('qr-id'));
+            });
+            // Remove IDs that are no longer visible
+            selectedQrIds.forEach(id => {
+                if (!visibleIds.has(id)) {
+                    selectedQrIds.delete(id);
+                }
+            });
+            updateDeleteButton();
         });
     }
 
@@ -166,72 +561,68 @@ $(function() {
 
     function loadGridView() {
         if (!gridContainer.length) return;
-        gridContainer.html('<div class="col-12 text-center text-muted">Loading...</div>');
+        gridContainer.html('<div class="col-12 text-center text-muted py-5"><div class="spinner-border spinner-border-sm me-2" role="status"></div>Loading...</div>');
+        
+        // Get selected QR IDs as array
+        const selectedIds = Array.from(selectedQrIds).map(id => parseInt(id, 10));
+        
         $.ajax({
-            url: table.data('ajax') || table.data('url') || table.attr('data-ajax') || table.attr('data-url') || window.qrIndexAjaxUrl || '',
+            url: window.location.pathname, // Use current route
             dataType: 'json',
-            data: (function(){
-                let params = { start: (gridPage-1)*gridPageSize, length: gridPageSize, draw: gridDraw++ };
-                if (qrFilter === 'active') params.active = 1;
-                if (qrFilter === 'inactive') params.active = 0;
-                return params;
-            })(),
+            data: {
+                view: 'grid',
+                page: gridPage,
+                per_page: gridPageSize,
+                filter: qrFilter,
+                selected_ids: selectedIds
+            },
             success: function(response) {
-                let data = response.data || response;
-                gridTotalRecords = response.recordsFiltered || response.recordsTotal || (Array.isArray(data)?data.length:0);
-                gridTotalPages = Math.max(1, Math.ceil(gridTotalRecords / gridPageSize));
-                if (gridPage > gridTotalPages) { gridPage = 1; }
-                let html = '';
-                if (Array.isArray(data) && data.length === 0) {
-                    html = '<div class="col-12 text-center text-muted">No QR codes found.</div>';
-                } else {
-                    if (qrFilter === 'active') data = data.filter(qr => qr.booking_id);
-                    if (qrFilter === 'inactive') data = data.filter(qr => !qr.booking_id);
-                    data.forEach(function(qr) {
-                        const statusBadge = qr.booking_id ? `<span class="badge bg-success">Active</span>` : `<span class="badge bg-danger">Inactive</span>`;
-                        
-                        // Display generated QR code or fallback image
-                        let qrImageHtml = '';
-                        if (qr.qr_code_svg) {
-                            qrImageHtml = `<div class="qr-code-container" style="width: 300px; height: 300px;">${qr.qr_code_svg}</div>`;
-                        } else if (qr.image) {
-                            qrImageHtml = `<img src="/storage/${qr.image}" alt="QR Image" class="img-fluid rounded" style="max-height:300px; max-width:300px;">`;
-                        } else {
-                            qrImageHtml = `<div class="text-muted"><i class="ri-qr-code-line" style="font-size: 150px;"></i><div>No QR Code</div></div>`;
-                        }
-                        
-                        html += `<div class="col-12 col-md-6 col-lg-4">
-                            <div class="card shadow-lg">
-                                <div class="card-body d-flex flex-column">
-                                    <div class="fs-5">
-                                        ${statusBadge}
-                                    </div>
-                                    <div class="m-3 d-flex justify-content-center align-items-center" style="min-height: 300px;">
-                                        ${qrImageHtml}
-                                    </div>
-                                    <div class="d-flex gap-3">
-                                        <h5 class="card-title">${qr.name}</h5>
-                                        <span class=" fs-4 badge bg-primary">${qr.code}</span>
-                                    </div>
-                                    <div class="mb-1 text-muted">Booking: ${qr.booking_id ?? '-'}</div>
-                                    <div class="mb-2 d-flex gap-2 flex-wrap">
-                                        ${qr.qr_link ? `<a href="${qr.qr_link}" class="btn btn-soft-info btn-sm" target="_blank"><i class="ri-external-link-line me-1"></i>QR Link</a>` : ''}
-                                        <a href="/admin/qr/${qr.id}/download" class="btn btn-soft-success btn-sm" title="Download QR with Details" download>
-                                            <i class="ri-download-2-line me-1"></i>Download
-                                        </a>
-                                    </div>
-                                    <div class="mb-2">
-                                        <button class="btn btn-outline-secondary btn-sm assign-booking-btn" data-qr-id="${qr.id}" data-qr-name="${qr.name}" data-qr-code="${qr.code}" data-qr-image="${qr.image}" data-booking-id="${qr.booking_id || ''}">
-                                            <i class="ri-link"></i> ${qr.booking_id ? 'View Booking' : 'Assign'}
-                                        </button>
-                                    </div>
-                                    <div class="d-flex justify-content-end gap-2">
-                                        ${qr.actions}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>`;
-                    });
+                // Update pagination info
+                if (response.pagination) {
+                    gridTotalRecords = response.pagination.total_records || 0;
+                    gridTotalPages = response.pagination.total_pages || 1;
+                    gridPage = response.pagination.current_page || 1;
+                }
+                
+                // Render HTML from Blade
+                gridContainer.html(response.html || '<div class="col-12 text-center text-muted py-5">No QR codes found.</div>');
+                
+                // Update pagination
+                renderGridPagination();
+                
+                // Initialize tooltips for grid view
+                if (typeof bootstrap !== 'undefined' && bootstrap.Tooltip) {
+                    const tooltipTriggerList = gridContainer[0].querySelectorAll('[data-bs-toggle="tooltip"]');
+                    [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+                }
+                
+                // Sync checkbox and border states based on selectedQrIds
+                gridContainer.find('.qr-checkbox-grid').each(function() {
+                    const checkbox = $(this);
+                    const qrId = checkbox.data('qr-id');
+                    const qrIdStr = qrId.toString();
+                    const card = checkbox.closest('.qr-grid-card');
+                    const isSelected = selectedQrIds.has(qrIdStr);
+                    
+                    // Always sync checkbox state with selectedQrIds first
+                    checkbox.prop('checked', isSelected);
+                    
+                    // Then sync border class based on checkbox checked state (checkbox is source of truth)
+                    const isChecked = checkbox.prop('checked');
+                    if (isChecked) {
+                        card.addClass('border-primary border-2').removeClass('border-0');
+                    } else {
+                        card.removeClass('border-primary border-2').addClass('border-0');
+                    }
+                });
+            },
+            error: function(xhr, status, error) {
+                console.error('Error loading grid view:', error);
+                gridContainer.html('<div class="col-12 text-center text-danger py-5"><i class="ri-error-warning-line me-2"></i>Error loading QR codes. Please try again.</div>');
+            }
+        });
+    }
+
                         // Assign Booking Modal logic
                         $(document).on('click', '.assign-booking-btn', function() {
                             const qrId = $(this).data('qr-id');
@@ -615,15 +1006,169 @@ $(function() {
                             // Show modal
                             const modal = new bootstrap.Modal(document.getElementById('assignBookingModal'));
                             modal.show();
-                        });
+    }); // End of assign-booking-btn click handler
+
+    // Multiple Generate Modal functionality
+    // Only initialize if modal exists on the page
+    const multipleGenerateModal = document.getElementById('multipleGenerateModal');
+    if (multipleGenerateModal) {
+        const quantityInput = document.getElementById('quantity');
+        const quickQuantityBtns = document.querySelectorAll('.quick-quantity-btn');
+        const generateMultipleBtn = document.getElementById('generateMultipleBtn');
+        const generateStatus = document.getElementById('generateStatus');
+
+        // Function to generate QR codes
+        function generateQRCodes(quantity) {
+            if (!quantity || quantity < 1 || quantity > 1000) {
+                if (generateStatus) {
+                    generateStatus.className = 'alert alert-danger';
+                    generateStatus.textContent = 'Please enter a valid quantity between 1 and 1000';
+                    generateStatus.classList.remove('d-none');
                 }
-                gridContainer.html(html);
-                renderGridPagination();
-            },
-            error: function() {
-                gridContainer.html('<div class="col-12 text-center text-danger">Failed to load QR codes.</div>');
-                gridTotalRecords = 0; gridTotalPages = 1; renderGridPagination();
+                return;
             }
+
+            // Disable all buttons and show loading
+            if (generateMultipleBtn) {
+                generateMultipleBtn.disabled = true;
+                generateMultipleBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Generating...';
+            }
+            quickQuantityBtns.forEach(b => {
+                if (b) b.disabled = true;
+            });
+            if (generateStatus) {
+                generateStatus.classList.add('d-none');
+            }
+
+            // Get CSRF token and route URL
+            const csrfToken = $('meta[name="csrf-token"]').attr('content');
+            const bulkGenerateUrl = $('#multipleGenerateModal').data('bulk-generate-url') || window.location.origin + '/admin/qr/bulk-generate';
+
+            // Make AJAX request
+            fetch(bulkGenerateUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    quantity: quantity
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    if (generateStatus) {
+                        generateStatus.className = 'alert alert-success';
+                        generateStatus.textContent = `Successfully generated ${data.count} QR code(s)!`;
+                        generateStatus.classList.remove('d-none');
+                    }
+                    
+                    // Reset form after 2 seconds and close modal
+                    setTimeout(() => {
+                        if (quantityInput) quantityInput.value = '';
+                        quickQuantityBtns.forEach(b => {
+                            if (b) {
+                                b.classList.remove('active');
+                                b.disabled = false;
+                            }
+                        });
+                        if (generateStatus) generateStatus.classList.add('d-none');
+                        
+                        // Close modal using Bootstrap 5
+                        if (multipleGenerateModal) {
+                            const modalElement = bootstrap?.Modal?.getInstance(multipleGenerateModal);
+                            if (modalElement) {
+                                modalElement.hide();
+                            } else if (window.bootstrap) {
+                                const modal = window.bootstrap.Modal.getInstance(multipleGenerateModal);
+                                if (modal) {
+                                    modal.hide();
+                                }
+                            } else {
+                                // Fallback: use jQuery if Bootstrap JS not available
+                                $('#multipleGenerateModal').modal('hide');
+                            }
+                        }
+                        
+                        // Reload both views after 1 more second
+                        setTimeout(() => {
+                            // Reload DataTable
+                            if (table.length && $.fn.DataTable.isDataTable(table)) {
+                                table.DataTable().ajax.reload(null, false);
+                            }
+                            // Reload grid view
+                            if (typeof loadGridView === 'function') {
+                                loadGridView();
+                            }
+                        }, 1000);
+                    }, 2000);
+                } else {
+                    if (generateStatus) {
+                        generateStatus.className = 'alert alert-danger';
+                        generateStatus.textContent = data.message || 'Failed to generate QR codes';
+                        generateStatus.classList.remove('d-none');
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                if (generateStatus) {
+                    generateStatus.className = 'alert alert-danger';
+                    generateStatus.textContent = 'An error occurred while generating QR codes';
+                    generateStatus.classList.remove('d-none');
+                }
+            })
+            .finally(() => {
+                if (generateMultipleBtn) {
+                    generateMultipleBtn.disabled = false;
+                    generateMultipleBtn.innerHTML = '<i class="ri-play-line me-1"></i> Generate';
+                }
+                quickQuantityBtns.forEach(b => {
+                    if (b) b.disabled = false;
+                });
+            });
+        }
+
+        // Quick quantity buttons - directly generate on click
+        if (quickQuantityBtns && quickQuantityBtns.length > 0) {
+            quickQuantityBtns.forEach(btn => {
+                if (btn) {
+                    btn.addEventListener('click', function() {
+                        const quantity = parseInt(this.getAttribute('data-quantity'));
+                        if (quantityInput) quantityInput.value = quantity;
+                        // Remove active class from all buttons
+                        quickQuantityBtns.forEach(b => {
+                            if (b) b.classList.remove('active');
+                        });
+                        // Add active class to clicked button
+                        this.classList.add('active');
+                        // Directly generate QR codes
+                        generateQRCodes(quantity);
+                    });
+                }
+            });
+        }
+
+        // Generate button click handler
+        if (generateMultipleBtn) {
+            generateMultipleBtn.addEventListener('click', function() {
+                const quantity = quantityInput ? parseInt(quantityInput.value) : 0;
+                generateQRCodes(quantity);
+            });
+        }
+
+        // Reset modal when closed
+        multipleGenerateModal.addEventListener('hidden.bs.modal', function() {
+            if (quantityInput) quantityInput.value = '';
+            quickQuantityBtns.forEach(b => {
+                if (b) {
+                    b.classList.remove('active');
+                    b.disabled = false;
+                }
+            });
+            if (generateStatus) generateStatus.classList.add('d-none');
         });
     }
 });

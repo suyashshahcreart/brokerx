@@ -377,6 +377,9 @@ class BookingController extends Controller
         $qr->booking_id = $booking->id;
         $qr->save();
 
+        $booking->tour_code = $qr->code;
+        $booking->save();
+
         return response()->json(['success' => true, 'message' => 'Booking assigned to QR successfully.']);
     }
 }
