@@ -7,68 +7,24 @@ import Swal from 'sweetalert2';
 
 document.addEventListener('DOMContentLoaded', function () {
     'use strict';
+    alert('100')
+    // Get CSRF token
+    const csrfTokenElement = document.querySelector('meta[name="csrf-token"]');
+    if (!csrfTokenElement) {
+        console.error('CSRF token meta tag not found!');
+        Swal.fire({
+            icon: 'error',
+            title: 'Configuration Error',
+            text: 'CSRF token not found. Please refresh the page.',
+        });
+        return;
+    }
+    const csrfToken = csrfTokenElement.content;
+    
     // Get booking data from window
     const bookingData = window.bookingData || {};
     const bookingId = bookingData.id || bookingData.bookingId;
     const tourData = bookingData.tour || null;
-
-    // ========================
-    // BOOKING FORM HANDLING
-    // ========================
-    const bookingForm = document.getElementById('bookingEditForm');
-    if (bookingForm) {
-        bookingForm.addEventListener('submit', async function (event) {
-            event.preventDefault();
-            event.stopPropagation();
-
-            if (!bookingForm.checkValidity()) {
-                bookingForm.classList.add('was-validated');
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Validation Error',
-                    text: 'Please fill in all required fields correctly.',
-                });
-                return;
-            }
-
-            // Collect form data
-            const formData = new FormData(bookingForm);
-            const data = Object.fromEntries(formData.entries());
-
-            try {
-                const response = await fetch(`/admin/bookings/${bookingId}/update-ajax`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                        'Accept': 'application/json',
-                    },
-                    body: JSON.stringify(data),
-                });
-
-                const result = await response.json();
-
-                if (response.ok && result.success) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Success!',
-                        text: result.message || 'Booking updated successfully',
-                        timer: 2000,
-                        showConfirmButton: false,
-                    });
-                    bookingForm.classList.remove('was-validated');
-                } else {
-                    throw new Error(result.message || 'Failed to update booking');
-                }
-            } catch (error) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: error.message || 'An error occurred while updating the booking',
-                });
-            }
-        });
-    }
 
     // ========================
     // TOUR EDIT FORM HANDLING
@@ -107,7 +63,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'X-CSRF-TOKEN': csrfToken,
                         'Accept': 'application/json',
                     },
                     body: JSON.stringify(data),
@@ -160,7 +116,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
-                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                                'X-CSRF-TOKEN': csrfToken,
                                 'Accept': 'application/json',
                             },
                         });
@@ -213,60 +169,6 @@ document.addEventListener('DOMContentLoaded', function () {
             noTourMessage?.classList.remove('d-none');
             tourCreateForm.reset();
             tourCreateForm.classList.remove('was-validated');
-        });
-    }
-
-    if (tourCreateForm) {
-        tourCreateForm.addEventListener('submit', async function (event) {
-            event.preventDefault();
-            event.stopPropagation();
-
-            if (!tourCreateForm.checkValidity()) {
-                tourCreateForm.classList.add('was-validated');
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Validation Error',
-                    text: 'Please fill in all required fields correctly.',
-                });
-                return;
-            }
-
-            const formData = new FormData(tourCreateForm);
-            const data = Object.fromEntries(formData.entries());
-
-            try {
-                const response = await fetch('/admin/tours/create-ajax', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                        'Accept': 'application/json',
-                    },
-                    body: JSON.stringify(data),
-                });
-
-                const result = await response.json();
-
-                if (response.ok && result.success) {
-                    await Swal.fire({
-                        icon: 'success',
-                        title: 'Success!',
-                        text: result.message || 'Tour created successfully',
-                        timer: 2000,
-                        showConfirmButton: false,
-                    });
-                    // Reload page to show the new tour in edit mode
-                    window.location.reload();
-                } else {
-                    throw new Error(result.message || 'Failed to create tour');
-                }
-            } catch (error) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: error.message || 'An error occurred while creating the tour',
-                });
-            }
         });
     }
 

@@ -95,6 +95,7 @@ class TourController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
+            'booking_id' => ['nullable', 'exists:bookings,id'],
             'name' => ['required', 'string', 'max:255'],
             'title' => ['required', 'string', 'max:255'],
             'slug' => ['nullable', 'string', 'max:255', 'unique:tours,slug'],
@@ -152,6 +153,11 @@ class TourController extends Controller
                 'after' => $tour->toArray()
             ])
             ->log('Tour created');
+
+        // If created from booking page, redirect back to booking edit
+        if ($request->has('booking_id') && $request->booking_id) {
+            return redirect()->route('admin.bookings.edit', $request->booking_id)->with('success', 'Tour created and linked to booking successfully.');
+        }
 
         return redirect()->route('admin.tours.index')->with('success', 'Tour created successfully.');
     }

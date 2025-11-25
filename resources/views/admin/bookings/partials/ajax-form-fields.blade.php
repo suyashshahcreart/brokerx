@@ -103,7 +103,7 @@
     <div class="col-lg-4">
         <div class="mb-3">
             <label class="form-label" for="booking_date">Booking Date</label>
-            <input type="date" name="booking_date" id="booking_date" class="form-control" value="{{ optional($booking->booking_date)->format('Y-m-d') }}">
+            <input type="date" name="booking_date" id="booking_date" class="form-control" value="{{ optional($booking->booking_date)->format('Y-m-d') }}" min="{{ date('Y-m-d') }}">
         </div>
     </div>
 </div>

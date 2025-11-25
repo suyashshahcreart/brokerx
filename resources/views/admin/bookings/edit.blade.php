@@ -43,9 +43,9 @@
                 <div class="tab-content" id="bookingEditTabsContent">
                     <!-- Booking Tab -->
                     <div class="tab-pane fade show active" id="booking-pane" role="tabpanel" aria-labelledby="booking-tab" tabindex="0">
-                        <form id="bookingEditForm" class="needs-validation" novalidate>
+                        <form method="POST" action="{{ route('admin.bookings.update', $booking) }}" class="needs-validation" novalidate>
                             @csrf
-                            <input type="hidden" id="booking_id" value="{{ $booking->id }}">
+                            @method('PUT')
                             
                             @include('admin.bookings.partials.ajax-form-fields')
 
@@ -74,9 +74,9 @@
     </div>
 </div>
 @endsection
+@section('scripts')
 @vite(['resources/js/pages/bookings-edit.js'])
-@push('scripts')
-    <script>
+<script>
         // Pass data to JavaScript
         window.bookingData = {
             id: {{ $booking->id }},
@@ -89,4 +89,4 @@
             @endif
         };
     </script>
-@endpush
+@endsection

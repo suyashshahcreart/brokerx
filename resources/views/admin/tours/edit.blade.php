@@ -33,15 +33,23 @@
                 </div>
                 <div class="card-body">
                     <div class="row">
-                        <div class="col-lg-6">
+                        <div class="col-lg-4">
                             <div class="mb-3">
-                                <label class="form-label" for="title">Title <span class="text-danger">*</span></label>
+                                <label class="form-label" for="name">Tour Name <span class="text-danger">*</span></label>
+                                <input type="text" name="name" id="name" class="form-control" value="{{ old('name', $tour->name) }}" required>
+                                <div class="invalid-feedback">Please enter tour name.</div>
+                                @error('name')<div class="text-danger">{{ $message }}</div>@enderror
+                            </div>
+                        </div>
+                        <div class="col-lg-4">
+                            <div class="mb-3">
+                                <label class="form-label" for="title">Tour Title <span class="text-danger">*</span></label>
                                 <input type="text" name="title" id="title" class="form-control" value="{{ old('title', $tour->title) }}" required>
                                 <div class="invalid-feedback">Please enter tour title.</div>
                                 @error('title')<div class="text-danger">{{ $message }}</div>@enderror
                             </div>
                         </div>
-                        <div class="col-lg-6">
+                        <div class="col-lg-4">
                             <div class="mb-3">
                                 <label class="form-label" for="slug">Slug</label>
                                 <input type="text" name="slug" id="slug" class="form-control" value="{{ old('slug', $tour->slug) }}" placeholder="Auto-generated from title">
@@ -51,14 +59,14 @@
                     </div>
 
                     <div class="row">
-                        <div class="col-lg-6">
+                        <div class="col-lg-4">
                             <div class="mb-3">
                                 <label class="form-label" for="location">Location</label>
                                 <input type="text" name="location" id="location" class="form-control" value="{{ old('location', $tour->location) }}">
                                 @error('location')<div class="text-danger">{{ $message }}</div>@enderror
                             </div>
                         </div>
-                        <div class="col-lg-6">
+                        <div class="col-lg-4">
                             <div class="mb-3">
                                 <label class="form-label" for="status">Status <span class="text-danger">*</span></label>
                                 <select name="status" id="status" class="form-select" required>
@@ -67,6 +75,13 @@
                                     @endforeach
                                 </select>
                                 @error('status')<div class="text-danger">{{ $message }}</div>@enderror
+                            </div>
+                        </div>
+                        <div class="col-lg-4">
+                            <div class="mb-3">
+                                <label class="form-label" for="revision">Revision</label>
+                                <input type="text" name="revision" id="revision" class="form-control" value="{{ old('revision', $tour->revision) }}" placeholder="e.g. v1.0">
+                                @error('revision')<div class="text-danger">{{ $message }}</div>@enderror
                             </div>
                         </div>
                     </div>
@@ -129,6 +144,13 @@
                                 @error('featured_image')<div class="text-danger">{{ $message }}</div>@enderror
                             </div>
                         </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label" for="final_json">Final JSON Data</label>
+                        <textarea name="final_json" id="final_json" class="form-control font-monospace" rows="5" placeholder='{"key": "value"}'>{!! old('final_json', is_array($tour->final_json) ? json_encode($tour->final_json, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) : $tour->final_json) !!}</textarea>
+                        <small class="text-muted">Enter valid JSON data for tour configuration</small>
+                        @error('final_json')<div class="text-danger">{{ $message }}</div>@enderror
                     </div>
                 </div>
             </div>
