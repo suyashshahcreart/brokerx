@@ -74,9 +74,8 @@
     </div>
 </div>
 @endsection
-
+@vite(['resources/js/pages/bookings-edit.js'])
 @push('scripts')
-    @vite(['resources/js/pages/bookings-edit.js'])
     <script>
         // Pass data to JavaScript
         window.bookingData = {

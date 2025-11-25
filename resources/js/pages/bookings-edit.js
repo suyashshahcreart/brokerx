@@ -7,10 +7,9 @@ import Swal from 'sweetalert2';
 
 document.addEventListener('DOMContentLoaded', function () {
     'use strict';
-
     // Get booking data from window
     const bookingData = window.bookingData || {};
-    const bookingId = bookingData.bookingId;
+    const bookingId = bookingData.id || bookingData.bookingId;
     const tourData = bookingData.tour || null;
 
     // ========================

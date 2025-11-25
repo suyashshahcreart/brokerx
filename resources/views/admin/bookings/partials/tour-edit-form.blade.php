@@ -5,14 +5,21 @@
     <input type="hidden" id="tour_booking_id" name="booking_id" value="{{ $booking->id }}">
 
     <div class="row">
-        <div class="col-lg-6">
+        <div class="col-lg-4">
+            <div class="mb-3">
+                <label class="form-label" for="tour_name">Tour Name <span class="text-danger">*</span></label>
+                <input type="text" name="name" id="tour_name" class="form-control" value="{{ $tour->name }}" required>
+                <div class="invalid-feedback">Please enter tour name.</div>
+            </div>
+        </div>
+        <div class="col-lg-4">
             <div class="mb-3">
                 <label class="form-label" for="tour_title">Tour Title <span class="text-danger">*</span></label>
                 <input type="text" name="title" id="tour_title" class="form-control" value="{{ $tour->title }}" required>
                 <div class="invalid-feedback">Please enter tour title.</div>
             </div>
         </div>
-        <div class="col-lg-6">
+        <div class="col-lg-4">
             <div class="mb-3">
                 <label class="form-label" for="tour_slug">Slug</label>
                 <input type="text" name="slug" id="tour_slug" class="form-control" value="{{ $tour->slug }}" placeholder="Auto-generated">
@@ -27,7 +34,7 @@
                 <input type="text" name="location" id="tour_location" class="form-control" value="{{ $tour->location }}">
             </div>
         </div>
-        <div class="col-lg-6">
+        <div class="col-lg-3">
             <div class="mb-3">
                 <label class="form-label" for="tour_status">Status <span class="text-danger">*</span></label>
                 <select name="status" id="tour_status" class="form-select" required>
@@ -35,6 +42,12 @@
                     <option value="published" @selected($tour->status == 'published')>Published</option>
                     <option value="archived" @selected($tour->status == 'archived')>Archived</option>
                 </select>
+            </div>
+        </div>
+        <div class="col-lg-3">
+            <div class="mb-3">
+                <label class="form-label" for="tour_revision">Revision</label>
+                <input type="text" name="revision" id="tour_revision" class="form-control" value="{{ $tour->revision }}" placeholder="v1.0">
             </div>
         </div>
     </div>

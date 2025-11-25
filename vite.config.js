@@ -40,9 +40,11 @@ export default defineConfig({
                 'resources/js/pages/app-calendar.js',
                 'resources/js/pages/coming-soon.js',
                 'resources/js/pages/widgets.js',
-                'resources/js/pages/bookings-form.js',
+                'resources/js/pages/bookings-edit.js',
                 'resources/js/pages/booking-index.js',
                 'resources/js/pages/setting-index.js',
+                
+                //components
                 'resources/js/components/maps-google.js',
                 'resources/js/components/maps-vector.js',
                 'resources/js/components/maps-canada.js',

@@ -20,6 +20,7 @@ class Tour extends Model
      */
     protected $fillable = [
         'booking_id',
+        'name',
         'title',
         'slug',
         'description',
@@ -32,6 +33,8 @@ class Tour extends Model
         'end_date',
         'max_participants',
         'status',
+        'final_json',
+        'revision',
         // SEO Meta Fields
         'meta_title',
         'meta_description',
@@ -62,6 +65,7 @@ class Tour extends Model
             'end_date' => 'date',
             'price' => 'decimal:2',
             'structured_data' => 'array',
+            'final_json' => 'array',
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
             'deleted_at' => 'datetime',
@@ -84,6 +88,7 @@ class Tour extends Model
     {
         return LogOptions::defaults()
             ->logOnly([
+                'name',
                 'title',
                 'slug',
                 'status',
@@ -91,6 +96,7 @@ class Tour extends Model
                 'location',
                 'start_date',
                 'end_date',
+                'revision',
             ])
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs();

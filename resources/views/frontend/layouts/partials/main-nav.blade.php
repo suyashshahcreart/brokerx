@@ -128,14 +128,16 @@
                     </div>
                </li> <!-- end Pages Menu -->
 
-               <li class="nav-item">
-                    <a class="nav-link" href="{{ route('admin.tours.index') }}">
-                         <span class="nav-icon">
-                              <i class="ri-map-pin-line"></i>
-                         </span>
-                         <span class="nav-text">Tours</span>
-                    </a>
-               </li>
+               @can('tour_view')
+                    <li class="nav-item">
+                         <a class="nav-link" href="{{ route('admin.tours.index') }}">
+                              <span class="nav-icon">
+                                   <i class="ri-map-pin-line"></i>
+                              </span>
+                              <span class="nav-text">Tours</span>
+                         </a>
+                    </li>
+               @endcan
 
                @canany(['user_view', 'role_view', 'permission_view', 'activity_view', 'media_view'])
                     <li class="menu-title">System</li>

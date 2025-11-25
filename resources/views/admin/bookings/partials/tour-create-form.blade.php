@@ -14,14 +14,21 @@
     <input type="hidden" name="booking_id" value="{{ $booking->id }}">
 
     <div class="row">
-        <div class="col-lg-6">
+        <div class="col-lg-4">
+            <div class="mb-3">
+                <label class="form-label" for="new_tour_name">Tour Name <span class="text-danger">*</span></label>
+                <input type="text" name="name" id="new_tour_name" class="form-control" required>
+                <div class="invalid-feedback">Please enter tour name.</div>
+            </div>
+        </div>
+        <div class="col-lg-4">
             <div class="mb-3">
                 <label class="form-label" for="new_tour_title">Tour Title <span class="text-danger">*</span></label>
                 <input type="text" name="title" id="new_tour_title" class="form-control" required>
                 <div class="invalid-feedback">Please enter tour title.</div>
             </div>
         </div>
-        <div class="col-lg-6">
+        <div class="col-lg-4">
             <div class="mb-3">
                 <label class="form-label" for="new_tour_slug">Slug</label>
                 <input type="text" name="slug" id="new_tour_slug" class="form-control" placeholder="Auto-generated">
@@ -30,13 +37,13 @@
     </div>
 
     <div class="row">
-        <div class="col-lg-6">
+        <div class="col-lg-4">
             <div class="mb-3">
                 <label class="form-label" for="new_tour_location">Location</label>
                 <input type="text" name="location" id="new_tour_location" class="form-control">
             </div>
         </div>
-        <div class="col-lg-6">
+        <div class="col-lg-4">
             <div class="mb-3">
                 <label class="form-label" for="new_tour_status">Status <span class="text-danger">*</span></label>
                 <select name="status" id="new_tour_status" class="form-select" required>
@@ -44,6 +51,12 @@
                     <option value="published">Published</option>
                     <option value="archived">Archived</option>
                 </select>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="mb-3">
+                <label class="form-label" for="new_tour_revision">Revision</label>
+                <input type="text" name="revision" id="new_tour_revision" class="form-control" placeholder="v1.0">
             </div>
         </div>
     </div>

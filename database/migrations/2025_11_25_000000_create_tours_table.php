@@ -12,6 +12,7 @@ return new class extends Migration {
     {
         Schema::create('tours', function (Blueprint $table) {
             $table->id();
+            $table->string('name');
             $table->string('title');
             $table->string('slug')->unique();
             $table->text('description')->nullable();
@@ -24,7 +25,9 @@ return new class extends Migration {
             $table->date('end_date')->nullable();
             $table->integer('max_participants')->nullable();
             $table->enum('status', ['draft', 'published', 'archived'])->default('draft');
-
+            $table->json('final_json')->nullable();
+            $table->string('revision')->nullable();
+            
             // SEO Meta Fields
             $table->string('meta_title')->nullable();
             $table->text('meta_description')->nullable();
@@ -39,9 +42,17 @@ return new class extends Migration {
             $table->string('twitter_image')->nullable(); // Twitter image path/URL
             $table->string('structured_data_type')->nullable(); // e.g. 'Article', 'Place'
             $table->json('structured_data')->nullable(); // optional JSON-LD data
+            // for HTML Data.
             $table->longText('header_code')->nullable(); // custom HTML or script before </head>
             $table->longText('footer_code')->nullable(); // custom HTML or script before </body>
+            
+            // Booking Data
+            $table->foreignId('booking_id')
+                ->nullable()
+                ->constrained('bookings')
+                ->nullOnDelete();
 
+            // User data
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
             $table->foreignId('deleted_by')->nullable()->constrained('users')->nullOnDelete();

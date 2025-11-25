@@ -95,6 +95,7 @@ class TourController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
             'title' => ['required', 'string', 'max:255'],
             'slug' => ['nullable', 'string', 'max:255', 'unique:tours,slug'],
             'description' => ['nullable', 'string'],
@@ -107,6 +108,8 @@ class TourController extends Controller
             'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
             'max_participants' => ['nullable', 'integer', 'min:1'],
             'status' => ['required', 'in:draft,published,archived'],
+            'revision' => ['nullable', 'string', 'max:255'],
+            'final_json' => ['nullable', 'json'],
             
             // SEO Fields
             'meta_title' => ['nullable', 'string', 'max:255'],
@@ -178,6 +181,7 @@ class TourController extends Controller
     public function update(Request $request, Tour $tour)
     {
         $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
             'title' => ['required', 'string', 'max:255'],
             'slug' => ['nullable', 'string', 'max:255', 'unique:tours,slug,' . $tour->id],
             'description' => ['nullable', 'string'],
@@ -190,6 +194,8 @@ class TourController extends Controller
             'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
             'max_participants' => ['nullable', 'integer', 'min:1'],
             'status' => ['required', 'in:draft,published,archived'],
+            'revision' => ['nullable', 'string', 'max:255'],
+            'final_json' => ['nullable', 'json'],
             
             // SEO Fields
             'meta_title' => ['nullable', 'string', 'max:255'],
@@ -266,6 +272,7 @@ class TourController extends Controller
     {
         $validated = $request->validate([
             'booking_id' => ['nullable', 'exists:bookings,id'],
+            'name' => ['required', 'string', 'max:255'],
             'title' => ['required', 'string', 'max:255'],
             'slug' => ['nullable', 'string', 'max:255', 'unique:tours,slug,' . $tour->id],
             'description' => ['nullable', 'string'],
@@ -278,6 +285,8 @@ class TourController extends Controller
             'max_participants' => ['nullable', 'integer', 'min:1'],
             'featured_image' => ['nullable', 'string'],
             'status' => ['required', 'in:draft,published,archived'],
+            'revision' => ['nullable', 'string', 'max:255'],
+            'final_json' => ['nullable', 'json'],
         ]);
 
         // Generate slug if not provided
@@ -311,6 +320,7 @@ class TourController extends Controller
     {
         $validated = $request->validate([
             'booking_id' => ['required', 'exists:bookings,id'],
+            'name' => ['required', 'string', 'max:255'],
             'title' => ['required', 'string', 'max:255'],
             'slug' => ['nullable', 'string', 'max:255', 'unique:tours,slug'],
             'description' => ['nullable', 'string'],
@@ -323,6 +333,8 @@ class TourController extends Controller
             'max_participants' => ['nullable', 'integer', 'min:1'],
             'featured_image' => ['nullable', 'string'],
             'status' => ['required', 'in:draft,published,archived'],
+            'revision' => ['nullable', 'string', 'max:255'],
+            'final_json' => ['nullable', 'json'],
         ]);
 
         // Generate slug if not provided
