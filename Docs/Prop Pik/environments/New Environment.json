@@ -1,0 +1,11 @@
+{
+  "name": "New Environment",
+  "variables": {
+    "Server": {
+      "value": "http://localhost/brokerx",
+      "type": "string",
+      "id": 0,
+      "isSecret": false
+    }
+  }
+}
