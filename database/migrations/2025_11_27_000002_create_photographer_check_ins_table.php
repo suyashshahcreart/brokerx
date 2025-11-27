@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('photo')->nullable();
             $table->json('metadata')->nullable();
             $table->timestamp('checked_in_at')->useCurrent();
-            $table->point('location')->nullable();
+            $table->string('location')->nullable();
             $table->string('ip_address', 45)->nullable();
             $table->text('device_info')->nullable();
             $table->text('remarks')->nullable();

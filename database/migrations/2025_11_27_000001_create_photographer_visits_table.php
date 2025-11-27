@@ -14,10 +14,10 @@ return new class extends Migration
         Schema::create('photographer_visits', function (Blueprint $table) {
             $table->id();
             $table->foreignId('booking_id')->nullable()->constrained('bookings')->onDelete('cascade');
-            $table->foreignId('tour_id')->nullable()->constrained('tours')->onDelete('cascade');
+            $table->unsignedBigInteger('tour_id')->nullable();
             $table->foreignId('photographer_id')->constrained('users')->onDelete('cascade');
-            $table->foreignId('check_in_id')->nullable()->constrained('photographer_check_ins')->onDelete('set null');
-            $table->foreignId('check_out_id')->nullable()->constrained('photographer_check_outs')->onDelete('set null');
+            $table->unsignedBigInteger('check_in_id')->nullable();
+            $table->unsignedBigInteger('check_out_id')->nullable();
             $table->json('metadata')->nullable();
             $table->timestamp('visit_date')->nullable();
             $table->enum('status', ['pending', 'checked_in', 'checked_out', 'completed', 'cancelled'])->default('pending');
@@ -36,6 +36,8 @@ return new class extends Migration
             $table->index('tour_id');
             $table->index('status');
             $table->index('visit_date');
+            $table->index('check_in_id');
+            $table->index('check_out_id');
         });
     }
 
