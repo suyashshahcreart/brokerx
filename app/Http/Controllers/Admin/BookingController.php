@@ -126,6 +126,15 @@ class BookingController extends Controller
 
         $booking = Booking::create($validated);
 
+        // Create a tour for this booking
+        $tour = Tour::create([
+            'booking_id' => $booking->id,
+            'name' => 'Tour for Booking #' . $booking->id,
+            'title' => 'Property Tour - ' . ($booking->propertyType?->name ?? 'Property'),
+            'status' => 'draft',
+            'revision' => 1,
+        ]);
+
         activity('bookings')
             ->performedOn($booking)
             ->causedBy($request->user())
@@ -135,7 +144,17 @@ class BookingController extends Controller
             ])
             ->log('Booking created');
 
-        return redirect()->route('admin.bookings.index')->with('success', 'Booking created successfully.');
+        activity('tours')
+            ->performedOn($tour)
+            ->causedBy($request->user())
+            ->withProperties([
+                'event' => 'created',
+                'after' => $tour->toArray(),
+                'booking_id' => $booking->id
+            ])
+            ->log('Tour created for booking');
+
+        return redirect()->route('admin.bookings.index')->with('success', 'Booking and tour created successfully.');
     }
 
     public function show(Booking $booking)
