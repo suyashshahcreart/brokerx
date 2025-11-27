@@ -17,6 +17,23 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        $user = User::factory()->create([
+            'firstname' => 'admin',
+            'lastname' => 'User',
+            'email' => 'admin@admin.com',
+            'mobile' => 9876543210,
+            'email_verified_at' => now(),
+            'mobile_verified_at' => now(),
+            'password' => Hash::make('123456'),
+            'remember_token' => Str::random(10),
+        ]);
+
+        // assign admin role to demo user for access
+        $adminRole = Role::where('name', 'admin')->first();
+        if ($adminRole) {
+            $user->assignRole($adminRole);
+        }
+        
         // Seed base permissions and roles
         $this->call(PermissionsRolesSeeder::class);
 
@@ -38,21 +55,5 @@ class DatabaseSeeder extends Seeder
         // Seed QR codes
         $this->call(QRSeeder::class);
 
-        $user = User::factory()->create([
-            'firstname' => 'admin',
-            'lastname' => 'User',
-            'email' => 'admin@admin.com',
-            'mobile' => 9876543210,
-            'email_verified_at' => now(),
-            'mobile_verified_at' => now(),
-            'password' => Hash::make('123456'),
-            'remember_token' => Str::random(10),
-        ]);
-
-        // assign admin role to demo user for access
-        $adminRole = Role::where('name', 'admin')->first();
-        if ($adminRole) {
-            $user->assignRole($adminRole);
-        }
     }
 }
