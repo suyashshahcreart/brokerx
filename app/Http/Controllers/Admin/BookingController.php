@@ -9,6 +9,7 @@ use App\Models\City;
 use App\Models\PropertySubType;
 use App\Models\PropertyType;
 use App\Models\State;
+use App\Models\Tour;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Spatie\Activitylog\Models\Activity;
@@ -211,6 +212,15 @@ class BookingController extends Controller
 
         $booking = Booking::create($validated);
 
+        // Create a tour for this booking
+        $tour = Tour::create([
+            'booking_id' => $booking->id,
+            'name' => 'Tour for Booking #' . $booking->id,
+            'title' => 'Property Tour - ' . ($booking->propertyType?->name ?? 'Property'),
+            'status' => 'draft',
+            'revision' => 1,
+        ]);
+
         activity('bookings')
             ->performedOn($booking)
             ->causedBy($request->user())
@@ -220,7 +230,17 @@ class BookingController extends Controller
             ])
             ->log('Booking created');
 
-        return redirect()->route('admin.bookings.index')->with('success', 'Booking created successfully.');
+        activity('tours')
+            ->performedOn($tour)
+            ->causedBy($request->user())
+            ->withProperties([
+                'event' => 'created',
+                'after' => $tour->toArray(),
+                'booking_id' => $booking->id
+            ])
+            ->log('Tour created for booking');
+
+        return redirect()->route('admin.bookings.index')->with('success', 'Booking and tour created successfully.');
     }
 
     public function show(Booking $booking)
@@ -241,8 +261,12 @@ class BookingController extends Controller
         $paymentStatuses = ['pending', 'paid', 'failed', 'refunded'];
         $statuses = ['pending', 'confirmed', 'cancelled', 'completed'];
 
+        // Load tour if linked
+        $tour = Tour::where('booking_id', $booking->id)->first();
+
         return view('admin.bookings.edit', compact(
             'booking',
+            'tour',
             'users',
             'propertyTypes',
             'propertySubTypes',
@@ -352,6 +376,7 @@ class BookingController extends Controller
     }
 
     /**
+<<<<<<< HEAD
      * API: Assign a booking to a QR code
      * POST: /api/qr/assign-booking
      * Params: qr_id, booking_id
@@ -381,5 +406,51 @@ class BookingController extends Controller
         $booking->save();
 
         return response()->json(['success' => true, 'message' => 'Booking assigned to QR successfully.']);
+    }
+
+    /**
+     * Update booking via AJAX
+     */
+    public function updateAjax(Request $request, Booking $booking)
+    {
+        $validated = $request->validate([
+            'user_id' => ['required', 'exists:users,id'],
+            'property_type_id' => ['required', 'exists:property_types,id'],
+            'property_sub_type_id' => ['required', 'exists:property_sub_types,id'],
+            'area' => ['required', 'numeric', 'min:0'],
+            'price' => ['required', 'numeric', 'min:0'],
+            'payment_status' => ['required', 'in:pending,paid,failed,refunded'],
+            'status' => ['required', 'in:pending,confirmed,cancelled,completed'],
+            'bhk_id' => ['nullable', 'exists:bhks,id'],
+            'city_id' => ['nullable', 'exists:cities,id'],
+            'state_id' => ['nullable', 'exists:states,id'],
+            'furniture_type' => ['nullable', 'string'],
+            'booking_date' => ['nullable', 'date'],
+            'house_no' => ['nullable', 'string', 'max:255'],
+            'building' => ['nullable', 'string', 'max:255'],
+            'society_name' => ['nullable', 'string', 'max:255'],
+            'address_area' => ['nullable', 'string', 'max:255'],
+            'landmark' => ['nullable', 'string', 'max:255'],
+            'pin_code' => ['nullable', 'string', 'max:20'],
+            'full_address' => ['nullable', 'string'],
+        ]);
+
+        $oldData = $booking->toArray();
+        $booking->update($validated);
+
+        activity('bookings')
+            ->performedOn($booking)
+            ->causedBy($request->user())
+            ->withProperties([
+                'old' => $oldData,
+                'attributes' => $booking->toArray(),
+            ])
+            ->log('Booking updated via AJAX');
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Booking updated successfully',
+            'booking' => $booking->fresh(),
+        ]);
     }
 }
