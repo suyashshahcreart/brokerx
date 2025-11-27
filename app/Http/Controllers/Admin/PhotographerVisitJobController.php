@@ -78,9 +78,9 @@ class PhotographerVisitJobController extends Controller
                 })
                 ->addColumn('action', function ($job) {
                     $actions = '<div class="btn-group" role="group">';
-                    $actions .= '<a href="' . route('admin.photographer-visit-jobs.show', $job) . '" class="btn btn-sm btn-info" title="View" data-bs-toggle="tooltip"><i class="bi bi-eye"></i></a>';
-                    $actions .= '<a href="' . route('admin.photographer-visit-jobs.edit', $job) . '" class="btn btn-sm btn-primary" title="Edit" data-bs-toggle="tooltip"><i class="bi bi-pencil"></i></a>';
-                    $actions .= '<button type="button" class="btn btn-sm btn-danger delete-btn" data-id="' . $job->id . '" data-code="' . htmlspecialchars($job->job_code) . '" title="Delete" data-bs-toggle="tooltip"><i class="bi bi-trash"></i></button>';
+                    $actions .= '<a href="' . route('admin.photographer-visit-jobs.show', $job) . '" class="btn btn-light btn-sm border" title="View" data-bs-toggle="tooltip"><i class="ri-eye-line"></i></a>';
+                    $actions .= '<a href="' . route('admin.photographer-visit-jobs.edit', $job) . '" class="btn btn-soft-primary btn-sm border" title="Edit" data-bs-toggle="tooltip"><i class="ri-edit-line"></i></a>';
+                    $actions .= '<button type="button" class="btn btn-soft-danger btn-sm border" data-id="' . $job->id . '" data-code="' . htmlspecialchars($job->job_code) . '" title="Delete" data-bs-toggle="tooltip"><i class="ri-delete-bin-line"></i></button>';
                     $actions .= '</div>';
                     return $actions;
                 })
@@ -180,18 +180,35 @@ class PhotographerVisitJobController extends Controller
             'tour_id' => 'nullable|exists:tours,id',
             'photographer_id' => 'nullable|exists:users,id',
             'priority' => 'required|in:low,normal,high,urgent',
+            'status' => 'required|in:pending,assigned,in_progress,completed,cancelled',
             'scheduled_date' => 'required|date',
             'instructions' => 'nullable|string',
             'special_requirements' => 'nullable|string',
             'estimated_duration' => 'nullable|integer|min:1',
             'notes' => 'nullable|string',
+            'cancellation_reason' => 'required_if:status,cancelled|nullable|string',
         ]);
+
+        // Handle status changes
+        $oldStatus = $photographerVisitJob->status;
+        $newStatus = $validated['status'];
 
         // Check if photographer was just assigned
         if (!empty($validated['photographer_id']) && $photographerVisitJob->photographer_id !== $validated['photographer_id']) {
-            $validated['status'] = 'assigned';
             $validated['assigned_at'] = now();
             $validated['assigned_by'] = auth()->id();
+        }
+
+        // Handle status transitions
+        if ($oldStatus !== $newStatus) {
+            if ($newStatus === 'assigned' && !$photographerVisitJob->assigned_at) {
+                $validated['assigned_at'] = now();
+                $validated['assigned_by'] = auth()->id();
+            } elseif ($newStatus === 'in_progress' && !$photographerVisitJob->started_at) {
+                $validated['started_at'] = now();
+            } elseif ($newStatus === 'completed' && !$photographerVisitJob->completed_at) {
+                $validated['completed_at'] = now();
+            }
         }
 
         $validated['updated_by'] = auth()->id();
@@ -201,10 +218,10 @@ class PhotographerVisitJobController extends Controller
         activity('photographer_visit_jobs')
             ->performedOn($photographerVisitJob)
             ->causedBy(auth()->user())
-            ->withProperties(['event' => 'updated'])
+            ->withProperties(['event' => 'updated', 'old_status' => $oldStatus, 'new_status' => $newStatus])
             ->log('Photographer visit job updated');
 
-        return redirect()->route('admin.photographer-visit-jobs.index')
+        return redirect()->route('admin.photographer-visit-jobs.show', $photographerVisitJob)
             ->with('success', 'Photographer visit job updated successfully.');
     }
 

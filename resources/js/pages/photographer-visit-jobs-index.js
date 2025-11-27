@@ -90,7 +90,6 @@ document.addEventListener('DOMContentLoaded', function () {
         language: {
             search: '_INPUT_',
             searchPlaceholder: 'Search jobs...',
-            processing: '<div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div>',
             emptyTable: "No photographer visit jobs available",
             zeroRecords: "No matching jobs found",
             lengthMenu: "Show _MENU_ entries",
