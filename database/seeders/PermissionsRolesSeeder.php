@@ -65,6 +65,13 @@ class PermissionsRolesSeeder extends Seeder
             'photographer_visit_edit',
             'photographer_visit_delete',
 
+            // Photographer Visit Job management
+            'photographer_visit_job_view',
+            'photographer_visit_job_create',
+            'photographer_visit_job_edit',
+            'photographer_visit_job_delete',
+            'photographer_visit_job_assign',
+
             // Holiday management
             'holiday_view',
             'holiday_create',
@@ -129,6 +136,8 @@ class PermissionsRolesSeeder extends Seeder
             'photographer_visit_view',
             'photographer_visit_create',
             'photographer_visit_edit',
+            'photographer_visit_job_view',
+            'photographer_visit_job_edit',
             'booking_view',
             'portfolio_view',
         ])->get();

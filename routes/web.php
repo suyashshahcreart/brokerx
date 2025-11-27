@@ -1,10 +1,12 @@
 <?php
 use App\Http\Controllers\Admin\HolidayController;
 use App\Http\Controllers\Admin\QRController;
+use App\Http\Controllers\Admin\PhotographerVisitJobController;
 use App\Http\Controllers\OtpController;
 use App\Http\Controllers\EmailOtpController;
 use App\Http\Controllers\BrokerController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\Photographer\JobController;
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\RoutingController;
@@ -81,6 +83,8 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'middleware' => ['web', 'au
     Route::resource('photographer-visits', PhotographerVisitController::class);
     Route::post('photographer-visits/{photographerVisit}/check-in', [PhotographerVisitController::class, 'checkIn'])->name('photographer-visits.check-in');
     Route::post('photographer-visits/{photographerVisit}/check-out', [PhotographerVisitController::class, 'checkOut'])->name('photographer-visits.check-out');
+    Route::resource('photographer-visit-jobs', PhotographerVisitJobController::class);
+    Route::post('photographer-visit-jobs/{photographerVisitJob}/assign', [PhotographerVisitJobController::class, 'assign'])->name('photographer-visit-jobs.assign');
     Route::resource('portfolios', AdminPortfolioController::class);
     Route::resource('holidays', HolidayController::class);
     Route::resource('tours', TourController::class);
@@ -97,6 +101,15 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'middleware' => ['web', 'au
 
 Route::group(['prefix' => 'brokerx', 'as' => 'brokerx.', 'middleware' => ['web', 'auth']], function () {
     Route::get('/', [BrokerXController::class, 'index'])->name('index');
+});
+
+// Photographer routes
+Route::group(['prefix' => 'photographer', 'as' => 'photographer.', 'middleware' => ['web', 'auth', 'role:photographer']], function () {
+    Route::get('/jobs', [JobController::class, 'index'])->name('jobs.index');
+    Route::get('/jobs/{job}', [JobController::class, 'show'])->name('jobs.show');
+    Route::post('/jobs/{job}/accept', [JobController::class, 'accept'])->name('jobs.accept');
+    Route::post('/jobs/{job}/complete', [JobController::class, 'complete'])->name('jobs.complete');
+    Route::get('/jobs/upcoming', [JobController::class, 'upcoming'])->name('jobs.upcoming');
 });
 
 // Public frontend routes

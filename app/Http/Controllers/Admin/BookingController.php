@@ -11,6 +11,7 @@ use App\Models\PropertyType;
 use App\Models\State;
 use App\Models\Tour;
 use App\Models\User;
+use App\Models\PhotographerVisitJob;
 use Illuminate\Http\Request;
 use Spatie\Activitylog\Models\Activity;
 
@@ -212,11 +213,12 @@ class BookingController extends Controller
 
         $booking = Booking::create($validated);
 
-        // Create a tour for this booking
+        // Create a tour for this booking with unique slug
         $tour = Tour::create([
             'booking_id' => $booking->id,
             'name' => 'Tour for Booking #' . $booking->id,
-            'title' => 'Property Tour - ' . ($booking->propertyType?->name ?? 'Property'),
+            'title' => 'Property Tour - Booking #' . $booking->id,
+            'slug' => 'tour-booking-' . $booking->id . '-' . time(),
             'status' => 'draft',
             'revision' => 1,
         ]);
@@ -239,8 +241,34 @@ class BookingController extends Controller
                 'booking_id' => $booking->id
             ])
             ->log('Tour created for booking');
+        
+        // Create a photographer visit job for this booking
+        $job = PhotographerVisitJob::create([
+            'booking_id' => $booking->id,
+            'tour_id' => $tour->id,
+            'photographer_id' => null, // Will be assigned later
+            'status' => 'pending',
+            'priority' => 'normal',
+            'scheduled_date' => $booking->booking_date ?? now()->addDays(1),
+            'instructions' => 'Complete photography for property booking #' . $booking->id,
+            'created_by' => $request->user()->id ?? null,
+        ]);
 
-        return redirect()->route('admin.bookings.index')->with('success', 'Booking and tour created successfully.');
+        // Generate and assign a unique job code
+        $job->job_code = 'JOB-' . str_pad($job->id, 6, '0', STR_PAD_LEFT);
+        $job->save();
+
+        activity('photographer_visit_jobs')
+            ->performedOn($job)
+            ->causedBy($request->user())
+            ->withProperties([
+                'event' => 'created',
+                'after' => $job->toArray(),
+                'booking_id' => $booking->id
+            ])
+            ->log('Photographer visit job created for booking');
+
+        return redirect()->route('admin.bookings.index')->with('success', 'Booking, tour, and photographer job created successfully.');
     }
 
     public function show(Booking $booking)
@@ -372,7 +400,10 @@ class BookingController extends Controller
             ])
             ->log('Booking rescheduled');
 
-        return response()->json(['success' => true, 'new_date' => $booking->booking_date->format('Y-m-d')]);
+        return response()->json([
+            'success' => true, 
+            'new_date' => $booking->booking_date ? \Carbon\Carbon::parse($booking->booking_date)->format('Y-m-d') : null
+        ]);
     }
 
     /**

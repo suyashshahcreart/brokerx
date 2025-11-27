@@ -13,6 +13,7 @@ class PhotographerVisit extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
+        'job_id',
         'booking_id',
         'tour_id',
         'photographer_id',
@@ -28,6 +29,14 @@ class PhotographerVisit extends Model
         'metadata' => 'array',
         'visit_date' => 'datetime',
     ];
+
+    /**
+     * Get the job for this visit
+     */
+    public function job(): BelongsTo
+    {
+        return $this->belongsTo(PhotographerVisitJob::class, 'job_id');
+    }
 
     /**
      * Get the photographer (user) assigned to this visit

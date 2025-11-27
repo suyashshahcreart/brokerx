@@ -120,13 +120,33 @@ class Tour extends Model
         // Auto-generate slug from title if not provided
         static::creating(function ($tour) {
             if (empty($tour->slug)) {
-                $tour->slug = \Illuminate\Support\Str::slug($tour->title);
+                $baseSlug = \Illuminate\Support\Str::slug($tour->title);
+                $slug = $baseSlug;
+                $counter = 1;
+                
+                // Ensure slug is unique
+                while (static::where('slug', $slug)->exists()) {
+                    $slug = $baseSlug . '-' . $counter;
+                    $counter++;
+                }
+                
+                $tour->slug = $slug;
             }
         });
 
         static::updating(function ($tour) {
             if ($tour->isDirty('title') && empty($tour->slug)) {
-                $tour->slug = \Illuminate\Support\Str::slug($tour->title);
+                $baseSlug = \Illuminate\Support\Str::slug($tour->title);
+                $slug = $baseSlug;
+                $counter = 1;
+                
+                // Ensure slug is unique (exclude current tour)
+                while (static::where('slug', $slug)->where('id', '!=', $tour->id)->exists()) {
+                    $slug = $baseSlug . '-' . $counter;
+                    $counter++;
+                }
+                
+                $tour->slug = $slug;
             }
         });
     }
