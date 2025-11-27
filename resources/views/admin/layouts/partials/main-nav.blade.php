@@ -55,6 +55,17 @@
                     </li>
                @endcan
 
+               @can('photographer_visit_view')
+                    <li class="nav-item">
+                         <a class="nav-link {{ request()->routeIs('admin.photographer-visits.*') ? 'active' : '' }}" href="{{ route('admin.photographer-visits.index') }}">
+                              <span class="nav-icon">
+                                   <i class="ri-camera-line"></i>
+                              </span>
+                              <span class="nav-text">Photographer Visits</span>
+                         </a>
+                    </li>
+               @endcan
+
                {{-- @can('portfolio_view') --}}
                     <li class="nav-item">
                          <a class="nav-link {{ request()->routeIs('admin.portfolios.*') ? 'active' : '' }}" href="{{ route('admin.portfolios.index') }}">

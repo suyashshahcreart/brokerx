@@ -59,6 +59,12 @@ class PermissionsRolesSeeder extends Seeder
             'booking_edit',
             'booking_delete',
 
+            // Photographer Visit management
+            'photographer_visit_view',
+            'photographer_visit_create',
+            'photographer_visit_edit',
+            'photographer_visit_delete',
+
             // Holiday management
             'holiday_view',
             'holiday_create',
@@ -84,6 +90,7 @@ class PermissionsRolesSeeder extends Seeder
 
         $adminRole = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
         $brokerRole = Role::firstOrCreate(['name' => 'broker', 'guard_name' => 'web']);
+        $photographerRole = Role::firstOrCreate(['name' => 'photographer', 'guard_name' => 'web']);
 
         $adminRole->syncPermissions(Permission::all());
 
@@ -110,7 +117,16 @@ class PermissionsRolesSeeder extends Seeder
         ])->get();
 
         $brokerRole->syncPermissions($defaultBrokerPermissions);
+
+        // Photographer role permissions
+        $photographerPermissions = Permission::whereIn('name', [
+            'photographer_visit_view',
+            'photographer_visit_create',
+            'photographer_visit_edit',
+            'booking_view',
+            'portfolio_view',
+        ])->get();
+
+        $photographerRole->syncPermissions($photographerPermissions);
     }
 }
-
-

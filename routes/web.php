@@ -15,6 +15,7 @@ use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Admin\ActivityLogController;
 use App\Http\Controllers\Admin\BookingController;
 use App\Http\Controllers\Admin\PortfolioController as AdminPortfolioController;
+use App\Http\Controllers\Admin\PhotographerVisitController;
 use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\FrontendController;
 use App\Http\Controllers\PortfolioController;
@@ -75,6 +76,9 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'middleware' => ['web', 'au
     Route::resource('users', AdminUserController::class);
     Route::resource('bookings', BookingController::class);
     Route::post('bookings/{booking}/reschedule', [BookingController::class, 'reschedule'])->name('admin.bookings.reschedule');
+    Route::resource('photographer-visits', PhotographerVisitController::class);
+    Route::post('photographer-visits/{photographerVisit}/check-in', [PhotographerVisitController::class, 'checkIn'])->name('photographer-visits.check-in');
+    Route::post('photographer-visits/{photographerVisit}/check-out', [PhotographerVisitController::class, 'checkOut'])->name('photographer-visits.check-out');
     Route::resource('portfolios', AdminPortfolioController::class);
     Route::resource('holidays', HolidayController::class);
     Route::resource('settings', SettingController::class);
