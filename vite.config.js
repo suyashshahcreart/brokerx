@@ -45,6 +45,7 @@ export default defineConfig({
                 'resources/js/pages/setting-index.js',
                 'resources/js/pages/qr-index.js',
                 'resources/js/pages/tours-index.js',
+                'resources/js/pages/photographer-visit-jobs-index.js',
                 
                 //components
                 'resources/js/components/maps-google.js',

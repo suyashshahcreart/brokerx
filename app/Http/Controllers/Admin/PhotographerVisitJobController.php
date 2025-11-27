@@ -78,9 +78,9 @@ class PhotographerVisitJobController extends Controller
                 })
                 ->addColumn('action', function ($job) {
                     $actions = '<div class="btn-group" role="group">';
-                    $actions .= '<a href="' . route('admin.photographer-visit-jobs.show', $job) . '" class="btn btn-sm btn-info" title="View"><i class="bi bi-eye"></i></a>';
-                    $actions .= '<a href="' . route('admin.photographer-visit-jobs.edit', $job) . '" class="btn btn-sm btn-primary" title="Edit"><i class="bi bi-pencil"></i></a>';
-                    $actions .= '<button type="button" class="btn btn-sm btn-danger delete-btn" data-id="' . $job->id . '" title="Delete"><i class="bi bi-trash"></i></button>';
+                    $actions .= '<a href="' . route('admin.photographer-visit-jobs.show', $job) . '" class="btn btn-sm btn-info" title="View" data-bs-toggle="tooltip"><i class="bi bi-eye"></i></a>';
+                    $actions .= '<a href="' . route('admin.photographer-visit-jobs.edit', $job) . '" class="btn btn-sm btn-primary" title="Edit" data-bs-toggle="tooltip"><i class="bi bi-pencil"></i></a>';
+                    $actions .= '<button type="button" class="btn btn-sm btn-danger delete-btn" data-id="' . $job->id . '" data-code="' . htmlspecialchars($job->job_code) . '" title="Delete" data-bs-toggle="tooltip"><i class="bi bi-trash"></i></button>';
                     $actions .= '</div>';
                     return $actions;
                 })
@@ -231,19 +231,44 @@ class PhotographerVisitJobController extends Controller
     /**
      * Remove the specified job
      */
-    public function destroy(PhotographerVisitJob $photographerVisitJob)
+    public function destroy(Request $request, PhotographerVisitJob $photographerVisitJob)
     {
-        $photographerVisitJob->deleted_by = auth()->id();
-        $photographerVisitJob->save();
-        $photographerVisitJob->delete();
+        try {
+            $photographerVisitJob->deleted_by = auth()->id();
+            $photographerVisitJob->save();
+            $photographerVisitJob->delete();
 
-        activity('photographer_visit_jobs')
-            ->performedOn($photographerVisitJob)
-            ->causedBy(auth()->user())
-            ->withProperties(['event' => 'deleted'])
-            ->log('Photographer visit job deleted');
+            activity('photographer_visit_jobs')
+                ->performedOn($photographerVisitJob)
+                ->causedBy(auth()->user())
+                ->withProperties(['event' => 'deleted'])
+                ->log('Photographer visit job deleted');
 
-        return redirect()->route('admin.photographer-visit-jobs.index')
-            ->with('success', 'Photographer visit job deleted successfully.');
+            // Return JSON for AJAX requests
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Photographer visit job deleted successfully.'
+                ]);
+            }
+
+            return redirect()->route('admin.photographer-visit-jobs.index')
+                ->with('success', 'Photographer visit job deleted successfully.');
+        } catch (\Exception $e) {
+            \Log::error('Error deleting photographer visit job', [
+                'job_id' => $photographerVisitJob->id,
+                'error' => $e->getMessage()
+            ]);
+
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to delete job. Please try again.'
+                ], 500);
+            }
+
+            return redirect()->route('admin.photographer-visit-jobs.index')
+                ->with('error', 'Failed to delete job. Please try again.');
+        }
     }
 }
