@@ -41,6 +41,7 @@ export default defineConfig({
                 'resources/js/pages/coming-soon.js',
                 'resources/js/pages/widgets.js',
                 'resources/js/pages/bookings-edit.js',
+                'resources/js/pages/bookings-form.js',
                 'resources/js/pages/booking-index.js',
                 'resources/js/pages/setting-index.js',
                 'resources/js/pages/qr-index.js',
