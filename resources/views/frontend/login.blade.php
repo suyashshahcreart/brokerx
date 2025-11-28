@@ -30,16 +30,16 @@
                     <p class="muted-small text-center mb-4">Enter your phone number. We'll send an OTP to verify.</p>
                     
                     <form id="loginForm" class="login-form" onsubmit="return false;">
-                        <div class="mb-3">
+                        <div id="phoneInputSection" class="mb-3">
                             <label class="form-label">Phone Number <span class="text-danger">*</span></label>
                             <input id="loginPhone" class="form-control" type="text" placeholder="10-digit mobile number" maxlength="10" required />
                             <div id="err-phone" class="error">Enter a valid 10-digit mobile number.</div>
                         </div>
                         
-                        <div class="mb-3">
-                        <button type="button" class="btn btn-primary w-100" id="sendOtpBtn">Send OTP</button>
-                        <div id="otpSentBadge" class="muted-small text-success hidden mt-2">OTP sent</div>
-                    </div>
+                        <div id="sendOtpSection" class="mb-3">
+                            <button type="button" class="btn btn-primary w-100" id="sendOtpBtn">Send OTP</button>
+                            <div id="otpSentBadge" class="muted-small text-success hidden mt-2">OTP sent</div>
+                        </div>
                         
                         <!-- OTP input -->
                             <div id="otpRow" class="mb-3 hidden">
@@ -54,9 +54,10 @@
                                     </div>
                                     <div id="otpInfoAlert" class="alert alert-info mb-3" role="alert">
                                         <i class="fa-solid fa-circle-info me-2"></i>
-                                        <strong>OTP Sent!</strong> Your verification code has been delivered to your Phone and WhatsApp. Enter the OTP to continue.
+                                        <span id="otpInfoMessage">
+                                            <strong>OTP Sent!</strong> Your verification code has been delivered to your Phone and WhatsApp. Enter the OTP to continue.
+                                        </span>
                                     </div>
-                                    <div id="demoOtp" class="muted-small text-muted hidden mt-2 mb-2">[demo OTP: <strong id="demoOtpCode"></strong>]</div>
                                     <div class="col-12">
                                         <div class="muted-small text-center">Didn't receive? <a href="#" class="text-primary fw-semibold" id="resendOtp">Resend</a></div>
                                     </div>
@@ -221,6 +222,11 @@
             sendOtpBtn.addEventListener('click', async function(e) {
                 e.preventDefault();
                 
+                // Prevent action if button is disabled
+                if (sendOtpBtn.disabled) {
+                    return;
+                }
+                
                 const phoneInput = el('loginPhone');
                 if (!phoneInput) {
                     console.error('Phone input not found!');
@@ -274,22 +280,36 @@
                     const otpRow = el('otpRow');
                     const otpSentBadge = el('otpSentBadge');
                     const otpInfoAlert = el('otpInfoAlert');
+                    const otpInfoMessage = el('otpInfoMessage');
                     if (otpRow) otpRow.classList.remove('hidden');
                     if (otpSentBadge) otpSentBadge.classList.remove('hidden');
                     if (otpInfoAlert) otpInfoAlert.classList.remove('hidden');
                     
-                    // Show demo OTP if available (for development)
-                    if (result.data.otp) {
-                        const demoOtp = el('demoOtp');
-                        const demoOtpCode = el('demoOtpCode');
-                        if (demoOtp) demoOtp.classList.remove('hidden');
-                        if (demoOtpCode) demoOtpCode.innerText = result.data.otp;
+                    // Update message based on SMS status
+                    const smsSent = result.sms_sent || result.data.sms_sent || false;
+                    if (otpInfoMessage) {
+                        if (smsSent) {
+                            otpInfoMessage.innerHTML = '<strong>OTP Sent!</strong> Your verification code has been delivered to your Phone and WhatsApp. Enter the OTP to continue.';
+                        } else {
+                            otpInfoMessage.innerHTML = '<strong>OTP Generated!</strong> Your verification code has been generated. Enter the OTP to continue.';
+                        }
                     }
+                    
+                    // Demo OTP removed for security - OTP is only sent via SMS
                         
-                        // Disable phone input and send button
+                        // Disable phone input and send OTP button (keep visible but read-only)
                         phoneInput.disabled = true;
+                        phoneInput.readOnly = true;
+                        phoneInput.style.backgroundColor = '#f5f5f5';
+                        phoneInput.style.cursor = 'not-allowed';
+                        phoneInput.setAttribute('disabled', 'disabled');
+                        
                         sendOtpBtn.disabled = true;
+                        sendOtpBtn.setAttribute('disabled', 'disabled');
                         sendOtpBtn.textContent = 'OTP Sent';
+                        sendOtpBtn.style.opacity = '0.6';
+                        sendOtpBtn.style.cursor = 'not-allowed';
+                        sendOtpBtn.style.pointerEvents = 'none';
                         
                         // Focus on OTP input
                         const inputOtp = el('inputOtp');
@@ -370,15 +390,21 @@
                         if (result.success && result.data) {
                             const otpSentBadge = el('otpSentBadge');
                             const otpInfoAlert = el('otpInfoAlert');
+                            const otpInfoMessage = el('otpInfoMessage');
                             if (otpSentBadge) otpSentBadge.classList.remove('hidden');
                             if (otpInfoAlert) otpInfoAlert.classList.remove('hidden');
                             
-                            if (result.data.otp) {
-                                const demoOtp = el('demoOtp');
-                                const demoOtpCode = el('demoOtpCode');
-                                if (demoOtp) demoOtp.classList.remove('hidden');
-                                if (demoOtpCode) demoOtpCode.innerText = result.data.otp;
+                            // Update message based on SMS status
+                            const smsSent = result.sms_sent || result.data.sms_sent || false;
+                            if (otpInfoMessage) {
+                                if (smsSent) {
+                                    otpInfoMessage.innerHTML = '<strong>OTP Sent!</strong> Your verification code has been delivered to your Phone and WhatsApp. Enter the OTP to continue.';
+                                } else {
+                                    otpInfoMessage.innerHTML = '<strong>OTP Generated!</strong> Your verification code has been generated. Enter the OTP to continue.';
+                                }
                             }
+                            
+                            // Demo OTP removed for security - OTP is only sent via SMS
                             
                             const inputOtp = el('inputOtp');
                             if (inputOtp) {

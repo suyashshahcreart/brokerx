@@ -71,6 +71,10 @@
                                         <i class="ri-bank-card-line me-2"></i>
                                         <span>Payment Gateway</span>
                                     </a>
+                                    <a class="nav-link" id="vl-pills-sms-tab" data-bs-toggle="pill" href="#vl-pills-sms" role="tab" aria-controls="vl-pills-sms" aria-selected="false">
+                                        <i class="ri-message-3-line me-2"></i>
+                                        <span>SMS Configuration</span>
+                                    </a>
                                 </div>
                             </div>
                         
@@ -352,6 +356,178 @@
                                                 </form>
                                             </div>
                                         </div>
+                                    </div>
+                                    <div class="tab-pane fade" id="vl-pills-sms" role="tabpanel" aria-labelledby="vl-pills-sms-tab">
+                                        <div class="row g-4">
+                                            @php
+                                                // Show only MSG91 gateway
+                                                $msg91Gateway = $gatewayInstances['msg91'] ?? null;
+                                            @endphp
+                                            @if($msg91Gateway)
+                                                <div class="col-6">
+                                                    <form id="msg91SmsForm" action="{{ route('api.settings.update') }}" method="POST"
+                                                        class="needs-validation" novalidate data-csrf="{{ csrf_token() }}">
+                                                        @csrf
+                                                        <div class="card h-100 border {{ $msg91Gateway['isActive'] ? 'border-success' : '' }}">
+                                                            <div class="card-header bg-white d-flex align-items-center justify-content-between py-3">
+                                                                <h5 class="mb-0">MSG91</h5>
+                                                                <div class="form-check form-switch">
+                                                                    <input class="form-check-input gateway-status-toggle" 
+                                                                        type="checkbox" 
+                                                                        id="msg91_sms_status" 
+                                                                        name="sms_gateway_msg91_status" 
+                                                                        value="1" 
+                                                                        data-gateway="msg91"
+                                                                        {{ $msg91Gateway['status'] ? 'checked' : '' }}>
+                                                                    <label class="form-check-label" for="msg91_sms_status"></label>
+                                                                </div>
+                                                            </div>
+                                                            <div class="card-body">
+                                                                @foreach($msg91Gateway['configFields'] as $field)
+                                                                    @php
+                                                                        $fieldValue = $settings[$field['key']] ?? ($field['default'] ?? '');
+                                                                        $fieldId = $field['key'] . '_sms';
+                                                                        $isRequired = $field['required'] ?? false;
+                                                                    @endphp
+                                                                    <div class="mb-3">
+                                                                        <label for="{{ $fieldId }}" class="form-label">
+                                                                            {{ strtoupper(str_replace('_', ' ', $field['key'])) }}
+                                                                            @if($isRequired)
+                                                                                <span class="text-danger msg91-sms-required">*</span>
+                                                                            @endif
+                                                                        </label>
+                                                                        @if($field['type'] === 'select')
+                                                                            <select name="{{ $field['key'] }}" 
+                                                                                id="{{ $fieldId }}" 
+                                                                                class="form-select {{ $isRequired ? 'required' : '' }}"
+                                                                                {{ $isRequired ? 'required' : '' }}>
+                                                                                @foreach($field['options'] ?? [] as $optionValue => $optionLabel)
+                                                                                    <option value="{{ $optionValue }}" {{ $fieldValue == $optionValue ? 'selected' : '' }}>
+                                                                                        {{ $optionLabel }}
+                                                                                    </option>
+                                                                                @endforeach
+                                                                            </select>
+                                                                        @elseif($field['type'] === 'password')
+                                                                            <input type="password" 
+                                                                                name="{{ $field['key'] }}" 
+                                                                                id="{{ $fieldId }}" 
+                                                                                value="{{ $fieldValue }}" 
+                                                                                class="form-control {{ $isRequired ? 'required' : '' }}"
+                                                                                placeholder="{{ $field['placeholder'] ?? '' }}"
+                                                                                {{ $isRequired ? 'required' : '' }}>
+                                                                        @elseif($field['type'] === 'number')
+                                                                            <input type="number" 
+                                                                                name="{{ $field['key'] }}" 
+                                                                                id="{{ $fieldId }}" 
+                                                                                value="{{ $fieldValue }}" 
+                                                                                class="form-control {{ $isRequired ? 'required' : '' }}"
+                                                                                placeholder="{{ $field['placeholder'] ?? '' }}"
+                                                                                {{ $isRequired ? 'required' : '' }}
+                                                                                step="{{ $field['step'] ?? '1' }}"
+                                                                                min="{{ $field['min'] ?? '' }}">
+                                                                        @else
+                                                                            <input type="{{ $field['type'] ?? 'text' }}" 
+                                                                                name="{{ $field['key'] }}" 
+                                                                                id="{{ $fieldId }}" 
+                                                                                value="{{ $fieldValue }}" 
+                                                                                class="form-control {{ $isRequired ? 'required' : '' }}"
+                                                                                placeholder="{{ $field['placeholder'] ?? '' }}"
+                                                                                {{ $isRequired ? 'required' : '' }}>
+                                                                        @endif
+                                                                        @if(isset($field['help']))
+                                                                            <small class="form-text text-muted">{{ $field['help'] }}</small>
+                                                                        @endif
+                                                                    </div>
+                                                                @endforeach
+
+                                                                <div class="d-flex justify-content-between align-items-center mt-3">
+                                                                    <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#msg91TemplatesModal">
+                                                                        <i class="ri-settings-3-line me-1"></i> Manage Templates
+                                                                    </button>
+                                                                    <button type="submit" class="btn btn-primary btn-sm" id="saveMsg91SmsBtn">
+                                                                        <i class="ri-save-line me-1"></i> Save
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </form>
+                                                </div>
+                                            @endif
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- MSG91 Templates Management Modal -->
+                        <div class="modal fade" id="msg91TemplatesModal" tabindex="-1" aria-labelledby="msg91TemplatesModalLabel" aria-hidden="true">
+                            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="msg91TemplatesModalLabel">
+                                            <i class="ri-settings-3-line me-2"></i>MSG91 Templates Management
+                                        </h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <div class="d-flex justify-content-between align-items-center mb-3">
+                                            <div>
+                                                <p class="text-muted mb-0">Manage your MSG91 Flow template IDs</p>
+                                                <small class="text-info">
+                                                    <i class="ri-file-text-line me-1"></i> Templates are saved directly to <strong>config/msg91.php</strong>
+                                                </small>
+                                            </div>
+                                            <button type="button" class="btn btn-sm btn-primary" id="addTemplateBtn">
+                                                <i class="ri-add-line me-1"></i> Add Template
+                                            </button>
+                                        </div>
+                                        <div class="table-responsive">
+                                            <table class="table table-bordered table-hover mb-0" id="templatesTable">
+                                                <thead>
+                                                    <tr>
+                                                        <th width="40%">Template Key</th>
+                                                        <th width="50%">Template ID</th>
+                                                        <th width="10%" class="text-center">Action</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="templatesTableBody">
+                                                    @foreach($msg91Templates ?? [] as $key => $templateId)
+                                                        <tr data-template-key="{{ $key }}">
+                                                            <td>
+                                                                <input type="text" 
+                                                                    class="form-control form-control-sm template-key" 
+                                                                    value="{{ $key }}" 
+                                                                    data-original="{{ $key }}"
+                                                                    placeholder="e.g., login_otp">
+                                                            </td>
+                                                            <td>
+                                                                <input type="text" 
+                                                                    class="form-control form-control-sm template-id" 
+                                                                    value="{{ $templateId }}" 
+                                                                    placeholder="Template ID">
+                                                            </td>
+                                                            <td class="text-center">
+                                                                <button type="button" class="btn btn-sm btn-danger delete-template-btn" data-key="{{ $key }}">
+                                                                    <i class="ri-delete-bin-line"></i>
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    @endforeach
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        @if(empty($msg91Templates))
+                                            <div class="text-center py-4">
+                                                <i class="ri-inbox-line fs-48 text-muted"></i>
+                                                <p class="text-muted mt-2">No templates found. Click "Add Template" to create one.</p>
+                                            </div>
+                                        @endif
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                        <button type="button" class="btn btn-primary" id="saveTemplatesBtn">
+                                            <i class="ri-save-line me-1"></i> Save Templates
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -958,6 +1134,633 @@
                 
                 handleFormSubmit(razorpayForm, saveRazorpayBtn);
             }
+            
+            // Handle SMS Gateway forms
+            document.querySelectorAll('form[id$="SmsForm"]').forEach(form => {
+                const submitBtn = form.querySelector('button[type="submit"]');
+                if (submitBtn) {
+                    handleFormSubmit(form, submitBtn);
+                }
+            });
+            
+            // Handle set active SMS gateway button
+            document.querySelectorAll('.set-active-sms-gateway-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const gatewayKey = this.getAttribute('data-gateway');
+                    const form = this.closest('form');
+                    const csrfToken = form.getAttribute('data-csrf');
+                    
+                    const formData = new FormData();
+                    formData.append('active_sms_gateway', gatewayKey);
+                    formData.append('_token', csrfToken);
+                    
+                    this.disabled = true;
+                    this.innerHTML = '<i class="ri-loader-4-line me-1 spin"></i> Setting...';
+                    
+                    fetch('{{ route("api.settings.update") }}', {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'Accept': 'application/json'
+                        },
+                        credentials: 'same-origin'
+                    })
+                    .then(async response => {
+                        const data = await response.json();
+                        if (!response.ok) {
+                            throw { status: response.status, data: data };
+                        }
+                        return data;
+                    })
+                    .then(data => {
+                        if (data.success) {
+                            if (typeof Swal !== 'undefined') {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Success!',
+                                    text: gatewayKey.toUpperCase() + ' is now your active SMS gateway',
+                                    timer: 2000,
+                                    showConfirmButton: false,
+                                    timerProgressBar: true
+                                });
+                            }
+                            setTimeout(() => {
+                                window.location.reload();
+                            }, 1500);
+                        } else {
+                            throw { data: data };
+                        }
+                    })
+                    .catch(error => {
+                        let errorMessage = 'Failed to set active gateway.';
+                        if (error.data && error.data.message) {
+                            errorMessage = error.data.message;
+                        }
+                        
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error!',
+                                text: errorMessage,
+                                confirmButtonText: 'OK'
+                            });
+                        } else {
+                            alert(errorMessage);
+                        }
+                        
+                        this.disabled = false;
+                        this.innerHTML = '<i class="ri-check-line me-1"></i> Set as Active';
+                    });
+                });
+            });
+            
+            // Handle SMS gateway status toggles
+            document.querySelectorAll('.gateway-status-toggle').forEach(checkbox => {
+                // Initialize required fields visibility for SMS gateways
+                const gatewayKey = checkbox.getAttribute('data-gateway');
+                const form = checkbox.closest('form');
+                if (form) {
+                    const requiredFields = form.querySelectorAll('.' + gatewayKey + '-sms-required');
+                    requiredFields.forEach(el => {
+                        el.style.display = checkbox.checked ? 'inline' : 'none';
+                    });
+                    
+                    // Set required attribute on inputs
+                    const requiredInputs = form.querySelectorAll('input[type="text"], input[type="password"], input[type="number"], select');
+                    requiredInputs.forEach(input => {
+                        const fieldContainer = input.closest('.mb-3');
+                        if (fieldContainer && fieldContainer.querySelector('.' + gatewayKey + '-sms-required')) {
+                            input.required = checkbox.checked;
+                        }
+                    });
+                }
+                
+                checkbox.addEventListener('change', function() {
+                    const gatewayKey = this.getAttribute('data-gateway');
+                    const form = this.closest('form');
+                    const csrfToken = form ? form.getAttribute('data-csrf') : '';
+                    
+                    // Store original state for revert
+                    const originalChecked = !this.checked;
+                    
+                    const formData = new FormData();
+                    formData.append(this.name, this.checked ? '1' : '0');
+                    formData.append('_token', csrfToken);
+                    
+                    fetch('{{ route("api.settings.update") }}', {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'Accept': 'application/json'
+                        },
+                        credentials: 'same-origin'
+                    })
+                    .then(async response => {
+                        const contentType = response.headers.get('content-type');
+                        let data;
+                        
+                        if (contentType && contentType.includes('application/json')) {
+                            data = await response.json();
+                        } else {
+                            const text = await response.text();
+                            throw { 
+                                status: response.status, 
+                                data: { message: text || 'An error occurred' } 
+                            };
+                        }
+                        
+                        if (!response.ok) {
+                            throw { status: response.status, data: data };
+                        }
+                        return data;
+                    })
+                    .then(data => {
+                        if (data.success) {
+                            // Toggle required fields visibility
+                            if (form) {
+                                const requiredFields = form.querySelectorAll('.' + gatewayKey + '-sms-required');
+                                requiredFields.forEach(el => {
+                                    el.style.display = this.checked ? 'inline' : 'none';
+                                });
+                                
+                                // Set required attribute on inputs
+                                const requiredInputs = form.querySelectorAll('input[type="text"], input[type="password"], input[type="number"], select');
+                                requiredInputs.forEach(input => {
+                                    const fieldContainer = input.closest('.mb-3');
+                                    if (fieldContainer && fieldContainer.querySelector('.' + gatewayKey + '-sms-required')) {
+                                        input.required = this.checked;
+                                    }
+                                });
+                            }
+                            
+                            // Show success message
+                            if (typeof Swal !== 'undefined') {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Updated!',
+                                    text: 'SMS gateway status updated successfully',
+                                    timer: 1500,
+                                    showConfirmButton: false,
+                                    timerProgressBar: true,
+                                    toast: true,
+                                    position: 'top-end'
+                                });
+                            }
+                        } else {
+                            throw { data: data };
+                        }
+                    })
+                    .catch(error => {
+                        // Revert checkbox on error
+                        this.checked = originalChecked;
+                        
+                        let errorMessage = 'Failed to update gateway status.';
+                        if (error instanceof TypeError && error.message.includes('fetch')) {
+                            errorMessage = 'Network error. Please check your internet connection.';
+                        } else if (error.data) {
+                            if (error.data.message) {
+                                errorMessage = error.data.message;
+                            } else if (error.data.errors) {
+                                const errors = Object.values(error.data.errors).flat();
+                                errorMessage = errors.join('<br>');
+                            } else if (error.status === 500) {
+                                errorMessage = 'Server error. Please try again later.';
+                            } else if (error.status === 403 || error.status === 401) {
+                                errorMessage = 'You do not have permission to perform this action.';
+                            }
+                        }
+                        
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error!',
+                                html: errorMessage,
+                                timer: 3000,
+                                showConfirmButton: false,
+                                timerProgressBar: true,
+                                toast: true,
+                                position: 'top-end'
+                            });
+                        } else {
+                            alert(errorMessage);
+                        }
+                    });
+                });
+            });
+            
+            // MSG91 Templates Management - Initialize when modal is shown
+            const msg91TemplatesModal = document.getElementById('msg91TemplatesModal');
+            const templatesTableBody = document.getElementById('templatesTableBody');
+            
+            // Function to initialize template management
+            function initTemplateManagement() {
+                const addTemplateBtn = document.getElementById('addTemplateBtn');
+                const saveTemplatesBtn = document.getElementById('saveTemplatesBtn');
+                
+                // Add Template functionality
+                if (addTemplateBtn) {
+                    // Remove existing listeners
+                    const newAddBtn = addTemplateBtn.cloneNode(true);
+                    addTemplateBtn.parentNode.replaceChild(newAddBtn, addTemplateBtn);
+                    
+                    newAddBtn.addEventListener('click', function() {
+                        const newRow = document.createElement('tr');
+                        newRow.innerHTML = `
+                            <td>
+                                <input type="text" 
+                                    class="form-control form-control-sm template-key" 
+                                    value="" 
+                                    data-original=""
+                                    placeholder="e.g., login_otp">
+                            </td>
+                            <td>
+                                <input type="text" 
+                                    class="form-control form-control-sm template-id" 
+                                    value="" 
+                                    placeholder="Template ID">
+                            </td>
+                            <td class="text-center">
+                                <button type="button" class="btn btn-sm btn-danger delete-template-btn">
+                                    <i class="ri-delete-bin-line"></i>
+                                </button>
+                            </td>
+                        `;
+                        templatesTableBody.appendChild(newRow);
+                        
+                        // Attach delete handler to new row
+                        attachDeleteHandler(newRow.querySelector('.delete-template-btn'));
+                        
+                        // Scroll to new row
+                        newRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                        newRow.querySelector('.template-key').focus();
+                    });
+                }
+                
+                // Delete Template functionality
+                function attachDeleteHandler(btn) {
+                    btn.addEventListener('click', function() {
+                        const row = this.closest('tr');
+                        if (confirm('Are you sure you want to delete this template?')) {
+                            row.style.transition = 'opacity 0.3s';
+                            row.style.opacity = '0';
+                            setTimeout(() => {
+                                row.remove();
+                            }, 300);
+                        }
+                    });
+                }
+                
+                // Attach delete handlers to existing buttons
+                templatesTableBody.querySelectorAll('.delete-template-btn').forEach(btn => {
+                    attachDeleteHandler(btn);
+                });
+                
+                // Save Templates functionality
+                if (saveTemplatesBtn) {
+                    // Remove existing listeners
+                    const newSaveBtn = saveTemplatesBtn.cloneNode(true);
+                    saveTemplatesBtn.parentNode.replaceChild(newSaveBtn, saveTemplatesBtn);
+                    
+                    newSaveBtn.addEventListener('click', function() {
+                        saveTemplates();
+                    });
+                }
+            }
+            
+            // Initialize when modal is shown
+            if (msg91TemplatesModal) {
+                msg91TemplatesModal.addEventListener('shown.bs.modal', function() {
+                    initTemplateManagement();
+                });
+            }
+            
+            // Also initialize on page load (in case modal is already open)
+            initTemplateManagement();
+            
+            // Save Templates function
+            function saveTemplates() {
+                const saveTemplatesBtn = document.getElementById('saveTemplatesBtn');
+                const templates = {};
+                let hasError = false;
+                const errors = [];
+                
+                // Collect all templates from table
+                templatesTableBody.querySelectorAll('tr').forEach(row => {
+                    const keyInput = row.querySelector('.template-key');
+                    const idInput = row.querySelector('.template-id');
+                    
+                    if (keyInput && idInput) {
+                        const key = keyInput.value.trim();
+                        const id = idInput.value.trim();
+                        
+                        if (key && id) {
+                            // Validate key format (should be lowercase with underscores)
+                            if (!/^[a-z0-9_]+$/.test(key)) {
+                                hasError = true;
+                                errors.push(`Template key "${key}" is invalid. Use only lowercase letters, numbers, and underscores.`);
+                                keyInput.classList.add('is-invalid');
+                            } else if (templates[key]) {
+                                hasError = true;
+                                errors.push(`Duplicate template key: "${key}"`);
+                                keyInput.classList.add('is-invalid');
+                            } else {
+                                templates[key] = id;
+                                keyInput.classList.remove('is-invalid');
+                                idInput.classList.remove('is-invalid');
+                            }
+                        } else if (key || id) {
+                            // One field filled but not both
+                            hasError = true;
+                            errors.push('Both Template Key and Template ID are required.');
+                            if (!key) keyInput.classList.add('is-invalid');
+                            if (!id) idInput.classList.add('is-invalid');
+                        }
+                    }
+                });
+                
+                if (hasError) {
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Validation Error!',
+                            html: errors.join('<br>'),
+                            confirmButtonText: 'OK'
+                        });
+                    } else {
+                        alert(errors.join('\n'));
+                    }
+                    return;
+                }
+                
+                // Disable button and show loading
+                const originalBtnText = saveTemplatesBtn.innerHTML;
+                saveTemplatesBtn.disabled = true;
+                saveTemplatesBtn.innerHTML = '<i class="ri-loader-4-line me-1 spin"></i> Saving...';
+                
+                // Get CSRF token from any form
+                const csrfToken = document.querySelector('form[data-csrf]')?.getAttribute('data-csrf') || '';
+                
+                const formData = new FormData();
+                formData.append('msg91_templates', JSON.stringify(templates));
+                formData.append('_token', csrfToken);
+                
+                fetch('{{ route("api.settings.update") }}', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    },
+                    credentials: 'same-origin'
+                })
+                .then(async response => {
+                    const contentType = response.headers.get('content-type');
+                    let data;
+                    
+                    if (contentType && contentType.includes('application/json')) {
+                        data = await response.json();
+                    } else {
+                        const text = await response.text();
+                        throw { 
+                            status: response.status, 
+                            data: { message: text || 'An error occurred' } 
+                        };
+                    }
+                    
+                    if (!response.ok) {
+                        throw { status: response.status, data: data };
+                    }
+                    return data;
+                })
+                .then(data => {
+                    if (data.success) {
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Success!',
+                                text: 'Templates saved successfully',
+                                timer: 2000,
+                                showConfirmButton: false,
+                                timerProgressBar: true
+                            });
+                        } else {
+                            alert('Templates saved successfully');
+                        }
+                        
+                        // Close modal and reload after short delay
+                        const modal = bootstrap.Modal.getInstance(msg91TemplatesModal);
+                        if (modal) {
+                            setTimeout(() => {
+                                modal.hide();
+                                window.location.reload();
+                            }, 1500);
+                        } else {
+                            setTimeout(() => {
+                                window.location.reload();
+                            }, 1500);
+                        }
+                    } else {
+                        throw { data: data };
+                    }
+                })
+                .catch(error => {
+                    let errorMessage = 'Failed to save templates.';
+                    
+                    if (error instanceof TypeError && error.message.includes('fetch')) {
+                        errorMessage = 'Network error. Please check your internet connection.';
+                    } else if (error.data) {
+                        if (error.data.message) {
+                            errorMessage = error.data.message;
+                        } else if (error.data.errors) {
+                            const errors = Object.values(error.data.errors).flat();
+                            errorMessage = errors.join('<br>');
+                        } else if (error.status === 500) {
+                            errorMessage = 'Server error. Please try again later.';
+                        } else if (error.status === 403 || error.status === 401) {
+                            errorMessage = 'You do not have permission to perform this action.';
+                        }
+                    }
+                    
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error!',
+                            html: errorMessage,
+                            confirmButtonText: 'OK'
+                        });
+                    } else {
+                        alert(errorMessage);
+                    }
+                })
+                .finally(() => {
+                    saveTemplatesBtn.disabled = false;
+                    saveTemplatesBtn.innerHTML = originalBtnText;
+                });
+            }
+            
+            // Save templates
+            if (saveTemplatesBtn) {
+                saveTemplatesBtn.addEventListener('click', function() {
+                    const templates = {};
+                    let hasError = false;
+                    const errors = [];
+                    
+                    // Collect all templates from table
+                    templatesTableBody.querySelectorAll('tr').forEach(row => {
+                        const keyInput = row.querySelector('.template-key');
+                        const idInput = row.querySelector('.template-id');
+                        
+                        if (keyInput && idInput) {
+                            const key = keyInput.value.trim();
+                            const id = idInput.value.trim();
+                            
+                            if (key && id) {
+                                // Validate key format (should be lowercase with underscores)
+                                if (!/^[a-z0-9_]+$/.test(key)) {
+                                    hasError = true;
+                                    errors.push(`Template key "${key}" is invalid. Use only lowercase letters, numbers, and underscores.`);
+                                    keyInput.classList.add('is-invalid');
+                                } else if (templates[key]) {
+                                    hasError = true;
+                                    errors.push(`Duplicate template key: "${key}"`);
+                                    keyInput.classList.add('is-invalid');
+                                } else {
+                                    templates[key] = id;
+                                    keyInput.classList.remove('is-invalid');
+                                    idInput.classList.remove('is-invalid');
+                                }
+                            } else if (key || id) {
+                                // One field filled but not both
+                                hasError = true;
+                                errors.push('Both Template Key and Template ID are required.');
+                                if (!key) keyInput.classList.add('is-invalid');
+                                if (!id) idInput.classList.add('is-invalid');
+                            }
+                        }
+                    });
+                    
+                    if (hasError) {
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Validation Error!',
+                                html: errors.join('<br>'),
+                                confirmButtonText: 'OK'
+                            });
+                        } else {
+                            alert(errors.join('\n'));
+                        }
+                        return;
+                    }
+                    
+                    // Disable button and show loading
+                    const originalBtnText = this.innerHTML;
+                    this.disabled = true;
+                    this.innerHTML = '<i class="ri-loader-4-line me-1 spin"></i> Saving...';
+                    
+                    // Get CSRF token from any form
+                    const csrfToken = document.querySelector('form[data-csrf]')?.getAttribute('data-csrf') || '';
+                    
+                    const formData = new FormData();
+                    formData.append('msg91_templates', JSON.stringify(templates));
+                    formData.append('_token', csrfToken);
+                    
+                    fetch('{{ route("api.settings.update") }}', {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'Accept': 'application/json'
+                        },
+                        credentials: 'same-origin'
+                    })
+                    .then(async response => {
+                        const contentType = response.headers.get('content-type');
+                        let data;
+                        
+                        if (contentType && contentType.includes('application/json')) {
+                            data = await response.json();
+                        } else {
+                            const text = await response.text();
+                            throw { 
+                                status: response.status, 
+                                data: { message: text || 'An error occurred' } 
+                            };
+                        }
+                        
+                        if (!response.ok) {
+                            throw { status: response.status, data: data };
+                        }
+                        return data;
+                    })
+                    .then(data => {
+                        if (data.success) {
+                            if (typeof Swal !== 'undefined') {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Success!',
+                                    text: 'Templates saved successfully',
+                                    timer: 2000,
+                                    showConfirmButton: false,
+                                    timerProgressBar: true
+                                });
+                            } else {
+                                alert('Templates saved successfully');
+                            }
+                            
+                            // Update original values for tracking
+                            templatesTableBody.querySelectorAll('tr').forEach(row => {
+                                const keyInput = row.querySelector('.template-key');
+                                if (keyInput) {
+                                    keyInput.setAttribute('data-original', keyInput.value.trim());
+                                }
+                            });
+                            
+                            // Reload after short delay
+                            setTimeout(() => {
+                                window.location.reload();
+                            }, 1500);
+                        } else {
+                            throw { data: data };
+                        }
+                    })
+                    .catch(error => {
+                        let errorMessage = 'Failed to save templates.';
+                        
+                        if (error instanceof TypeError && error.message.includes('fetch')) {
+                            errorMessage = 'Network error. Please check your internet connection.';
+                        } else if (error.data) {
+                            if (error.data.message) {
+                                errorMessage = error.data.message;
+                            } else if (error.data.errors) {
+                                const errors = Object.values(error.data.errors).flat();
+                                errorMessage = errors.join('<br>');
+                            } else if (error.status === 500) {
+                                errorMessage = 'Server error. Please try again later.';
+                            } else if (error.status === 403 || error.status === 401) {
+                                errorMessage = 'You do not have permission to perform this action.';
+                            }
+                        }
+                        
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error!',
+                                html: errorMessage,
+                                confirmButtonText: 'OK'
+                            });
+                        } else {
+                            alert(errorMessage);
+                        }
+                    })
+                    .finally(() => {
+                        this.disabled = false;
+                        this.innerHTML = originalBtnText;
+                    });
+                });
+            }
         });
     </script>
     
@@ -1090,6 +1893,42 @@
         .panel-card .card-body.d-none,
         .panel-card .card-footer.d-none {
             display: none !important;
+        }
+        
+        /* Templates Table Styling */
+        #templatesTable {
+            font-size: 0.875rem;
+        }
+        
+        #templatesTable thead th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+            border-bottom: 2px solid #dee2e6;
+        }
+        
+        #templatesTable tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+        
+        #templatesTable .template-key,
+        #templatesTable .template-id {
+            border: none;
+            padding: 0.375rem 0.5rem;
+        }
+        
+        #templatesTable .template-key:focus,
+        #templatesTable .template-id:focus {
+            outline: 2px solid #6366f1;
+            outline-offset: -2px;
+        }
+        
+        #templatesTable .is-invalid {
+            border: 1px solid #dc3545;
+            background-color: #fff5f5;
+        }
+        
+        #templatesTable .delete-template-btn {
+            padding: 0.25rem 0.5rem;
         }
     </style>
 @endsection

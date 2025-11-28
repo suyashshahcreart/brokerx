@@ -286,7 +286,9 @@
                                     </div>
                                     <div id="otpInfoAlert" class="alert alert-info mb-3" role="alert">
                                         <i class="fa-solid fa-circle-info me-2"></i>
-                                        <strong>OTP Sent!</strong> Your verification code has been delivered to your Phone and WhatsApp. Enter the OTP to continue.
+                                        <span id="otpInfoMessage">
+                                            <strong>OTP Sent!</strong> Your verification code has been delivered to your Phone and WhatsApp. Enter the OTP to continue.
+                                        </span>
                                     </div>
                                     <div id="demoOtp" class="muted-small text-muted hidden mt-2 mb-2">[demo OTP: <strong id="demoOtpCode"></strong>]</div>
                                     <div class="col-12 muted-small">Didn't receive? <a href="#" class="text-primary fw-semibold" id="resendOtp">Resend</a></div>

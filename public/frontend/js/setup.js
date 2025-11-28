@@ -520,7 +520,14 @@ async function postJson(url, data) {
 }
 
 const sendOtpBtn = el('sendOtpBtn');
-if (sendOtpBtn) sendOtpBtn.addEventListener('click', async () => {
+if (sendOtpBtn) sendOtpBtn.addEventListener('click', async (e) => {
+    e.preventDefault();
+    
+    // Prevent action if button is disabled
+    if (sendOtpBtn.disabled) {
+        return;
+    }
+    
     // validate name & phone
     const name = el('inputName').value.trim();
     const phone = el('inputPhone').value.trim();
@@ -561,7 +568,47 @@ if (sendOtpBtn) sendOtpBtn.addEventListener('click', async () => {
             state.otpVerified = false;
             el('otpRow').classList.remove('hidden');
             el('otpSentBadge').classList.remove('hidden');
+            el('otpInfoAlert').classList.remove('hidden');
             el('toStep2').disabled = true;
+            
+            // Disable name input, phone input, and send OTP button (keep visible but read-only)
+            const nameInput = el('inputName');
+            const phoneInput = el('inputPhone');
+            const sendBtn = el('sendOtpBtn');
+            
+            if (nameInput) {
+                nameInput.disabled = true;
+                nameInput.readOnly = true;
+                nameInput.setAttribute('disabled', 'disabled');
+                nameInput.style.backgroundColor = '#f5f5f5';
+                nameInput.style.cursor = 'not-allowed';
+            }
+            if (phoneInput) {
+                phoneInput.disabled = true;
+                phoneInput.readOnly = true;
+                phoneInput.setAttribute('disabled', 'disabled');
+                phoneInput.style.backgroundColor = '#f5f5f5';
+                phoneInput.style.cursor = 'not-allowed';
+            }
+            if (sendBtn) {
+                sendBtn.disabled = true;
+                sendBtn.setAttribute('disabled', 'disabled');
+                sendBtn.textContent = 'OTP Sent';
+                sendBtn.style.opacity = '0.6';
+                sendBtn.style.cursor = 'not-allowed';
+                sendBtn.style.pointerEvents = 'none';
+            }
+            
+            // Update message based on SMS status
+            const smsSent = result.sms_sent || result.data.sms_sent || false;
+            const otpInfoMessage = el('otpInfoMessage');
+            if (otpInfoMessage) {
+                if (smsSent) {
+                    otpInfoMessage.innerHTML = '<strong>OTP Sent!</strong> Your verification code has been delivered to your Phone and WhatsApp. Enter the OTP to continue.';
+                } else {
+                    otpInfoMessage.innerHTML = '<strong>OTP Generated!</strong> Your verification code has been generated. Enter the OTP to continue.';
+                }
+            }
             
             // Show demo OTP if available (for development)
             if (result.data.otp) {
@@ -573,6 +620,12 @@ if (sendOtpBtn) sendOtpBtn.addEventListener('click', async () => {
                         demoOtpCodeEl.innerText = result.data.otp;
                     }
                 }
+            }
+            
+            // Focus on OTP input
+            const inputOtp = el('inputOtp');
+            if (inputOtp) {
+                setTimeout(() => inputOtp.focus(), 100);
             }
             
             // Start resend countdown timer
@@ -635,6 +688,18 @@ if (resendOtpBtn) resendOtpBtn.addEventListener('click', async (e) => {
 
         if (result.success && result.data) {
             el('otpSentBadge').classList.remove('hidden');
+            el('otpInfoAlert').classList.remove('hidden');
+            
+            // Update message based on SMS status
+            const smsSent = result.sms_sent || result.data.sms_sent || false;
+            const otpInfoMessage = el('otpInfoMessage');
+            if (otpInfoMessage) {
+                if (smsSent) {
+                    otpInfoMessage.innerHTML = '<strong>OTP Sent!</strong> Your verification code has been delivered to your Phone and WhatsApp. Enter the OTP to continue.';
+                } else {
+                    otpInfoMessage.innerHTML = '<strong>OTP Generated!</strong> Your verification code has been generated. Enter the OTP to continue.';
+                }
+            }
             
             // Show demo OTP if available (for development)
             if (result.data.otp) {
