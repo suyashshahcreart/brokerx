@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Tour;
 use Illuminate\Http\Request;
 use App\Models\Booking;
 use App\Models\User;
@@ -402,6 +403,15 @@ class FrontendController extends Controller
             'updated_by' => $user->id,
         ]);
 
+        // Create a tour for this booking
+        Tour::create([
+            'booking_id' => $booking->id,
+            'name' => 'Tour for Booking #' . $booking->id,
+            'title' => 'Property Tour - ' . ($validated['name'] ?? 'Property'),
+            'status' => 'draft',
+            'revision' => 1,
+        ]);
+
         // Redirect with success message
         return redirect()->route('frontend.index')->with('success', 'Booking submitted successfully! Our team will contact you soon.');
     }
@@ -481,6 +491,17 @@ class FrontendController extends Controller
         $booking->status = 'pending';
         $booking->updated_by = $user->id;
         $booking->save();
+
+        // Create tour only if this is a new booking (not an update)
+        if (!$validated['booking_id']) {
+            \App\Models\Tour::create([
+                'booking_id' => $booking->id,
+                'name' => 'Tour for Booking #' . $booking->id,
+                'title' => 'Property Tour - ' . ($validated['name'] ?? 'Property'),
+                'status' => 'draft',
+                'revision' => 1,
+            ]);
+        }
 
         return response()->json([
             'success' => true,

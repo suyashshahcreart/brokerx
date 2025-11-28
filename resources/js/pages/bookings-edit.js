@@ -1,10 +1,108 @@
 /**
- * Bookings Form - Create Page
- * Handles form utilities for booking creation
+ * Bookings Edit - Tabbed AJAX Forms with SweetAlert
+ * Handles booking and tour forms with AJAX submissions
  */
+
+import Swal from 'sweetalert2';
 
 document.addEventListener('DOMContentLoaded', function () {
     'use strict';
+    // Get CSRF token
+    const csrfTokenElement = document.querySelector('meta[name="csrf-token"]');
+    if (!csrfTokenElement) {
+        console.error('CSRF token meta tag not found!');
+        Swal.fire({
+            icon: 'error',
+            title: 'Configuration Error',
+            text: 'CSRF token not found. Please refresh the page.',
+        });
+        return;
+    }
+    const csrfToken = csrfTokenElement.content;
+    
+    // Get booking data from window
+    const bookingData = window.bookingData || {};
+    const bookingId = bookingData.id || bookingData.bookingId;
+    const tourData = bookingData.tour || null;
+
+    // ========================
+    // TOUR CREATE FORM HANDLING
+    // ========================
+    const tourCreateForm = document.getElementById('tourCreateForm');
+    const createTourBtn = document.getElementById('createTourBtn');
+    const cancelCreateTourBtn = document.getElementById('cancelCreateTourBtn');
+    const noTourMessage = document.getElementById('noTourMessage');
+
+    if (createTourBtn && tourCreateForm) {
+        createTourBtn.addEventListener('click', function () {
+            noTourMessage?.classList.add('d-none');
+            tourCreateForm.classList.remove('d-none');
+        });
+    }
+
+    if (cancelCreateTourBtn && tourCreateForm) {
+        cancelCreateTourBtn.addEventListener('click', function () {
+            tourCreateForm.classList.add('d-none');
+            noTourMessage?.classList.remove('d-none');
+            tourCreateForm.reset();
+            tourCreateForm.classList.remove('was-validated');
+        });
+    }
+
+    // Unlink tour button
+    const unlinkBtn = document.getElementById('unlinkTourBtn');
+    if (unlinkBtn) {
+        unlinkBtn.addEventListener('click', async function () {
+            const tourId = document.getElementById('tour_id')?.value;
+            if (!tourId) return;
+
+            const result = await Swal.fire({
+                title: 'Unlink Tour?',
+                text: 'This will remove the link between this booking and the tour. The tour will still exist.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Yes, unlink it',
+                cancelButtonText: 'Cancel',
+            });
+
+            if (result.isConfirmed) {
+                try {
+                    const response = await fetch(`/admin/tours/${tourId}/unlink-ajax`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': csrfToken,
+                            'Accept': 'application/json',
+                        },
+                    });
+
+                    const responseData = await response.json();
+
+                    if (response.ok && responseData.success) {
+                        await Swal.fire({
+                            icon: 'success',
+                            title: 'Unlinked!',
+                            text: responseData.message || 'Tour has been unlinked',
+                            timer: 2000,
+                            showConfirmButton: false,
+                        });
+                        // Reload page to show updated state
+                        window.location.reload();
+                    } else {
+                        throw new Error(responseData.message || 'Failed to unlink tour');
+                    }
+                } catch (error) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: error.message || 'An error occurred while unlinking the tour',
+                    });
+                }
+            }
+        });
+    }
 
     // ========================
     // FORM UTILITIES

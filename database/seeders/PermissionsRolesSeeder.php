@@ -76,6 +76,12 @@ class PermissionsRolesSeeder extends Seeder
             'qr_create',
             'qr_edit',
             'qr_delete',
+
+            // Tour management
+            'tour_view',
+            'tour_create',
+            'tour_edit',
+            'tour_delete',
         ];
 
         foreach ($permissions as $permissionName) {
