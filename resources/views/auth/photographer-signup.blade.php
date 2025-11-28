@@ -1,4 +1,4 @@
-@extends('layouts.auth', ['title' => 'Sign Up'])
+@extends('layouts.auth', ['title' => 'Photographer Registration'])
 
 @section('content')
 
@@ -6,20 +6,20 @@
     <div class="card auth-card">
         <div class="card-body px-3 py-5">
             <div class="mx-auto mb-4 text-center auth-logo">
-                <a href="{{ route('second', ['dashboards', 'analytics'])}}" class="logo-dark">
+                <a href="##" class="logo-dark">
                     <img src="/images/logo-dark.png" height="32" alt="logo dark">
                 </a>
 
-                <a href="{{ route('second', ['dashboards', 'analytics'])}}" class="logo-light">
+                <a href="##" class="logo-light">
                     <img src="/images/logo-light.png" height="28" alt="logo light">
                 </a>
             </div>
 
-            <h2 class="fw-bold text-uppercase text-center fs-18">Register</h2>
-            <p class="text-muted text-center mt-1 mb-4">New to our platform? Sign up now! It only takes a minute.</p>
+            <h2 class="fw-bold text-uppercase text-center fs-18">Photographer Registration</h2>
+            <p class="text-muted text-center mt-1 mb-4">Join our team of photographers! Sign up now to start receiving job assignments.</p>
 
             <div class="px-4">
-                <form action="{{ route('admin.register') }}" method="post" class="authentication-form" data-otp-send="{{ route('registration.otp.send') }}" data-otp-verify="{{ route('registration.otp.verify') }}">
+                <form action="{{ route('admin.photographer.register') }}" method="post" class="authentication-form" data-otp-send="{{ route('registration.otp.send') }}" data-otp-verify="{{ route('registration.otp.verify') }}">
                     @csrf
                     
                     @if ($errors->any())
@@ -77,21 +77,13 @@
                             </small>
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label class="form-label" for="example-email">Email</label>
-                            <input type="email" id="example-email" name="email" value="{{ old('email') }}" class="form-control bg-light bg-opacity-50 border-light py-2 @error('email') is-invalid @enderror" placeholder="Enter your email">
+                            <label class="form-label" for="example-email">Email <span class="text-danger">*</span></label>
+                            <input type="email" id="example-email" name="email" value="{{ old('email') }}" class="form-control bg-light bg-opacity-50 border-light py-2 @error('email') is-invalid @enderror" placeholder="Enter your email" required>
                             @error('email')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>
                     </div>
-
-                    <!-- <div class="mb-3">
-                        <label class="form-label" for="license-number">Broker License Number <span class="text-danger">*</span></label>
-                        <input type="text" id="license-number" name="license_number" value="{{ old('license_number') }}" class="form-control bg-light bg-opacity-50 border-light py-2 @error('license_number') is-invalid @enderror" placeholder="Enter your broker license number" required>
-                        @error('license_number')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div> -->
 
                     <div class="row">
                         <div class="col-md-6 mb-3">
@@ -149,24 +141,16 @@
                     </div>
 
                     <div class="mb-1 text-center d-grid">
-                        <button id="btn-submit-register" class="btn btn-danger py-2" type="submit" disabled>Create Account</button>
+                        <button id="btn-submit-register" class="btn btn-danger py-2" type="submit" disabled>Create Photographer Account</button>
                     </div>
                 </form>
-                <!-- <p class="mt-3 fw-semibold no-span">OR sign with</p>
-                <div class="text-center">
-                    <a href="javascript:void(0);" class="btn btn-outline-light shadow-none"><i class='bx bxl-google fs-20'></i></a>
-                    <a href="javascript:void(0);" class="btn btn-outline-light shadow-none"><i class='ri-facebook-fill fs-20'></i></a>
-                    <a href="javascript:void(0);" class="btn btn-outline-light shadow-none"><i class='bx bxl-github fs-20'></i></a>
-                </div> -->
             </div> <!-- end col -->
         </div> <!-- end card-body -->
     </div> <!-- end card -->
 
-    <p class="mb-0 text-center text-white">I already have an account <a href="{{ route('admin.login') }}" class="text-reset text-unline-dashed fw-bold ms-1">Sign In</a></p>
+    <p class="mb-0 text-center text-white">Already have an account? <a href="{{ route('admin.photographer.login') }}" class="text-reset text-unline-dashed fw-bold ms-1">Sign In</a></p>
     <p class="mb-0 text-center text-white mt-2">
-        <a href="{{ route('admin.photographer.register') }}" class="text-reset text-unline-dashed">
-            <i class='bx bx-camera me-1'></i>Register as Photographer
-        </a>
+        <a href="{{ route('admin.login') }}" class="text-reset text-unline-dashed">Back to Admin Login</a>
     </p>
 </div> <!-- end col -->
 

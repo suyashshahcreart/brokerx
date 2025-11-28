@@ -104,7 +104,7 @@ Route::group(['prefix' => 'brokerx', 'as' => 'brokerx.', 'middleware' => ['web',
 });
 
 // Photographer routes
-Route::group(['prefix' => 'photographer', 'as' => 'photographer.', 'middleware' => ['web', 'auth', 'role:photographer']], function () {
+Route::group(['prefix' => 'photo', 'as' => 'photographer.', 'middleware' => ['web', 'auth', 'role:photographer']], function () {
     Route::get('/jobs', [JobController::class, 'index'])->name('jobs.index');
     Route::get('/jobs/{job}', [JobController::class, 'show'])->name('jobs.show');
     Route::post('/jobs/{job}/accept', [JobController::class, 'accept'])->name('jobs.accept');

@@ -99,3 +99,24 @@ Route::post('/registration/email-otp/send', [OtpController::class, 'sendEmailFor
 Route::post('/registration/email-otp/verify', [OtpController::class, 'verifyEmailForRegistration'])
     ->middleware('guest')
     ->name('registration.email_otp.verify');
+
+// Photographer authentication routes
+use App\Http\Controllers\Admin\PhotographerAuthController;
+
+Route::get('/admin/photographer/register', [PhotographerAuthController::class, 'createRegister'])
+    ->middleware('guest')
+    ->name('admin.photographer.register');
+
+Route::post('/admin/photographer/register', [PhotographerAuthController::class, 'storeRegister'])
+    ->middleware('guest');
+
+Route::get('/admin/photographer/login', [PhotographerAuthController::class, 'createLogin'])
+    ->middleware('guest')
+    ->name('admin.photographer.login');
+
+Route::post('/admin/photographer/login', [PhotographerAuthController::class, 'storeLogin'])
+    ->middleware('guest');
+
+Route::post('/admin/photographer/logout', [PhotographerAuthController::class, 'logout'])
+    ->middleware('auth')
+    ->name('admin.photographer.logout');
