@@ -1,8 +1,8 @@
 {
-  "name": "New Environment",
+  "name": "Global Variables",
   "variables": {
-    "Server": {
-      "value": "http://localhost/brokerx",
+    "Appache-server": {
+      "value": "localhost",
       "type": "string",
       "id": 0,
       "isSecret": false

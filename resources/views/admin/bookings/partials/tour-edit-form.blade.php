@@ -74,7 +74,7 @@
                 <textarea name="content" id="tour_content" class="form-control" rows="5">{{ $tour->content }}</textarea>
             </div>
 
-            <div class="row">
+            <div class="d-none row">
                 <div class="col-lg-3">
                     <div class="mb-3">
                         <label class="form-label" for="tour_price">Price (₹)</label>

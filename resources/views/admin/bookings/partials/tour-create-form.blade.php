@@ -83,7 +83,7 @@
                 <textarea name="content" id="new_tour_content" class="form-control" rows="5"></textarea>
             </div>
 
-            <div class="row">
+            <div class="d-none row">
                 <div class="col-lg-3">
                     <div class="mb-3">
                         <label class="form-label" for="new_tour_price">Price (₹)</label>
