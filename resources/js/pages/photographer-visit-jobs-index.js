@@ -58,32 +58,60 @@ document.addEventListener('DOMContentLoaded', function () {
             },
             { 
                 data: 'booking', 
-                name: 'booking_id'
+                name: 'booking_id',
+                render: function(data) {
+                    return data || '';
+                }
             },
             { 
                 data: 'photographer', 
-                name: 'photographer.name'
+                name: 'photographer.name',
+                render: function(data) {
+                    return data || '';
+                }
             },
             { 
                 data: 'scheduled_date', 
-                name: 'scheduled_date'
+                name: 'scheduled_date',
+                render: function(data) {
+                    return data || '';
+                }
             },
             { 
                 data: 'priority', 
                 name: 'priority', 
-                className: 'text-center'
+                className: 'text-center',
+                render: function(data) {
+                    return data || '';
+                }
             },
             { 
                 data: 'status', 
                 name: 'status', 
-                className: 'text-center'
+                className: 'text-center',
+                render: function(data) {
+                    return data || '';
+                }
+            },
+            {
+                data: 'checkin_button',
+                name: 'checkin_button',
+                orderable: false,
+                searchable: false,
+                className: 'text-center',
+                render: function(data) {
+                    return data || '';
+                }
             },
             { 
                 data: 'action', 
                 name: 'action', 
                 orderable: false, 
                 searchable: false, 
-                className: 'text-end'
+                className: 'text-end',
+                render: function(data) {
+                    return data || '';
+                }
             }
         ],
         lengthMenu: [10, 25, 50, 100],

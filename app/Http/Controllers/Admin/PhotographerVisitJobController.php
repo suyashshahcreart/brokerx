@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\PhotographerCheckIn;
+use App\Models\PhotographerVisit;
 use App\Models\PhotographerVisitJob;
 use App\Models\User;
 use App\Models\Booking;
@@ -372,30 +374,60 @@ class PhotographerVisitJobController extends Controller
                 $photoPath = $request->file('photo')->store('photographer-job-checkins', 'public');
             }
 
-            // Update job status and metadata
-            $metadata = $photographerVisitJob->metadata ?? [];
-            $metadata['check_in'] = [
-                'location' => $validated['location'] ?? null,
-                'location_timestamp' => !empty($validated['location_timestamp']) ? Carbon::parse($validated['location_timestamp'])->toIso8601String() : null,
+            $locationTimestamp = !empty($validated['location_timestamp'])
+                ? Carbon::parse($validated['location_timestamp'])
+                : null;
+            $checkedAt = now();
+
+            // Prepare metadata for check-in
+            $checkInMetadata = [
+                'location_timestamp' => $locationTimestamp?->toIso8601String(),
                 'location_accuracy' => $validated['location_accuracy'] ?? null,
                 'location_source' => $validated['location_source'] ?? null,
-                'remarks' => $validated['remarks'] ?? null,
-                'photo' => $photoPath,
-                'checked_in_at' => now(),
                 'ip_address' => $request->ip(),
                 'device_info' => $request->userAgent(),
             ];
 
+            // Create photographer visit first (without check_in_id)
+            $photographerVisit = PhotographerVisit::create([
+                'job_id' => $photographerVisitJob->id,
+                'booking_id' => $photographerVisitJob->booking_id,
+                'tour_id' => $photographerVisitJob->tour_id,
+                'photographer_id' => auth()->id(),
+                'visit_date' => $checkedAt,
+                'status' => 'checked_in',
+                'metadata' => $checkInMetadata,
+                'created_by' => auth()->id(),
+            ]);
+
+            // Create check-in record
+            $checkIn = PhotographerCheckIn::create([
+                'visit_id' => $photographerVisit->id,
+                'photo' => $photoPath,
+                'metadata' => $checkInMetadata,
+                'checked_in_at' => $checkedAt,
+                'location' => $validated['location'] ?? null,
+                'ip_address' => $request->ip(),
+                'device_info' => $request->userAgent(),
+                'remarks' => $validated['remarks'] ?? null,
+                'created_by' => auth()->id(),
+            ]);
+
+            // Update photographer visit with check_in_id
+            $photographerVisit->update([
+                'check_in_id' => $checkIn->id,
+            ]);
+
+            // Update job status
             $photographerVisitJob->update([
                 'status' => 'in_progress',
-                'started_at' => now(),
-                'metadata' => $metadata,
+                'started_at' => $checkedAt,
             ]);
 
             activity('photographer_visit_jobs')
                 ->performedOn($photographerVisitJob)
                 ->causedBy(auth()->user())
-                ->withProperties(['event' => 'checked_in'])
+                ->withProperties(['event' => 'checked_in', 'visit_id' => $photographerVisit->id])
                 ->log('Photographer checked in for job');
 
             return redirect()->route('admin.photographer-visit-jobs.show', $photographerVisitJob)
@@ -404,7 +436,8 @@ class PhotographerVisitJobController extends Controller
         } catch (\Exception $e) {
             \Log::error('Error during photographer job check-in', [
                 'job_id' => $photographerVisitJob->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
 
             return redirect()->route('admin.photographer-visit-jobs.show', $photographerVisitJob)
@@ -434,6 +467,9 @@ class PhotographerVisitJobController extends Controller
     {
         $validated = $request->validate([
             'location' => 'nullable|string|max:255',
+            'location_timestamp' => 'nullable|date',
+            'location_accuracy' => 'nullable|numeric',
+            'location_source' => 'nullable|string|max:50',
             'remarks' => 'nullable|string|max:500',
             'photos_taken' => 'nullable|integer|min:0',
             'work_summary' => 'nullable|string|max:1000',
@@ -453,22 +489,46 @@ class PhotographerVisitJobController extends Controller
                 $photoPath = $request->file('photo')->store('photographer-job-checkouts', 'public');
             }
 
-            // Update job status and metadata
+            $locationTimestamp = !empty($validated['location_timestamp'])
+                ? Carbon::parse($validated['location_timestamp'])
+                : null;
+            $checkedAt = now();
+
             $metadata = $photographerVisitJob->metadata ?? [];
             $metadata['check_out'] = [
                 'location' => $validated['location'] ?? null,
+                'location_timestamp' => $locationTimestamp?->toIso8601String(),
+                'location_accuracy' => $validated['location_accuracy'] ?? null,
+                'location_source' => $validated['location_source'] ?? null,
                 'remarks' => $validated['remarks'] ?? null,
                 'photos_taken' => $validated['photos_taken'] ?? 0,
                 'work_summary' => $validated['work_summary'] ?? null,
                 'photo' => $photoPath,
-                'checked_out_at' => now(),
+                'checked_out_at' => $checkedAt->toIso8601String(),
                 'ip_address' => $request->ip(),
                 'device_info' => $request->userAgent(),
             ];
 
+            $photographerVisitJob->checks()->create([
+                'type' => 'out',
+                'photo' => $photoPath,
+                'location' => $validated['location'] ?? null,
+                'location_timestamp' => $locationTimestamp,
+                'location_accuracy' => $validated['location_accuracy'] ?? null,
+                'location_source' => $validated['location_source'] ?? null,
+                'photos_taken' => $validated['photos_taken'] ?? 0,
+                'work_summary' => $validated['work_summary'] ?? null,
+                'remarks' => $validated['remarks'] ?? null,
+                'metadata' => $metadata['check_out'],
+                'checked_at' => $checkedAt,
+                'ip_address' => $request->ip(),
+                'device_info' => $request->userAgent(),
+                'created_by' => auth()->id(),
+            ]);
+
             $photographerVisitJob->update([
                 'status' => 'completed',
-                'completed_at' => now(),
+                'completed_at' => $checkedAt,
                 'metadata' => $metadata,
             ]);
 

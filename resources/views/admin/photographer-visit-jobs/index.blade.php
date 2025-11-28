@@ -1,7 +1,5 @@
 @extends('admin.layouts.vertical', ['title' => 'Photographer Visit Jobs'])
 
-
-
 @section('content')
 <div class="container-fluid">
     <div class="row">
@@ -115,7 +113,8 @@
                                     <th>Scheduled Date</th>
                                     <th>Priority</th>
                                     <th>Status</th>
-                                    <th style="width: 100px;">Action</th>
+                                    <th class="text-center" style="width: 90px;">Check In</th>
+                                    <th style="width: 120px;">Action</th>
                                 </tr>
                             </thead>
                             <tbody></tbody>
@@ -136,7 +135,9 @@
         store: '{{ route('admin.photographer-visit-jobs.store') }}',
         show: '{{ route('admin.photographer-visit-jobs.show', ':id') }}',
         edit: '{{ route('admin.photographer-visit-jobs.edit', ':id') }}',
-        destroy: '{{ route('admin.photographer-visit-jobs.destroy', ':id') }}'
+        destroy: '{{ route('admin.photographer-visit-jobs.destroy', ':id') }}',
+        checkInForm: '{{ route('admin.photographer-visit-jobs.check-in-form', ':id') }}',
+        checkOutForm: '{{ route('admin.photographer-visit-jobs.check-out-form', ':id') }}'
     };
 </script>
 @vite(['resources/js/pages/photographer-visit-jobs-index.js'])

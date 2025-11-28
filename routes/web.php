@@ -81,10 +81,12 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'middleware' => ['web', 'au
     Route::post('bookings/{booking}/reschedule', [BookingController::class, 'reschedule'])->name('admin.bookings.reschedule');
     Route::post('bookings/{booking}/update-ajax', [BookingController::class, 'updateAjax'])->name('admin.bookings.update-ajax');
     Route::resource('photographer-visits', PhotographerVisitController::class);
-    Route::post('photographer-visits/{photographerVisit}/check-in', [PhotographerVisitController::class, 'checkIn'])->name('photographer-visits.check-in');
-    Route::post('photographer-visits/{photographerVisit}/check-out', [PhotographerVisitController::class, 'checkOut'])->name('photographer-visits.check-out');
     Route::resource('photographer-visit-jobs', PhotographerVisitJobController::class);
     Route::post('photographer-visit-jobs/{photographerVisitJob}/assign', [PhotographerVisitJobController::class, 'assign'])->name('photographer-visit-jobs.assign');
+    Route::get('photographer-visit-jobs/{photographerVisitJob}/check-in', [PhotographerVisitJobController::class, 'checkInForm'])->name('photographer-visit-jobs.check-in-form');
+    Route::post('photographer-visit-jobs/{photographerVisitJob}/check-in', [PhotographerVisitJobController::class, 'checkIn'])->name('photographer-visit-jobs.check-in');
+    Route::get('photographer-visit-jobs/{photographerVisitJob}/check-out', [PhotographerVisitJobController::class, 'checkOutForm'])->name('photographer-visit-jobs.check-out-form');
+    Route::post('photographer-visit-jobs/{photographerVisitJob}/check-out', [PhotographerVisitJobController::class, 'checkOut'])->name('photographer-visit-jobs.check-out');
     Route::resource('portfolios', AdminPortfolioController::class);
     Route::resource('holidays', HolidayController::class);
     Route::resource('tours', TourController::class);

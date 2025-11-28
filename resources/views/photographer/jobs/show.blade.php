@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('admin.layouts.vertical',['title'=>'Job Show'])
 
 @section('content')
 <div class="container-fluid">

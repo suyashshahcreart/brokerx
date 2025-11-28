@@ -109,6 +109,15 @@
                     d.photographer_id = $('#filter-photographer').val();
                     d.date_from = $('#filter-date-from').val();
                     d.date_to = $('#filter-date-to').val();
+                },
+                error: function(xhr, error, thrown) {
+                    console.error('DataTables Error:', {
+                        status: xhr.status,
+                        error: error,
+                        thrown: thrown,
+                        response: xhr.responseText
+                    });
+                    alert('Error loading data. Please check console for details.');
                 }
             },
             columns: [
@@ -121,7 +130,10 @@
                 { data: 'duration', name: 'duration', orderable: false, searchable: false },
                 { data: 'actions', name: 'actions', orderable: false, searchable: false, className: 'text-end' }
             ],
-            order: [[0, 'desc']]
+            order: [[0, 'desc']],
+            language: {
+                processing: '<i class="ri-loader-4-line spin"></i> Loading...'
+            }
         });
 
         // Filter change events

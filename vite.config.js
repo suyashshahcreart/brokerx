@@ -46,6 +46,7 @@ export default defineConfig({
                 'resources/js/pages/qr-index.js',
                 'resources/js/pages/tours-index.js',
                 'resources/js/pages/photographer-visit-jobs-index.js',
+                'resources/js/pages/photo-checkin-visit.js',
                 
                 //components
                 'resources/js/components/maps-google.js',

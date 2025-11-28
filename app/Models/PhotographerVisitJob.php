@@ -90,6 +90,11 @@ class PhotographerVisitJob extends Model
         return $this->hasMany(PhotographerVisit::class, 'job_id');
     }
 
+    public function checks(): HasMany
+    {
+        return $this->hasMany(PhotographerVisitJobCheck::class);
+    }
+
     /**
      * Get the user who created this job
      */
@@ -214,7 +219,7 @@ class PhotographerVisitJob extends Model
      */
     public function isAssigned(): bool
     {
-        return !is_null($this->photographer_id) && $this->status === 'assigned';
+        return !is_null($this->photographer_id) && strtolower($this->status) === 'assigned';
     }
 
     /**
@@ -222,7 +227,7 @@ class PhotographerVisitJob extends Model
      */
     public function isInProgress(): bool
     {
-        return $this->status === 'in_progress';
+        return strtolower($this->status) === 'in_progress';
     }
 
     /**
@@ -230,7 +235,7 @@ class PhotographerVisitJob extends Model
      */
     public function isCompleted(): bool
     {
-        return $this->status === 'completed';
+        return strtolower($this->status) === 'completed';
     }
 
     /**
@@ -238,9 +243,11 @@ class PhotographerVisitJob extends Model
      */
     public function isOverdue(): bool
     {
-        return $this->scheduled_date && 
-               $this->scheduled_date->isPast() && 
-               !in_array($this->status, ['completed', 'cancelled']);
+         $status = strtolower($this->status ?? '');
+
+         return $this->scheduled_date && 
+             $this->scheduled_date->isPast() && 
+             !in_array($status, ['completed', 'cancelled']);
     }
 
     /**
@@ -248,7 +255,9 @@ class PhotographerVisitJob extends Model
      */
     public function getPriorityColorAttribute(): string
     {
-        return match($this->priority) {
+        $priority = strtolower($this->priority ?? '');
+
+        return match($priority) {
             'urgent' => 'danger',
             'high' => 'warning',
             'normal' => 'info',
@@ -262,7 +271,9 @@ class PhotographerVisitJob extends Model
      */
     public function getStatusColorAttribute(): string
     {
-        return match($this->status) {
+        $status = strtolower($this->status ?? '');
+
+        return match($status) {
             'pending' => 'secondary',
             'assigned' => 'info',
             'in_progress' => 'primary',
