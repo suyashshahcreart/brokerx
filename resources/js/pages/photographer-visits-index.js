@@ -33,10 +33,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 d.photographer_id = $('#filter-photographer').val();
                 d.date_from = $('#filter-date-from').val();
                 d.date_to = $('#filter-date-to').val();
-                console.log('DataTables request data:', d);
             },
             dataSrc: function(json) {
-                console.log('DataTables raw response:', json);
                 return json.data;
             },
             error: function(xhr, error, thrown) {
@@ -116,8 +114,6 @@ document.addEventListener('DOMContentLoaded', function() {
             zeroRecords: 'No matching visits found'
         },
         drawCallback: function(settings) {
-            console.log('DataTables draw completed', settings);
-            
             // Reinitialize tooltips if they exist
             if (typeof bootstrap !== 'undefined' && bootstrap.Tooltip) {
                 const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
@@ -130,15 +126,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Filter change events
     $('#filter-status, #filter-photographer, #filter-date-from, #filter-date-to').on('change', function() {
-        console.log('Filter changed, redrawing table...');
         table.draw();
     });
 
     // Panel card refresh
     $('[data-panel-action="refresh"]').on('click', function() {
-        console.log('Refreshing table...');
         table.ajax.reload();
     });
     
-    console.log('Photographer Visits DataTable initialized successfully');
 });

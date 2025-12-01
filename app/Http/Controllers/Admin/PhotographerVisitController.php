@@ -90,7 +90,7 @@ class PhotographerVisitController extends Controller
                         ];
                         $color = $badges[$visit->status] ?? 'secondary';
                         $statusText = ucwords(str_replace('_', ' ', $visit->status));
-                        return '<span class=\"badge bg-' . $color . '\">' . $statusText . '</span>';
+                        return '<span class="badge bg-' . $color . '">' . $statusText . '</span>';
                     })
                     ->addColumn('actions', function (PhotographerVisit $visit) {
                         $actions = '<div class=\"btn-group\" role=\"group\">';
