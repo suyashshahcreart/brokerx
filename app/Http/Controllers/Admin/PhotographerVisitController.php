@@ -29,11 +29,15 @@ class PhotographerVisitController extends Controller
     {
         if ($request->ajax()) {
             try {
+                \Log::info('DataTables AJAX request received', [
+                    'filters' => $request->only(['status', 'photographer_id', 'booking_id', 'date_from', 'date_to'])
+                ]);
+
                 $query = PhotographerVisit::with([
-                    'photographer',
                     'booking',
-                    'checkIn',
-                    'checkOut'
+                    'photographer',
+                    'job',
+                    'tour'
                 ])->orderBy('created_at', 'desc');
 
                 // Apply filters
@@ -57,6 +61,8 @@ class PhotographerVisitController extends Controller
                     $query->whereDate('visit_date', '<=', $request->date_to);
                 }
 
+                \Log::info('Query built, total visits: ' . $query->count());
+
                 return DataTables::of($query)
                     ->addColumn('photographer_name', function (PhotographerVisit $visit) {
                         return $visit->photographer
@@ -65,14 +71,14 @@ class PhotographerVisitController extends Controller
                     })
                     ->addColumn('booking_info', function (PhotographerVisit $visit) {
                         if ($visit->booking) {
-                            return '#' . $visit->booking->id . '<div class="text-muted small">'
-                                . ($visit->booking->society_name ?? $visit->booking->address_area ?? '')
-                                . '</div>';
+                            $location = $visit->booking->society_name ?? $visit->booking->address_area ?? ($visit->booking->city ? $visit->booking->city->name : '');
+                            return '<strong>#' . $visit->booking->id . '</strong>' . 
+                                   ($location ? '<br><small class=\"text-muted\">' . $location . '</small>' : '');
                         }
                         return '-';
                     })
                     ->editColumn('visit_date', function (PhotographerVisit $visit) {
-                        return optional($visit->visit_date)->format('d M Y, h:i A') ?? '-';
+                        return $visit->visit_date ? $visit->visit_date->format('d M Y') . '<br><small class=\"text-muted\">' . $visit->visit_date->format('h:i A') . '</small>' : '-';
                     })
                     ->editColumn('status', function (PhotographerVisit $visit) {
                         $badges = [
@@ -83,47 +89,30 @@ class PhotographerVisitController extends Controller
                             'cancelled' => 'danger'
                         ];
                         $color = $badges[$visit->status] ?? 'secondary';
-                        return '<span class="badge bg-' . $color . ' text-uppercase">' . str_replace('_', ' ', $visit->status) . '</span>';
-                    })
-                    ->addColumn('check_status', function (PhotographerVisit $visit) {
-                        $html = '';
-                        if ($visit->checkIn) {
-                            $html .= '<span class="badge bg-success me-1" title="Checked In"><i class="ri-login-circle-line"></i></span>';
-                        }
-                        if ($visit->checkOut) {
-                            $html .= '<span class="badge bg-warning" title="Checked Out"><i class="ri-logout-circle-line"></i></span>';
-                        }
-                        return $html ?: '-';
-                    })
-                    ->addColumn('duration', function (PhotographerVisit $visit) {
-                        $duration = $visit->getDuration();
-                        if ($duration) {
-                            $hours = floor($duration / 60);
-                            $minutes = $duration % 60;
-                            return $hours > 0 ? "{$hours}h {$minutes}m" : "{$minutes}m";
-                        }
-                        return '-';
+                        $statusText = ucwords(str_replace('_', ' ', $visit->status));
+                        return '<span class=\"badge bg-' . $color . '\">' . $statusText . '</span>';
                     })
                     ->addColumn('actions', function (PhotographerVisit $visit) {
-                        $actions = '<div class="btn-group" role="group">';
+                        $actions = '<div class=\"btn-group\" role=\"group\">';
 
                         // View button
                         $view = route('admin.photographer-visits.show', $visit);
-                        $actions .= '<a href="' . $view . '" class="btn btn-light btn-sm border" title="View" data-bs-toggle="tooltip"><i class="ri-eye-line"></i></a>';
+                        $actions .= '<a href="' . $view . '" class="btn btn-sm btn-primary" title="View Details"><i class="ri-eye-line"></i></a>';
 
                         // Delete button (only for pending visits)
                         if ($visit->status === 'pending') {
                             $delete = route('admin.photographer-visits.destroy', $visit);
                             $csrf = csrf_field();
                             $method = method_field('DELETE');
-                            $actions .= ' <form action="' . $delete . '" method="POST" class="d-inline">' . $csrf . $method .
-                                '<button type="submit" class="btn btn-soft-danger btn-sm border" onclick="return confirm(\'Delete this visit?\')" title="Delete" data-bs-toggle="tooltip"><i class="ri-delete-bin-line"></i></button></form>';
+                            $actions .= ' <form action="' . $delete . '" method="POST" class="d-inline" onsubmit="return confirm(\'Are you sure you want to delete this visit?\');">' . $csrf . $method .
+                                '<button type="submit" class="btn btn-sm btn-danger" title="Delete"><i class="ri-delete-bin-line"></i></button></form>';
                         }
 
                         $actions .= '</div>';
                         return $actions;
                     })
-                    ->rawColumns(['booking_info', 'status', 'check_status', 'actions'])
+                    ->rawColumns(['booking_info', 'visit_date', 'status', 'actions'])
+                    ->only(['id', 'photographer_name', 'booking_info', 'visit_date', 'status', 'actions'])
                     ->make(true);
             } catch (\Exception $e) {
                 \Log::error('DataTables Error in PhotographerVisitController', [
@@ -170,10 +159,13 @@ class PhotographerVisitController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
+            'job_id' => 'nullable|exists:photographer_visit_jobs,id',
             'booking_id' => 'required|exists:bookings,id',
+            'tour_id' => 'nullable|exists:tours,id',
             'photographer_id' => 'required|exists:users,id',
             'visit_date' => 'required|date',
             'status' => 'required|in:pending,checked_in,checked_out,completed,cancelled',
+            'cancel_reason' => 'nullable|string|max:1000',
             'notes' => 'nullable|string|max:1000',
             'metadata' => 'nullable|array',
         ]);
@@ -188,13 +180,16 @@ class PhotographerVisitController extends Controller
             DB::beginTransaction();
 
             $visit = PhotographerVisit::create([
+                'job_id' => $request->job_id,
                 'booking_id' => $request->booking_id,
                 'tour_id' => $request->tour_id,
                 'photographer_id' => $request->photographer_id,
                 'visit_date' => $request->visit_date,
                 'status' => $request->status,
+                'cancel_reason' => $request->cancel_reason,
                 'notes' => $request->notes,
                 'metadata' => $request->metadata ?? [],
+                'created_by' => auth()->id(),
             ]);
 
             DB::commit();
@@ -222,8 +217,8 @@ class PhotographerVisitController extends Controller
             'booking.state',
             'booking.propertyType',
             'booking.propertySubType',
-            'checkIn',
-            'checkOut'
+            'job',
+            'tour'
         ]);
 
         return view('admin.photographer-visits.show', compact('photographerVisit'));
@@ -248,10 +243,13 @@ class PhotographerVisitController extends Controller
     public function update(Request $request, PhotographerVisit $photographerVisit)
     {
         $validator = Validator::make($request->all(), [
+            'job_id' => 'nullable|exists:photographer_visit_jobs,id',
             'booking_id' => 'required|exists:bookings,id',
+            'tour_id' => 'nullable|exists:tours,id',
             'photographer_id' => 'required|exists:users,id',
             'visit_date' => 'required|date',
             'status' => 'required|in:pending,checked_in,checked_out,completed,cancelled',
+            'cancel_reason' => 'nullable|string|max:1000',
             'notes' => 'nullable|string|max:1000',
             'metadata' => 'nullable|array',
         ]);
@@ -266,13 +264,16 @@ class PhotographerVisitController extends Controller
             DB::beginTransaction();
 
             $photographerVisit->update([
+                'job_id' => $request->job_id,
                 'booking_id' => $request->booking_id,
                 'tour_id' => $request->tour_id,
                 'photographer_id' => $request->photographer_id,
                 'visit_date' => $request->visit_date,
                 'status' => $request->status,
+                'cancel_reason' => $request->cancel_reason,
                 'notes' => $request->notes,
                 'metadata' => $request->metadata ?? $photographerVisit->metadata,
+                'updated_by' => auth()->id(),
             ]);
 
             DB::commit();
@@ -298,15 +299,17 @@ class PhotographerVisitController extends Controller
             DB::beginTransaction();
 
             // Delete associated check-in photo if exists
-            if ($photographerVisit->checkIn && $photographerVisit->checkIn->photo) {
-                Storage::disk('public')->delete($photographerVisit->checkIn->photo);
+            if ($photographerVisit->check_in_photo) {
+                Storage::disk('public')->delete($photographerVisit->check_in_photo);
             }
 
             // Delete associated check-out photo if exists
-            if ($photographerVisit->checkOut && $photographerVisit->checkOut->photo) {
-                Storage::disk('public')->delete($photographerVisit->checkOut->photo);
+            if ($photographerVisit->check_out_photo) {
+                Storage::disk('public')->delete($photographerVisit->check_out_photo);
             }
 
+            $photographerVisit->deleted_by = auth()->id();
+            $photographerVisit->save();
             $photographerVisit->delete();
 
             DB::commit();

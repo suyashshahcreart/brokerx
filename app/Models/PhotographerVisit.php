@@ -20,6 +20,7 @@ class PhotographerVisit extends Model
         'metadata',
         'visit_date',
         'status',
+        'cancel_reason',
         'notes',
         // merged check-in fields
         'check_in_photo',
@@ -39,6 +40,9 @@ class PhotographerVisit extends Model
         'check_out_remarks',
         'photos_taken',
         'work_summary',
+        'created_by',
+        'updated_by',
+        'deleted_by',
     ];
 
     protected $casts = [
@@ -80,6 +84,30 @@ class PhotographerVisit extends Model
     public function tour(): BelongsTo
     {
         return $this->belongsTo(Tour::class);
+    }
+
+    /**
+     * Get the user who created this visit
+     */
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * Get the user who last updated this visit
+     */
+    public function updater(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'updated_by');
+    }
+
+    /**
+     * Get the user who deleted this visit
+     */
+    public function deleter(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'deleted_by');
     }
 
     // check-in/out now live on this model (no separate relations)

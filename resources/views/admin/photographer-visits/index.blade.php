@@ -47,7 +47,7 @@
                 <div class="card-body">
                     <!-- Filters -->
                     <div class="row mb-3">
-                        <div class="col-md-3">
+                        <div class="col-md-3 mb-2">
                             <select id="filter-status" class="form-select">
                                 <option value="">All Status</option>
                                 <option value="pending">Pending</option>
@@ -57,7 +57,7 @@
                                 <option value="cancelled">Cancelled</option>
                             </select>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-3 mb-2">
                             <select id="filter-photographer" class="form-select">
                                 <option value="">All Photographers</option>
                                 @foreach($photographers as $photographer)
@@ -65,10 +65,10 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-3 mb-2">
                             <input type="date" id="filter-date-from" class="form-control" placeholder="From Date">
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-3 mb-2">
                             <input type="date" id="filter-date-to" class="form-control" placeholder="To Date">
                         </div>
                     </div>
@@ -77,14 +77,12 @@
                         <table class="table table-hover align-middle mb-0" id="visits-table">
                             <thead class="table-light">
                                 <tr>
-                                    <th>ID</th>
+                                    <th width="80">ID</th>
                                     <th>Photographer</th>
                                     <th>Booking</th>
                                     <th>Visit Date</th>
-                                    <th>Status</th>
-                                    <th>Check Status</th>
-                                    <th>Duration</th>
-                                    <th class="text-end">Actions</th>
+                                    <th width="120">Status</th>
+                                    <th width="100" class="text-end">Actions</th>
                                 </tr>
                             </thead>
                             <tbody></tbody>
@@ -95,56 +93,12 @@
         </div>
     </div>
 @endsection
-
-@push('scripts')
+@section('script')
+@vite(['resources/js/pages/photographer-visits-index.js'])
 <script>
-    $(document).ready(function() {
-        const table = $('#visits-table').DataTable({
-            processing: true,
-            serverSide: true,
-            ajax: {
-                url: '{{ route('admin.photographer-visits.index') }}',
-                data: function(d) {
-                    d.status = $('#filter-status').val();
-                    d.photographer_id = $('#filter-photographer').val();
-                    d.date_from = $('#filter-date-from').val();
-                    d.date_to = $('#filter-date-to').val();
-                },
-                error: function(xhr, error, thrown) {
-                    console.error('DataTables Error:', {
-                        status: xhr.status,
-                        error: error,
-                        thrown: thrown,
-                        response: xhr.responseText
-                    });
-                    alert('Error loading data. Please check console for details.');
-                }
-            },
-            columns: [
-                { data: 'id', name: 'id' },
-                { data: 'photographer_name', name: 'photographer.firstname' },
-                { data: 'booking_info', name: 'booking_id' },
-                { data: 'visit_date', name: 'visit_date' },
-                { data: 'status', name: 'status' },
-                { data: 'check_status', name: 'check_status', orderable: false, searchable: false },
-                { data: 'duration', name: 'duration', orderable: false, searchable: false },
-                { data: 'actions', name: 'actions', orderable: false, searchable: false, className: 'text-end' }
-            ],
-            order: [[0, 'desc']],
-            language: {
-                processing: '<i class="ri-loader-4-line spin"></i> Loading...'
-            }
-        });
-
-        // Filter change events
-        $('#filter-status, #filter-photographer, #filter-date-from, #filter-date-to').on('change', function() {
-            table.draw();
-        });
-
-        // Panel card refresh
-        $('[data-panel-action="refresh"]').on('click', function() {
-            table.ajax.reload();
-        });
-    });
+    // Configuration for the photographer visits page
+    window.photographerVisitsConfig = {
+        indexRoute: '{{ route('admin.photographer-visits.index') }}'
+    };
 </script>
-@endpush
+@endsection
