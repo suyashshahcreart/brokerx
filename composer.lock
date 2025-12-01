@@ -2422,6 +2422,7 @@
                 }
             ],
             "time": "2025-11-18T12:17:23+00:00"
+<<<<<<< HEAD
         },
         {
             "name": "masterminds/html5",
@@ -2489,6 +2490,8 @@
                 "source": "https://github.com/Masterminds/html5-php/tree/2.10.0"
             },
             "time": "2025-07-25T09:04:22+00:00"
+=======
+>>>>>>> 91b174e6e29d644c71e1c7c1493b0f9e5339d523
         },
         {
             "name": "monolog/monolog",

@@ -4,17 +4,21 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Setting;
+use App\Services\Sms\SmsGatewayManager;
 use Illuminate\Http\Request;
 use Yajra\DataTables\Facades\DataTables;
 
 class SettingController extends Controller
 {
-    public function __construct()
+    protected SmsGatewayManager $gatewayManager;
+
+    public function __construct(SmsGatewayManager $gatewayManager)
     {
         $this->middleware('permission:setting_view')->only(['index', 'show']);
         $this->middleware('permission:setting_create')->only(['create', 'store']);
         $this->middleware('permission:setting_edit')->only(['edit', 'update']);
         $this->middleware('permission:setting_delete')->only(['destroy']);
+        $this->gatewayManager = $gatewayManager;
     }
 
     /**
@@ -60,7 +64,30 @@ class SettingController extends Controller
             }
         }
         
-        return view('admin.settings.index', compact('settings', 'canCreate', 'canEdit', 'canDelete'));
+        // Get SMS gateway data for SMS Configuration tab
+        $gateways = $this->gatewayManager->getRegisteredGateways();
+        $gatewayInstances = [];
+        
+        foreach ($gateways as $key => $gatewayClass) {
+            $gateway = $this->gatewayManager->getGateway($key);
+            if ($gateway) {
+                $gatewayInstances[$key] = [
+                    'name' => $gateway->getName(),
+                    'configFields' => $gateway->getConfigFields(),
+                    'isConfigured' => $gateway->isConfigured(),
+                    'isActive' => $this->gatewayManager->isGatewayActive($key),
+                    'status' => $this->gatewayManager->getGatewayStatus($key),
+                ];
+            }
+        }
+        
+        $activeSmsGateway = $this->gatewayManager->getActiveGatewayFromSettings();
+        
+        // Get MSG91 templates from config file (always from config now)
+        $msg91Templates = config('msg91.templates', []);
+        $templatesSource = 'config';
+        
+        return view('admin.settings.index', compact('settings', 'canCreate', 'canEdit', 'canDelete', 'gatewayInstances', 'activeSmsGateway', 'msg91Templates', 'templatesSource'));
     }
 
     /**
@@ -273,6 +300,73 @@ class SettingController extends Controller
     }
 
     /**
+     * Update msg91.php config file with templates
+     */
+    protected function updateMsg91ConfigFile(array $templates)
+    {
+        $configPath = config_path('msg91.php');
+        
+        if (!file_exists($configPath)) {
+            return false;
+        }
+        
+        // Read config file
+        $configContent = file_get_contents($configPath);
+        
+        // Build templates array string with proper formatting
+        $templatesLines = [];
+        foreach ($templates as $key => $id) {
+            // Escape single quotes in values if needed
+            $escapedKey = addcslashes($key, "'\\");
+            $escapedId = addcslashes($id, "'\\");
+            $templatesLines[] = "        '{$escapedKey}' => '{$escapedId}',";
+        }
+        $templatesString = implode("\n", $templatesLines);
+        
+        // Pattern to match the entire templates array section (including comment and all content between brackets)
+        // Matches: // All Flow Template IDs\n    'templates' => [\n        ...\n    ],
+        // Using non-greedy match with .*? to match everything between [ and ],
+        $pattern = "/(\s*\/\/\s*All Flow Template IDs\s*\n\s*'templates'\s*=>\s*\[)(.*?)(\s*\],)/s";
+        
+        if (preg_match($pattern, $configContent)) {
+            // Replace existing templates array content
+            $replacement = '$1' . "\n" . $templatesString . "\n" . '    $3';
+            $configContent = preg_replace($pattern, $replacement, $configContent);
+        } else {
+            // Fallback: try without comment (just the templates array)
+            $pattern2 = "/(\s*'templates'\s*=>\s*\[)(.*?)(\s*\],)/s";
+            if (preg_match($pattern2, $configContent)) {
+                $replacement = '$1' . "\n" . $templatesString . "\n" . '    $3';
+                $configContent = preg_replace($pattern2, $replacement, $configContent);
+            } else {
+                // Last resort: find return array and add templates after sender
+                $pattern3 = "/(\s*'sender'\s*=>\s*[^,]+,\s*)(\s*)(\s*\];)/s";
+                if (preg_match($pattern3, $configContent)) {
+                    $replacement = '$1' . "\n\n    // All Flow Template IDs\n    'templates' => [\n" . $templatesString . "\n    ]," . '$3';
+                    $configContent = preg_replace($pattern3, $replacement, $configContent);
+                } else {
+                    \Log::error('Could not find templates section in msg91.php config file');
+                    return false;
+                }
+            }
+        }
+        
+        // Write back to config file
+        $result = file_put_contents($configPath, $configContent);
+        
+        // Clear config cache so changes take effect immediately
+        if ($result !== false) {
+            try {
+                \Illuminate\Support\Facades\Artisan::call('config:clear');
+            } catch (\Exception $e) {
+                \Log::warning('Failed to clear config cache: ' . $e->getMessage());
+            }
+        }
+        
+        return $result !== false;
+    }
+
+    /**
      * Update setting via API (for AJAX requests)
      */
 
@@ -320,6 +414,86 @@ class SettingController extends Controller
             }
         }
         
+        // Handle SMS gateway settings
+        $smsGatewayManager = app(\App\Services\Sms\SmsGatewayManager::class);
+        
+        // Handle active SMS gateway setting
+        if (isset($settingsData['active_sms_gateway'])) {
+            $gatewayKey = $settingsData['active_sms_gateway'];
+            
+            // Validate gateway exists
+            $gateways = $smsGatewayManager->getRegisteredGateways();
+            if (!isset($gateways[$gatewayKey])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "SMS Gateway '{$gatewayKey}' is not registered."
+                ], 400);
+            }
+            
+            // Will be saved in the main loop below
+        }
+
+        // Handle SMS gateway status toggles (e.g., sms_gateway_msg91_status)
+        $smsStatusFields = [];
+        foreach ($settingsData as $key => $value) {
+            if (strpos($key, 'sms_gateway_') === 0 && strpos($key, '_status') !== false) {
+                // This is a gateway status toggle - ensure it's 0 or 1
+                $normalizedValue = ($value === true || $value === '1' || $value === 1) ? '1' : '0';
+                $settingsData[$key] = $normalizedValue;
+                $smsStatusFields[] = $key;
+            }
+        }
+
+        // Handle MSG91 templates - save directly to config file
+        if (isset($settingsData['msg91_templates'])) {
+            $templatesJson = $settingsData['msg91_templates'];
+            $decoded = json_decode($templatesJson, true);
+            
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid JSON format for templates: ' . json_last_error_msg()
+                ], 400);
+            }
+            
+            if (!is_array($decoded)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Templates must be a valid array/object'
+                ], 400);
+            }
+            
+            // Validate template keys and IDs
+            foreach ($decoded as $key => $id) {
+                if (empty($key) || empty($id)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Template key and ID cannot be empty'
+                    ], 400);
+                }
+                
+                // Validate key format (lowercase with underscores)
+                if (!preg_match('/^[a-z0-9_]+$/', $key)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => "Invalid template key format: '{$key}'. Use only lowercase letters, numbers, and underscores."
+                    ], 400);
+                }
+            }
+            
+            // Update config file directly
+            $configUpdated = $this->updateMsg91ConfigFile($decoded);
+            if (!$configUpdated) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to update config file. Please check file permissions.'
+                ], 500);
+            }
+            
+            // Remove from settingsData so it's not saved to database
+            unset($settingsData['msg91_templates']);
+        }
+
         if (empty($settingsData)) {
             return response()->json([
                 'success' => true,
@@ -331,8 +505,16 @@ class SettingController extends Controller
 
         // Loop through each setting and update/create
         foreach ($settingsData as $key => $value) {
-            // Skip empty keys
+            // Skip empty keys (but allow '0' for status fields)
             if (empty($key)) {
+                continue;
+            }
+            
+            // Allow '0' value for SMS gateway status fields
+            if (in_array($key, $smsStatusFields) && $value === '0') {
+                // This is fine, continue processing
+            } elseif (empty($value) && !in_array($key, $smsStatusFields) && $key !== 'msg91_templates') {
+                // Skip empty values for non-status fields (but allow msg91_templates which is JSON)
                 continue;
             }
 
@@ -342,8 +524,12 @@ class SettingController extends Controller
             $isNew = !$setting->exists;
             $oldValue = $setting->value ?? null;
 
-            // Prepare the value (encode arrays as JSON)
-            $settingValue = is_array($value) ? json_encode($value) : $value;
+            // Prepare the value (encode arrays as JSON, but msg91_templates is already JSON)
+            if ($key === 'msg91_templates') {
+                $settingValue = $value; // Already JSON string
+            } else {
+                $settingValue = is_array($value) ? json_encode($value) : (string) $value;
+            }
             
             // Only update if value has changed
             if ($settingValue != $oldValue) {

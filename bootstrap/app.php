@@ -22,6 +22,11 @@ return Application::configure(basePath: dirname(__DIR__))
             'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
         ]);
 
+        // Exclude API routes from CSRF verification for Postman testing
+        $middleware->validateCsrfTokens(except: [
+            'api/*',
+        ]);
+
         // Redirect unauthenticated users to admin login
         $middleware->redirectGuestsTo(fn () => route('admin.login'));
     })

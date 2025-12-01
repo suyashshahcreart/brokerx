@@ -35,5 +35,5 @@
 @include('admin.layouts.partials/footer-scripts')
 
 </body>
-
+    @yield('scripts')
 </html>

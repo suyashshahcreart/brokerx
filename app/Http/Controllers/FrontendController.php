@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Tour;
 use Illuminate\Http\Request;
 use App\Models\Booking;
 use App\Models\User;
@@ -12,6 +13,7 @@ use App\Models\PropertyType;
 use App\Models\PropertySubType;
 use App\Models\Setting;
 use App\Services\CashfreeService;
+use App\Services\SmsService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
@@ -21,10 +23,12 @@ use Spatie\Permission\Models\Role;
 class FrontendController extends Controller
 {
     protected CashfreeService $cashfree;
+    protected SmsService $smsService;
 
-    public function __construct(CashfreeService $cashfree)
+    public function __construct(CashfreeService $cashfree, SmsService $smsService)
     {
         $this->cashfree = $cashfree;
+        $this->smsService = $smsService;
     }
     public function index()
     {
@@ -111,19 +115,96 @@ class FrontendController extends Controller
                 'otp_expires_at' => now()->addMinutes(5),
             ]);
 
-            // TODO: Integrate SMS gateway here
-            // Example: SMS::send($mobile, "Your OTP is: {$otp}. Valid for 5 minutes.");
-            log::info('User OTP:'.$otp);
+            // Send OTP via SMS
+            // Format mobile with country code (91 for India)
+            $mobileWithCountryCode = '91' . $mobile;
+            
+            // Determine template: registration_otp for new users, login_otp for existing
+            $templateKey = $isNewUser ? 'registration_otp' : 'login_otp';
+            
+            // Track whether SMS was sent successfully
+            $smsSent = false;
+            
+            // Try to send OTP via SMS (silently fail if gateway is disabled)
+            try {
+                $this->smsService->send(
+                    $mobileWithCountryCode,
+                    $templateKey,
+                    ['OTP' => $otp],
+                    [
+                        'type' => 'manual',
+                        'reference_type' => \App\Models\User::class,
+                        'reference_id' => $user->id,
+                        'notes' => $isNewUser ? 'Registration OTP' : 'Login OTP - Setup Page'
+                    ]
+                );
+                
+                $smsSent = true;
+                
+                Log::info('✅ OTP SMS sent successfully', [
+                    'mobile' => $mobile,
+                    'template' => $templateKey,
+                    'is_new_user' => $isNewUser,
+                    'user_id' => $user->id,
+                ]);
+            } catch (\RuntimeException $e) {
+                // Check if error is about SMS gateway not being enabled
+                $errorMessage = $e->getMessage();
+                if (stripos($errorMessage, 'not enabled') !== false || 
+                    stripos($errorMessage, 'not configured') !== false ||
+                    stripos($errorMessage, 'no active') !== false) {
+                    
+                    // SMS gateway is disabled - log silently and continue workflow
+                    Log::info('⚠️ SMS Gateway not enabled - OTP not sent via SMS', [
+                        'mobile' => $mobile,
+                        'user_id' => $user->id,
+                        'otp' => $otp, // Log OTP for reference
+                    ]);
+                    
+                    // In development, log OTP for testing
+                    if (config('app.debug')) {
+                        Log::info('📱 OTP (SMS Gateway Disabled - Development): ' . $otp);
+                    }
+                } else {
+                    // Other SMS errors - log but continue workflow
+                    Log::warning('⚠️ Failed to send OTP SMS - continuing without SMS', [
+                        'mobile' => $mobile,
+                        'template' => $templateKey,
+                        'error' => $errorMessage,
+                        'user_id' => $user->id,
+                    ]);
+                    
+                    // In development, log OTP for testing
+                    if (config('app.debug')) {
+                        Log::info('📱 OTP (SMS Failed - Development): ' . $otp);
+                    }
+                }
+            } catch (\Exception $e) {
+                // Log unexpected errors but continue workflow
+                Log::warning('⚠️ Unexpected error sending OTP SMS - continuing without SMS', [
+                    'mobile' => $mobile,
+                    'template' => $templateKey,
+                    'error' => $e->getMessage(),
+                    'user_id' => $user->id,
+                ]);
+                
+                // In development, log OTP for testing
+                if (config('app.debug')) {
+                    Log::info('📱 OTP (Unexpected Error - Development): ' . $otp);
+                }
+            }
 
-            // Return success response
+            // Return success response with SMS status
             return response()->json([
                 'success' => true,
                 'message' => $isNewUser 
                     ? 'Account created! OTP sent to your mobile number.' 
                     : 'OTP sent to your registered mobile number.',
+                'sms_sent' => $smsSent,
                 'data' => [
                     'is_new_user' => $isNewUser,
                     'user_status' => $userStatus,
+                    'sms_sent' => $smsSent,
                     'user' => [
                         'id' => $user->id,
                         'name' => $user->firstname . ' ' . $user->lastname,
@@ -293,24 +374,94 @@ class FrontendController extends Controller
                 'otp_expires_at' => now()->addMinutes(10),
             ]);
 
-            // TODO: Send OTP via SMS service
-            // For now, we'll log it (remove in production)
-            Log::info('📱 Login OTP sent', [
-                'mobile' => $mobile,
-                'otp' => $otp, // Remove this in production
-                'is_new_user' => $isNewUser,
-                'expires_at' => $user->otp_expires_at,
-            ]);
+            // Send OTP via SMS
+            // Format mobile with country code (91 for India)
+            $mobileWithCountryCode = '91' . $mobile;
+            
+            // Determine template: registration_otp for new users, login_otp for existing
+            $templateKey = $isNewUser ? 'registration_otp' : 'login_otp';
+            
+            // Track whether SMS was sent successfully
+            $smsSent = false;
+            
+            // Try to send OTP via SMS (silently fail if gateway is disabled)
+            try {
+                $this->smsService->send(
+                    $mobileWithCountryCode,
+                    $templateKey,
+                    ['OTP' => $otp],
+                    [
+                        'type' => 'manual',
+                        'reference_type' => \App\Models\User::class,
+                        'reference_id' => $user->id,
+                        'notes' => $isNewUser ? 'Registration OTP - Login Page' : 'Login OTP'
+                    ]
+                );
+                
+                $smsSent = true;
+                
+                Log::info('✅ Login OTP SMS sent successfully', [
+                    'mobile' => $mobile,
+                    'template' => $templateKey,
+                    'is_new_user' => $isNewUser,
+                    'user_id' => $user->id,
+                ]);
+            } catch (\RuntimeException $e) {
+                // Check if error is about SMS gateway not being enabled
+                $errorMessage = $e->getMessage();
+                if (stripos($errorMessage, 'not enabled') !== false || 
+                    stripos($errorMessage, 'not configured') !== false ||
+                    stripos($errorMessage, 'no active') !== false) {
+                    
+                    // SMS gateway is disabled - log silently and continue workflow
+                    Log::info('⚠️ SMS Gateway not enabled - OTP not sent via SMS', [
+                        'mobile' => $mobile,
+                        'user_id' => $user->id,
+                        'otp' => $otp, // Log OTP for reference
+                    ]);
+                    
+                    // In development, log OTP for testing
+                    if (config('app.debug')) {
+                        Log::info('📱 Login OTP (SMS Gateway Disabled - Development): ' . $otp);
+                    }
+                } else {
+                    // Other SMS errors - log but continue workflow
+                    Log::warning('⚠️ Failed to send Login OTP SMS - continuing without SMS', [
+                        'mobile' => $mobile,
+                        'template' => $templateKey,
+                        'error' => $errorMessage,
+                        'user_id' => $user->id,
+                    ]);
+                    
+                    // In development, log OTP for testing
+                    if (config('app.debug')) {
+                        Log::info('📱 Login OTP (SMS Failed - Development): ' . $otp);
+                    }
+                }
+            } catch (\Exception $e) {
+                // Log unexpected errors but continue workflow
+                Log::warning('⚠️ Unexpected error sending Login OTP SMS - continuing without SMS', [
+                    'mobile' => $mobile,
+                    'template' => $templateKey,
+                    'error' => $e->getMessage(),
+                    'user_id' => $user->id,
+                ]);
+                
+                // In development, log OTP for testing
+                if (config('app.debug')) {
+                    Log::info('📱 Login OTP (Unexpected Error - Development): ' . $otp);
+                }
+            }
 
             return response()->json([
                 'success' => true,
                 'message' => 'OTP sent successfully',
+                'sms_sent' => $smsSent,
                 'data' => [
                     'mobile' => $mobile,
                     'is_new_user' => $isNewUser,
                     'is_existing_user' => !$isNewUser,
-                    // In development, include OTP for testing (remove in production)
-                    'otp' => config('app.debug') ? $otp : null,
+                    'sms_sent' => $smsSent,
                 ],
             ]);
 
@@ -402,6 +553,15 @@ class FrontendController extends Controller
             'updated_by' => $user->id,
         ]);
 
+        // Create a tour for this booking
+        Tour::create([
+            'booking_id' => $booking->id,
+            'name' => 'Tour for Booking #' . $booking->id,
+            'title' => 'Property Tour - ' . ($validated['name'] ?? 'Property'),
+            'status' => 'draft',
+            'revision' => 1,
+        ]);
+
         // Redirect with success message
         return redirect()->route('frontend.index')->with('success', 'Booking submitted successfully! Our team will contact you soon.');
     }
@@ -481,6 +641,17 @@ class FrontendController extends Controller
         $booking->status = 'pending';
         $booking->updated_by = $user->id;
         $booking->save();
+
+        // Create tour only if this is a new booking (not an update)
+        if (!$validated['booking_id']) {
+            \App\Models\Tour::create([
+                'booking_id' => $booking->id,
+                'name' => 'Tour for Booking #' . $booking->id,
+                'title' => 'Property Tour - ' . ($validated['name'] ?? 'Property'),
+                'status' => 'draft',
+                'revision' => 1,
+            ]);
+        }
 
         return response()->json([
             'success' => true,
