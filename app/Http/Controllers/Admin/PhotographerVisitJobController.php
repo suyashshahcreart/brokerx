@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\PhotographerCheckIn;
 use App\Models\PhotographerVisit;
 use App\Models\PhotographerVisitJob;
 use App\Models\User;
@@ -388,7 +387,7 @@ class PhotographerVisitJobController extends Controller
                 'device_info' => $request->userAgent(),
             ];
 
-            // Create photographer visit first (without check_in_id)
+            // Create photographer visit with merged check-in fields
             $photographerVisit = PhotographerVisit::create([
                 'job_id' => $photographerVisitJob->id,
                 'booking_id' => $photographerVisitJob->booking_id,
@@ -397,25 +396,14 @@ class PhotographerVisitJobController extends Controller
                 'visit_date' => $checkedAt,
                 'status' => 'checked_in',
                 'metadata' => $checkInMetadata,
-                'created_by' => auth()->id(),
-            ]);
-
-            // Create check-in record
-            $checkIn = PhotographerCheckIn::create([
-                'visit_id' => $photographerVisit->id,
-                'photo' => $photoPath,
-                'metadata' => $checkInMetadata,
+                'check_in_photo' => $photoPath,
+                'check_in_metadata' => $checkInMetadata,
                 'checked_in_at' => $checkedAt,
-                'location' => $validated['location'] ?? null,
-                'ip_address' => $request->ip(),
-                'device_info' => $request->userAgent(),
-                'remarks' => $validated['remarks'] ?? null,
+                'check_in_location' => $validated['location'] ?? null,
+                'check_in_ip_address' => $request->ip(),
+                'check_in_device_info' => $request->userAgent(),
+                'check_in_remarks' => $validated['remarks'] ?? null,
                 'created_by' => auth()->id(),
-            ]);
-
-            // Update photographer visit with check_in_id
-            $photographerVisit->update([
-                'check_in_id' => $checkIn->id,
             ]);
 
             // Update job status
@@ -494,6 +482,37 @@ class PhotographerVisitJobController extends Controller
                 : null;
             $checkedAt = now();
 
+            // Prepare metadata for check-out
+            $checkOutMetadata = [
+                'location_timestamp' => $locationTimestamp?->toIso8601String(),
+                'location_accuracy' => $validated['location_accuracy'] ?? null,
+                'location_source' => $validated['location_source'] ?? null,
+                'ip_address' => $request->ip(),
+                'device_info' => $request->userAgent(),
+            ];
+
+            // Update the related photographer visit with merged check-out fields
+            $visit = PhotographerVisit::where('job_id', $photographerVisitJob->id)
+                ->orderByDesc('id')
+                ->first();
+
+            if ($visit) {
+                $visit->update([
+                    'status' => 'completed',
+                    'check_out_photo' => $photoPath,
+                    'check_out_metadata' => $checkOutMetadata,
+                    'checked_out_at' => $checkedAt,
+                    'check_out_location' => $validated['location'] ?? null,
+                    'check_out_ip_address' => $request->ip(),
+                    'check_out_device_info' => $request->userAgent(),
+                    'check_out_remarks' => $validated['remarks'] ?? null,
+                    'photos_taken' => $validated['photos_taken'] ?? 0,
+                    'work_summary' => $validated['work_summary'] ?? null,
+                    'updated_by' => auth()->id(),
+                ]);
+            }
+
+            // Update job metadata and status
             $metadata = $photographerVisitJob->metadata ?? [];
             $metadata['check_out'] = [
                 'location' => $validated['location'] ?? null,
@@ -509,6 +528,7 @@ class PhotographerVisitJobController extends Controller
                 'device_info' => $request->userAgent(),
             ];
 
+            // Create check record for job
             $photographerVisitJob->checks()->create([
                 'type' => 'out',
                 'photo' => $photoPath,

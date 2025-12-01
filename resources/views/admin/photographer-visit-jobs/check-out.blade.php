@@ -91,7 +91,6 @@
                     <!-- Check-out Form -->
                     <form action="{{ route('admin.photographer-visit-jobs.check-out', $photographerVisitJob) }}" method="POST" enctype="multipart/form-data">
                         @csrf
-
                         @if ($errors->any())
                             <div class="alert alert-danger">
                                 <ul class="mb-0">
@@ -105,33 +104,65 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label for="location" class="form-label">Current Location <small class="text-muted">(Optional)</small></label>
-                                    <input type="text" class="form-control" id="location" name="location" placeholder="Enter your current location">
-                                    <div class="form-text">This will help track where you completed the job</div>
+                                    <label class="form-label">Current Location</label>
+                                    <div class="d-flex gap-2 flex-wrap align-items-center">
+                                        <button type="button" class="btn btn-outline-secondary" id="detect-location-btn">
+                                            <i class="ri-target-line me-1"></i>Use GPS
+                                        </button>
+                                        <span class="small text-muted">Location is captured silently when allowed.</span>
+                                    </div>
+                                    <div class="form-text" id="location-status">Press "Use GPS" to capture the device location. Details stay hidden but are submitted automatically.</div>
+                                </div>
+                                <input type="hidden" id="location" name="location">
+                                <input type="hidden" id="location-timestamp" name="location_timestamp">
+                                <input type="hidden" id="location-accuracy" name="location_accuracy">
+                                <input type="hidden" id="location-source" name="location_source">
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Check-out Photo <small class="text-muted">(Capture required)</small></label>
+                                    <div class="camera-wrapper border rounded p-3 bg-light">
+                                        <div class="position-relative mb-2">
+                                            <video id="camera-stream" class="w-100 rounded border" autoplay playsinline muted></video>
+                                            <img id="photo-preview" class="w-100 rounded border d-none" alt="Captured check-out preview">
+                                            <canvas id="photo-canvas" class="d-none"></canvas>
+                                        </div>
+                                        <div class="d-flex flex-wrap gap-2">
+                                            <button type="button" class="btn btn-outline-primary btn-sm" id="open-camera-btn">
+                                                <i class="ri-vidicon-line me-1"></i>Open Camera
+                                            </button>
+                                            <button type="button" class="btn btn-primary btn-sm" id="capture-btn" disabled>
+                                                <i class="ri-camera-line me-1"></i>Capture Photo
+                                            </button>
+                                            <button type="button" class="btn btn-outline-secondary btn-sm d-none" id="retake-btn">
+                                                <i class="ri-refresh-line me-1"></i>Retake
+                                            </button>
+                                        </div>
+                                        <p class="small text-muted mt-2 mb-0" id="camera-status">Camera idle. Click "Open Camera" to allow access.</p>
+                                    </div>
+                                    <input type="file" class="d-none" id="photo" name="photo" accept="image/*" capture="environment">
                                 </div>
                             </div>
+                        </div>
+
+                        <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="photos_taken" class="form-label">Photos Taken</label>
                                     <input type="number" class="form-control" id="photos_taken" name="photos_taken" min="0" placeholder="Number of photos taken">
                                 </div>
                             </div>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="work_summary" class="form-label">Work Summary <small class="text-muted">(Optional)</small></label>
-                            <textarea class="form-control" id="work_summary" name="work_summary" rows="3" placeholder="Describe the work completed..."></textarea>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="photo" class="form-label">Check-out Photo <small class="text-muted">(Optional)</small></label>
-                            <input type="file" class="form-control" id="photo" name="photo" accept="image/*">
-                            <div class="form-text">Upload a photo to verify your check-out location</div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="work_summary" class="form-label">Work Summary <small class="text-muted">(Optional)</small></label>
+                                    <textarea class="form-control" id="work_summary" name="work_summary" rows="3" placeholder="Describe the work completed..."></textarea>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="mb-3">
                             <label for="remarks" class="form-label">Remarks <small class="text-muted">(Optional)</small></label>
-                            <textarea class="form-control" id="remarks" name="remarks" rows="2" placeholder="Any final remarks..."></textarea>
+                            <textarea class="form-control" id="remarks" name="remarks" rows="3" placeholder="Any remarks about the check-out..."></textarea>
                         </div>
 
                         <div class="d-flex justify-content-between">
@@ -168,6 +199,7 @@
                         <ul class="mb-0 mt-2">
                             <li>Make sure all work is completed</li>
                             <li>Provide accurate photo count</li>
+                            <li>Take a clear photo if required</li>
                             <li>Check-out cannot be undone</li>
                             <li>Job will be marked as completed</li>
                         </ul>
@@ -177,22 +209,5 @@
         </div>
     </div>
 </div>
+@vite(['resources/js/pages/photo-checkin-visit.js'])
 @endsection
-
-@push('scripts')
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Get current location if supported
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(function(position) {
-            const locationInput = document.getElementById('location');
-            if (!locationInput.value) {
-                locationInput.value = `${position.coords.latitude}, ${position.coords.longitude}`;
-            }
-        }, function(error) {
-            console.log('Geolocation error:', error);
-        });
-    }
-});
-</script>
-@endpush

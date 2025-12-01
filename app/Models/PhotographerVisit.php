@@ -17,17 +17,37 @@ class PhotographerVisit extends Model
         'booking_id',
         'tour_id',
         'photographer_id',
-        'check_in_id',
-        'check_out_id',
         'metadata',
         'visit_date',
         'status',
         'notes',
+        // merged check-in fields
+        'check_in_photo',
+        'check_in_metadata',
+        'checked_in_at',
+        'check_in_location',
+        'check_in_ip_address',
+        'check_in_device_info',
+        'check_in_remarks',
+        // merged check-out fields
+        'check_out_photo',
+        'check_out_metadata',
+        'checked_out_at',
+        'check_out_location',
+        'check_out_ip_address',
+        'check_out_device_info',
+        'check_out_remarks',
+        'photos_taken',
+        'work_summary',
     ];
 
     protected $casts = [
         'metadata' => 'array',
         'visit_date' => 'datetime',
+        'check_in_metadata' => 'array',
+        'check_out_metadata' => 'array',
+        'checked_in_at' => 'datetime',
+        'checked_out_at' => 'datetime',
     ];
 
     /**
@@ -62,21 +82,7 @@ class PhotographerVisit extends Model
         return $this->belongsTo(Tour::class);
     }
 
-    /**
-     * Get the check-in record for this visit
-     */
-    public function checkIn(): HasOne
-    {
-        return $this->hasOne(PhotographerCheckIn::class, 'visit_id');
-    }
-
-    /**
-     * Get the check-out record for this visit
-     */
-    public function checkOut(): HasOne
-    {
-        return $this->hasOne(PhotographerCheckOut::class, 'visit_id');
-    }
+    // check-in/out now live on this model (no separate relations)
 
     /**
      * Scope to get visits by status
@@ -115,7 +121,7 @@ class PhotographerVisit extends Model
      */
     public function isCheckedIn(): bool
     {
-        return $this->status === 'checked_in' && $this->checkIn()->exists();
+        return $this->status === 'checked_in' && !is_null($this->checked_in_at);
     }
 
     /**
@@ -123,7 +129,7 @@ class PhotographerVisit extends Model
      */
     public function isCheckedOut(): bool
     {
-        return $this->status === 'checked_out' && $this->checkOut()->exists();
+        return $this->status === 'checked_out' && !is_null($this->checked_out_at);
     }
 
     /**
@@ -131,7 +137,7 @@ class PhotographerVisit extends Model
      */
     public function isCompleted(): bool
     {
-        return $this->status === 'completed' && $this->checkIn()->exists() && $this->checkOut()->exists();
+        return $this->status === 'completed' && !is_null($this->checked_in_at) && !is_null($this->checked_out_at);
     }
 
     /**
@@ -139,10 +145,9 @@ class PhotographerVisit extends Model
      */
     public function getDuration(): ?int
     {
-        if (!$this->checkIn || !$this->checkOut) {
+        if (!$this->checked_in_at || !$this->checked_out_at) {
             return null;
         }
-
-        return $this->checkIn->checked_in_at->diffInMinutes($this->checkOut->checked_out_at);
+        return $this->checked_in_at->diffInMinutes($this->checked_out_at);
     }
 }
