@@ -65,8 +65,22 @@
                                     ];
                                     $color = $badges[$photographerVisit->status] ?? 'secondary';
                                 @endphp
-                                <span class="badge bg-{{ $color }} text-uppercase">{{ $photographerVisit->status }}</span>
+                                <span class="badge bg-{{ $color }}">{{ ucwords(str_replace('_', ' ', $photographerVisit->status)) }}</span>
                             </dd>
+
+                            @if($photographerVisit->job)
+                            <dt class="col-sm-4">Job Code</dt>
+                            <dd class="col-sm-8">
+                                <span class="badge bg-dark">{{ $photographerVisit->job->job_code }}</span>
+                            </dd>
+                            @endif
+
+                            @if($photographerVisit->cancel_reason)
+                            <dt class="col-sm-4">Cancel Reason</dt>
+                            <dd class="col-sm-8">
+                                <div class="alert alert-danger mb-0">{{ $photographerVisit->cancel_reason }}</div>
+                            </dd>
+                            @endif
 
                             @if($photographerVisit->notes)
                             <dt class="col-sm-4">Notes</dt>
@@ -102,7 +116,7 @@
         </div>
 
         <!-- Check-In Details -->
-        @if($photographerVisit->checkIn)
+        @if($photographerVisit->checked_in_at)
         <div class="card panel-card border-success border-top mb-3" data-panel-card>
             <div class="card-header bg-light">
                 <div class="d-flex align-items-center">
@@ -115,30 +129,53 @@
                     <div class="col-lg-6">
                         <dl class="row mb-0">
                             <dt class="col-sm-4">Checked In At</dt>
-                            <dd class="col-sm-8">{{ $photographerVisit->checkIn->checked_in_at->format('d M Y, h:i A') }}</dd>
+                            <dd class="col-sm-8">{{ $photographerVisit->checked_in_at->format('d M Y, h:i A') }}</dd>
 
-                            @if($photographerVisit->checkIn->ip_address)
+                            @if($photographerVisit->check_in_ip_address)
                             <dt class="col-sm-4">IP Address</dt>
-                            <dd class="col-sm-8">{{ $photographerVisit->checkIn->ip_address }}</dd>
+                            <dd class="col-sm-8">{{ $photographerVisit->check_in_ip_address }}</dd>
                             @endif
 
-                            @if($photographerVisit->checkIn->location)
+                            @if($photographerVisit->check_in_location)
                             <dt class="col-sm-4">Location</dt>
-                            <dd class="col-sm-8">{{ $photographerVisit->checkIn->location }}</dd>
+                            <dd class="col-sm-8">
+                                <a href="https://www.google.com/maps?q={{ $photographerVisit->check_in_location }}" target="_blank" class="text-decoration-none">
+                                    {{ $photographerVisit->check_in_location }} <i class="ri-external-link-line"></i>
+                                </a>
+                            </dd>
                             @endif
 
-                            @if($photographerVisit->checkIn->remarks)
+                            @if($photographerVisit->check_in_metadata)
+                            <dt class="col-sm-4">Location Accuracy</dt>
+                            <dd class="col-sm-8">{{ $photographerVisit->check_in_metadata['location_accuracy'] ?? '-' }} meters</dd>
+
+                            <dt class="col-sm-4">Location Source</dt>
+                            <dd class="col-sm-8">
+                                <span class="badge bg-secondary">{{ strtoupper($photographerVisit->check_in_metadata['location_source'] ?? 'Unknown') }}</span>
+                            </dd>
+                            @endif
+
+                            @if($photographerVisit->check_in_device_info)
+                            <dt class="col-sm-4">Device Info</dt>
+                            <dd class="col-sm-8"><small class="text-muted">{{ Str::limit($photographerVisit->check_in_device_info, 60) }}</small></dd>
+                            @endif
+
+                            @if($photographerVisit->check_in_remarks)
                             <dt class="col-sm-4">Remarks</dt>
-                            <dd class="col-sm-8">{{ $photographerVisit->checkIn->remarks }}</dd>
+                            <dd class="col-sm-8">{{ $photographerVisit->check_in_remarks }}</dd>
                             @endif
                         </dl>
                     </div>
                     <div class="col-lg-6">
-                        @if($photographerVisit->checkIn->photo)
+                        @if($photographerVisit->check_in_photo)
                         <div>
                             <label class="form-label fw-bold">Check-In Photo</label>
                             <div class="border rounded p-2">
-                                <img src="{{ $photographerVisit->checkIn->photo_url }}" alt="Check-in Photo" class="img-fluid rounded" style="max-height: 300px;">
+                                <img src="{{ asset('storage/' . $photographerVisit->check_in_photo) }}" 
+                                     alt="Check-in Photo" 
+                                     class="img-fluid rounded" 
+                                     style="max-height: 300px; cursor: pointer;"
+                                     onclick="window.open(this.src, '_blank')">
                             </div>
                         </div>
                         @endif
@@ -149,7 +186,7 @@
         @endif
 
         <!-- Check-Out Details -->
-        @if($photographerVisit->checkOut)
+        @if($photographerVisit->checked_out_at)
         <div class="card panel-card border-warning border-top mb-3" data-panel-card>
             <div class="card-header bg-light">
                 <div class="d-flex align-items-center">
@@ -162,9 +199,9 @@
                     <div class="col-lg-6">
                         <dl class="row mb-0">
                             <dt class="col-sm-4">Checked Out At</dt>
-                            <dd class="col-sm-8">{{ $photographerVisit->checkOut->checked_out_at->format('d M Y, h:i A') }}</dd>
+                            <dd class="col-sm-8">{{ $photographerVisit->checked_out_at->format('d M Y, h:i A') }}</dd>
 
-                            @if($photographerVisit->checkIn && $photographerVisit->checkOut)
+                            @if($photographerVisit->checked_in_at && $photographerVisit->checked_out_at)
                             <dt class="col-sm-4">Duration</dt>
                             <dd class="col-sm-8">
                                 @php
@@ -172,40 +209,67 @@
                                     $hours = floor($duration / 60);
                                     $minutes = $duration % 60;
                                 @endphp
-                                <strong>{{ $hours > 0 ? "{$hours} hours " : "" }}{{ $minutes }} minutes</strong>
+                                <strong class="text-primary">{{ $hours > 0 ? "{$hours}h " : "" }}{{ $minutes }}m</strong>
                             </dd>
                             @endif
 
+                            @if($photographerVisit->photos_taken)
                             <dt class="col-sm-4">Photos Taken</dt>
-                            <dd class="col-sm-8"><span class="badge bg-info">{{ $photographerVisit->checkOut->photos_taken }}</span></dd>
+                            <dd class="col-sm-8"><span class="badge bg-info fs-6">{{ $photographerVisit->photos_taken }} photos</span></dd>
+                            @endif
 
-                            @if($photographerVisit->checkOut->ip_address)
+                            @if($photographerVisit->check_out_ip_address)
                             <dt class="col-sm-4">IP Address</dt>
-                            <dd class="col-sm-8">{{ $photographerVisit->checkOut->ip_address }}</dd>
+                            <dd class="col-sm-8">{{ $photographerVisit->check_out_ip_address }}</dd>
                             @endif
 
-                            @if($photographerVisit->checkOut->location)
+                            @if($photographerVisit->check_out_location)
                             <dt class="col-sm-4">Location</dt>
-                            <dd class="col-sm-8">{{ $photographerVisit->checkOut->location }}</dd>
+                            <dd class="col-sm-8">
+                                <a href="https://www.google.com/maps?q={{ $photographerVisit->check_out_location }}" target="_blank" class="text-decoration-none">
+                                    {{ $photographerVisit->check_out_location }} <i class="ri-external-link-line"></i>
+                                </a>
+                            </dd>
                             @endif
 
-                            @if($photographerVisit->checkOut->work_summary)
+                            @if($photographerVisit->check_out_metadata)
+                            <dt class="col-sm-4">Location Accuracy</dt>
+                            <dd class="col-sm-8">{{ $photographerVisit->check_out_metadata['location_accuracy'] ?? '-' }} meters</dd>
+
+                            <dt class="col-sm-4">Location Source</dt>
+                            <dd class="col-sm-8">
+                                <span class="badge bg-secondary">{{ strtoupper($photographerVisit->check_out_metadata['location_source'] ?? 'Unknown') }}</span>
+                            </dd>
+                            @endif
+
+                            @if($photographerVisit->work_summary)
                             <dt class="col-sm-4">Work Summary</dt>
-                            <dd class="col-sm-8">{{ $photographerVisit->checkOut->work_summary }}</dd>
+                            <dd class="col-sm-8">
+                                <div class="alert alert-info mb-0">{{ $photographerVisit->work_summary }}</div>
+                            </dd>
                             @endif
 
-                            @if($photographerVisit->checkOut->remarks)
+                            @if($photographerVisit->check_out_device_info)
+                            <dt class="col-sm-4">Device Info</dt>
+                            <dd class="col-sm-8"><small class="text-muted">{{ Str::limit($photographerVisit->check_out_device_info, 60) }}</small></dd>
+                            @endif
+
+                            @if($photographerVisit->check_out_remarks)
                             <dt class="col-sm-4">Remarks</dt>
-                            <dd class="col-sm-8">{{ $photographerVisit->checkOut->remarks }}</dd>
+                            <dd class="col-sm-8">{{ $photographerVisit->check_out_remarks }}</dd>
                             @endif
                         </dl>
                     </div>
                     <div class="col-lg-6">
-                        @if($photographerVisit->checkOut->photo)
+                        @if($photographerVisit->check_out_photo)
                         <div>
                             <label class="form-label fw-bold">Check-Out Photo</label>
                             <div class="border rounded p-2">
-                                <img src="{{ $photographerVisit->checkOut->photo_url }}" alt="Check-out Photo" class="img-fluid rounded" style="max-height: 300px;">
+                                <img src="{{ asset('storage/' . $photographerVisit->check_out_photo) }}" 
+                                     alt="Check-out Photo" 
+                                     class="img-fluid rounded" 
+                                     style="max-height: 300px; cursor: pointer;"
+                                     onclick="window.open(this.src, '_blank')">
                             </div>
                         </div>
                         @endif
