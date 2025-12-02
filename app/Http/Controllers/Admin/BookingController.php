@@ -188,21 +188,25 @@ class BookingController extends Controller
     {
         $validated = $request->validate([
             'user_id' => ['required', 'exists:users,id'],
+            'owner_type' => ['nullable', 'string', 'in:Owner,Broker'],
             'property_type_id' => ['required', 'exists:property_types,id'],
             'property_sub_type_id' => ['required', 'exists:property_sub_types,id'],
-            'bhk_id' => ['nullable', 'exists:bhks,id'],
+            'bhk_id' => ['nullable', 'exists:b_h_k_s,id'],
             'city_id' => ['nullable', 'exists:cities,id'],
             'state_id' => ['nullable', 'exists:states,id'],
             'furniture_type' => ['nullable', 'string', 'max:255'],
             'area' => ['required', 'integer', 'min:0'],
             'price' => ['required', 'integer', 'min:0'],
-            'house_no' => ['nullable', 'string', 'max:255'],
-            'building' => ['nullable', 'string', 'max:255'],
+            'firm_name' => ['nullable', 'string', 'max:255'],
+            'gst_no' => ['nullable', 'string', 'max:50'],
+            'other_option_details' => ['nullable', 'string'],
+            'house_no' => ['required', 'string', 'max:255'],
+            'building' => ['required', 'string', 'max:255'],
             'society_name' => ['nullable', 'string', 'max:255'],
             'address_area' => ['nullable', 'string', 'max:255'],
             'landmark' => ['nullable', 'string', 'max:255'],
-            'full_address' => ['nullable', 'string'],
-            'pin_code' => ['nullable', 'string', 'max:20'],
+            'full_address' => ['required', 'string'],
+            'pin_code' => ['required', 'string', 'size:6', 'regex:/^[0-9]{6}$/'],
             'booking_date' => ['nullable', 'date'],
             'payment_status' => ['required', 'in:pending,paid,failed,refunded'],
             'status' => ['required', 'in:pending,confirmed,cancelled,completed'],
@@ -282,21 +286,25 @@ class BookingController extends Controller
     {
         $validated = $request->validate([
             'user_id' => ['required', 'exists:users,id'],
+            'owner_type' => ['nullable', 'string', 'in:Owner,Broker'],
             'property_type_id' => ['required', 'exists:property_types,id'],
             'property_sub_type_id' => ['required', 'exists:property_sub_types,id'],
-            'bhk_id' => ['nullable', 'exists:bhks,id'],
+            'bhk_id' => ['nullable', 'exists:b_h_k_s,id'],
             'city_id' => ['nullable', 'exists:cities,id'],
             'state_id' => ['nullable', 'exists:states,id'],
             'furniture_type' => ['nullable', 'string', 'max:255'],
             'area' => ['required', 'integer', 'min:0'],
             'price' => ['required', 'integer', 'min:0'],
-            'house_no' => ['nullable', 'string', 'max:255'],
-            'building' => ['nullable', 'string', 'max:255'],
+            'firm_name' => ['nullable', 'string', 'max:255'],
+            'gst_no' => ['nullable', 'string', 'max:50'],
+            'other_option_details' => ['nullable', 'string'],
+            'house_no' => ['required', 'string', 'max:255'],
+            'building' => ['required', 'string', 'max:255'],
             'society_name' => ['nullable', 'string', 'max:255'],
             'address_area' => ['nullable', 'string', 'max:255'],
             'landmark' => ['nullable', 'string', 'max:255'],
-            'full_address' => ['nullable', 'string'],
-            'pin_code' => ['nullable', 'string', 'max:20'],
+            'full_address' => ['required', 'string'],
+            'pin_code' => ['required', 'string', 'size:6', 'regex:/^[0-9]{6}$/'],
             'booking_date' => ['nullable', 'date'],
             'payment_status' => ['required', 'in:pending,paid,failed,refunded'],
             'status' => ['required', 'in:pending,confirmed,cancelled,completed'],
@@ -412,44 +420,60 @@ class BookingController extends Controller
      */
     public function updateAjax(Request $request, Booking $booking)
     {
-        $validated = $request->validate([
-            'user_id' => ['required', 'exists:users,id'],
-            'property_type_id' => ['required', 'exists:property_types,id'],
-            'property_sub_type_id' => ['required', 'exists:property_sub_types,id'],
-            'area' => ['required', 'numeric', 'min:0'],
-            'price' => ['required', 'numeric', 'min:0'],
-            'payment_status' => ['required', 'in:pending,paid,failed,refunded'],
-            'status' => ['required', 'in:pending,confirmed,cancelled,completed'],
-            'bhk_id' => ['nullable', 'exists:bhks,id'],
-            'city_id' => ['nullable', 'exists:cities,id'],
-            'state_id' => ['nullable', 'exists:states,id'],
-            'furniture_type' => ['nullable', 'string'],
-            'booking_date' => ['nullable', 'date'],
-            'house_no' => ['nullable', 'string', 'max:255'],
-            'building' => ['nullable', 'string', 'max:255'],
-            'society_name' => ['nullable', 'string', 'max:255'],
-            'address_area' => ['nullable', 'string', 'max:255'],
-            'landmark' => ['nullable', 'string', 'max:255'],
-            'pin_code' => ['nullable', 'string', 'max:20'],
-            'full_address' => ['nullable', 'string'],
-        ]);
+        // Allow partial updates - only validate fields that are present in request
+        $rules = [
+            'user_id' => ['sometimes', 'required', 'exists:users,id'],
+            'owner_type' => ['sometimes', 'nullable', 'string', 'in:Owner,Broker'],
+            'property_type_id' => ['sometimes', 'required', 'exists:property_types,id'],
+            'property_sub_type_id' => ['sometimes', 'required', 'exists:property_sub_types,id'],
+            'area' => ['sometimes', 'required', 'numeric', 'min:0'],
+            'price' => ['sometimes', 'required', 'numeric', 'min:0'],
+            'payment_status' => ['sometimes', 'required', 'in:unpaid,pending,paid,failed,refunded'],
+            'status' => ['sometimes', 'required', 'in:pending,confirmed,cancelled,completed'],
+            'bhk_id' => ['sometimes', 'nullable', 'exists:b_h_k_s,id'],
+            'city_id' => ['sometimes', 'nullable', 'exists:cities,id'],
+            'state_id' => ['sometimes', 'nullable', 'exists:states,id'],
+            'furniture_type' => ['sometimes', 'nullable', 'string'],
+            'booking_date' => ['sometimes', 'nullable', 'date'],
+            'house_no' => ['sometimes', 'required', 'string', 'max:255'],
+            'building' => ['sometimes', 'required', 'string', 'max:255'],
+            'society_name' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'address_area' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'landmark' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'pin_code' => ['sometimes', 'required', 'string', 'size:6', 'regex:/^[0-9]{6}$/'],
+            'full_address' => ['sometimes', 'required', 'string'],
+            'firm_name' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'gst_no' => ['sometimes', 'nullable', 'string', 'max:50'],
+            'other_option_details' => ['sometimes', 'nullable', 'string'],
+        ];
 
-        $oldData = $booking->toArray();
+        $validated = $request->validate($rules);
+
+        // Get only the changed fields
+        $oldData = $booking->only(array_keys($validated));
+        
+        // Update only the provided fields
         $booking->update($validated);
+
+        // Determine what was updated for logging
+        $updatedFields = array_keys($validated);
+        $logMessage = 'Booking updated via AJAX: ' . implode(', ', $updatedFields);
 
         activity('bookings')
             ->performedOn($booking)
             ->causedBy($request->user())
             ->withProperties([
                 'old' => $oldData,
-                'attributes' => $booking->toArray(),
+                'attributes' => $booking->only($updatedFields),
+                'updated_fields' => $updatedFields,
             ])
-            ->log('Booking updated via AJAX');
+            ->log($logMessage);
 
         return response()->json([
             'success' => true,
             'message' => 'Booking updated successfully',
             'booking' => $booking->fresh(),
+            'updated_fields' => $updatedFields,
         ]);
     }
 }
