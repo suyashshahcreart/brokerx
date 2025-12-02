@@ -175,8 +175,9 @@
                     <div class="alert alert-warning">
                         <strong>Important:</strong>
                         <ul class="mb-0 mt-2">
+                            <li><strong>Location and photo are required fields</strong></li>
                             <li>Make sure you're at the correct property location</li>
-                            <li>Take a clear photo if required</li>
+                            <li>Take a clear photo</li>
                             <li>Check-in cannot be undone</li>
                         </ul>
                     </div>

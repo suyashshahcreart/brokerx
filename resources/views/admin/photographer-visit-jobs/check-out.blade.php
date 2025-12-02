@@ -104,7 +104,7 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label class="form-label">Current Location</label>
+                                    <label class="form-label">Current Location <span class="text-danger">*</span></label>
                                     <div class="d-flex gap-2 flex-wrap align-items-center">
                                         <button type="button" class="btn btn-outline-secondary" id="detect-location-btn">
                                             <i class="ri-target-line me-1"></i>Use GPS
@@ -120,7 +120,7 @@
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label class="form-label">Check-out Photo <small class="text-muted">(Capture required)</small></label>
+                                    <label class="form-label">Check-out Photo <span class="text-danger">*</span> <small class="text-muted">(Capture required)</small></label>
                                     <div class="camera-wrapper border rounded p-3 bg-light">
                                         <div class="position-relative mb-2">
                                             <video id="camera-stream" class="w-100 rounded border" autoplay playsinline muted></video>
@@ -197,9 +197,10 @@
                     <div class="alert alert-warning">
                         <strong>Important:</strong>
                         <ul class="mb-0 mt-2">
+                            <li><strong>Location and photo are required fields</strong></li>
                             <li>Make sure all work is completed</li>
                             <li>Provide accurate photo count</li>
-                            <li>Take a clear photo if required</li>
+                            <li>Take a clear photo</li>
                             <li>Check-out cannot be undone</li>
                             <li>Job will be marked as completed</li>
                         </ul>

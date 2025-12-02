@@ -347,12 +347,12 @@ class PhotographerVisitJobController extends Controller
     public function checkIn(Request $request, PhotographerVisitJob $photographerVisitJob)
     {
         $validated = $request->validate([
-            'location' => 'nullable|string|max:255',
+            'location' => 'required|string|max:255',
             'location_timestamp' => 'nullable|date',
             'location_accuracy' => 'nullable|numeric',
             'location_source' => 'nullable|string|max:50',
             'remarks' => 'nullable|string|max:500',
-            'photo' => 'nullable|image|max:5120', // 5MB max
+            'photo' => 'required|image|max:5120', // 5MB max
         ]);
 
         try {
@@ -454,14 +454,14 @@ class PhotographerVisitJobController extends Controller
     public function checkOut(Request $request, PhotographerVisitJob $photographerVisitJob)
     {
         $validated = $request->validate([
-            'location' => 'nullable|string|max:255',
+            'location' => 'required|string|max:255',
             'location_timestamp' => 'nullable|date',
             'location_accuracy' => 'nullable|numeric',
             'location_source' => 'nullable|string|max:50',
             'remarks' => 'nullable|string|max:500',
             'photos_taken' => 'nullable|integer|min:0',
             'work_summary' => 'nullable|string|max:1000',
-            'photo' => 'nullable|image|max:5120', // 5MB max
+            'photo' => 'required|image|max:5120', // 5MB max
         ]);
 
         try {

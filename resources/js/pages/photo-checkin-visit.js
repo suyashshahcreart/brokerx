@@ -422,5 +422,48 @@ document.addEventListener('DOMContentLoaded', () => {
 
 	detectLocationButton?.addEventListener('click', requestLocation);
 
+	// Form validation before submission
+	const form = document.querySelector('form[enctype="multipart/form-data"]');
+	if (form) {
+		form.addEventListener('submit', (event) => {
+			let hasErrors = false;
+			const errors = [];
+
+			// Validate location is provided
+			if (!locationInput || !locationInput.value.trim()) {
+				hasErrors = true;
+				errors.push('Location is required. Please click "Use GPS" to capture your location.');
+				setLocationStatus('Location is required for check-in/check-out.', 'danger');
+			}
+
+			// Validate photo is provided
+			if (!photoInput || !photoInput.files || photoInput.files.length === 0) {
+				hasErrors = true;
+				errors.push('Photo is required. Please open the camera and capture a photo.');
+				setCameraStatus('Photo is required for check-in/check-out.', 'danger');
+			}
+
+			if (hasErrors) {
+				event.preventDefault();
+				
+				// Display error messages
+				const existingAlert = form.querySelector('.alert-danger');
+				if (existingAlert) {
+					existingAlert.remove();
+				}
+
+				const alertDiv = document.createElement('div');
+				alertDiv.className = 'alert alert-danger';
+				alertDiv.innerHTML = '<ul class="mb-0">' + errors.map(err => `<li>${err}</li>`).join('') + '</ul>';
+				form.insertBefore(alertDiv, form.firstChild);
+
+				// Scroll to the alert
+				alertDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+				
+				return false;
+			}
+		});
+	}
+
 	window.addEventListener('beforeunload', () => stopCamera());
 });
