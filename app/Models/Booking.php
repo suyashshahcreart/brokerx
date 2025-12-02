@@ -116,6 +116,11 @@ class Booking extends Model
         return $this->belongsTo(User::class, 'deleted_by');
     }
 
+    public function tours()
+    {
+        return $this->hasMany(Tour::class);
+    }
+
     /**
      * Check if booking has complete property data
      * Based on validation logic from setup page

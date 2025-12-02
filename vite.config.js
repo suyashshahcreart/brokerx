@@ -46,6 +46,8 @@ export default defineConfig({
                 'resources/js/pages/setting-index.js',
                 'resources/js/pages/qr-index.js',
                 'resources/js/pages/tours-index.js',
+                'resources/js/pages/tour-manager.js',
+                'resources/js/pages/tour-manager-edit.js',
                 'resources/js/components/maps-google.js',
                 'resources/js/components/maps-vector.js',
                 'resources/js/components/maps-canada.js',

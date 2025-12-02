@@ -17,6 +17,7 @@ use App\Http\Controllers\Admin\BookingController;
 use App\Http\Controllers\Admin\PortfolioController as AdminPortfolioController;
 use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\TourController;
+use App\Http\Controllers\Admin\TourManagerController;
 use App\Http\Controllers\FrontendController;
 use App\Http\Controllers\PortfolioController;
 use App\Http\Controllers\BrokerX\BrokerXController;
@@ -83,6 +84,14 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'middleware' => ['web', 'au
     Route::post('tours/{tour}/update-ajax', [TourController::class, 'updateAjax'])->name('admin.tours.update-ajax');
     Route::post('tours/create-ajax', [TourController::class, 'createAjax'])->name('admin.tours.create-ajax');
     Route::post('tours/{tour}/unlink-ajax', [TourController::class, 'unlinkAjax'])->name('admin.tours.unlink-ajax');
+    
+    // Tour Manager routes
+    Route::get('tour-manager', [TourManagerController::class, 'index'])->name('tour-manager.index');
+    Route::get('tour-manager/{booking}', [TourManagerController::class, 'show'])->name('tour-manager.show');
+    Route::get('tour-manager/{tour}/edit', [TourManagerController::class, 'edit'])->name('tour-manager.edit');
+    Route::put('tour-manager/{tour}', [TourManagerController::class, 'update'])->name('tour-manager.update');
+    Route::post('tour-manager/upload-file', [TourManagerController::class, 'uploadFile'])->name('tour-manager.upload-file');
+    
     Route::resource('settings', SettingController::class);
     Route::get('activity', [ActivityLogController::class, 'index'])->name('activity.index');
     Route::post('qr/bulk-generate', [QRController::class, 'bulkGenerate'])->name('qr.bulk-generate');
