@@ -19,7 +19,10 @@ class PropertyTypeSeeder extends Seeder
             ['name' => 'Other', 'icon' => 'fa-coffee'],
         ];
         foreach ($types as $type) {
-            PropertyType::create($type);
+            PropertyType::firstOrCreate(
+                ['name' => $type['name']],
+                $type
+            );
         }
     }
 }
