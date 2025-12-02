@@ -90,11 +90,6 @@ class PhotographerVisitJob extends Model
         return $this->hasMany(PhotographerVisit::class, 'job_id');
     }
 
-    public function checks(): HasMany
-    {
-        return $this->hasMany(PhotographerVisitJobCheck::class);
-    }
-
     /**
      * Get the user who created this job
      */

@@ -528,24 +528,6 @@ class PhotographerVisitJobController extends Controller
                 'device_info' => $request->userAgent(),
             ];
 
-            // Create check record for job
-            $photographerVisitJob->checks()->create([
-                'type' => 'out',
-                'photo' => $photoPath,
-                'location' => $validated['location'] ?? null,
-                'location_timestamp' => $locationTimestamp,
-                'location_accuracy' => $validated['location_accuracy'] ?? null,
-                'location_source' => $validated['location_source'] ?? null,
-                'photos_taken' => $validated['photos_taken'] ?? 0,
-                'work_summary' => $validated['work_summary'] ?? null,
-                'remarks' => $validated['remarks'] ?? null,
-                'metadata' => $metadata['check_out'],
-                'checked_at' => $checkedAt,
-                'ip_address' => $request->ip(),
-                'device_info' => $request->userAgent(),
-                'created_by' => auth()->id(),
-            ]);
-
             $photographerVisitJob->update([
                 'status' => 'completed',
                 'completed_at' => $checkedAt,
