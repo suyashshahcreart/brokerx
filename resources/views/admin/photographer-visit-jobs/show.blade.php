@@ -153,45 +153,229 @@
 
                 <!-- Visits -->
                 @if($photographerVisitJob->visits->count() > 0)
-                    <div class="card">
-                        <div class="card-header">
-                            <h4 class="card-title mb-0">Visit History</h4>
-                        </div>
-                        <div class="card-body">
-                            <div class="table-responsive">
-                                <table class="table table-hover align-middle mb-0">
-                                    <thead class="table-light">
-                                        <tr>
-                                            <th>Visit Date</th>
-                                            <th>Check-in</th>
-                                            <th>Check-out</th>
-                                            <th>Duration</th>
-                                            <th>Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @foreach($photographerVisitJob->visits as $visit)
-                                            <tr>
-                                                <td>{{ $visit->visit_date ? $visit->visit_date->format('d M Y') : 'N/A' }}</td>
-                                                <td>{{ $visit->checkIn?->check_in_time ?? 'N/A' }}</td>
-                                                <td>{{ $visit->checkOut?->check_out_time ?? 'N/A' }}</td>
-                                                <td>
-                                                    @if($visit->getDuration())
-                                                        {{ $visit->getDuration() }}
-                                                    @else
-                                                        <span class="text-muted">-</span>
+                    @foreach($photographerVisitJob->visits as $visit)
+                        <!-- Check-in Details -->
+                        @if($visit->checked_in_at)
+                            <div class="card">
+                                <div class="card-header bg-soft-success">
+                                    <h4 class="card-title mb-0">
+                                        <i class="ri-login-circle-line me-2"></i>Check-In Details
+                                    </h4>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-8">
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <div class="mb-3">
+                                                        <label class="form-label text-muted">Checked In At</label>
+                                                        <p class="fw-semibold">{{ $visit->checked_in_at->format('d M Y, h:i A') }}</p>
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label class="form-label text-muted">Location</label>
+                                                        @if($visit->check_in_location)
+                                                            <p>
+                                                                <a href="https://www.google.com/maps?q={{ $visit->check_in_location }}" target="_blank" class="text-decoration-none">
+                                                                    {{ $visit->check_in_location }} <i class="ri-external-link-line"></i>
+                                                                </a>
+                                                            </p>
+                                                        @else
+                                                            <p class="text-muted">Not recorded</p>
+                                                        @endif
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    @if($visit->check_in_metadata)
+                                                        <div class="mb-3">
+                                                            <label class="form-label text-muted">Location Accuracy</label>
+                                                            <p>{{ $visit->check_in_metadata['location_accuracy'] ?? '-' }} meters</p>
+                                                        </div>
+                                                        <div class="mb-3">
+                                                            <label class="form-label text-muted">Location Source</label>
+                                                            <p><span class="badge bg-secondary">{{ strtoupper($visit->check_in_metadata['location_source'] ?? 'Unknown') }}</span></p>
+                                                        </div>
                                                     @endif
-                                                </td>
-                                                <td>
-                                                    <span class="badge bg-soft-secondary text-secondary">
-                                                        {{ ucfirst($visit->status) }}
-                                                    </span>
-                                                </td>
-                                            </tr>
-                                        @endforeach
-                                    </tbody>
-                                </table>
+                                                </div>
+                                            </div>
+                                            @if($visit->check_in_remarks)
+                                                <div class="alert alert-info mb-0">
+                                                    <h6 class="mb-2"><i class="ri-sticky-note-line me-1"></i> Check-In Remarks</h6>
+                                                    <p class="mb-0">{{ $visit->check_in_remarks }}</p>
+                                                </div>
+                                            @endif
+                                        </div>
+                                        <div class="col-md-4">
+                                            @if($visit->check_in_photo)
+                                                <label class="form-label text-muted">Check-In Photo</label>
+                                                <img src="{{ asset('storage/' . $visit->check_in_photo) }}" 
+                                                     alt="Check-in photo" 
+                                                     class="img-fluid rounded border"
+                                                     style="cursor: pointer;"
+                                                     onclick="window.open(this.src, '_blank')">
+                                            @else
+                                                <p class="text-muted">No photo captured</p>
+                                            @endif
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
+                        @endif
+
+                        <!-- Check-out Details -->
+                        @if($visit->checked_out_at)
+                            <div class="card">
+                                <div class="card-header bg-soft-warning">
+                                    <h4 class="card-title mb-0">
+                                        <i class="ri-logout-circle-line me-2"></i>Check-Out Details
+                                    </h4>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-8">
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <div class="mb-3">
+                                                        <label class="form-label text-muted">Checked Out At</label>
+                                                        <p class="fw-semibold">{{ $visit->checked_out_at->format('d M Y, h:i A') }}</p>
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label class="form-label text-muted">Location</label>
+                                                        @if($visit->check_out_location)
+                                                            <p>
+                                                                <a href="https://www.google.com/maps?q={{ $visit->check_out_location }}" target="_blank" class="text-decoration-none">
+                                                                    {{ $visit->check_out_location }} <i class="ri-external-link-line"></i>
+                                                                </a>
+                                                            </p>
+                                                        @else
+                                                            <p class="text-muted">Not recorded</p>
+                                                        @endif
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label class="form-label text-muted">Duration</label>
+                                                        @if($visit->getDuration())
+                                                            @php
+                                                                $duration = $visit->getDuration();
+                                                                $hours = floor($duration / 60);
+                                                                $minutes = $duration % 60;
+                                                            @endphp
+                                                            <p class="fw-semibold">
+                                                                @if($hours > 0)
+                                                                    {{ $hours }} hr {{ $minutes }} min
+                                                                @else
+                                                                    {{ $minutes }} min
+                                                                @endif
+                                                            </p>
+                                                        @else
+                                                            <p class="text-muted">-</p>
+                                                        @endif
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    @if($visit->check_out_metadata)
+                                                        <div class="mb-3">
+                                                            <label class="form-label text-muted">Location Accuracy</label>
+                                                            <p>{{ $visit->check_out_metadata['location_accuracy'] ?? '-' }} meters</p>
+                                                        </div>
+                                                        <div class="mb-3">
+                                                            <label class="form-label text-muted">Location Source</label>
+                                                            <p><span class="badge bg-secondary">{{ strtoupper($visit->check_out_metadata['location_source'] ?? 'Unknown') }}</span></p>
+                                                        </div>
+                                                    @endif
+                                                    <div class="mb-3">
+                                                        <label class="form-label text-muted">Photos Taken</label>
+                                                        <p class="fw-semibold">{{ $visit->photos_taken ?? 0 }}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            @if($visit->work_summary)
+                                                <div class="alert alert-success mb-2">
+                                                    <h6 class="mb-2"><i class="ri-file-list-line me-1"></i> Work Summary</h6>
+                                                    <p class="mb-0">{{ $visit->work_summary }}</p>
+                                                </div>
+                                            @endif
+                                            @if($visit->check_out_remarks)
+                                                <div class="alert alert-info mb-0">
+                                                    <h6 class="mb-2"><i class="ri-sticky-note-line me-1"></i> Check-Out Remarks</h6>
+                                                    <p class="mb-0">{{ $visit->check_out_remarks }}</p>
+                                                </div>
+                                            @endif
+                                        </div>
+                                        <div class="col-md-4">
+                                            @if($visit->check_out_photo)
+                                                <label class="form-label text-muted">Check-Out Photo</label>
+                                                <img src="{{ asset('storage/' . $visit->check_out_photo) }}" 
+                                                     alt="Check-out photo" 
+                                                     class="img-fluid rounded border"
+                                                     style="cursor: pointer;"
+                                                     onclick="window.open(this.src, '_blank')">
+                                            @else
+                                                <p class="text-muted">No photo captured</p>
+                                            @endif
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
+
+                        <!-- Visit Summary -->
+                        @if($visit->checked_in_at && $visit->checked_out_at)
+                            <div class="card border-success">
+                                <div class="card-header bg-soft-success">
+                                    <h4 class="card-title mb-0">
+                                        <i class="ri-bar-chart-box-line me-2"></i>Visit Summary
+                                    </h4>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row text-center">
+                                        <div class="col-md-3">
+                                            <div class="p-3">
+                                                <i class="ri-time-line text-primary fs-1 mb-2"></i>
+                                                <h5 class="mb-1">
+                                                    @php
+                                                        $duration = $visit->getDuration();
+                                                        $hours = floor($duration / 60);
+                                                        $minutes = $duration % 60;
+                                                    @endphp
+                                                    @if($hours > 0)
+                                                        {{ $hours }}h {{ $minutes }}m
+                                                    @else
+                                                        {{ $minutes }}m
+                                                    @endif
+                                                </h5>
+                                                <p class="text-muted mb-0">Total Duration</p>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="p-3">
+                                                <i class="ri-camera-line text-success fs-1 mb-2"></i>
+                                                <h5 class="mb-1">{{ $visit->photos_taken ?? 0 }}</h5>
+                                                <p class="text-muted mb-0">Photos Taken</p>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="p-3">
+                                                <i class="ri-login-circle-line text-info fs-1 mb-2"></i>
+                                                <h5 class="mb-1">{{ $visit->checked_in_at->format('h:i A') }}</h5>
+                                                <p class="text-muted mb-0">Check-In Time</p>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="p-3">
+                                                <i class="ri-logout-circle-line text-warning fs-1 mb-2"></i>
+                                                <h5 class="mb-1">{{ $visit->checked_out_at->format('h:i A') }}</h5>
+                                                <p class="text-muted mb-0">Check-Out Time</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
+                    @endforeach
+                @else
+                    <div class="card">
+                        <div class="card-body text-center py-5">
+                            <i class="ri-calendar-line text-muted fs-1 mb-3"></i>
+                            <p class="text-muted mb-0">No visits recorded yet</p>
                         </div>
                     </div>
                 @endif
