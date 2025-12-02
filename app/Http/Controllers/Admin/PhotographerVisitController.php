@@ -99,6 +99,12 @@ class PhotographerVisitController extends Controller
                         $view = route('admin.photographer-visits.show', $visit);
                         $actions .= '<a href="' . $view . '" class="btn btn-sm btn-primary" title="View Details"><i class="ri-eye-line"></i></a>';
 
+                        // Check-out button (only for checked_in visits that have a job_id)
+                        if ($visit->status === 'checked_in' && $visit->job_id) {
+                            $checkoutUrl = route('admin.photographer-visit-jobs.check-out-form', $visit->job_id);
+                            $actions .= ' <a href="' . $checkoutUrl . '" class="btn btn-sm btn-warning" title="Check Out"><i class="ri-logout-circle-line"></i></a>';
+                        }
+
                         // Delete button (only for pending visits)
                         if ($visit->status === 'pending') {
                             $delete = route('admin.photographer-visits.destroy', $visit);
