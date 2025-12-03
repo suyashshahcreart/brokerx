@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
+use App\Models\QR;
 use App\Models\Tour;
 use GrahamCampbell\ResultType\Success;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Yajra\DataTables\Facades\DataTables;
 use ZipArchive;
 
@@ -191,6 +193,28 @@ class TourManagerController extends Controller
             'files.*' => 'nullable|file|max:512000', // 500MB for zip files
         ]);
 
+        // Get booking
+        $booking = $tour->booking;
+        if (!$booking) {
+            return back()->withErrors(['error' => 'No booking associated with this tour.']);
+        }
+
+        // Get or assign QR code to booking
+        $qrCode = $booking->qr;
+        if (!$qrCode) {
+            // Find an available QR code (one without a booking)
+            $qrCode = QR::whereNull('booking_id')->first();
+            
+            if (!$qrCode) {
+                return back()->withErrors(['error' => 'No available QR codes. Please generate a new QR code first.']);
+            }
+            
+            // Assign QR code to booking
+            $qrCode->booking_id = $booking->id;
+            $qrCode->updated_by = auth()->id();
+            $qrCode->save();
+        }
+
         $tourData = [];
         $uploadedFiles = [];
 
@@ -203,15 +227,15 @@ class TourManagerController extends Controller
                     // Check if it's a zip file
                     if ($extension === 'zip') {
                         // Process zip file - extract and validate
-                        $result = $this->processZipFile($file, $tour);
+                        $result = $this->processZipFile($file, $tour, $qrCode->code);
                         if ($result['success']) {
                             $tourData = $result['data'];
                             $uploadedFiles[] = [
                                 'name' => $file->getClientOriginalName(),
                                 'type' => 'zip',
                                 'processed' => true,
-                                'extracted_path' => $result['storage_path'],
-                                'public_path' => $result['public_path'],
+                                'tour_path' => $result['tour_path'],
+                                'tour_url' => $result['tour_url'],
                                 'size' => $file->getSize(),
                                 'uploaded_at' => now()->toDateTimeString()
                             ];
@@ -221,12 +245,16 @@ class TourManagerController extends Controller
                     } else {
                         // Handle regular files (images, pdfs, etc.)
                         $filename = time() . '_' . uniqid() . '_' . $file->getClientOriginalName();
-                        $path = $file->storeAs('tours', $filename, 'public');
+                        $assetsPath = base_path('tours/assets');
+                        if (!\File::exists($assetsPath)) {
+                            \File::makeDirectory($assetsPath, 0755, true);
+                        }
+                        $file->move($assetsPath, $filename);
                         
                         $uploadedFiles[] = [
                             'name' => $file->getClientOriginalName(),
-                            'path' => $path,
-                            'url' => asset('storage/' . $path),
+                            'path' => 'assets/' . $filename,
+                            'url' => url('/tours/assets/' . $filename),
                             'size' => $file->getSize(),
                             'type' => $file->getMimeType(),
                             'uploaded_at' => now()->toDateTimeString()
@@ -256,6 +284,7 @@ class TourManagerController extends Controller
             $tourData,
             [
                 'files' => array_merge($existingFiles, $uploadedFiles),
+                'qr_code' => $qrCode->code,
                 'updated_at' => now()->toDateTimeString()
             ]
         );
@@ -272,15 +301,13 @@ class TourManagerController extends Controller
                 'redirect' => route('admin.tour-manager.show', $tour->booking_id)
             ]);
         }
-
+        
         return redirect()->route('admin.tour-manager.show', $tour->booking_id)
             ->with('success', 'Tour updated successfully!');
-    }
-
-    /**
+    }    /**
      * Process and validate zip file containing tour assets
      */
-    private function processZipFile($zipFile, Tour $tour)
+    private function processZipFile($zipFile, Tour $tour, $uniqueCode)
     {
         try {
             $zip = new ZipArchive();
@@ -293,7 +320,7 @@ class TourManagerController extends Controller
                 ];
             }
 
-            // Validate required files and folders
+            // Validate required files
             $validation = $this->validateZipStructure($zip);
             if (!$validation['valid']) {
                 $zip->close();
@@ -302,55 +329,79 @@ class TourManagerController extends Controller
                     'message' => $validation['message']
                 ];
             }
-            // Create tour-specific directories
-            $tourId = $tour->id;
-            $storagePath = storage_path('app/public/tours_files/' . $tourId);
-            $publicPath = public_path('storage/tours/' . $tourId);
+
+            // Create tour directory using QR unique code in root/tours/
+            $tourPath = $uniqueCode;
+            $tourDirectory = base_path('tours/' . $tourPath);
 
             // Delete old tour files if they exist
-            if (\File::exists($storagePath)) {
-                \File::deleteDirectory($storagePath);
-            }
-            if (\File::exists($publicPath)) {
-                \File::deleteDirectory($publicPath);
+            if (\File::exists($tourDirectory)) {
+                \File::deleteDirectory($tourDirectory);
             }
 
-            // Create directories
-            \File::makeDirectory($storagePath, 0755, true);
-            \File::makeDirectory($publicPath, 0755, true);
+            // Create directory
+            \File::makeDirectory($tourDirectory, 0755, true);
 
             // Extract files
             $jsonData = null;
             $indexHtmlContent = null;
-            $debugData = [];
+            $rootFolder = null;
+            
+            // First pass: detect root folder name
+            for ($i = 0; $i < $zip->numFiles; $i++) {
+                $filename = $zip->getNameIndex($i);
+                if (strpos($filename, '__MACOSX') !== false || strpos($filename, '.DS_Store') !== false) {
+                    continue;
+                }
+                
+                $parts = explode('/', trim($filename, '/'));
+                if (!empty($parts[0])) {
+                    $rootFolder = $parts[0];
+                    break;
+                }
+            }
+            
+            // Second pass: extract files, skipping root folder level
             for ($i = 0; $i < $zip->numFiles; $i++) {
                 $filename = $zip->getNameIndex($i);
                 $fileInfo = pathinfo($filename);
-                $debugData[] = $fileInfo;
+                
                 // Skip hidden files and __MACOSX
                 if (strpos($filename, '__MACOSX') !== false || strpos($filename, '.DS_Store') !== false) {
                     continue;
                 }
 
-                // Handle index.html - save to public folder
-                if (strtolower($fileInfo['basename']) === 'index.html') {
+                // Remove root folder from path
+                $relativePath = $filename;
+                if ($rootFolder && strpos($filename, $rootFolder . '/') === 0) {
+                    $relativePath = substr($filename, strlen($rootFolder) + 1);
+                }
+                
+                // Skip if empty (root folder itself)
+                if (empty(trim($relativePath, '/'))) {
+                    continue;
+                }
+
+                // Handle index.html - save as index.php
+                if (strtolower(basename($relativePath)) === 'index.html') {
                     $indexHtmlContent = $zip->getFromIndex($i);
-                    file_put_contents($publicPath . '/index.html', $indexHtmlContent);
+                    file_put_contents($tourDirectory . '/index.php', $indexHtmlContent);
                     continue;
                 }
 
                 // Handle JSON file - read and parse
-                if (isset($fileInfo['extension']) && strtolower($fileInfo['extension']) === 'json') {
+                $relativeFileInfo = pathinfo($relativePath);
+                if (isset($relativeFileInfo['extension']) && strtolower($relativeFileInfo['extension']) === 'json') {
                     $jsonContent = $zip->getFromIndex($i);
                     $jsonData = json_decode($jsonContent, true);
                     
-                    // Also save the JSON file to storage
-                    file_put_contents($storagePath . '/' . $fileInfo['basename'], $jsonContent);
+                    // Also save the JSON file
+                    file_put_contents($tourDirectory . '/' . $relativeFileInfo['basename'], $jsonContent);
                     continue;
                 }
 
-                // Extract all other files to storage
-                $targetPath = $storagePath . '/' . $filename;
+                // Extract all other files
+                $targetPath = $tourDirectory . '/' . $relativePath;
                 
                 // Create directory if needed
                 if (substr($filename, -1) === '/') {
@@ -376,7 +427,7 @@ class TourManagerController extends Controller
             
             // Validate that we got the required files
             if (!$indexHtmlContent) {
-                $this->cleanupFailedExtraction($storagePath, $publicPath);
+                $this->cleanupFailedExtraction($tourDirectory);
                 return [
                     'success' => false,
                     'message' => 'index.html file not found in zip root'
@@ -384,7 +435,7 @@ class TourManagerController extends Controller
             }
 
             if (!$jsonData) {
-                $this->cleanupFailedExtraction($storagePath, $publicPath);
+                $this->cleanupFailedExtraction($tourDirectory);
                 return [
                     'success' => false,
                     'message' => 'JSON configuration file not found in zip root'
@@ -394,8 +445,8 @@ class TourManagerController extends Controller
             return [
                 'success' => true,
                 'data' => $jsonData,
-                'storage_path' => 'tours/' . $tourId,
-                'public_path' => '/tours/' . $tourId . '/index.html',
+                'tour_path' => $tourPath,
+                'tour_url' => url('/tours/' . $tourPath . '/index.php'),
                 'message' => 'Zip file processed successfully'
             ];
 
@@ -482,13 +533,10 @@ class TourManagerController extends Controller
     /**
      * Cleanup failed extraction
      */
-    private function cleanupFailedExtraction($storagePath, $publicPath)
+    private function cleanupFailedExtraction($tourDirectory)
     {
-        if (\File::exists($storagePath)) {
-            \File::deleteDirectory($storagePath);
-        }
-        if (\File::exists($publicPath)) {
-            \File::deleteDirectory($publicPath);
+        if (\File::exists($tourDirectory)) {
+            \File::deleteDirectory($tourDirectory);
         }
     }
 
