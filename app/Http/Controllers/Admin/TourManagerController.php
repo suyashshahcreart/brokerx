@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\Tour;
+use GrahamCampbell\ResultType\Success;
 use Illuminate\Http\Request;
 use Yajra\DataTables\Facades\DataTables;
 use ZipArchive;
@@ -203,7 +204,7 @@ class TourManagerController extends Controller
                     if ($extension === 'zip') {
                         // Process zip file - extract and validate
                         $result = $this->processZipFile($file, $tour);
-                        
+                        dd($result);
                         if ($result['success']) {
                             $tourData = $result['data'];
                             $uploadedFiles[] = [
@@ -302,11 +303,10 @@ class TourManagerController extends Controller
                     'message' => $validation['message']
                 ];
             }
-
             // Create tour-specific directories
             $tourId = $tour->id;
-            $storagePath = storage_path('app/public/tours/' . $tourId);
-            $publicPath = public_path('tours/' . $tourId);
+            $storagePath = storage_path('app/public/tours_files/' . $tourId);
+            $publicPath = public_path('storage/tours/' . $tourId);
 
             // Delete old tour files if they exist
             if (\File::exists($storagePath)) {
@@ -418,29 +418,42 @@ class TourManagerController extends Controller
         $hasJsonFile = false;
         $requiredFolders = ['images', 'assets', 'gallery', 'tiles'];
         $foundFolders = [];
-
         for ($i = 0; $i < $zip->numFiles; $i++) {
             $filename = $zip->getNameIndex($i);
             
-            // Skip hidden files
-            if (strpos($filename, '__MACOSX') !== false || strpos($filename, '.DS_Store') !== false) {
+            // Skip hidden files and system folders
+            if (strpos($filename, '__MACOSX') !== false || 
+                strpos($filename, '.DS_Store') !== false ||
+                empty(trim($filename))) {
                 continue;
             }
 
-            // Check for index.html in root
-            if (strtolower(basename($filename)) === 'index.html' && !str_contains(dirname($filename), '/')) {
+            // Normalize path separators and trim
+            $filename = trim(str_replace('\\', '/', $filename));
+            
+            // Skip empty entries after normalization
+            if (empty($filename)) {
+                continue;
+            }
+
+            // Check for index.html in root (must not be in subdirectory)
+            // File is in root if it doesn't contain any slash, or only has trailing slash
+            $cleanFilename = rtrim($filename, '/');
+            if (strtolower(basename($cleanFilename)) === 'index.html') {
                 $hasIndexHtml = true;
             }
 
-            // Check for JSON file in root
-            if (pathinfo($filename, PATHINFO_EXTENSION) === 'json' && !str_contains(dirname($filename), '/')) {
+            // Check for JSON file in root (must not be in subdirectory)
+            $fileInfo = pathinfo($cleanFilename);
+            if (isset($fileInfo['extension']) && strtolower($fileInfo['extension']) === 'json') {
                 $hasJsonFile = true;
             }
 
             // Check for required folders
+            // A folder entry typically ends with / or contains files like: foldername/filename
             $parts = explode('/', $filename);
-            if (count($parts) > 0) {
-                $topFolder = strtolower($parts[0]);
+            if (count($parts) >= 2 && !empty($parts[0])) {
+                $topFolder = strtolower($parts[1]);
                 if (in_array($topFolder, $requiredFolders) && !in_array($topFolder, $foundFolders)) {
                     $foundFolders[] = $topFolder;
                 }
