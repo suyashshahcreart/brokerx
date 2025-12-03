@@ -204,7 +204,6 @@ class TourManagerController extends Controller
                     if ($extension === 'zip') {
                         // Process zip file - extract and validate
                         $result = $this->processZipFile($file, $tour);
-                        dd($result);
                         if ($result['success']) {
                             $tourData = $result['data'];
                             $uploadedFiles[] = [
@@ -323,25 +322,25 @@ class TourManagerController extends Controller
             // Extract files
             $jsonData = null;
             $indexHtmlContent = null;
-
+            $debugData = [];
             for ($i = 0; $i < $zip->numFiles; $i++) {
                 $filename = $zip->getNameIndex($i);
                 $fileInfo = pathinfo($filename);
-
+                $debugData[] = $fileInfo;
                 // Skip hidden files and __MACOSX
                 if (strpos($filename, '__MACOSX') !== false || strpos($filename, '.DS_Store') !== false) {
                     continue;
                 }
 
                 // Handle index.html - save to public folder
-                if (strtolower($fileInfo['basename']) === 'index.html' && !str_contains($filename, '/')) {
+                if (strtolower($fileInfo['basename']) === 'index.html') {
                     $indexHtmlContent = $zip->getFromIndex($i);
                     file_put_contents($publicPath . '/index.html', $indexHtmlContent);
                     continue;
                 }
 
                 // Handle JSON file - read and parse
-                if (isset($fileInfo['extension']) && strtolower($fileInfo['extension']) === 'json' && !str_contains($filename, '/')) {
+                if (isset($fileInfo['extension']) && strtolower($fileInfo['extension']) === 'json') {
                     $jsonContent = $zip->getFromIndex($i);
                     $jsonData = json_decode($jsonContent, true);
                     
@@ -372,9 +371,9 @@ class TourManagerController extends Controller
                     }
                 }
             }
-
+            
             $zip->close();
-
+            
             // Validate that we got the required files
             if (!$indexHtmlContent) {
                 $this->cleanupFailedExtraction($storagePath, $publicPath);
