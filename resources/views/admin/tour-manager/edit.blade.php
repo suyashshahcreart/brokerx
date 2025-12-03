@@ -35,8 +35,9 @@
                             <div class="dropzone" id="tour-dropzone">
                                 <div class="dz-message needsclick">
                                     <i class="ri-upload-cloud-2-line fs-1 text-muted"></i>
-                                    <h4>Drop files here or click to select</h4>
-                                    <span class="text-muted">Select tour files, images, or documents (Max 50MB per file)</span>
+                                    <h4>Drop tour ZIP file here or click to select</h4>
+                                    <span class="text-muted">Upload a ZIP file containing tour assets (images, assets, gallery, tiles, index.html, data.json)</span>
+                                    <span class="text-muted d-block mt-1"><small>Max 500MB per file | Required: index.html + JSON file + folders (images, assets, gallery, tiles)</small></span>
                                 </div>
                             </div>
                             <div id="file-count-display" class="mt-2 text-muted" style="display: none;">

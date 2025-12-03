@@ -10,16 +10,16 @@ if (document.getElementById('tour-dropzone') && !document.getElementById('tour-d
         const myDropzone = new Dropzone("#tour-dropzone", {
             url: "#", // Dummy URL since we'll submit via form
             paramName: "files",
-            maxFilesize: 50, // MB
-            maxFiles: 20, // Maximum 20 files
-            acceptedFiles: "image/*,.pdf,.doc,.docx,.zip",
+            maxFilesize: 500, // MB (increased for zip files)
+            maxFiles: 10, // Maximum 10 files
+            acceptedFiles: ".zip,image/*,.pdf,.doc,.docx",
             addRemoveLinks: true,
             clickable: true,
             autoProcessQueue: false, // Don't upload automatically
             uploadMultiple: true,
-            dictDefaultMessage: "Drop files here or click to select",
+            dictDefaultMessage: "Drop tour ZIP file here or click to select",
             dictFileTooBig: "File is too big ({{filesize}}MB). Max filesize: {{maxFilesize}}MB.",
-            dictInvalidFileType: "You can't upload files of this type. Only images, PDF, DOC, DOCX, and ZIP files are allowed.",
+            dictInvalidFileType: "You can't upload files of this type. Upload a ZIP file containing tour assets, or images/PDF/DOC.",
             dictMaxFilesExceeded: "You can't upload more than {{maxFiles}} files.",
             dictRemoveFile: "Remove file",
             init: function () {
@@ -49,9 +49,11 @@ if (document.getElementById('tour-dropzone') && !document.getElementById('tour-d
                     const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/bmp', 'image/webp',
                                        'application/pdf', 'application/msword', 
                                        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                                       'application/zip', 'application/x-zip-compressed'];
+                                       'application/zip', 'application/x-zip-compressed', 'application/x-zip', 'application/octet-stream'];
                     
-                    if (!validTypes.includes(file.type)) {
+                    const isZipFile = file.name.toLowerCase().endsWith('.zip');
+                    
+                    if (!validTypes.includes(file.type) && !isZipFile) {
                         dropzone.removeFile(file);
                         if (typeof Swal !== 'undefined') {
                             Swal.fire({
