@@ -208,8 +208,8 @@ class BookingController extends Controller
             'full_address' => ['required', 'string'],
             'pin_code' => ['required', 'string', 'size:6', 'regex:/^[0-9]{6}$/'],
             'booking_date' => ['nullable', 'date'],
-            'payment_status' => ['required', 'in:pending,paid,failed,refunded'],
-            'status' => ['required', 'in:pending,confirmed,cancelled,completed'],
+            'payment_status' => ['nullable', 'in:unpaid,pending,paid,failed,refunded'],
+            'status' => ['nullable', 'in:pending,confirmed,cancelled,completed'],
         ]);
 
         $validated['created_by'] = $request->user()->id ?? null;
@@ -306,8 +306,8 @@ class BookingController extends Controller
             'full_address' => ['required', 'string'],
             'pin_code' => ['required', 'string', 'size:6', 'regex:/^[0-9]{6}$/'],
             'booking_date' => ['nullable', 'date'],
-            'payment_status' => ['required', 'in:pending,paid,failed,refunded'],
-            'status' => ['required', 'in:pending,confirmed,cancelled,completed'],
+            'payment_status' => ['nullable', 'in:unpaid,pending,paid,failed,refunded'],
+            'status' => ['nullable', 'in:pending,confirmed,cancelled,completed'],
         ]);
 
         $validated['updated_by'] = $request->user()->id ?? null;

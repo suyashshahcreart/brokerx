@@ -127,6 +127,13 @@ document.addEventListener('DOMContentLoaded', function () {
 		}
 	});
 
+	// Make calendar icon clickable to open date picker
+	$(document).on('click', '#calendar-icon-trigger', function() {
+		if (flatpickrInstance) {
+			flatpickrInstance.open();
+		}
+	});
+
 	// Schedule submit button
 	$('#scheduleSubmitBtn').on('click', function () {
 		const bookingId = $('#schedule-booking-id').val();

@@ -9,10 +9,12 @@
     <div class="col-12">
         <div class="mb-1">
             <label class="form-label" for="user_id">Select User <span class="text-danger">*</span></label>
-            <select name="user_id" id="user_id" class="form-select" required>
+            <select name="user_id" id="user_id" data-choices class="form-select" required>
                 <option value="">Choose a user...</option>
                 @foreach($users as $u)
-                    <option value="{{ $u->id }}" @selected($booking->user_id == $u->id)>{{ $u->firstname }} {{ $u->lastname }} ({{ $u->email }})</option>
+                    <option value="{{ $u->id }}" @selected($booking->user_id == $u->id)>
+                        {{ $u->firstname }} {{ $u->lastname }} | {{ $u->mobile }}@if($u->email) | {{ $u->email }}@endif
+                    </option>
                 @endforeach
             </select>
             <div class="invalid-feedback">Please select a user.</div>
@@ -248,19 +250,23 @@
                         <!-- Area (Always Visible - Common Field) -->
                         <div class="mb-1">
                             <label class="form-label fw-semibold mb-0" for="area">Super Built-up Area (sq ft) <span class="text-danger">*</span></label>
-                            <input type="number" name="area" id="area" class="form-control" value="{{ $booking->area }}" placeholder="e.g., 1200" required min="1">
-                            <div class="invalid-feedback">Please enter a valid area.</div>
+                            <input type="number" name="area" id="area" class="form-control @error('area') is-invalid @enderror" value="{{ old('area', $booking->area) }}" placeholder="e.g., 1200" required min="1">
+                            <div class="invalid-feedback">@error('area'){{ $message }}@else Please enter a valid area.@enderror</div>
                         </div>
                     </div>
                     <div class="col-6">
                         <!-- Price, Dates, Status (Always Visible) -->
                         <div class="mb-1">
                             <label class="form-label fw-semibold mb-0" for="price">Price (₹) <span class="text-danger">*</span> <small class="text-muted">(Auto-calculated)</small></label>
-                            <input type="number" name="price" id="price" class="form-control bg-light" value="{{ $booking->price }}" placeholder="Enter area to calculate" readonly required min="0">
-                            <div class="invalid-feedback">Please enter a valid price.</div>
+                            <input type="number" name="price" id="price" class="form-control bg-light @error('price') is-invalid @enderror" value="{{ old('price', $booking->price) }}" placeholder="Enter area to calculate" readonly required min="0">
+                            <div class="invalid-feedback">@error('price'){{ $message }}@else Please enter a valid price.@enderror</div>
                         </div>
                     </div>
                 </div>
+
+                
+
+                
                         
                 <!-- Use Company Billing Details Checkbox -->
                 <div class="mb-1">
@@ -278,15 +284,15 @@
                         <div class="col-6">
                             <div class="m-0">
                                 <div class="section-title m-0">Company Name <span class="text-danger">*</span></div>
-                                <input type="text" name="firm_name" id="firmName" class="form-control" placeholder="Enter Company Name" value="{{ $booking->firm_name ?? '' }}">
-                                <div id="err-firmName" class="error">Company Name is required.</div>
+                                <input type="text" name="firm_name" id="firmName" class="form-control @error('firm_name') is-invalid @enderror" placeholder="Enter Company Name" value="{{ old('firm_name', $booking->firm_name ?? '') }}">
+                                <div id="err-firmName" class="error @error('firm_name') @else hidden @enderror">@error('firm_name'){{ $message }}@else Company Name is required.@enderror</div>
                             </div>
                         </div>
                         <div class="col-6">
                             <div class="m-0">
                                 <div class="section-title m-0">GST No <span class="text-danger">*</span></div>
-                                <input type="text" name="gst_no" id="gstNo" class="form-control" placeholder="Enter GST number" value="{{ $booking->gst_no ?? '' }}">
-                                <div id="err-gstNo" class="error">GST No is required.</div>
+                                <input type="text" name="gst_no" id="gstNo" class="form-control @error('gst_no') is-invalid @enderror" placeholder="Enter GST number" value="{{ old('gst_no', $booking->gst_no ?? '') }}">
+                                <div id="err-gstNo" class="error @error('gst_no') @else hidden @enderror">@error('gst_no'){{ $message }}@else GST No is required.@enderror</div>
                             </div>
                         </div>
                     </div>

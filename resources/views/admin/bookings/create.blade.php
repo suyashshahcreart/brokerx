@@ -2,10 +2,13 @@
 
 @section('css')
 
-    <!-- Font Awesome for dynamic icons from database -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-
-    <style>
+      <!-- Font Awesome for dynamic icons from database -->
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+      
+      <!-- Choices.js CSS -->
+      @vite(['node_modules/choices.js/public/assets/styles/choices.min.css'])
+  
+      <style>
         /* Pill and Chip Styles */
         .top-pill, .chip {
             display: inline-flex;
@@ -284,25 +287,50 @@
                 </div>
             </div>
             <div class="card-body pt-0">
+                
+                {{-- Display Validation Errors --}}
+                @if($errors->any())
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <h5 class="alert-heading"><i class="ri-error-warning-line me-2"></i>Validation Errors</h5>
+                    <hr>
+                    <ul class="mb-0">
+                        @foreach($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                @endif
+
+                {{-- Display Success Message --}}
+                @if(session('success'))
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="ri-checkbox-circle-line me-2"></i>{{ session('success') }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                @endif
+                
                 <form method="POST" action="{{ route('admin.bookings.store') }}" class="needs-validation" novalidate>
                     @csrf
                     
                     <!-- Hidden Fields for Dynamic Data -->
-                    <input type="hidden" id="choice_ownerType" name="owner_type">
-                    <input type="hidden" id="mainPropertyType" name="main_property_type">
+                    <input type="hidden" id="choice_ownerType" name="owner_type" value="{{ old('owner_type') }}">
+                    <input type="hidden" id="mainPropertyType" name="main_property_type" value="{{ old('main_property_type') }}">
                     
                     <!-- User Selection - Full Width -->
                     <div class="row">
                         <div class="col-12">
                             <div class="mb-1">
                                 <label class="form-label" for="user_id">Select User <span class="text-danger">*</span></label>
-                                <select name="user_id" id="user_id" class="form-select" required>
+                                <select name="user_id" id="user_id" data-choices class="form-select @error('user_id') is-invalid @enderror" required>
                                     <option value="">Choose a user...</option>
                                     @foreach($users as $u)
-                                        <option value="{{ $u->id }}" @selected(old('user_id')==$u->id)>{{ $u->firstname }} {{ $u->lastname }} ({{ $u->email }})</option>
+                                        <option value="{{ $u->id }}" @selected(old('user_id')==$u->id)>
+                                            {{ $u->firstname }} {{ $u->lastname }} | {{ $u->mobile }}@if($u->email) | {{ $u->email }}@endif
+                                        </option>
                                     @endforeach
                                 </select>
-                                <div class="invalid-feedback">Please select a user.</div>
+                                <div class="invalid-feedback">@error('user_id'){{ $message }}@else Please select a user.@enderror</div>
                             </div>
                         </div>
                     </div>
@@ -512,8 +540,8 @@
                                         <!-- Other Option Details -->
                                         <div class="mb-1">
                                             <div class="section-title mb-0">Other Option Details</div>
-                                            <textarea name="other_option_details" id="othDesc" class="form-control" rows="3" placeholder="Enter other option details"></textarea>
-                                            <div id="err-othDesc" class="error">Other Option Details is required.</div>
+                                            <textarea name="other_option_details" id="othDesc" class="form-control @error('other_option_details') is-invalid @enderror" rows="3" placeholder="Enter other option details">{{ old('other_option_details') }}</textarea>
+                                            <div id="err-othDesc" class="error @error('other_option_details') @else hidden @enderror">@error('other_option_details'){{ $message }}@else Other Option Details is required.@enderror</div>
                                         </div>
                                     </div>
 
@@ -522,16 +550,16 @@
                                             <!-- Area (Always Visible - Common Field) -->
                                             <div class="mb-1">
                                                 <label class="form-label fw-semibold mb-0" for="area">Super Built-up Area (sq ft) <span class="text-danger">*</span></label>
-                                                <input type="number" name="area" id="area" class="form-control" value="{{ old('area') }}" placeholder="e.g., 1200" required min="1">
-                                                <div class="invalid-feedback">Please enter a valid area.</div>
+                                                <input type="number" name="area" id="area" class="form-control @error('area') is-invalid @enderror" value="{{ old('area') }}" placeholder="e.g., 1200" required min="1">
+                                                <div class="invalid-feedback">@error('area'){{ $message }}@else Please enter a valid area.@enderror</div>
                                             </div>
                                         </div>
                                         <div class="col-6">
                                             <!-- Price, Dates, Status (Always Visible) -->
                                             <div class="mb-1">
                                                 <label class="form-label fw-semibold mb-0" for="price">Price (₹) <span class="text-danger">*</span> <small class="text-muted">(Auto-calculated)</small></label>
-                                                <input type="number" name="price" id="price" class="form-control bg-light" value="{{ old('price') }}" placeholder="Enter area to calculate" readonly required min="0">
-                                                <div class="invalid-feedback">Please enter a valid price.</div>
+                                                <input type="number" name="price" id="price" class="form-control bg-light @error('price') is-invalid @enderror" value="{{ old('price') }}" placeholder="Enter area to calculate" readonly required min="0">
+                                                <div class="invalid-feedback">@error('price'){{ $message }}@else Please enter a valid price.@enderror</div>
                                             </div>
                                         </div>
                                     </div>
@@ -539,7 +567,7 @@
                                     <!-- Use Company Billing Details Checkbox -->
                                     <div class="mb-1">
                                         <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" id="differentBillingName" name="different_billing_name">
+                                            <input class="form-check-input" type="checkbox" id="differentBillingName" name="different_billing_name" {{ old('different_billing_name') ? 'checked' : '' }}>
                                             <label class="form-check-label" for="differentBillingName">
                                                 Use company billing details
                                             </label>
@@ -547,20 +575,20 @@
                                     </div>
 
                                     <!-- Company Billing Fields (Hidden by default) -->
-                                    <div id="billingDetailsRow" class="hidden">
+                                    <div id="billingDetailsRow" class="{{ old('different_billing_name') ? '' : 'hidden' }}">
                                         <div class="row">
                                             <div class="col-6">
                                                 <div class="m-0">
                                                     <div class="section-title m-0">Company Name <span class="text-danger">*</span></div>
-                                                    <input type="text" name="firm_name" id="firmName" class="form-control" placeholder="Enter Company Name">
-                                                    <div id="err-firmName" class="error">Company Name is required.</div>
+                                                    <input type="text" name="firm_name" id="firmName" class="form-control @error('firm_name') is-invalid @enderror" placeholder="Enter Company Name" value="{{ old('firm_name') }}">
+                                                    <div id="err-firmName" class="error @error('firm_name') @else hidden @enderror">@error('firm_name'){{ $message }}@else Company Name is required.@enderror</div>
                                                 </div>
                                             </div>
                                             <div class="col-6">
                                                 <div class="m-0">
                                                     <div class="section-title m-0">GST No <span class="text-danger">*</span></div>
-                                                    <input type="text" name="gst_no" id="gstNo" class="form-control" placeholder="Enter GST number">
-                                                    <div id="err-gstNo" class="error">GST No is required.</div>
+                                                    <input type="text" name="gst_no" id="gstNo" class="form-control @error('gst_no') is-invalid @enderror" placeholder="Enter GST number" value="{{ old('gst_no') }}">
+                                                    <div id="err-gstNo" class="error @error('gst_no') @else hidden @enderror">@error('gst_no'){{ $message }}@else GST No is required.@enderror</div>
                                                 </div>
                                             </div>
                                         </div>
@@ -584,16 +612,16 @@
                                             <!-- House No -->
                                             <div class="mb-1">
                                                 <label class="form-label fw-semibold mb-0" for="house_no">House / Office No <span class="text-danger">*</span></label>
-                                                <input type="text" name="house_no" id="house_no" class="form-control" value="{{ old('house_no') }}" placeholder="e.g., H-123, 12A" required>
-                                                <div class="invalid-feedback">House / Office No is required.</div>
+                                                <input type="text" name="house_no" id="house_no" class="form-control @error('house_no') is-invalid @enderror" value="{{ old('house_no') }}" placeholder="e.g., H-123, 12A" required>
+                                                <div class="invalid-feedback">@error('house_no'){{ $message }}@else House / Office No is required.@enderror</div>
                                             </div>
                                         </div>
                                         <div class="col-4">
                                             <!-- Building -->
                                             <div class="mb-1">
                                                 <label class="form-label fw-semibold mb-0" for="building">Society / Building Name <span class="text-danger">*</span></label>
-                                                <input type="text" name="building" id="building" class="form-control" value="{{ old('building') }}" placeholder="Building or Tower name" required>
-                                                <div class="invalid-feedback">Society / Building Name is required.</div>
+                                                <input type="text" name="building" id="building" class="form-control @error('building') is-invalid @enderror" value="{{ old('building') }}" placeholder="Building or Tower name" required>
+                                                <div class="invalid-feedback">@error('building'){{ $message }}@else Society / Building Name is required.@enderror</div>
                                             </div>
                                         </div>
                                         <div class="col-4">
@@ -621,8 +649,8 @@
                                             <!-- PIN Code -->
                                             <div class="mb-1">
                                                 <label class="form-label fw-semibold mb-0" for="pin_code">PIN Code <span class="text-danger">*</span></label>
-                                                <input type="text" name="pin_code" id="pin_code" class="form-control" value="{{ old('pin_code') }}" placeholder="e.g., 380015" maxlength="6" required>
-                                                <div class="invalid-feedback">Valid 6-digit PIN Code is required.</div>
+                                                <input type="text" name="pin_code" id="pin_code" class="form-control @error('pin_code') is-invalid @enderror" value="{{ old('pin_code') }}" placeholder="e.g., 380015" maxlength="6" required>
+                                                <div class="invalid-feedback">@error('pin_code'){{ $message }}@else Valid 6-digit PIN Code is required.@enderror</div>
                                             </div>
 
                                         </div>
@@ -664,8 +692,8 @@
                                                     <!-- Full Address -->
                                                     <div class="mb-0">
                                                         <label class="form-label fw-semibold mb-0" for="full_address">Full Address <span class="text-danger">*</span></label>
-                                                        <textarea name="full_address" id="full_address" class="form-control" rows="4" placeholder="Complete address with street details..." required>{{ old('full_address') }}</textarea>
-                                                        <div class="invalid-feedback">Full Address is required.</div>
+                                                        <textarea name="full_address" id="full_address" class="form-control @error('full_address') is-invalid @enderror" rows="4" placeholder="Complete address with street details..." required>{{ old('full_address') }}</textarea>
+                                                        <div class="invalid-feedback">@error('full_address'){{ $message }}@else Full Address is required.@enderror</div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -708,6 +736,205 @@
 
 @section('script')
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    
     @vite(['resources/js/pages/bookings-form.js'])
+    
+    <script>
+        // Store old values for restoration after main JS loads
+        window.bookingOldValues = {
+            owner_type: '{{ old("owner_type") }}',
+            main_property_type: '{{ old("main_property_type") }}',
+            property_sub_type_id: '{{ old("property_sub_type_id") }}',
+            furniture_type: '{{ old("furniture_type") }}',
+            bhk_id: '{{ old("bhk_id") }}',
+            state_id: '{{ old("state_id") }}',
+            city_id: '{{ old("city_id") }}',
+            different_billing_name: '{{ old("different_billing_name") }}',
+            has_old_data: {{ old('owner_type') || old('main_property_type') ? 'true' : 'false' }}
+        };
+        
+        // Flag to prevent clearing fields during restoration
+        window.isRestoringOldValues = false;
+
+        // Restore old values after main JS loads
+        @if(old('owner_type') || old('main_property_type'))
+        document.addEventListener('DOMContentLoaded', function() {
+            // Function to wait for element to exist
+            function waitForElement(selector, callback, maxWait = 5000) {
+                const startTime = Date.now();
+                const checkExist = setInterval(function() {
+                    const element = document.querySelector(selector);
+                    if (element) {
+                        clearInterval(checkExist);
+                        callback(element);
+                    } else if (Date.now() - startTime > maxWait) {
+                        clearInterval(checkExist);
+                    }
+                }, 100);
+            }
+
+            // Set flag to prevent clearing fields during restoration
+            window.isRestoringOldValues = true;
+
+            // Step 1: Restore Owner Type first
+            if (window.bookingOldValues.owner_type) {
+                waitForElement(`[data-group="ownerType"][data-value="${window.bookingOldValues.owner_type}"]`, function(ownerPill) {
+                    ownerPill.click();
+                    
+                    // Step 2: Restore Property Type after Owner Type
+                    setTimeout(function() {
+                        if (window.bookingOldValues.main_property_type) {
+                            const propertyTab = document.querySelector(`#propertyTypeContainer [data-value="${window.bookingOldValues.main_property_type}"]`);
+                            if (propertyTab) {
+                                propertyTab.click();
+                                
+                                // Step 3: Restore other fields after Property Type
+                                setTimeout(function() {
+                                    // Restore Property Sub Type (for all property types)
+                                    if (window.bookingOldValues.property_sub_type_id) {
+                                        // Try residential first
+                                        let subTypeChip = document.querySelector(`[data-group="resType"][data-value="${window.bookingOldValues.property_sub_type_id}"]`);
+                                        // If not found, try commercial
+                                        if (!subTypeChip) {
+                                            subTypeChip = document.querySelector(`[data-group="comType"][data-value="${window.bookingOldValues.property_sub_type_id}"]`);
+                                        }
+                                        // If not found, try "other"
+                                        if (!subTypeChip) {
+                                            subTypeChip = document.querySelector(`[data-group="othLooking"][data-value="${window.bookingOldValues.property_sub_type_id}"]`);
+                                        }
+                                        if (subTypeChip) {
+                                            subTypeChip.click();
+                                        }
+                                    }
+                                    
+                                    // Restore Furniture Type (for Residential and Commercial)
+                                    // Need longer delay for Commercial tab to be fully visible
+                                    if (window.bookingOldValues.furniture_type) {
+                                        setTimeout(function() {
+                                            // Determine which group based on property type
+                                            let furnitureGroup = 'resFurnish';
+                                            if (window.bookingOldValues.main_property_type === 'Commercial') {
+                                                furnitureGroup = 'comFurnish';
+                                            }
+                                            
+                                            // Find and click the furniture chip
+                                            const furnitureChip = document.querySelector(`[data-group="${furnitureGroup}"][data-value="${window.bookingOldValues.furniture_type}"]`);
+                                            if (furnitureChip) {
+                                                furnitureChip.click();
+                                            } else {
+                                                // Fallback: try the other group
+                                                const fallbackGroup = furnitureGroup === 'resFurnish' ? 'comFurnish' : 'resFurnish';
+                                                const fallbackChip = document.querySelector(`[data-group="${fallbackGroup}"][data-value="${window.bookingOldValues.furniture_type}"]`);
+                                                if (fallbackChip) {
+                                                    fallbackChip.click();
+                                                }
+                                            }
+                                        }, 600);
+                                    }
+                                    
+                                    // Restore BHK Size (for Residential only)
+                                    if (window.bookingOldValues.bhk_id) {
+                                        setTimeout(function() {
+                                            const bhkChip = document.querySelector(`[data-group="resSize"][data-value="${window.bookingOldValues.bhk_id}"]`);
+                                            if (bhkChip) {
+                                                bhkChip.click();
+                                            }
+                                        }, 600);
+                                    }
+                                }, 500);
+                            }
+                        }
+                    }, 300);
+                });
+            }
+
+            // Restore State and City independently
+            setTimeout(function() {
+                if (window.bookingOldValues.state_id) {
+                    const stateSelect = document.getElementById('state_id');
+                    if (stateSelect) {
+                        stateSelect.value = window.bookingOldValues.state_id;
+                        stateSelect.dispatchEvent(new Event('change'));
+                        
+                        // Restore city after state cities are loaded
+                        if (window.bookingOldValues.city_id) {
+                            setTimeout(function() {
+                                const citySelect = document.getElementById('city_id');
+                                if (citySelect) {
+                                    citySelect.value = window.bookingOldValues.city_id;
+                                }
+                            }, 600);
+                        }
+                    }
+                }
+            }, 1000);
+
+            // Restore billing checkbox independently
+            setTimeout(function() {
+                if (window.bookingOldValues.different_billing_name) {
+                    const checkbox = document.getElementById('differentBillingName');
+                    if (checkbox && !checkbox.checked) {
+                        checkbox.checked = true;
+                        checkbox.dispatchEvent(new Event('change'));
+                    }
+                }
+                
+                // Clear restoration flag after everything is done
+                setTimeout(function() {
+                    window.isRestoringOldValues = false;
+                }, 500);
+            }, 1000);
+        });
+        @endif
+
+        // Auto-scroll to validation errors if present
+        @if($errors->any())
+        document.addEventListener('DOMContentLoaded', function() {
+            const alertElement = document.querySelector('.alert-danger');
+            if (alertElement) {
+                alertElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                
+                // Highlight fields with errors
+                const errorFields = @json($errors->keys());
+                errorFields.forEach(function(fieldName) {
+                    // Try to find the field by name
+                    let field = document.querySelector(`[name="${fieldName}"]`);
+                    if (field) {
+                        field.classList.add('is-invalid');
+                        
+                        // For select elements, also add error class to parent
+                        if (field.tagName === 'SELECT') {
+                            field.closest('.mb-1, .mb-3')?.classList.add('has-error');
+                        }
+                    }
+                    
+                    // Special handling for hidden pill fields
+                    if (fieldName === 'owner_type') {
+                        document.getElementById('err-owner')?.classList.remove('hidden');
+                    }
+                    if (fieldName === 'main_property_type') {
+                        document.getElementById('err-tab')?.classList.remove('hidden');
+                    }
+                    if (fieldName === 'property_sub_type_id') {
+                        document.getElementById('err-subtype')?.classList.remove('hidden');
+                    }
+                    if (fieldName === 'furniture_type') {
+                        document.getElementById('err-furnish')?.classList.remove('hidden');
+                    }
+                    if (fieldName === 'bhk_id') {
+                        document.getElementById('err-bhk')?.classList.remove('hidden');
+                    }
+                });
+                
+                // Show SweetAlert for better visibility
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Validation Failed',
+                    html: '<div style="text-align: left;"><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>',
+                    confirmButtonColor: '#dc3545',
+                    width: '600px'
+                });
+            }
+        });
+        @endif
+    </script>
 @endsection

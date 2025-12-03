@@ -130,6 +130,11 @@ function hasAddressDataFilled() {
 }
 
 function clearAllPropertySelections() {
+    // Skip clearing if we're restoring old values from validation error
+    if (window.isRestoringOldValues) {
+        return;
+    }
+    
     // Clear property-related selections
     document.querySelectorAll('[data-group="resType"],[data-group="resFurnish"],[data-group="resSize"],[data-group="comType"],[data-group="comFurnish"],[data-group="othLooking"]').forEach(node => {
         node.classList.remove('active');
@@ -450,24 +455,46 @@ function validateForm() {
     // Validate Billing Details if checkbox is checked
     const billingCheckbox = el('differentBillingName');
     if (billingCheckbox && billingCheckbox.checked) {
-        const firmName = el('firmName')?.value?.trim();
-        const gstNo = el('gstNo')?.value?.trim();
+        const firmNameField = el('firmName');
+        const gstNoField = el('gstNo');
+        const firmName = firmNameField?.value?.trim();
+        const gstNo = gstNoField?.value?.trim();
         
         if (!firmName) {
             showFieldError('firmName', 'err-firmName');
+            if (firmNameField) {
+                firmNameField.classList.add('is-invalid');
+                firmNameField.classList.remove('is-valid');
+            }
             errors.push('Company Name is required');
             isValid = false;
         } else {
             hideFieldError('firmName', 'err-firmName');
+            if (firmNameField) {
+                firmNameField.classList.remove('is-invalid');
+                firmNameField.classList.add('is-valid');
+            }
         }
         
         if (!gstNo) {
             showFieldError('gstNo', 'err-gstNo');
+            if (gstNoField) {
+                gstNoField.classList.add('is-invalid');
+                gstNoField.classList.remove('is-valid');
+            }
             errors.push('GST No is required');
             isValid = false;
         } else {
             hideFieldError('gstNo', 'err-gstNo');
+            if (gstNoField) {
+                gstNoField.classList.remove('is-invalid');
+                gstNoField.classList.add('is-valid');
+            }
         }
+    } else {
+        // Checkbox is not checked - clear any errors
+        hideFieldError('firmName', 'err-firmName');
+        hideFieldError('gstNo', 'err-gstNo');
     }
     
     if (!isValid && errors.length > 0) {
@@ -487,8 +514,11 @@ function validateForm() {
 
 // Handle property type tab changes (Residential/Commercial/Other)
 window.handlePropertyTabChange = async function(key) {
+    // Skip confirmation if we're restoring old values from validation error
+    const skipConfirmation = window.isRestoringOldValues;
+    
     // Check if property type was already set, user is trying to change it, AND there's actual data filled
-    if (state.activePropertyTab && state.activePropertyTab !== key && (hasPropertyDataFilled() || hasAddressDataFilled())) {
+    if (!skipConfirmation && state.activePropertyTab && state.activePropertyTab !== key && (hasPropertyDataFilled() || hasAddressDataFilled())) {
         // Get current property type name
         const typeMap = { 'res': 'Residential', 'com': 'Commercial', 'oth': 'Other' };
         const currentType = typeMap[state.activePropertyTab] || 'Current';
@@ -757,9 +787,8 @@ document.addEventListener('DOMContentLoaded', function () {
             } else {
                 billingDetailsRow.classList.add('hidden');
                 billingDetailsRow.style.display = 'none';
-                // Clear fields when hiding
-                if (el('firmName')) el('firmName').value = '';
-                if (el('gstNo')) el('gstNo').value = '';
+                // DON'T clear fields - just hide them to preserve existing data
+                // Fields will not be validated or updated if hidden
             }
         });
     }
@@ -872,6 +901,9 @@ document.addEventListener('DOMContentLoaded', function () {
                     bhkInput.value = activeBhkPill.dataset.value;
                 }
             }
+            
+            // Billing fields are already in the HTML form with proper names and values
+            // They will be submitted naturally without manipulation
             
             // Submit the form (use native submit to bypass event listener)
             HTMLFormElement.prototype.submit.call(this);

@@ -4,6 +4,9 @@
 <!-- Font Awesome for dynamic icons from database -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
+<!-- Choices.js CSS -->
+@vite(['node_modules/choices.js/public/assets/styles/choices.min.css'])
+
 <style>
     /* Pill and Chip Styles */
     .top-pill, .chip {
@@ -298,6 +301,29 @@
                 <div class="tab-content" id="bookingEditTabsContent">
                     <!-- Booking Tab -->
                     <div class="tab-pane fade show active" id="booking-pane" role="tabpanel" aria-labelledby="booking-tab" tabindex="0">
+                        
+                        {{-- Display Validation Errors --}}
+                        @if($errors->any())
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <h5 class="alert-heading"><i class="ri-error-warning-line me-2"></i>Validation Errors</h5>
+                            <hr>
+                            <ul class="mb-0">
+                                @foreach($errors->all() as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                        @endif
+
+                        {{-- Display Success Message --}}
+                        @if(session('success'))
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            <i class="ri-checkbox-circle-line me-2"></i>{{ session('success') }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                        @endif
+
                         <form method="POST" action="{{ route('admin.bookings.update', $booking) }}" class="needs-validation" novalidate>
                             @csrf
                             @method('PUT')
@@ -345,5 +371,203 @@
         hasTour: false
         @endif
     };
+
+    // Store old values for restoration after main JS loads (for validation errors)
+    window.bookingOldValues = {
+        owner_type: '{{ old("owner_type", $booking->owner_type) }}',
+        main_property_type: '{{ old("main_property_type", $booking->propertyType->name ?? "") }}',
+        property_sub_type_id: '{{ old("property_sub_type_id", $booking->property_sub_type_id) }}',
+        furniture_type: '{{ old("furniture_type", $booking->furniture_type) }}',
+        bhk_id: '{{ old("bhk_id", $booking->bhk_id) }}',
+        state_id: '{{ old("state_id", $booking->state_id) }}',
+        city_id: '{{ old("city_id", $booking->city_id) }}',
+        different_billing_name: '{{ old("different_billing_name", ($booking->firm_name || $booking->gst_no) ? "on" : "") }}',
+        has_old_data: {{ $errors->any() ? 'true' : 'false' }}
+    };
+    
+    // Flag to prevent clearing fields during restoration
+    window.isRestoringOldValues = false;
+
+    // Restore old values after validation errors
+    @if($errors->any() && (old('owner_type') || old('main_property_type')))
+    document.addEventListener('DOMContentLoaded', function() {
+        // Function to wait for element to exist
+        function waitForElement(selector, callback, maxWait = 5000) {
+            const startTime = Date.now();
+            const checkExist = setInterval(function() {
+                const element = document.querySelector(selector);
+                if (element) {
+                    clearInterval(checkExist);
+                    callback(element);
+                } else if (Date.now() - startTime > maxWait) {
+                    clearInterval(checkExist);
+                }
+            }, 100);
+        }
+
+        // Set flag to prevent clearing fields during restoration
+        window.isRestoringOldValues = true;
+
+        // Step 1: Restore Owner Type first
+        if (window.bookingOldValues.owner_type) {
+            waitForElement(`[data-group="ownerType"][data-value="${window.bookingOldValues.owner_type}"]`, function(ownerPill) {
+                ownerPill.click();
+                
+                // Step 2: Restore Property Type after Owner Type
+                setTimeout(function() {
+                    if (window.bookingOldValues.main_property_type) {
+                        const propertyTab = document.querySelector(`#propertyTypeContainer [data-value="${window.bookingOldValues.main_property_type}"]`);
+                        if (propertyTab) {
+                            propertyTab.click();
+                            
+                            // Step 3: Restore other fields after Property Type
+                            setTimeout(function() {
+                                // Restore Property Sub Type (for all property types)
+                                if (window.bookingOldValues.property_sub_type_id) {
+                                    // Try residential first
+                                    let subTypeChip = document.querySelector(`[data-group="resType"][data-value="${window.bookingOldValues.property_sub_type_id}"]`);
+                                    // If not found, try commercial
+                                    if (!subTypeChip) {
+                                        subTypeChip = document.querySelector(`[data-group="comType"][data-value="${window.bookingOldValues.property_sub_type_id}"]`);
+                                    }
+                                    // If not found, try "other"
+                                    if (!subTypeChip) {
+                                        subTypeChip = document.querySelector(`[data-group="othLooking"][data-value="${window.bookingOldValues.property_sub_type_id}"]`);
+                                    }
+                                    if (subTypeChip) {
+                                        subTypeChip.click();
+                                    }
+                                }
+                                
+                                // Restore Furniture Type (for Residential and Commercial)
+                                // Need longer delay for Commercial tab to be fully visible
+                                if (window.bookingOldValues.furniture_type) {
+                                    setTimeout(function() {
+                                        // Determine correct group based on property type
+                                        let furnitureGroup = 'resFurnish';
+                                        if (window.bookingOldValues.main_property_type === 'Commercial') {
+                                            furnitureGroup = 'comFurnish';
+                                        }
+                                        
+                                        // Find and click the furniture chip
+                                        const furnitureChip = document.querySelector(`[data-group="${furnitureGroup}"][data-value="${window.bookingOldValues.furniture_type}"]`);
+                                        if (furnitureChip) {
+                                            furnitureChip.click();
+                                        } else {
+                                            // Fallback: try the other group
+                                            const fallbackGroup = furnitureGroup === 'resFurnish' ? 'comFurnish' : 'resFurnish';
+                                            const fallbackChip = document.querySelector(`[data-group="${fallbackGroup}"][data-value="${window.bookingOldValues.furniture_type}"]`);
+                                            if (fallbackChip) {
+                                                fallbackChip.click();
+                                            }
+                                        }
+                                    }, 600);
+                                }
+                                
+                                // Restore BHK Size (for Residential only)
+                                if (window.bookingOldValues.bhk_id) {
+                                    setTimeout(function() {
+                                        const bhkChip = document.querySelector(`[data-group="resSize"][data-value="${window.bookingOldValues.bhk_id}"]`);
+                                        if (bhkChip) {
+                                            bhkChip.click();
+                                        }
+                                    }, 600);
+                                }
+                            }, 500);
+                        }
+                    }
+                }, 300);
+            });
+        }
+
+        // Restore State and City independently
+        setTimeout(function() {
+            if (window.bookingOldValues.state_id) {
+                const stateSelect = document.getElementById('state_id');
+                if (stateSelect) {
+                    stateSelect.value = window.bookingOldValues.state_id;
+                    stateSelect.dispatchEvent(new Event('change'));
+                    
+                    // Restore city after state cities are loaded
+                    if (window.bookingOldValues.city_id) {
+                        setTimeout(function() {
+                            const citySelect = document.getElementById('city_id');
+                            if (citySelect) {
+                                citySelect.value = window.bookingOldValues.city_id;
+                            }
+                        }, 600);
+                    }
+                }
+            }
+        }, 1000);
+
+        // Restore billing checkbox independently
+        setTimeout(function() {
+            if (window.bookingOldValues.different_billing_name) {
+                const checkbox = document.getElementById('differentBillingName');
+                if (checkbox && !checkbox.checked) {
+                    checkbox.checked = true;
+                    checkbox.dispatchEvent(new Event('change'));
+                }
+            }
+            
+            // Clear restoration flag after everything is done
+            setTimeout(function() {
+                window.isRestoringOldValues = false;
+            }, 500);
+        }, 1000);
+    });
+    @endif
+
+    // Auto-scroll to validation errors if present
+    @if($errors->any())
+    document.addEventListener('DOMContentLoaded', function() {
+        const alertElement = document.querySelector('.alert-danger');
+        if (alertElement) {
+            alertElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            
+            // Highlight fields with errors
+            const errorFields = @json($errors->keys());
+            errorFields.forEach(function(fieldName) {
+                // Try to find the field by name
+                let field = document.querySelector(`[name="${fieldName}"]`);
+                if (field) {
+                    field.classList.add('is-invalid');
+                    
+                    // For select elements, also add error class to parent
+                    if (field.tagName === 'SELECT') {
+                        field.closest('.mb-1, .mb-3')?.classList.add('has-error');
+                    }
+                }
+                
+                // Special handling for hidden pill fields
+                if (fieldName === 'owner_type') {
+                    document.getElementById('err-owner')?.classList.remove('hidden');
+                }
+                if (fieldName === 'main_property_type') {
+                    document.getElementById('err-tab')?.classList.remove('hidden');
+                }
+                if (fieldName === 'property_sub_type_id') {
+                    document.getElementById('err-subtype')?.classList.remove('hidden');
+                }
+                if (fieldName === 'furniture_type') {
+                    document.getElementById('err-furnish')?.classList.remove('hidden');
+                }
+                if (fieldName === 'bhk_id') {
+                    document.getElementById('err-bhk')?.classList.remove('hidden');
+                }
+            });
+            
+            // Show SweetAlert for better visibility
+            Swal.fire({
+                icon: 'error',
+                title: 'Validation Failed',
+                html: '<div style="text-align: left;"><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>',
+                confirmButtonColor: '#dc3545',
+                width: '600px'
+            });
+        }
+    });
+    @endif
 </script>
 @endsection

@@ -183,6 +183,25 @@
         background-color: currentColor;
         opacity: 0.25;
     }
+    
+    /* Schedule Modal Input Styling */
+    #scheduleModal .input-group-text {
+        border-radius: 0.375rem 0 0 0.375rem;
+        transition: background-color 0.2s ease;
+    }
+    
+    #scheduleModal .input-group-text:hover {
+        background-color: #0b5ed7 !important;
+    }
+    
+    #scheduleModal .input-group .form-control {
+        border-left: 0;
+    }
+    
+    #scheduleModal .input-group .form-control:focus {
+        border-color: #0d6efd;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    }
 </style>
 @endsection
 
@@ -784,7 +803,12 @@
                             </div>
                         </div>
                         <label for="schedule-date" class="form-label">Select Date</label>
-                        <input type="text" class="form-control" id="schedule-date" name="schedule_date" required autocomplete="off">
+                        <div class="input-group">
+                            <span class="input-group-text bg-primary text-white" id="calendar-icon-trigger" style="cursor: pointer;" title="Open calendar">
+                                <i class="ri-calendar-line"></i>
+                            </span>
+                            <input type="text" class="form-control" id="schedule-date" name="schedule_date" placeholder="Click to select date" required autocomplete="off">
+                        </div>
                     </div>
                     <input type="hidden" id="schedule-booking-id" name="booking_id" value="{{ $booking->id }}">
                 </form>
@@ -991,6 +1015,13 @@
     document.getElementById('scheduleModal').addEventListener('show.bs.modal', function () {
         document.getElementById('schedule-mode-default').checked = true;
         fetchHolidaysAndInitPicker(lastSelectedDate);
+    });
+
+    // Make calendar icon clickable to open date picker
+    document.getElementById('calendar-icon-trigger').addEventListener('click', function() {
+        if (flatpickrInstance) {
+            flatpickrInstance.open();
+        }
     });
 
     // Schedule submit button
