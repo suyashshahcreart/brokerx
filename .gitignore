@@ -20,3 +20,5 @@ yarn-error.log
 /.vscode
 /Docs
 /tours
+# custome testing file in Root
+test.php
