@@ -240,6 +240,10 @@ class TourManagerController extends Controller
                                 'size' => $file->getSize(),
                                 'uploaded_at' => now()->toDateTimeString()
                             ];
+                            
+                            // Save the base URL of the storage folder to booking
+                            $booking->base_url = url('/storage/' . $result['storage_path']);
+                            $booking->save();
                         } else {
                             throw new \Exception($result['message']);
                         }

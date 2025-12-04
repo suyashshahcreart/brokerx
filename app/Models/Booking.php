@@ -32,6 +32,7 @@ class Booking extends Model
         'gst_no',
         'tour_final_link',
         'tour_code',
+        'base_url',
         'area',
         'price',
         'house_no',
