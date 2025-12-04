@@ -245,7 +245,7 @@ class TourManagerController extends Controller
                     } else {
                         // Handle regular files (images, pdfs, etc.)
                         $filename = time() . '_' . uniqid() . '_' . $file->getClientOriginalName();
-                        $assetsPath = base_path('tours/assets');
+                        $assetsPath = base_path('public/storage/tours/assets');
                         if (!\File::exists($assetsPath)) {
                             \File::makeDirectory($assetsPath, 0755, true);
                         }
@@ -254,7 +254,7 @@ class TourManagerController extends Controller
                         $uploadedFiles[] = [
                             'name' => $file->getClientOriginalName(),
                             'path' => 'assets/' . $filename,
-                            'url' => url('/tours/assets/' . $filename),
+                            'url' => url('/storage/tours/assets/' . $filename),
                             'size' => $file->getSize(),
                             'type' => $file->getMimeType(),
                             'uploaded_at' => now()->toDateTimeString()
@@ -330,17 +330,26 @@ class TourManagerController extends Controller
                 ];
             }
 
-            // Create tour directory using QR unique code in root/tours/
-            $tourPath = $uniqueCode;
-            $tourDirectory = base_path('tours/' . $tourPath);
+            // Create two directories:
+            // 1. Root tours/{code}/ for index.php
+            $rootTourPath = 'tours/' . $uniqueCode;
+            $rootTourDirectory = base_path($rootTourPath);
+            
+            // 2. public/storage/tours/{code}/ for folders (images, assets, gallery, tiles)
+            $storageTourPath = 'tours/' . $uniqueCode;
+            $storageTourDirectory = base_path('public/storage/' . $storageTourPath);
 
             // Delete old tour files if they exist
-            if (\File::exists($tourDirectory)) {
-                \File::deleteDirectory($tourDirectory);
+            if (\File::exists($rootTourDirectory)) {
+                \File::deleteDirectory($rootTourDirectory);
+            }
+            if (\File::exists($storageTourDirectory)) {
+                \File::deleteDirectory($storageTourDirectory);
             }
 
-            // Create directory
-            \File::makeDirectory($tourDirectory, 0755, true);
+            // Create directories
+            \File::makeDirectory($rootTourDirectory, 0755, true);
+            \File::makeDirectory($storageTourDirectory, 0755, true);
 
             // Extract files
             $jsonData = null;
@@ -382,26 +391,26 @@ class TourManagerController extends Controller
                     continue;
                 }
 
-                // Handle index.html - save as index.php
+                // Handle index.html - save as index.php in ROOT tours/{code}/
                 if (strtolower(basename($relativePath)) === 'index.html') {
                     $indexHtmlContent = $zip->getFromIndex($i);
-                    file_put_contents($tourDirectory . '/index.php', $indexHtmlContent);
+                    file_put_contents($rootTourDirectory . '/index.php', $indexHtmlContent);
                     continue;
                 }
 
-                // Handle JSON file - read and parse
+                // Handle JSON file - read and parse, save in ROOT tours/{code}/
                 $relativeFileInfo = pathinfo($relativePath);
                 if (isset($relativeFileInfo['extension']) && strtolower($relativeFileInfo['extension']) === 'json') {
                     $jsonContent = $zip->getFromIndex($i);
                     $jsonData = json_decode($jsonContent, true);
                     
-                    // Also save the JSON file
-                    file_put_contents($tourDirectory . '/' . $relativeFileInfo['basename'], $jsonContent);
+                    // Also save the JSON file in ROOT
+                    file_put_contents($rootTourDirectory . '/' . $relativeFileInfo['basename'], $jsonContent);
                     continue;
                 }
 
-                // Extract all other files
-                $targetPath = $tourDirectory . '/' . $relativePath;
+                // Extract all other files (folders) to STORAGE
+                $targetPath = $storageTourDirectory . '/' . $relativePath;
                 
                 // Create directory if needed
                 if (substr($filename, -1) === '/') {
@@ -427,7 +436,8 @@ class TourManagerController extends Controller
             
             // Validate that we got the required files
             if (!$indexHtmlContent) {
-                $this->cleanupFailedExtraction($tourDirectory);
+                $this->cleanupFailedExtraction($rootTourDirectory);
+                $this->cleanupFailedExtraction($storageTourDirectory);
                 return [
                     'success' => false,
                     'message' => 'index.html file not found in zip root'
@@ -435,7 +445,8 @@ class TourManagerController extends Controller
             }
 
             if (!$jsonData) {
-                $this->cleanupFailedExtraction($tourDirectory);
+                $this->cleanupFailedExtraction($rootTourDirectory);
+                $this->cleanupFailedExtraction($storageTourDirectory);
                 return [
                     'success' => false,
                     'message' => 'JSON configuration file not found in zip root'
@@ -445,8 +456,9 @@ class TourManagerController extends Controller
             return [
                 'success' => true,
                 'data' => $jsonData,
-                'tour_path' => $tourPath,
-                'tour_url' => url('/tours/' . $tourPath . '/index.php'),
+                'tour_path' => $rootTourPath,
+                'storage_path' => $storageTourPath,
+                'tour_url' => url('/' . $rootTourPath . '/index.php'),
                 'message' => 'Zip file processed successfully'
             ];
 
