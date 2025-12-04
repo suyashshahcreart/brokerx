@@ -558,6 +558,7 @@ class FrontendController extends Controller
             'booking_id' => $booking->id,
             'name' => 'Tour for Booking #' . $booking->id,
             'title' => 'Property Tour - ' . ($validated['name'] ?? 'Property'),
+            'slug' => 'tour-' . $booking->id . '-' . time(),
             'status' => 'draft',
             'revision' => 1,
         ]);
@@ -648,6 +649,7 @@ class FrontendController extends Controller
                 'booking_id' => $booking->id,
                 'name' => 'Tour for Booking #' . $booking->id,
                 'title' => 'Property Tour - ' . ($validated['name'] ?? 'Property'),
+                'slug' => 'tour-' . $booking->id . '-' . time(),
                 'status' => 'draft',
                 'revision' => 1,
             ]);
