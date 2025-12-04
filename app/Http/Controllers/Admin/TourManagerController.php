@@ -161,7 +161,8 @@ class TourManagerController extends Controller
             'bhk',
             'city',
             'state',
-            'tours'
+            'tours',
+            'qr'
         ]);
 
         return view('admin.tour-manager.show', compact('booking'));

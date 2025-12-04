@@ -139,6 +139,63 @@
         </div>
 
         <div class="col-lg-4">
+            <!-- QR Code Information -->
+            @if($booking->qr)
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title mb-0">QR Code</h4>
+                </div>
+                <div class="card-body text-center">
+                    <div class="mb-3">
+                        @if($booking->qr->image)
+                            <img src="{{ asset('storage/' . $booking->qr->image) }}" alt="QR Code" class="img-fluid" style="max-width: 250px;">
+                        @elseif($booking->qr->qr_link)
+                            <div class="qr-code-container">
+                                {!! $booking->qr->qr_code_image !!}
+                            </div>
+                        @else
+                            <div class="alert alert-info">
+                                <i class="ri-qr-code-line fs-3"></i>
+                                <p class="mb-0 mt-2">QR Code not generated yet</p>
+                            </div>
+                        @endif
+                    </div>
+                    <div class="row text-start">
+                        <div class="col-6 mb-2">
+                            <label class="form-label fw-bold text-muted small">QR Name</label>
+                            <p class="fw-semibold mb-0">{{ $booking->qr->name ?? 'N/A' }}</p>
+                        </div>
+                        <div class="col-6 mb-2">
+                            <label class="form-label fw-bold text-muted small">QR Code</label>
+                            <p class="mb-0 font-monospace">{{ $booking->qr->code }}</p>
+                        </div>
+                        @if($booking->qr->qr_link)
+                        <div class="col-6 mb-2">
+                            <label class="form-label fw-bold text-muted small">QR Link</label>
+                            <p class="mb-0">
+                                <a href="{{ $booking->qr->qr_link }}" target="_blank" class="text-truncate d-block" style="max-width: 100%;">
+                                    {{ Str::limit($booking->qr->qr_link, 40) }}
+                                    <i class="ri-external-link-line ms-1"></i>
+                                </a>
+                            </p>
+                        </div>
+                        @endif
+                        <div class="col-6 mb-2">
+                            <label class="form-label fw-bold text-muted small">Created</label>
+                            <p class="mb-0">{{ $booking->qr->created_at->format('d M Y, h:i A') }}</p>
+                        </div>
+                    </div>
+                    @if($booking->qr->image)
+                    <div class="col-6 mt-3">
+                        <a href="{{ asset('storage/' . $booking->qr->image) }}" download class="btn btn-primary btn-sm">
+                            <i class="ri-download-line me-1"></i> Download QR
+                        </a>
+                    </div>
+                    @endif
+                </div>
+            </div>
+            @endif
+
             <!-- Payment Information -->
             <div class="card">
                 <div class="card-header">

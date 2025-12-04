@@ -24,7 +24,6 @@ if (document.getElementById('tour-dropzone') && !document.getElementById('tour-d
             dictRemoveFile: "Remove file",
             init: function () {
                 const dropzone = this;
-                console.log('Dropzone initialized successfully');
                 
                 // File validation on add
                 this.on("addedfile", function(file) {
@@ -151,11 +150,35 @@ if (document.getElementById('tour-dropzone') && !document.getElementById('tour-d
                             formData.append('files[]', file);
                         });
                         
-                        // Show loading state
+                        // Show loading overlay
+                        const loadingOverlay = document.getElementById('tour-loading-overlay');
+                        const progressBar = document.getElementById('upload-progress-bar');
+                        const uploadStatus = document.getElementById('upload-status');
+                        
+                        if (loadingOverlay) {
+                            loadingOverlay.style.display = 'flex';
+                            progressBar.style.width = '10%';
+                            uploadStatus.textContent = 'Uploading files...';
+                        }
+                        
+                        // Show loading state on button
                         const submitBtn = form.querySelector('button[type="submit"]');
                         const originalBtnText = submitBtn.innerHTML;
                         submitBtn.disabled = true;
                         submitBtn.innerHTML = '<i class="ri-loader-4-line me-1"></i> Updating...';
+                        
+                        // Simulate progress
+                        let progress = 10;
+                        const progressInterval = setInterval(() => {
+                            if (progress < 90) {
+                                progress += 10;
+                                if (progressBar) progressBar.style.width = progress + '%';
+                                
+                                if (progress === 30) uploadStatus.textContent = 'Processing files...';
+                                if (progress === 60) uploadStatus.textContent = 'Extracting tour data...';
+                                if (progress === 80) uploadStatus.textContent = 'Almost done...';
+                            }
+                        }, 500);
                         
                         // Submit form via AJAX
                         fetch(form.action, {
@@ -168,26 +191,42 @@ if (document.getElementById('tour-dropzone') && !document.getElementById('tour-d
                         })
                         .then(response => response.json())
                         .then(data => {
+                            clearInterval(progressInterval);
+                            
                             if (data.success) {
-                                if (typeof Swal !== 'undefined') {
-                                    Swal.fire({
-                                        icon: 'success',
-                                        title: 'Success',
-                                        text: data.message || 'Tour updated successfully!',
-                                        timer: 2000
-                                    }).then(() => {
-                                        window.location.href = data.redirect || form.action.replace(/\/\d+$/, '/' + data.booking_id);
-                                    });
-                                } else {
-                                    alert(data.message || 'Tour updated successfully!');
-                                    window.location.reload();
-                                }
+                                // Complete progress
+                                if (progressBar) progressBar.style.width = '100%';
+                                if (uploadStatus) uploadStatus.textContent = 'Upload complete!';
+                                
+                                setTimeout(() => {
+                                    if (loadingOverlay) loadingOverlay.style.display = 'none';
+                                    
+                                    if (typeof Swal !== 'undefined') {
+                                        Swal.fire({
+                                            icon: 'success',
+                                            title: 'Success',
+                                            text: data.message || 'Tour updated successfully!',
+                                            timer: 2000
+                                        }).then(() => {
+                                            window.location.href = data.redirect || form.action.replace(/\/\d+$/, '/' + data.booking_id);
+                                        });
+                                    } else {
+                                        alert(data.message || 'Tour updated successfully!');
+                                        window.location.reload();
+                                    }
+                                }, 500);
                             } else {
                                 throw new Error(data.message || 'Update failed');
                             }
                         })
                         .catch(error => {
                             console.error('Submit error:', error);
+                            clearInterval(progressInterval);
+                            
+                            // Hide loading overlay
+                            if (loadingOverlay) loadingOverlay.style.display = 'none';
+                            
+                            // Re-enable button
                             submitBtn.disabled = false;
                             submitBtn.innerHTML = originalBtnText;
                             
@@ -205,7 +244,5 @@ if (document.getElementById('tour-dropzone') && !document.getElementById('tour-d
                 }
             }
         });
-
-        console.log('Dropzone setup complete');
     }
 }

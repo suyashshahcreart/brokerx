@@ -215,12 +215,22 @@
         </div>
     </div>
 </div>
+
+<!-- Loading Overlay -->
+<div id="tour-loading-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); z-index: 9999; justify-content: center; align-items: center;">
+    <div style="text-align: center; color: white;">
+        <div class="spinner-border" role="status" style="width: 3rem; height: 3rem; border-width: 0.3rem;">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <h4 class="mt-3">Uploading and Processing Tour...</h4>
+        <p class="text-muted">This may take a few moments. Please don't close this window.</p>
+        <div class="progress mt-3" style="width: 300px; margin: 0 auto;">
+            <div id="upload-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
+        </div>
+        <p id="upload-status" class="mt-2 small">Preparing upload...</p>
+    </div>
+</div>
 @endsection
-@push('styles')
-<link rel="stylesheet" href="https://unpkg.com/dropzone@5/dist/min/dropzone.min.css">
-</style>
-@endpush
 @section('scripts')
-<script src="https://unpkg.com/dropzone@5/dist/min/dropzone.min.js"></script>
 @vite(['resources/js/pages/tour-manager-edit.js'])
 @endsection
