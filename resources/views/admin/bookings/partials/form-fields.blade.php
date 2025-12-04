@@ -10,7 +10,9 @@
             <select name="user_id" id="user_id" class="form-select" required>
                 <option value="">Select user</option>
                 @foreach($users as $u)
-                    <option value="{{ $u->id }}" @selected(old('user_id', $booking->user_id ?? null)==$u->id)>{{ $u->firstname }} {{ $u->lastname }} ({{ $u->email }})</option>
+                    <option value="{{ $u->id }}" @selected(old('user_id', $booking->user_id ?? null)==$u->id)>
+                        {{ $u->firstname }} {{ $u->lastname }} | {{ $u->mobile }}@if($u->email) | {{ $u->email }}@endif
+                    </option>
                 @endforeach
             </select>
             <div class="invalid-feedback">Please select a user.</div>

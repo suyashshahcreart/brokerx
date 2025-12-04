@@ -14,6 +14,8 @@ use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Admin\ActivityLogController;
 use App\Http\Controllers\Admin\BookingController;
+use App\Http\Controllers\Admin\BookingStatusController;
+use App\Http\Controllers\Admin\PendingScheduleController;
 use App\Http\Controllers\Admin\PortfolioController as AdminPortfolioController;
 use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\TourController;
@@ -74,9 +76,40 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'middleware' => ['web', 'au
     Route::resource('permissions', PermissionController::class);
     Route::resource('roles', RoleController::class);
     Route::resource('users', AdminUserController::class);
+    
+    // Booking custom routes (BEFORE resource to prevent route conflicts)
+    Route::post('bookings/{booking}/update-ajax', [BookingController::class, 'updateAjax'])->name('bookings.update-ajax');
+    Route::post('bookings/{booking}/reschedule', [BookingController::class, 'reschedule'])->name('bookings.reschedule');
+    
+    // Booking Status Management Routes
+    Route::prefix('bookings/{booking}')->name('bookings.status.')->group(function () {
+        Route::post('approve-schedule', [BookingStatusController::class, 'approveSchedule'])->name('approve-schedule');
+        Route::post('decline-schedule', [BookingStatusController::class, 'declineSchedule'])->name('decline-schedule');
+        Route::post('request-reschedule', [BookingStatusController::class, 'requestReschedule'])->name('request-reschedule');
+        Route::post('approve-reschedule', [BookingStatusController::class, 'approveReschedule'])->name('approve-reschedule');
+        Route::post('decline-reschedule', [BookingStatusController::class, 'declineReschedule'])->name('decline-reschedule');
+        Route::post('assign-team-member', [BookingStatusController::class, 'assignToTeamMember'])->name('assign-team-member');
+        Route::post('complete-tour', [BookingStatusController::class, 'completeTour'])->name('complete-tour');
+        Route::post('start-processing', [BookingStatusController::class, 'startTourProcessing'])->name('start-processing');
+        Route::post('complete-processing', [BookingStatusController::class, 'completeTourProcessing'])->name('complete-processing');
+        Route::post('publish-tour', [BookingStatusController::class, 'publishTour'])->name('publish-tour');
+        Route::post('maintenance', [BookingStatusController::class, 'putUnderMaintenance'])->name('maintenance');
+        Route::post('remove-maintenance', [BookingStatusController::class, 'removeFromMaintenance'])->name('remove-maintenance');
+        Route::post('expire', [BookingStatusController::class, 'expireBooking'])->name('expire');
+        Route::post('change-status', [BookingStatusController::class, 'changeStatus'])->name('change-status');
+        Route::get('history', [BookingStatusController::class, 'getBookingHistory'])->name('history');
+    });
+    
+    // Booking Status Statistics
+    Route::get('bookings-status/statistics', [BookingStatusController::class, 'getStatusStatistics'])->name('bookings.status.statistics');
+    Route::post('bookings-status/bulk-update', [BookingStatusController::class, 'bulkUpdateStatus'])->name('bookings.status.bulk-update');
+    
+    // Pending Schedules Management
+    Route::get('pending-schedules', [PendingScheduleController::class, 'index'])->name('pending-schedules.index');
+    Route::post('pending-schedules/{booking}/accept', [PendingScheduleController::class, 'accept'])->name('pending-schedules.accept');
+    Route::post('pending-schedules/{booking}/decline', [PendingScheduleController::class, 'decline'])->name('pending-schedules.decline');
+    
     Route::resource('bookings', BookingController::class);
-    Route::post('bookings/{booking}/reschedule', [BookingController::class, 'reschedule'])->name('admin.bookings.reschedule');
-    Route::post('bookings/{booking}/update-ajax', [BookingController::class, 'updateAjax'])->name('admin.bookings.update-ajax');
     Route::resource('portfolios', AdminPortfolioController::class);
     Route::resource('holidays', HolidayController::class);
     Route::resource('tours', TourController::class);
