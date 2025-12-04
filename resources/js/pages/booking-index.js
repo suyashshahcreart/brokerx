@@ -190,4 +190,223 @@ document.addEventListener('DOMContentLoaded', function () {
 			}
 		});
 	});
+
+	// Accept schedule from booking list
+	window.acceptScheduleQuick = async function(bookingId) {
+		// Get booking data from DataTable
+		const dataTable = table.DataTable();
+		const rowData = dataTable.rows().data().toArray().find(row => row.id === bookingId);
+		
+		const requestedDate = rowData?.booking_date || 'Not specified';
+		const customerNotes = rowData?.booking_notes || '';
+		const userName = rowData?.user || 'N/A';
+
+		const htmlContent = `
+			<div class="text-start mb-3">
+				<div class="border-bottom pb-2 mb-2">
+					<p class="mb-2"><strong class="text-muted">Customer:</strong> ${userName}</p>
+					${requestedDate !== '-' && requestedDate !== 'Not specified' ? `
+						<p class="mb-0"><strong class="text-muted">Requested Date:</strong> <span class="text-primary">${requestedDate}</span></p>
+					` : ''}
+				</div>
+				${customerNotes ? `
+					<div class="mb-3">
+						<small class="text-muted d-block mb-1"><strong>Customer Notes:</strong></small>
+						<div class="alert alert-info py-2 mb-0"><small>${customerNotes}</small></div>
+					</div>
+				` : ''}
+				<div>
+					<small class="text-muted d-block mb-1"><strong>Admin Notes (Optional):</strong></small>
+				</div>
+			</div>
+		`;
+
+		const result = await Swal.fire({
+			title: 'Accept Schedule?',
+			html: htmlContent,
+			icon: 'question',
+			showCancelButton: true,
+			confirmButtonColor: '#198754',
+			cancelButtonColor: '#6c757d',
+			confirmButtonText: 'Yes, Accept',
+			cancelButtonText: 'Cancel',
+			input: 'textarea',
+			inputPlaceholder: 'Add admin notes (optional)...',
+			inputAttributes: {
+				maxlength: 500
+			},
+			width: '600px'
+		});
+
+		if (result.isConfirmed) {
+			try {
+				const response = await fetch(`${window.appBaseUrl}/admin/pending-schedules/${bookingId}/accept`, {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+						'X-CSRF-TOKEN': window.bookingCsrfToken,
+						'Accept': 'application/json',
+					},
+					body: JSON.stringify({ notes: result.value || null })
+				});
+
+				const data = await response.json();
+
+				if (response.ok && data.success) {
+					await Swal.fire({
+						icon: 'success',
+						title: 'Accepted!',
+						text: data.message,
+						timer: 1500,
+						showConfirmButton: false
+					});
+					table.DataTable().ajax.reload();
+				} else {
+					throw new Error(data.message || 'Failed to accept schedule');
+				}
+			} catch (error) {
+				Swal.fire({
+					icon: 'error',
+					title: 'Error',
+					text: error.message || 'Failed to accept schedule'
+				});
+			}
+		}
+	};
+
+	// Decline schedule from booking list
+	window.declineScheduleQuick = async function(bookingId) {
+		// Get booking data from DataTable
+		const dataTable = table.DataTable();
+		const rowData = dataTable.rows().data().toArray().find(row => row.id === bookingId);
+		
+		const requestedDate = rowData?.booking_date || 'Not specified';
+		const customerNotes = rowData?.booking_notes || '';
+		const userName = rowData?.user || 'N/A';
+
+		const htmlContent = `
+			<div class="text-start mb-3">
+				<div class="border-bottom pb-2 mb-2">
+					<p class="mb-2"><strong class="text-muted">Customer:</strong> ${userName}</p>
+					${requestedDate !== '-' && requestedDate !== 'Not specified' ? `
+						<p class="mb-0"><strong class="text-muted">Requested Date:</strong> <span class="text-primary">${requestedDate}</span></p>
+					` : ''}
+				</div>
+				${customerNotes ? `
+					<div class="mb-3">
+						<small class="text-muted d-block mb-1"><strong>Customer Notes:</strong></small>
+						<div class="alert alert-info py-2 mb-0"><small>${customerNotes}</small></div>
+					</div>
+				` : ''}
+				<div>
+					<small class="text-muted d-block mb-1"><strong>Reason for Decline:</strong> <span class="text-danger">*</span></small>
+				</div>
+			</div>
+		`;
+
+		const result = await Swal.fire({
+			title: 'Decline Schedule?',
+			html: htmlContent,
+			icon: 'warning',
+			showCancelButton: true,
+			confirmButtonColor: '#dc3545',
+			cancelButtonColor: '#6c757d',
+			confirmButtonText: 'Decline',
+			cancelButtonText: 'Cancel',
+			input: 'textarea',
+			inputPlaceholder: 'Enter reason for declining...',
+			inputAttributes: {
+				maxlength: 500,
+				required: true
+			},
+			inputValidator: (value) => {
+				if (!value) {
+					return 'You must provide a reason!'
+				}
+			},
+			width: '600px'
+		});
+
+		if (result.isConfirmed) {
+			try {
+				const response = await fetch(`${window.appBaseUrl}/admin/pending-schedules/${bookingId}/decline`, {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+						'X-CSRF-TOKEN': window.bookingCsrfToken,
+						'Accept': 'application/json',
+					},
+					body: JSON.stringify({ reason: result.value })
+				});
+
+				const data = await response.json();
+
+				if (response.ok && data.success) {
+					await Swal.fire({
+						icon: 'success',
+						title: 'Declined!',
+						text: data.message,
+						timer: 1500,
+						showConfirmButton: false
+					});
+					table.DataTable().ajax.reload();
+				} else {
+					throw new Error(data.message || 'Failed to decline schedule');
+				}
+			} catch (error) {
+				Swal.fire({
+					icon: 'error',
+					title: 'Error',
+					text: error.message || 'Failed to decline schedule'
+				});
+			}
+		}
+	};
+
+	// Delete booking
+	window.deleteBooking = async function(bookingId) {
+		const result = await Swal.fire({
+			title: 'Delete Booking?',
+			text: 'This action cannot be undone!',
+			icon: 'warning',
+			showCancelButton: true,
+			confirmButtonColor: '#dc3545',
+			cancelButtonColor: '#6c757d',
+			confirmButtonText: 'Yes, Delete',
+			cancelButtonText: 'Cancel'
+		});
+
+		if (result.isConfirmed) {
+			try {
+				const response = await fetch(`${window.appBaseUrl}/admin/bookings/${bookingId}`, {
+					method: 'DELETE',
+					headers: {
+						'X-CSRF-TOKEN': window.bookingCsrfToken,
+						'Accept': 'application/json',
+					}
+				});
+
+				const data = await response.json();
+
+				if (response.ok) {
+					await Swal.fire({
+						icon: 'success',
+						title: 'Deleted!',
+						text: 'Booking deleted successfully',
+						timer: 1500,
+						showConfirmButton: false
+					});
+					table.DataTable().ajax.reload();
+				} else {
+					throw new Error(data.message || 'Failed to delete');
+				}
+			} catch (error) {
+				Swal.fire({
+					icon: 'error',
+					title: 'Error',
+					text: error.message || 'Failed to delete booking'
+				});
+			}
+		}
+	};
 });

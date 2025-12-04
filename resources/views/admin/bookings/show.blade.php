@@ -673,8 +673,379 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Booking History Timeline -->
+            @if($booking->histories && $booking->histories->count() > 0)
+            <div class="row mt-3">
+                <div class="col-12">
+                    <div class="card border">
+                        <div class="card-header bg-info-subtle border-info">
+                            <h5 class="card-title mb-0">
+                                <i class="ri-history-line me-2"></i>Booking History Timeline
+                                <span class="badge bg-info ms-2">{{ $booking->histories->count() }} {{ Str::plural('Change', $booking->histories->count()) }}</span>
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <style>
+                                .timeline-center {
+                                    position: relative;
+                                    max-width: 100%;
+                                    margin: 0 auto;
+                                }
+                                
+                                .timeline-center::before {
+                                    content: '';
+                                    position: absolute;
+                                    width: 3px;
+                                    background: linear-gradient(to bottom, #e9ecef 0%, #cbd5e0 50%, #e9ecef 100%);
+                                    top: 0;
+                                    bottom: 0;
+                                    left: 50%;
+                                    margin-left: -1.5px;
+                                }
+                                
+                                .timeline-item-wrapper {
+                                    position: relative;
+                                    margin-bottom: 40px;
+                                    animation: fadeInUp 0.5s ease-out;
+                                }
+                                
+                                @keyframes fadeInUp {
+                                    from {
+                                        opacity: 0;
+                                        transform: translateY(20px);
+                                    }
+                                    to {
+                                        opacity: 1;
+                                        transform: translateY(0);
+                                    }
+                                }
+                                
+                                .timeline-content-left {
+                                    width: calc(50% - 40px);
+                                    float: left;
+                                    text-align: right;
+                                    padding-right: 30px;
+                                }
+                                
+                                .timeline-content-right {
+                                    width: calc(50% - 40px);
+                                    float: right;
+                                    text-align: left;
+                                    padding-left: 30px;
+                                }
+                                
+                                .timeline-card {
+                                    background: #ffffff;
+                                    border: 1px solid #e9ecef;
+                                    border-radius: 8px;
+                                    padding: 20px;
+                                    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+                                    transition: all 0.3s ease;
+                                    cursor: pointer;
+                                    position: relative;
+                                }
+                                
+                                .timeline-card:hover {
+                                    transform: translateY(-5px);
+                                    box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+                                    border-color: #cbd5e0;
+                                }
+                                
+                                .timeline-card-left {
+                                    border-left: 4px solid;
+                                }
+                                
+                                .timeline-card-right {
+                                    border-right: 4px solid;
+                                }
+                                
+                                .timeline-icon {
+                                    position: absolute;
+                                    width: 50px;
+                                    height: 50px;
+                                    left: 50%;
+                                    transform: translateX(-50%);
+                                    border-radius: 50%;
+                                    display: flex;
+                                    align-items: center;
+                                    justify-content: center;
+                                    border: 4px solid #ffffff;
+                                    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                                    z-index: 10;
+                                    transition: all 0.3s ease;
+                                }
+                                
+                                .timeline-item-wrapper:hover .timeline-icon {
+                                    transform: translateX(-50%) scale(1.15) rotate(360deg);
+                                }
+                                
+                                .timeline-arrow-left::after {
+                                    content: '';
+                                    position: absolute;
+                                    right: -15px;
+                                    top: 20px;
+                                    border: 8px solid transparent;
+                                    border-left-color: inherit;
+                                }
+                                
+                                .timeline-arrow-right::after {
+                                    content: '';
+                                    position: absolute;
+                                    left: -15px;
+                                    top: 20px;
+                                    border: 8px solid transparent;
+                                    border-right-color: inherit;
+                                }
+                                
+                                .timeline-badge-group {
+                                    display: inline-flex;
+                                    align-items: center;
+                                    gap: 8px;
+                                    margin-bottom: 12px;
+                                }
+                                
+                                .timeline-metadata-btn {
+                                    transition: all 0.2s ease;
+                                }
+                                
+                                .timeline-metadata-btn:hover {
+                                    transform: translateY(-2px);
+                                }
+                                
+                                .clearfix::after {
+                                    content: "";
+                                    display: table;
+                                    clear: both;
+                                }
+                                
+                                @media (max-width: 768px) {
+                                    .timeline-center::before {
+                                        left: 30px;
+                                    }
+                                    
+                                    .timeline-content-left,
+                                    .timeline-content-right {
+                                        width: 100%;
+                                        float: none;
+                                        text-align: left;
+                                        padding-left: 80px;
+                                        padding-right: 0;
+                                    }
+                                    
+                                    .timeline-icon {
+                                        left: 30px;
+                                    }
+                                }
+                            </style>
+                            
+                            <div class="timeline-center">
+                                {{-- Center Vertical Line (now in CSS) --}}
+                                @foreach($booking->histories as $history)
+                                @php
+                                    $statusColors = [
+                                        'inquiry' => 'info',
+                                        'pending' => 'warning',
+                                        'schedul_pending' => 'warning',
+                                        'schedul_accepted' => 'success',
+                                        'schedul_decline' => 'danger',
+                                        'reschedul_pending' => 'warning',
+                                        'reschedul_accepted' => 'success',
+                                        'reschedul_decline' => 'danger',
+                                        'reschedul_blocked' => 'danger',
+                                        'schedul_assign' => 'primary',
+                                        'schedul_completed' => 'success',
+                                        'tour_pending' => 'info',
+                                        'tour_completed' => 'success',
+                                        'tour_live' => 'success',
+                                        'maintenance' => 'secondary',
+                                        'expired' => 'dark',
+                                        'confirmed' => 'success',
+                                        'cancelled' => 'danger',
+                                        'completed' => 'primary'
+                                    ];
+                                    $color = $statusColors[$history->to_status] ?? 'secondary';
+                                    $bgColor = 'bg-' . $color . '-subtle';
+                                    $textColor = 'text-' . $color;
+                                    
+                                    // Check if changed by customer or admin
+                                    $isCustomer = $history->changedBy && $history->changedBy->roles && $history->changedBy->roles->first() && 
+                                                  in_array(strtolower($history->changedBy->roles->first()->name), ['customer', 'user']);
+                                @endphp
+                                
+                                <div class="timeline-item-wrapper clearfix" style="animation-delay: {{ $loop->index * 0.1 }}s;">
+                                    {{-- Center Icon --}}
+                                    <div class="timeline-icon {{ $bgColor }}">
+                                        <i class="ri-{{ $isCustomer ? 'user' : 'shield-user' }}-line fs-4 {{ $textColor }}"></i>
+                                    </div>
+                                    
+                                    @if($isCustomer)
+                                        {{-- Customer Action - Left Side --}}
+                                        <div class="timeline-content-left">
+                                            <div class="timeline-card timeline-card-left timeline-arrow-left" style="border-left-color: var(--bs-{{ $color }});">
+                                                <div class="timeline-badge-group" style="justify-content: flex-end;">
+                                                    @if($history->from_status)
+                                                        <span class="badge bg-secondary-subtle text-secondary">{{ ucwords(str_replace('_', ' ', $history->from_status)) }}</span>
+                                                        <i class="ri-arrow-right-line {{ $textColor }}"></i>
+                                                    @endif
+                                                    <span class="badge {{ $bgColor }} {{ $textColor }} fw-semibold">{{ ucwords(str_replace('_', ' ', $history->to_status)) }}</span>
+                                                </div>
+                                                
+                                                @if($history->notes)
+                                                <p class="text-muted mb-3 small fst-italic" style="text-align: right;">"{{ $history->notes }}"</p>
+                                                @endif
+                                                
+                                                <div class="mb-2" style="text-align: right;">
+                                                    <div class="d-inline-flex align-items-center gap-2 mb-1">
+                                                        <i class="ri-user-3-line {{ $textColor }}"></i>
+                                                        <strong class="text-dark">
+                                                            @if($history->changedBy)
+                                                                {{ $history->changedBy->firstname . ' ' . $history->changedBy->lastname }}
+                                                            @else
+                                                                System
+                                                            @endif
+                                                        </strong>
+                                                        @if($history->changedBy && $history->changedBy->roles && $history->changedBy->roles->first())
+                                                            <span class="badge bg-light text-muted border">{{ ucfirst($history->changedBy->roles->first()->name) }}</span>
+                                                        @endif
+                                                    </div>
+                                                </div>
+                                                
+                                                <div class="d-flex gap-3 flex-wrap justify-content-end text-muted small">
+                                                    <span>
+                                                        <i class="ri-time-line me-1"></i>
+                                                        {{ $history->created_at->format('d M, Y h:i A') }}
+                                                    </span>
+                                                    <span class="text-success">
+                                                        ({{ $history->created_at->diffForHumans() }})
+                                                    </span>
+                                                    @if($history->ip_address)
+                                                    <span>
+                                                        <i class="ri-map-pin-line me-1"></i>
+                                                        {{ $history->ip_address }}
+                                                    </span>
+                                                    @endif
+                                                </div>
+                                                
+                                                @if($history->metadata)
+                                                <div class="mt-3" style="text-align: right;">
+                                                    <button class="btn btn-sm btn-outline-{{ $color }} timeline-metadata-btn" type="button" data-bs-toggle="collapse" data-bs-target="#metadata-{{ $history->id }}">
+                                                        <i class="ri-file-list-3-line me-1"></i> View Metadata
+                                                    </button>
+                                                    <div class="collapse mt-3" id="metadata-{{ $history->id }}">
+                                                        <div class="card border-{{ $color }} bg-light">
+                                                            <div class="card-body p-3" style="text-align: left;">
+                                                                <h6 class="{{ $textColor }} mb-2"><i class="ri-code-s-slash-line me-1"></i> Technical Details</h6>
+                                                                <pre class="mb-0 small" style="max-height: 300px; overflow-y: auto;">{{ json_encode($history->metadata, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) }}</pre>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    @else
+                                        {{-- Admin/System Action - Right Side --}}
+                                        <div class="timeline-content-right">
+                                            <div class="timeline-card timeline-card-right timeline-arrow-right" style="border-right-color: var(--bs-{{ $color }});">
+                                                <div class="timeline-badge-group">
+                                                    @if($history->from_status)
+                                                        <span class="badge bg-secondary-subtle text-secondary">{{ ucwords(str_replace('_', ' ', $history->from_status)) }}</span>
+                                                        <i class="ri-arrow-right-line {{ $textColor }}"></i>
+                                                    @endif
+                                                    <span class="badge {{ $bgColor }} {{ $textColor }} fw-semibold">{{ ucwords(str_replace('_', ' ', $history->to_status)) }}</span>
+                                                </div>
+                                                
+                                                @if($history->notes)
+                                                <p class="text-muted mb-3 small fst-italic">"{{ $history->notes }}"</p>
+                                                @endif
+                                                
+                                                <div class="mb-2">
+                                                    <div class="d-inline-flex align-items-center gap-2 mb-1">
+                                                        <i class="ri-shield-user-line {{ $textColor }}"></i>
+                                                        <strong class="text-dark">
+                                                            @if($history->changedBy)
+                                                                {{ $history->changedBy->firstname . ' ' . $history->changedBy->lastname }}
+                                                            @else
+                                                                System
+                                                            @endif
+                                                        </strong>
+                                                        @if($history->changedBy && $history->changedBy->roles && $history->changedBy->roles->first())
+                                                            <span class="badge bg-light text-muted border">{{ ucfirst($history->changedBy->roles->first()->name) }}</span>
+                                                        @endif
+                                                    </div>
+                                                </div>
+                                                
+                                                <div class="d-flex gap-3 flex-wrap text-muted small">
+                                                    <span>
+                                                        <i class="ri-time-line me-1"></i>
+                                                        {{ $history->created_at->format('d M, Y h:i A') }}
+                                                    </span>
+                                                    <span class="text-success">
+                                                        ({{ $history->created_at->diffForHumans() }})
+                                                    </span>
+                                                    @if($history->ip_address)
+                                                    <span>
+                                                        <i class="ri-map-pin-line me-1"></i>
+                                                        {{ $history->ip_address }}
+                                                    </span>
+                                                    @endif
+                                                </div>
+                                                
+                                                @if($history->metadata)
+                                                <div class="mt-3">
+                                                    <button class="btn btn-sm btn-outline-{{ $color }} timeline-metadata-btn" type="button" data-bs-toggle="collapse" data-bs-target="#metadata-{{ $history->id }}">
+                                                        <i class="ri-file-list-3-line me-1"></i> View Metadata
+                                                    </button>
+                                                    <div class="collapse mt-3" id="metadata-{{ $history->id }}">
+                                                        <div class="card border-{{ $color }} bg-light">
+                                                            <div class="card-body p-3">
+                                                                <h6 class="{{ $textColor }} mb-2"><i class="ri-code-s-slash-line me-1"></i> Technical Details</h6>
+                                                                <pre class="mb-0 small" style="max-height: 300px; overflow-y: auto;">{{ json_encode($history->metadata, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) }}</pre>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    @endif
+                                </div>
+                                @endforeach
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            @endif
             </div>
             <!-- End col-9 -->
+            
+            <script>
+                // Add smooth scroll reveal animation to timeline items
+                document.addEventListener('DOMContentLoaded', function() {
+                    const observerOptions = {
+                        threshold: 0.1,
+                        rootMargin: '0px 0px -50px 0px'
+                    };
+                    
+                    const observer = new IntersectionObserver(function(entries) {
+                        entries.forEach(entry => {
+                            if (entry.isIntersecting) {
+                                entry.target.style.opacity = '1';
+                                entry.target.style.transform = 'translateY(0)';
+                            }
+                        });
+                    }, observerOptions);
+                    
+                    document.querySelectorAll('.timeline-item-wrapper').forEach((item, index) => {
+                        item.style.opacity = '0';
+                        item.style.transform = 'translateY(30px)';
+                        item.style.transition = `all 0.6s ease-out ${index * 0.1}s`;
+                        observer.observe(item);
+                    });
+                });
+            </script>
 
             <!-- Action Sidebar (col-3) -->
             <div class="col-lg-3">
@@ -700,14 +1071,88 @@
                         <div class="mb-3">
                             <label class="form-label fw-semibold text-muted" style="font-size: 11px;">BOOKING STATUS</label>
                             <select class="form-select form-select-sm" id="quickBookingStatus" onchange="updateBookingStatus(this.value)">
+                                <option value="inquiry" {{ $booking->status == 'inquiry' ? 'selected' : '' }}>Inquiry</option>
                                 <option value="pending" {{ $booking->status == 'pending' ? 'selected' : '' }}>Pending</option>
                                 <option value="confirmed" {{ $booking->status == 'confirmed' ? 'selected' : '' }}>Confirmed</option>
-                                <option value="cancelled" {{ $booking->status == 'cancelled' ? 'selected' : '' }}>Cancelled</option>
+                                <option value="schedul_pending" {{ $booking->status == 'schedul_pending' ? 'selected' : '' }}>Schedule Pending</option>
+                                <option value="schedul_accepted" {{ $booking->status == 'schedul_accepted' ? 'selected' : '' }}>Schedule Accepted</option>
+                                <option value="schedul_decline" {{ $booking->status == 'schedul_decline' ? 'selected' : '' }}>Schedule Declined</option>
+                                <option value="reschedul_pending" {{ $booking->status == 'reschedul_pending' ? 'selected' : '' }}>Reschedule Pending</option>
+                                <option value="reschedul_accepted" {{ $booking->status == 'reschedul_accepted' ? 'selected' : '' }}>Reschedule Accepted</option>
+                                <option value="reschedul_decline" {{ $booking->status == 'reschedul_decline' ? 'selected' : '' }}>Reschedule Declined</option>
+                                <option value="reschedul_blocked" {{ $booking->status == 'reschedul_blocked' ? 'selected' : '' }}>Reschedule Blocked</option>
+                                <option value="schedul_assign" {{ $booking->status == 'schedul_assign' ? 'selected' : '' }}>Schedule Assigned</option>
+                                <option value="schedul_completed" {{ $booking->status == 'schedul_completed' ? 'selected' : '' }}>Schedule Completed</option>
+                                <option value="tour_pending" {{ $booking->status == 'tour_pending' ? 'selected' : '' }}>Tour Pending</option>
+                                <option value="tour_completed" {{ $booking->status == 'tour_completed' ? 'selected' : '' }}>Tour Completed</option>
+                                <option value="tour_live" {{ $booking->status == 'tour_live' ? 'selected' : '' }}>Tour Live</option>
                                 <option value="completed" {{ $booking->status == 'completed' ? 'selected' : '' }}>Completed</option>
+                                <option value="maintenance" {{ $booking->status == 'maintenance' ? 'selected' : '' }}>Maintenance</option>
+                                <option value="cancelled" {{ $booking->status == 'cancelled' ? 'selected' : '' }}>Cancelled</option>
+                                <option value="expired" {{ $booking->status == 'expired' ? 'selected' : '' }}>Expired</option>
                             </select>
                         </div>
 
                         <hr class="my-3">
+                        
+                        <!-- Status Quick Actions -->
+                        {{-- <div class="mb-3">
+                            <label class="form-label fw-semibold text-muted" style="font-size: 11px;">QUICK STATUS ACTIONS</label>
+                            <div class="d-grid gap-2">
+                                @if($booking->status == 'inquiry')
+                                    <button class="btn btn-sm btn-outline-primary" onclick="changeStatusWithNote('pending', 'Convert Inquiry to Pending')">
+                                        <i class="ri-arrow-right-circle-line me-1"></i> Convert to Pending
+                                    </button>
+                                @endif
+                                
+                                @if($booking->status == 'pending')
+                                    <button class="btn btn-sm btn-outline-success" onclick="changeStatusWithNote('schedul_pending', 'Mark as Schedule Pending')">
+                                        <i class="ri-calendar-check-line me-1"></i> Mark Schedule Pending
+                                    </button>
+                                @endif
+                                
+                                @if(in_array($booking->status, ['schedul_accepted', 'reschedul_accepted']))
+                                    <button class="btn btn-sm btn-outline-primary" onclick="changeStatusWithNote('schedul_assign', 'Assign Schedule')">
+                                        <i class="ri-user-add-line me-1"></i> Assign to Agent
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-info" onclick="changeStatusWithNote('tour_pending', 'Tour Pending')">
+                                        <i class="ri-map-pin-line me-1"></i> Start Tour Process
+                                    </button>
+                                @endif
+                                
+                                @if($booking->status == 'schedul_assign')
+                                    <button class="btn btn-sm btn-outline-success" onclick="changeStatusWithNote('schedul_completed', 'Mark Schedule as Completed')">
+                                        <i class="ri-check-double-line me-1"></i> Complete Schedule
+                                    </button>
+                                @endif
+                                
+                                @if($booking->status == 'tour_pending')
+                                    <button class="btn btn-sm btn-outline-success" onclick="changeStatusWithNote('tour_live', 'Tour is Now Live')">
+                                        <i class="ri-live-line me-1"></i> Start Live Tour
+                                    </button>
+                                @endif
+                                
+                                @if($booking->status == 'tour_live')
+                                    <button class="btn btn-sm btn-outline-success" onclick="changeStatusWithNote('tour_completed', 'Tour Completed Successfully')">
+                                        <i class="ri-checkbox-circle-line me-1"></i> Complete Tour
+                                    </button>
+                                @endif
+                                
+                                @if(in_array($booking->status, ['tour_completed', 'schedul_completed']))
+                                    <button class="btn btn-sm btn-outline-warning" onclick="changeStatusWithNote('maintenance', 'Move to Maintenance')">
+                                        <i class="ri-tools-line me-1"></i> Maintenance
+                                    </button>
+                                @endif
+                                
+                                @if(!in_array($booking->status, ['cancelled', 'expired']))
+                                    <button class="btn btn-sm btn-outline-danger" onclick="changeStatusWithNote('cancelled', 'Cancel Booking')">
+                                        <i class="ri-close-circle-line me-1"></i> Cancel Booking
+                                    </button>
+                                @endif
+                            </div>
+                        </div>
+
+                        <hr class="my-3"> --}}
 
                         <!-- Schedule Date -->
                         <div class="mb-3">
@@ -722,6 +1167,50 @@
                                 <i class="ri-qr-code-line me-1"></i> Assign QR Code
                             </button>
                         </div>
+
+                        <!-- Accept/Decline Schedule (if pending) -->
+                        @if(in_array($booking->status, ['schedul_pending', 'reschedul_pending']))
+                            <hr class="my-3">
+                            
+                            <div class="card border-warning mb-3">
+                                <div class="card-header bg-warning-subtle border-warning py-2">
+                                    <h6 class="mb-0 text-warning">
+                                        <i class="ri-alert-line me-1"></i> 
+                                        {{ $booking->status === 'reschedul_pending' ? 'Reschedule' : 'Schedule' }} Approval Required
+                                    </h6>
+                                </div>
+                                <div class="card-body p-3">
+                                    @if($booking->booking_date)
+                                        <div class="mb-3">
+                                            <small class="text-muted d-block mb-1" style="font-size: 10px; font-weight: 600;">REQUESTED DATE</small>
+                                            <div class="d-flex align-items-center gap-2">
+                                                <i class="ri-calendar-line text-primary"></i>
+                                                <strong class="text-dark">{{ $booking->booking_date->format('d M, Y') }}</strong>
+                                                <small class="text-muted">({{ $booking->booking_date->format('l') }})</small>
+                                            </div>
+                                        </div>
+                                    @endif
+                                    
+                                    @if($booking->booking_notes)
+                                        <div class="mb-3">
+                                            <small class="text-muted d-block mb-1" style="font-size: 10px; font-weight: 600;">CUSTOMER NOTES</small>
+                                            <div class="alert alert-light border mb-0 py-2">
+                                                <small><i class="ri-message-3-line me-1"></i>{{ $booking->booking_notes }}</small>
+                                            </div>
+                                        </div>
+                                    @endif
+                                    
+                                    <div class="d-grid gap-2">
+                                        <button class="btn btn-success btn-sm" onclick="acceptScheduleFromShow()">
+                                            <i class="ri-check-line me-1"></i> Accept {{ $booking->status === 'reschedul_pending' ? 'Reschedule' : 'Schedule' }}
+                                        </button>
+                                        <button class="btn btn-danger btn-sm" onclick="declineScheduleFromShow()">
+                                            <i class="ri-close-line me-1"></i> Decline {{ $booking->status === 'reschedul_pending' ? 'Reschedule' : 'Schedule' }}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
 
                         <hr class="my-3">
 
@@ -834,15 +1323,28 @@
 
     // Update Payment Status
     async function updatePaymentStatus(status) {
+        const statusLabel = status.charAt(0).toUpperCase() + status.slice(1);
+        
         const result = await Swal.fire({
             title: 'Update Payment Status?',
-            text: `Change payment status to "${status.toUpperCase()}"`,
+            html: `
+                <p>Change payment status to <strong class="text-primary">"${statusLabel}"</strong></p>
+                <div class="mb-3">
+                    <label class="form-label text-start d-block">Add Notes (Optional):</label>
+                    <textarea id="payment-status-notes" class="form-control" rows="3" placeholder="Enter notes about this payment status change..."></textarea>
+                </div>
+            `,
             icon: 'question',
             showCancelButton: true,
             confirmButtonColor: '#0d6efd',
             cancelButtonColor: '#6c757d',
             confirmButtonText: 'Yes, Update',
-            cancelButtonText: 'Cancel'
+            cancelButtonText: 'Cancel',
+            preConfirm: () => {
+                return {
+                    notes: document.getElementById('payment-status-notes').value
+                };
+            }
         });
 
         if (result.isConfirmed) {
@@ -854,7 +1356,10 @@
                         'X-CSRF-TOKEN': csrfToken,
                         'Accept': 'application/json',
                     },
-                    body: JSON.stringify({ payment_status: status })
+                    body: JSON.stringify({ 
+                        payment_status: status,
+                        notes: result.value.notes || `Payment status changed to ${statusLabel}`
+                    })
                 });
 
                 const data = await response.json();
@@ -863,11 +1368,11 @@
                     await Swal.fire({
                         icon: 'success',
                         title: 'Updated!',
-                        text: 'Payment status updated successfully',
-                        timer: 1500,
+                        html: `<p class="mb-2">Payment status has been changed to <strong class="text-success">${statusLabel}</strong></p><p class="text-muted small">History entry created automatically</p>`,
+                        timer: 2000,
                         showConfirmButton: false
                     });
-                    window.location.reload();
+                    setTimeout(() => window.location.reload(), 2000);
                 } else {
                     throw new Error(data.message || 'Failed to update');
                 }
@@ -890,13 +1395,24 @@
     async function updateBookingStatus(status) {
         const result = await Swal.fire({
             title: 'Update Booking Status?',
-            text: `Change booking status to "${status.toUpperCase()}"`,
+            html: `
+                <p>Change booking status to <strong>"${status.replace(/_/g, ' ').toUpperCase()}"</strong></p>
+                <div class="mb-3">
+                    <label class="form-label text-start d-block">Add Notes (Optional):</label>
+                    <textarea id="status-notes" class="form-control" rows="3" placeholder="Enter notes about this status change..."></textarea>
+                </div>
+            `,
             icon: 'question',
             showCancelButton: true,
             confirmButtonColor: '#0d6efd',
             cancelButtonColor: '#6c757d',
             confirmButtonText: 'Yes, Update',
-            cancelButtonText: 'Cancel'
+            cancelButtonText: 'Cancel',
+            preConfirm: () => {
+                return {
+                    notes: document.getElementById('status-notes').value
+                };
+            }
         });
 
         if (result.isConfirmed) {
@@ -908,7 +1424,10 @@
                         'X-CSRF-TOKEN': csrfToken,
                         'Accept': 'application/json',
                     },
-                    body: JSON.stringify({ status: status })
+                    body: JSON.stringify({ 
+                        status: status,
+                        notes: result.value.notes || `Status changed to ${status.replace(/_/g, ' ')}`
+                    })
                 });
 
                 const data = await response.json();
@@ -937,6 +1456,76 @@
         } else {
             // Revert select
             document.getElementById('quickBookingStatus').value = '{{ $booking->status }}';
+        }
+    }
+
+    // Change Status with Note (for Quick Action Buttons)
+    async function changeStatusWithNote(newStatus, defaultNote) {
+        const statusLabel = newStatus.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        
+        const result = await Swal.fire({
+            title: `Change to ${statusLabel}?`,
+            html: `
+                <div class="mb-3">
+                    <p class="text-muted mb-3">You are about to change the booking status to <strong class="text-primary">${statusLabel}</strong></p>
+                    <label class="form-label text-start d-block fw-semibold">Add Notes (Optional):</label>
+                    <textarea id="quick-status-notes" class="form-control" rows="3" placeholder="Enter notes about this change...">${defaultNote}</textarea>
+                </div>
+            `,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#0d6efd',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: '<i class="ri-check-line me-1"></i> Confirm Change',
+            cancelButtonText: '<i class="ri-close-line me-1"></i> Cancel',
+            customClass: {
+                confirmButton: 'btn btn-primary',
+                cancelButton: 'btn btn-secondary'
+            },
+            preConfirm: () => {
+                return {
+                    notes: document.getElementById('quick-status-notes').value || defaultNote
+                };
+            }
+        });
+
+        if (result.isConfirmed) {
+            try {
+                const response = await fetch(`${baseUrl}/admin/bookings/${bookingId}/update-ajax`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                        status: newStatus,
+                        notes: result.value.notes
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    await Swal.fire({
+                        icon: 'success',
+                        title: 'Status Updated!',
+                        html: `<p class="mb-2">Booking status has been changed to <strong class="text-success">${statusLabel}</strong></p><p class="text-muted small">History entry created automatically</p>`,
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                    setTimeout(() => window.location.reload(), 2000);
+                } else {
+                    throw new Error(data.message || 'Failed to update status');
+                }
+            } catch (error) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Update Failed',
+                    text: error.message || 'Failed to update booking status',
+                    confirmButtonText: 'OK'
+                });
+            }
         }
     }
 
@@ -1127,6 +1716,166 @@
                     icon: 'error',
                     title: 'Error',
                     text: error.message || 'Failed to delete booking'
+                });
+            }
+        }
+    }
+
+    // Accept Schedule from Show Page
+    async function acceptScheduleFromShow() {
+        const requestedDate = '{{ $booking->booking_date ? $booking->booking_date->format("F j, Y") : "Not specified" }}';
+        const customerNotes = '{{ $booking->booking_notes ?? "" }}';
+        const customerName = '{{ $booking->user ? $booking->user->firstname . " " . $booking->user->lastname : "N/A" }}';
+        
+        const htmlContent = `
+            <div class="text-start mb-3">
+                <div class="border-bottom pb-2 mb-2">
+                    <p class="mb-2"><strong class="text-muted">Customer:</strong> ${customerName}</p>
+                    <p class="mb-0"><strong class="text-muted">Requested Date:</strong> <span class="text-primary">${requestedDate}</span></p>
+                </div>
+                ${customerNotes ? `
+                    <div class="mb-3">
+                        <small class="text-muted d-block mb-1"><strong>Customer Notes:</strong></small>
+                        <div class="alert alert-info py-2 mb-0"><small>${customerNotes}</small></div>
+                    </div>
+                ` : ''}
+                <div>
+                    <small class="text-muted d-block mb-1"><strong>Admin Notes (Optional):</strong></small>
+                </div>
+            </div>
+        `;
+
+        const result = await Swal.fire({
+            title: 'Accept Schedule?',
+            html: htmlContent,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#198754',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Yes, Accept',
+            cancelButtonText: 'Cancel',
+            input: 'textarea',
+            inputPlaceholder: 'Add admin notes (optional)...',
+            inputAttributes: {
+                maxlength: 500
+            },
+            width: '600px'
+        });
+
+        if (result.isConfirmed) {
+            try {
+                const response = await fetch(`${baseUrl}/admin/pending-schedules/${bookingId}/accept`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify({ notes: result.value || null })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    await Swal.fire({
+                        icon: 'success',
+                        title: 'Accepted!',
+                        text: data.message,
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+                    window.location.reload();
+                } else {
+                    throw new Error(data.message || 'Failed to accept schedule');
+                }
+            } catch (error) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: error.message || 'Failed to accept schedule'
+                });
+            }
+        }
+    }
+
+    // Decline Schedule from Show Page
+    async function declineScheduleFromShow() {
+        const requestedDate = '{{ $booking->booking_date ? $booking->booking_date->format("F j, Y") : "Not specified" }}';
+        const customerNotes = '{{ $booking->booking_notes ?? "" }}';
+        const customerName = '{{ $booking->user ? $booking->user->firstname . " " . $booking->user->lastname : "N/A" }}';
+        
+        const htmlContent = `
+            <div class="text-start mb-3">
+                <div class="border-bottom pb-2 mb-2">
+                    <p class="mb-2"><strong class="text-muted">Customer:</strong> ${customerName}</p>
+                    <p class="mb-0"><strong class="text-muted">Requested Date:</strong> <span class="text-primary">${requestedDate}</span></p>
+                </div>
+                ${customerNotes ? `
+                    <div class="mb-3">
+                        <small class="text-muted d-block mb-1"><strong>Customer Notes:</strong></small>
+                        <div class="alert alert-info py-2 mb-0"><small>${customerNotes}</small></div>
+                    </div>
+                ` : ''}
+                <div>
+                    <small class="text-muted d-block mb-1"><strong>Reason for Decline:</strong> <span class="text-danger">*</span></small>
+                </div>
+            </div>
+        `;
+
+        const result = await Swal.fire({
+            title: 'Decline Schedule?',
+            html: htmlContent,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Decline',
+            cancelButtonText: 'Cancel',
+            input: 'textarea',
+            inputPlaceholder: 'Enter reason for declining...',
+            inputAttributes: {
+                maxlength: 500,
+                required: true
+            },
+            inputValidator: (value) => {
+                if (!value) {
+                    return 'You must provide a reason!'
+                }
+            },
+            width: '600px'
+        });
+
+        if (result.isConfirmed) {
+            try {
+                const response = await fetch(`${baseUrl}/admin/pending-schedules/${bookingId}/decline`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify({ reason: result.value })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    await Swal.fire({
+                        icon: 'success',
+                        title: 'Declined!',
+                        text: data.message,
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+                    window.location.reload();
+                } else {
+                    throw new Error(data.message || 'Failed to decline schedule');
+                }
+            } catch (error) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: error.message || 'Failed to decline schedule'
                 });
             }
         }

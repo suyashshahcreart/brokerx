@@ -86,12 +86,31 @@
                                             @csrf
                                             <!-- AVALIABLE DAY -->
                                             <div class="mb-3">
-                                                <label for="avaliable_days" class="form-label"> Avaliable Day <span
+                                                <label for="avaliable_days" class="form-label">Avaliable Day <span
                                                         class="text-danger">*</span></label>
                                                 <input type="text" name="avaliable_days" id="avaliable_days"
                                                     value="{{ $settings['avaliable_days'] ?? '' }}" class="form-control"
                                                     placeholder="e.g., 7" required minlength="1" maxlength="255">
                                                 <small class="form-text text-muted">Booking schedule dates will be available starting from next day + this number of days. For example, if set to 7, bookings will be available from 7 days from next day onwards.</small>
+                                            </div>
+
+                                            <!-- CUSTOMER SCHEDULE ATTEMPTS -->
+                                            <div class="mb-3">
+                                                <label for="customer_attempt" class="form-label">Customer Schedule Attempts <span
+                                                        class="text-danger">*</span></label>
+                                                <input type="number" name="customer_attempt" id="customer_attempt"
+                                                    value="{{ $settings['customer_attempt'] ?? '3' }}" class="form-control"
+                                                    placeholder="e.g., 3" required min="1" max="10">
+                                                <small class="form-text text-muted">Maximum number of times admin can ACCEPT a customer's schedule/reschedule request. After reaching this limit, booking will be blocked automatically and customer must contact admin. Example: If set to 3, after 3 accepted schedules, no more schedules allowed.</small>
+                                            </div>
+
+                                            <!-- CUSTOMER ATTEMPT NOTE -->
+                                            <div class="mb-3">
+                                                <label for="customer_attempt_note" class="form-label">Customer Blocked Message</label>
+                                                <textarea name="customer_attempt_note" id="customer_attempt_note" 
+                                                    class="form-control" rows="3"
+                                                    placeholder="Message to show when customer reaches attempt limit">{{ $settings['customer_attempt_note'] ?? 'You have reached the maximum number of schedule attempts. Please contact admin for further assistance.' }}</textarea>
+                                                <small class="form-text text-muted">This message will be displayed to customers when they reach the maximum schedule attempts limit.</small>
                                             </div>
                                             <!-- // submit buttons -->
                                             <div class="d-flex gap-2 justify-content-end pt-4">
