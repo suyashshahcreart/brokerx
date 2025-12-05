@@ -46,19 +46,10 @@ return [
 
         'tours' => [
             'driver' => env('TOURS_DISK_DRIVER', 'local'),
-            'root' => env('TOURS_DISK_DRIVER', 'local') === 'local' 
-                ? public_path('tours') 
-                : storage_path('app/tours'),
-            'url' => env('TOURS_DISK_DRIVER', 'local') === 'local'
-                ? env('APP_URL').'/tours'
-                : env('APP_URL').'/storage/tours',
+            'root' => public_path('tours'),
+            'url' => env('APP_URL').'/tours',
             'visibility' => 'public',
             'throw' => false,
-            // S3 configuration (used when TOURS_DISK_DRIVER=s3)
-            'key' => env('AWS_ACCESS_KEY_ID'),
-            'secret' => env('AWS_SECRET_ACCESS_KEY'),
-            'region' => env('AWS_DEFAULT_REGION'),
-            'bucket' => env('AWS_TOURS_BUCKET', env('AWS_BUCKET')),
         ],
 
         's3' => [
@@ -67,7 +58,7 @@ return [
             'secret' => env('AWS_SECRET_ACCESS_KEY'),
             'region' => env('AWS_DEFAULT_REGION'),
             'bucket' => env('AWS_BUCKET'),
-            'url' => env('AWS_URL'),
+            'url' => env('AWS_URL') ?: ('https://' . env('AWS_BUCKET') . '.s3.' . env('AWS_DEFAULT_REGION') . '.amazonaws.com'),
             'endpoint' => env('AWS_ENDPOINT'),
             'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
             'throw' => false,

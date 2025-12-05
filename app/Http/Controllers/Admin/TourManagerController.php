@@ -242,33 +242,55 @@ class TourManagerController extends Controller
                                 'processed' => true,
                                 'tour_path' => $result['tour_path'],
                                 'tour_url' => $result['tour_url'],
+                                's3_path' => $result['s3_path'],
+                                's3_url' => $result['s3_url'],
                                 'size' => $file->getSize(),
                                 'uploaded_at' => now()->toDateTimeString()
                             ];
 
-                            // Save the base URL of the storage folder to booking
-                            $booking->base_url = url('/storage/' . $result['storage_path']);
+                            // Save the S3 base URL of the storage folder to booking
+                            $booking->base_url = $result['s3_url'];
                             $booking->save();
                         } else {
                             throw new \Exception($result['message']);
                         }
                     } else {
-                        // Handle regular files (images, pdfs, etc.)
-                        $filename = time() . '_' . uniqid() . '_' . $file->getClientOriginalName();
-                        $assetsPath = base_path('public/storage/tours/assets');
-                        if (!\File::exists($assetsPath)) {
-                            \File::makeDirectory($assetsPath, 0755, true);
+                        // Handle regular files (images, pdfs, etc.) - Upload to S3
+                        try {
+                            $filename = time() . '_' . uniqid() . '_' . $file->getClientOriginalName();
+                            $s3AssetPath = 'tour-assets/' . $booking->id . '/' . $filename;
+                            
+                            // Upload to S3 (bucket policy handles public access)
+                            $fileStream = fopen($file->getPathname(), 'r');
+                            Storage::disk('s3')->put(
+                                $s3AssetPath,
+                                $fileStream,
+                                ['ContentType' => $file->getMimeType()]
+                            );
+                            if (is_resource($fileStream)) {
+                                fclose($fileStream);
+                            }
+                            
+                            // Generate S3 URL
+                            $s3BaseUrl = config('filesystems.disks.s3.url') ?: 
+                                ('https://' . config('filesystems.disks.s3.bucket') . '.s3.' . 
+                                 config('filesystems.disks.s3.region') . '.amazonaws.com');
+                            $s3Url = rtrim($s3BaseUrl, '/') . '/' . $s3AssetPath;
+                            
+                            $uploadedFiles[] = [
+                                'name' => $file->getClientOriginalName(),
+                                's3_path' => $s3AssetPath,
+                                's3_url' => $s3Url,
+                                'size' => $file->getSize(),
+                                'type' => $file->getMimeType(),
+                                'uploaded_at' => now()->toDateTimeString()
+                            ];
+                            
+                            \Log::info("File uploaded to S3: {$s3AssetPath}");
+                        } catch (\Exception $uploadException) {
+                            \Log::error('S3 file upload error: ' . $uploadException->getMessage());
+                            throw new \Exception('Failed to upload file to S3: ' . $uploadException->getMessage());
                         }
-                        $file->move($assetsPath, $filename);
-
-                        $uploadedFiles[] = [
-                            'name' => $file->getClientOriginalName(),
-                            'path' => 'assets/' . $filename,
-                            'url' => url('/storage/tours/assets/' . $filename),
-                            'size' => $file->getSize(),
-                            'type' => $file->getMimeType(),
-                            'uploaded_at' => now()->toDateTimeString()
-                        ];
                     }
                 } catch (\Exception $e) {
                     \Log::error('File upload error: ' . $e->getMessage());
@@ -340,147 +362,133 @@ class TourManagerController extends Controller
                 ];
             }
 
-            // Create two directories:
-            // 1. Root tours/{code}/ for index.php
+            // Create directories:
+            // 1. Local tours/{code}/ for index.php (kept locally)
             $rootTourPath = 'tours/' . $uniqueCode;
             $rootTourDirectory = base_path($rootTourPath);
 
-            // 2. public/storage/tours/{code}/ for folders (images, assets, gallery, tiles)
-            $storageTourPath = 'tours/' . $uniqueCode;
-            $storageTourDirectory = base_path('public/storage/' . $storageTourPath);
+            // 2. S3 path for tour assets (images, assets, gallery, tiles)
+            $s3TourPath = 'tours/' . $uniqueCode;
 
-            // Delete old tour files if they exist
+            // Delete old tour files if they exist locally
             if (\File::exists($rootTourDirectory)) {
                 \File::deleteDirectory($rootTourDirectory);
             }
-            if (\File::exists($storageTourDirectory)) {
-                \File::deleteDirectory($storageTourDirectory);
+
+            // Create local directory for index.php
+            \File::makeDirectory($rootTourDirectory, 0755, true);
+
+            // Extract all files to local temp directory first
+            $tempExtractPath = storage_path('app/temp_tour_' . $uniqueCode . '_' . time());
+            if (!\File::exists($tempExtractPath)) {
+                \File::makeDirectory($tempExtractPath, 0755, true);
             }
 
-            // Create directories
-            \File::makeDirectory($rootTourDirectory, 0755, true);
-            \File::makeDirectory($storageTourDirectory, 0755, true);
+            $zip->extractTo($tempExtractPath);
+            $zip->close();
+
+            // Find the root folder
+            $items = scandir($tempExtractPath);
+            foreach ($items as $item) {
+                if ($item !== '.' && $item !== '..' && strpos($item, '__MACOSX') === false) {
+                    if (is_dir($tempExtractPath . '/' . $item)) {
+                        $rootFolder = $item;
+                        break;
+                    }
+                }
+            }
+
+            // Path to actual content
+            $contentPath = $rootFolder ? $tempExtractPath . '/' . $rootFolder : $tempExtractPath;
 
             // Extract files
             $jsonData = null;
             $indexHtmlContent = null;
-            $rootFolder = null;
+            
+            // Process index.html - SAVE LOCALLY
+            $indexPath = $contentPath . '/index.html';
+            if (file_exists($indexPath)) {
+                $indexHtmlContent = file_get_contents($indexPath);
 
-            // First pass: detect root folder name
-            for ($i = 0; $i < $zip->numFiles; $i++) {
-                $filename = $zip->getNameIndex($i);
-                if (strpos($filename, '__MACOSX') !== false || strpos($filename, '.DS_Store') !== false) {
-                    continue;
+                // Prepend PHP script to fetch tour and booking data
+                $phpScript = $this->generateDatabaseFetchScript();
+
+                // Inject JavaScript and SEO meta tags
+                $jsDataScript = $this->generateJavaScriptDataScript();
+                
+                // Inject footer code
+                $footerScript = $this->generateFooterCodeScript();
+
+                // Insert PHP at the beginning
+                $indexPhpContent = $phpScript . "\n" . $indexHtmlContent;
+
+                // Inject SEO meta tags, header code, and JavaScript data before </head>
+                if (preg_match('/<\/head>/i', $indexPhpContent)) {
+                    $indexPhpContent = preg_replace(
+                        '/<\/head>/i',
+                        $jsDataScript . "\n</head>",
+                        $indexPhpContent,
+                        1
+                    );
+                }
+                
+                // Inject footer code before </body>
+                if (preg_match('/<\/body>/i', $indexPhpContent)) {
+                    $indexPhpContent = preg_replace(
+                        '/<\/body>/i',
+                        $footerScript . "\n</body>",
+                        $indexPhpContent,
+                        1
+                    );
                 }
 
-                $parts = explode('/', trim($filename, '/'));
-                if (!empty($parts[0])) {
-                    $rootFolder = $parts[0];
-                    break;
-                }
+                // Save index.php LOCALLY
+                file_put_contents($rootTourDirectory . '/index.php', $indexPhpContent);
             }
 
-            // Second pass: extract files, skipping root folder level
-            for ($i = 0; $i < $zip->numFiles; $i++) {
-                $filename = $zip->getNameIndex($i);
-                $fileInfo = pathinfo($filename);
+            // Process JSON file - SAVE LOCALLY
+            $jsonFiles = glob($contentPath . '/*.json');
+            if (!empty($jsonFiles)) {
+                $jsonContent = file_get_contents($jsonFiles[0]);
+                $jsonData = json_decode($jsonContent, true);
+                
+                // Save JSON locally
+                file_put_contents($rootTourDirectory . '/' . basename($jsonFiles[0]), $jsonContent);
+            }
 
-                // Skip hidden files and __MACOSX
-                if (strpos($filename, '__MACOSX') !== false || strpos($filename, '.DS_Store') !== false) {
-                    continue;
-                }
-
-                // Remove root folder from path
-                $relativePath = $filename;
-                if ($rootFolder && strpos($filename, $rootFolder . '/') === 0) {
-                    $relativePath = substr($filename, strlen($rootFolder) + 1);
-                }
-
-                // Skip if empty (root folder itself)
-                if (empty(trim($relativePath, '/'))) {
-                    continue;
-                }
-
-                // Handle index.html - save as index.php in ROOT tours/{code}/
-                if (strtolower(basename($relativePath)) === 'index.html') {
-                    $indexHtmlContent = $zip->getFromIndex($i);
-
-                    // Prepend PHP script to fetch tour and booking data
-                    $phpScript = $this->generateDatabaseFetchScript();
-
-                    // Inject JavaScript and SEO meta tags
-                    $jsDataScript = $this->generateJavaScriptDataScript();
+            // Upload ONLY asset folders (images, assets, gallery, tiles) to S3
+            $assetFolders = ['images', 'assets', 'gallery', 'tiles'];
+            $uploadedFolders = [];
+            
+            \Log::info("Starting folder upload to S3. Content path: {$contentPath}");
+            
+            foreach ($assetFolders as $folder) {
+                $folderPath = $contentPath . '/' . $folder;
+                
+                if (is_dir($folderPath)) {
+                    $uploadResult = $this->uploadDirectoryToS3($folderPath, $s3TourPath . '/' . $folder, []);
                     
-                    // Inject footer code
-                    $footerScript = $this->generateFooterCodeScript();
-
-                    // Insert PHP at the beginning
-                    $indexPhpContent = $phpScript . "\n" . $indexHtmlContent;
-
-                    // Inject SEO meta tags, header code, and JavaScript data before </head>
-                    if (preg_match('/<\/head>/i', $indexPhpContent)) {
-                        $indexPhpContent = preg_replace(
-                            '/<\/head>/i',
-                            $jsDataScript . "\n</head>",
-                            $indexPhpContent,
-                            1
-                        );
-                    }
-                    
-                    // Inject footer code before </body>
-                    if (preg_match('/<\/body>/i', $indexPhpContent)) {
-                        $indexPhpContent = preg_replace(
-                            '/<\/body>/i',
-                            $footerScript . "\n</body>",
-                            $indexPhpContent,
-                            1
-                        );
-                    }
-
-                    file_put_contents($rootTourDirectory . '/index.php', $indexPhpContent);
-                    continue;
-                }
-
-                // Handle JSON file - read and parse, save in ROOT tours/{code}/
-                $relativeFileInfo = pathinfo($relativePath);
-                if (isset($relativeFileInfo['extension']) && strtolower($relativeFileInfo['extension']) === 'json') {
-                    $jsonContent = $zip->getFromIndex($i);
-                    $jsonData = json_decode($jsonContent, true);
-
-                    // Also save the JSON file in ROOT
-                    file_put_contents($rootTourDirectory . '/' . $relativeFileInfo['basename'], $jsonContent);
-                    continue;
-                }
-
-                // Extract all other files (folders) to STORAGE
-                $targetPath = $storageTourDirectory . '/' . $relativePath;
-
-                // Create directory if needed
-                if (substr($filename, -1) === '/') {
-                    if (!\File::exists($targetPath)) {
-                        \File::makeDirectory($targetPath, 0755, true);
+                    if ($uploadResult['success']) {
+                        $uploadedFolders[] = $folder;
+                    } else {
+                        \Log::warning("Failed to upload '{$folder}' folder: {$uploadResult['message']}");
                     }
                 } else {
-                    // Ensure parent directory exists
-                    $parentDir = dirname($targetPath);
-                    if (!\File::exists($parentDir)) {
-                        \File::makeDirectory($parentDir, 0755, true);
-                    }
-
-                    // Extract file
-                    $fileContent = $zip->getFromIndex($i);
-                    if ($fileContent !== false) {
-                        file_put_contents($targetPath, $fileContent);
-                    }
+                    \Log::warning("Folder '{$folder}' not found at path: {$folderPath}");
                 }
             }
+            
+            if (empty($uploadedFolders)) {
+                \Log::error("No asset folders were uploaded to S3. Available folders in content path: " . implode(', ', array_diff(scandir($contentPath), ['.', '..'])));
+            } else {
+                \Log::info("Successfully uploaded folders to S3: " . implode(', ', $uploadedFolders));
+            }
 
-            $zip->close();
+            // Clean up temporary directory
+            \File::deleteDirectory($tempExtractPath);
 
             // Validate that we got the required files
             if (!$indexHtmlContent) {
-                $this->cleanupFailedExtraction($rootTourDirectory);
-                $this->cleanupFailedExtraction($storageTourDirectory);
                 return [
                     'success' => false,
                     'message' => 'index.html file not found in zip root'
@@ -488,21 +496,33 @@ class TourManagerController extends Controller
             }
 
             if (!$jsonData) {
-                $this->cleanupFailedExtraction($rootTourDirectory);
-                $this->cleanupFailedExtraction($storageTourDirectory);
                 return [
                     'success' => false,
                     'message' => 'JSON configuration file not found in zip root'
                 ];
             }
 
+            // Generate base URL for S3 assets
+            $s3BaseUrl = config('filesystems.disks.s3.url') ?: 
+                        'https://' . config('filesystems.disks.s3.bucket') . '.s3.' . 
+                        config('filesystems.disks.s3.region') . '.amazonaws.com';
+            $s3Url = rtrim($s3BaseUrl, '/') . '/' . $s3TourPath;
+            
+            // Update booking with S3 base URL for assets
+            $booking = $tour->booking;
+            if ($booking) {
+                $booking->base_url = $s3Url;
+                $booking->save();
+            }
+
             return [
                 'success' => true,
                 'data' => $jsonData,
                 'tour_path' => $rootTourPath,
-                'storage_path' => $storageTourPath,
                 'tour_url' => url('/' . $rootTourPath . '/index.php'),
-                'message' => 'Zip file processed successfully'
+                's3_path' => $s3TourPath,
+                's3_url' => $s3Url,
+                'message' => 'Zip file processed successfully - index.php stored locally, assets uploaded to S3'
             ];
 
         } catch (\Exception $e) {
@@ -512,6 +532,142 @@ class TourManagerController extends Controller
                 'message' => 'Error processing zip file: ' . $e->getMessage()
             ];
         }
+    }
+
+    /**
+     * Upload directory contents to S3 recursively with optimization
+     */
+    private function uploadDirectoryToS3($localPath, $s3Path, $excludeFiles = [])
+    {
+        if (!is_dir($localPath)) {
+            \Log::warning("Directory not found for S3 upload: {$localPath}");
+            return [
+                'success' => false,
+                'message' => 'Directory not found',
+                'files_count' => 0,
+                'total_size' => 0
+            ];
+        }
+
+        $files = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($localPath, \RecursiveDirectoryIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::SELF_FIRST
+        );
+
+        $filesToUpload = [];
+        
+        // Collect all files first
+        foreach ($files as $file) {
+            if (!$file->isFile()) {
+                continue;
+            }
+
+            $filePath = $file->getPathname();
+            $relativePath = str_replace($localPath . DIRECTORY_SEPARATOR, '', $filePath);
+            $relativePath = str_replace('\\', '/', $relativePath);
+
+            // Skip excluded files
+            $fileName = basename($relativePath);
+            if (in_array($fileName, $excludeFiles)) {
+                continue;
+            }
+
+            // Skip hidden files and system files
+            if (strpos($fileName, '.') === 0 || 
+                strpos($relativePath, '__MACOSX') !== false || 
+                strpos($relativePath, '.DS_Store') !== false) {
+                continue;
+            }
+
+            $s3FilePath = $s3Path . '/' . $relativePath;
+            $filesToUpload[] = [
+                'local' => $filePath,
+                's3' => $s3FilePath,
+                'size' => filesize($filePath)
+            ];
+        }
+
+        // Log summary of files to upload
+        \Log::info("Found " . count($filesToUpload) . " files to upload from: {$localPath}");
+        
+        if (empty($filesToUpload)) {
+            \Log::warning("No files found to upload in directory: {$localPath}");
+            return [
+                'success' => false,
+                'message' => 'No files found in directory',
+                'files_count' => 0,
+                'total_size' => 0
+            ];
+        }
+        
+        // Upload files in batches
+        $batchSize = 5; // Upload 5 files at a time
+        $totalSize = 0;
+        $uploadedCount = 0;
+        $failedCount = 0;
+        
+        foreach (array_chunk($filesToUpload, $batchSize) as $batchIndex => $batch) {
+            foreach ($batch as $fileData) {
+                try {
+                    // Verify file exists before reading
+                    if (!file_exists($fileData['local'])) {
+                        throw new \Exception("Local file not found: {$fileData['local']}");
+                    }
+                    
+                    $fileContent = file_get_contents($fileData['local']);
+                    if ($fileContent === false) {
+                        throw new \Exception("Failed to read file content");
+                    }
+                    
+                    $mimeType = mime_content_type($fileData['local']) ?: 'application/octet-stream';
+                    
+                    // Try to upload to S3 (bucket policy handles public access)
+                    $uploaded = Storage::disk('s3')->put(
+                        $fileData['s3'],
+                        $fileContent,
+                        [
+                            'ContentType' => $mimeType
+                        ]
+                    );
+                    
+                    if (!$uploaded) {
+                        throw new \Exception("S3 upload returned false");
+                    }
+                    
+                    $totalSize += $fileData['size'];
+                    $uploadedCount++;
+                    
+                } catch (\Exception $e) {
+                    $failedCount++;
+                    \Log::error("Failed to upload {$fileData['s3']}: " . $e->getMessage() . " | File: {$fileData['local']}");
+                    
+                    // If too many failures, stop and report
+                    if ($failedCount > 10) {
+                        \Log::error("Too many upload failures ({$failedCount}). Stopping upload process.");
+                        break 2;
+                    }
+                }
+            }
+        }
+        
+        $sizeMB = round($totalSize / 1024 / 1024, 2);
+        $totalFiles = count($filesToUpload);
+        
+        if ($failedCount > 0) {
+            \Log::warning("Upload completed with errors: {$uploadedCount}/{$totalFiles} files uploaded ({$sizeMB} MB), {$failedCount} failed to S3 path: {$s3Path}");
+        } else {
+            \Log::info("Successfully uploaded all {$uploadedCount}/{$totalFiles} files ({$sizeMB} MB) to S3 path: {$s3Path}");
+        }
+        
+        return [
+            'success' => $uploadedCount > 0,
+            'message' => $failedCount > 0 
+                ? "Uploaded {$uploadedCount}/{$totalFiles} files, {$failedCount} failed"
+                : "Successfully uploaded {$uploadedCount} files",
+            'files_count' => $uploadedCount,
+            'total_size' => $sizeMB,
+            'failed_count' => $failedCount
+        ];
     }
 
     /**
