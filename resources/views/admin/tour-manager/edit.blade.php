@@ -219,7 +219,7 @@
 <!-- Loading Overlay -->
 <div id="tour-loading-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); z-index: 9999; justify-content: center; align-items: center;">
     <div style="text-align: center; color: white;">
-        <div class="spinner-border" role="status" style="width: 3rem; height: 3rem; border-width: 0.3rem;">
+        <div class="spinner-border text-success me-3" role="status" >
             <span class="visually-hidden">Loading...</span>
         </div>
         <h4 class="mt-3">Uploading and Processing Tour...</h4>
