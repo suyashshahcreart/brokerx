@@ -292,12 +292,50 @@
                                 $scheduledDate = $booking->booking_date ? \Carbon\Carbon::parse($booking->booking_date)->format('F j, Y') : null;
                                 
                                 // Status
-                                $statusClass = $booking->status === 'scheduled' ? 'success' : ($booking->status === 'completed' ? 'info' : 'warning');
-                                $statusText = ucfirst($booking->status ?? 'pending');
+                                $status = $booking->status ?? 'pending';
+                                $statusClass = match($status) {
+                                    'schedul_pending' => 'warning',
+                                    'schedul_accepted' => 'success',
+                                    'schedul_decline' => 'danger',
+                                    'reschedul_pending' => 'warning',
+                                    'reschedul_accepted' => 'success',
+                                    'reschedul_decline' => 'danger',
+                                    'reschedul_blocked' => 'dark',
+                                    'tour_live' => 'success',
+                                    'completed', 'confirmed' => 'info',
+                                    default => 'warning'
+                                };
+                                $statusText = match($status) {
+                                    'schedul_pending' => 'Pending Approval',
+                                    'schedul_accepted' => 'Scheduled',
+                                    'schedul_decline' => 'Declined',
+                                    'reschedul_pending' => 'Reschedule Pending',
+                                    'reschedul_accepted' => 'Rescheduled',
+                                    'reschedul_decline' => 'Reschedule Declined',
+                                    'reschedul_blocked' => 'Blocked',
+                                    default => ucfirst(str_replace('_', ' ', $status))
+                                };
                                 
                                 // Payment status
                                 $paymentStatus = $booking->payment_status ?? 'pending';
                                 $isPaymentPaid = $paymentStatus === 'paid';
+                                
+                                // Check if schedule was declined - clear scheduled date display
+                                $showScheduledDate = $scheduledDate && !in_array($status, ['schedul_decline', 'reschedul_decline', 'reschedul_blocked']);
+                                
+                                // Check if blocked
+                                $isBlocked = $status === 'reschedul_blocked';
+                                
+                                // Get ACCEPTED attempt count and max attempts (not pending)
+                                $attemptCount = 0;
+                                $maxAttempts = 3;
+                                if ($isBlocked || in_array($status, ['schedul_pending', 'schedul_accepted', 'schedul_decline', 'reschedul_pending', 'reschedul_accepted', 'reschedul_decline'])) {
+                                    $attemptCount = \App\Models\BookingHistory::where('booking_id', $booking->id)
+                                        ->whereIn('to_status', ['schedul_accepted', 'reschedul_accepted'])
+                                        ->count();
+                                    $maxAttemptsSetting = \App\Models\Setting::where('name', 'customer_attempt')->first();
+                                    $maxAttempts = $maxAttemptsSetting ? (int) $maxAttemptsSetting->value : 3;
+                                }
                                 
                                 // User info
                                 $userName = $booking->user ? trim(($booking->user->firstname ?? '') . ' ' . ($booking->user->lastname ?? '')) : 'N/A';
@@ -321,18 +359,29 @@
                                     <div class="card-body">
                                         <div class="d-flex justify-content-between align-items-start mb-3">
                                             <h5 class="card-title mb-0">{{ $propertyType ?: 'Property' }}</h5>
-                                            <div class="d-flex gap-1">
+                                            <div class="d-flex gap-1 flex-wrap">
+                                                {{-- Payment Status Badge --}}
                                                 @if($isPaymentPaid)
-                                                    {{-- Payment is paid - show Paid tag (green) and scheduling status --}}
                                                     <span class="badge bg-success">Paid</span>
-                                                    @if($scheduledDate)
-                                                        <span class="badge bg-success">Scheduled</span>
-                                                    @else
-                                                        <span class="badge bg-warning">Not Scheduled</span>
-                                                    @endif
                                                 @else
-                                                    {{-- Payment not paid - show only Pending tag --}}
-                                                    <span class="badge bg-warning">Pending</span>
+                                                    <span class="badge bg-warning">Payment Pending</span>
+                                                @endif
+                                                
+                                                {{-- Schedule Status Badge --}}
+                                                @if($isPaymentPaid)
+                                                    @if($isBlocked)
+                                                        <span class="badge bg-dark">Blocked ({{ $attemptCount }}/{{ $maxAttempts }})</span>
+                                                    @elseif(in_array($status, ['schedul_pending', 'reschedul_pending']))
+                                                        <span class="badge bg-warning">{{ $statusText }} ({{ $attemptCount }}/{{ $maxAttempts }})</span>
+                                                    @elseif(in_array($status, ['schedul_accepted', 'reschedul_accepted']))
+                                                        <span class="badge bg-success">Approved</span>
+                                                    @elseif(in_array($status, ['schedul_decline', 'reschedul_decline']))
+                                                        <span class="badge bg-danger">Declined ({{ $attemptCount }}/{{ $maxAttempts }})</span>
+                                                    @elseif($scheduledDate)
+                                                        <span class="badge bg-info">{{ $statusText }}</span>
+                                                    @else
+                                                        <span class="badge bg-secondary">Not Scheduled</span>
+                                                    @endif
                                                 @endif
                                             </div>
                                         </div>
@@ -351,15 +400,68 @@
                                         </div>
                                         
                                         
-                                        {{-- Show scheduling details only when payment is paid --}}
-                                        @if($scheduledDate)
-                                            <div class="mb-2">
-                                                <small class="text-success"><i class="fa-solid fa-calendar-check me-1"></i><strong>Scheduled:</strong> {{ $scheduledDate }} at {{ $booking->scheduled_time ?? 'TBD' }}</small>
-                                            </div>
-                                        @else
-                                            <div class="mb-2">
-                                                <small class="text-muted"><i class="fa-solid fa-calendar me-1"></i><strong>Status:</strong> Not Scheduled</small>
-                                            </div>
+                                        {{-- Show scheduling details based on status --}}
+                                        @if($isPaymentPaid)
+                                            @if($isBlocked)
+                                                <div class="alert alert-danger py-2 mb-2" role="alert">
+                                                    <small class="d-block mb-1"><i class="fa-solid fa-ban me-1"></i><strong>Scheduling Blocked</strong></small>
+                                                    <small class="text-muted d-block mb-2">Maximum attempts reached ({{ $attemptCount }}/{{ $maxAttempts }})</small>
+                                                    @php
+                                                        $blockedMessage = \App\Models\Setting::where('name', 'customer_attempt_note')->first();
+                                                    @endphp
+                                                    <small class="d-block">
+                                                        <i class="fa-solid fa-info-circle me-1"></i>
+                                                        {{ $blockedMessage?->value ?? 'You have reached the maximum number of schedule attempts. Please contact admin for further assistance.' }}
+                                                    </small>
+                                                </div>
+                                            @elseif(in_array($status, ['schedul_pending', 'reschedul_pending']))
+                                                <div class="mb-2">
+                                                    <small class="text-warning"><i class="fa-solid fa-clock me-1"></i><strong>Status:</strong> Awaiting Admin Approval</small>
+                                                </div>
+                                                @if($scheduledDate)
+                                                    <div class="mb-2">
+                                                        <small class="text-muted"><i class="fa-solid fa-calendar me-1"></i><strong>Requested Date:</strong> {{ $scheduledDate }}</small>
+                                                    </div>
+                                                @endif
+                                                <div class="mb-2">
+                                                    <small class="text-muted"><i class="fa-solid fa-chart-line me-1"></i>Attempt {{ $attemptCount }} of {{ $maxAttempts }}</small>
+                                                </div>
+                                            @elseif(in_array($status, ['schedul_decline', 'reschedul_decline']))
+                                                <div class="mb-2">
+                                                    <small class="text-danger"><i class="fa-solid fa-times-circle me-1"></i><strong>Status:</strong> Schedule Declined</small>
+                                                </div>
+                                                <div class="mb-2">
+                                                    <small class="text-muted"><i class="fa-solid fa-chart-line me-1"></i>Attempt {{ $attemptCount }} of {{ $maxAttempts }}</small>
+                                                </div>
+                                                @if($attemptCount >= $maxAttempts)
+                                                    {{-- Show blocked message when at limit --}}
+                                                    <div class="alert alert-danger py-2 mb-2" role="alert">
+                                                        @php
+                                                            $blockedMessage = \App\Models\Setting::where('name', 'customer_attempt_note')->first();
+                                                        @endphp
+                                                        <small class="d-block">
+                                                            <i class="fa-solid fa-ban me-1"></i>
+                                                            {{ $blockedMessage?->value ?? 'You have reached the maximum number of schedule attempts. Please contact admin for further assistance.' }}
+                                                        </small>
+                                                    </div>
+                                                @else
+                                                    <div class="mb-2">
+                                                        <small class="text-warning"><i class="fa-solid fa-info-circle me-1"></i>You can request again ({{ $maxAttempts - $attemptCount }} {{ Str::plural('attempt', $maxAttempts - $attemptCount) }} left)</small>
+                                                    </div>
+                                                @endif
+                                            @elseif(in_array($status, ['schedul_accepted', 'reschedul_accepted']) && $showScheduledDate)
+                                                <div class="mb-2">
+                                                    <small class="text-success"><i class="fa-solid fa-calendar-check me-1"></i><strong>Scheduled:</strong> {{ $scheduledDate }} at {{ $booking->scheduled_time ?? 'TBD' }}</small>
+                                                </div>
+                                            @elseif($showScheduledDate)
+                                                <div class="mb-2">
+                                                    <small class="text-success"><i class="fa-solid fa-calendar-check me-1"></i><strong>Scheduled:</strong> {{ $scheduledDate }} at {{ $booking->scheduled_time ?? 'TBD' }}</small>
+                                                </div>
+                                            @else
+                                                <div class="mb-2">
+                                                    <small class="text-muted"><i class="fa-solid fa-calendar me-1"></i><strong>Status:</strong> Not Scheduled</small>
+                                                </div>
+                                            @endif
                                         @endif
                                         
                                         <div class="mb-2">
@@ -386,12 +488,40 @@
                                             </button>
                                             
                                             @if($isPaymentPaid)
-                                                {{-- Payment is paid - show only View and Schedule buttons --}}
-                                                @if(!$scheduledDate)
+                                                {{-- Payment is paid - show schedule button based on status --}}
+                                                @if($isBlocked)
+                                                    {{-- Blocked - show contact admin button --}}
+                                                    <button class="btn btn-sm btn-dark flex-fill" disabled>
+                                                        <i class="fa-solid fa-ban me-1"></i>Contact Admin
+                                                    </button>
+                                                @elseif(in_array($status, ['schedul_pending', 'reschedul_pending']))
+                                                    {{-- Waiting for admin approval - disabled button --}}
+                                                    <button class="btn btn-sm btn-secondary flex-fill" disabled>
+                                                        <i class="fa-solid fa-clock me-1"></i>Awaiting Approval
+                                                    </button>
+                                                @elseif(in_array($status, ['schedul_decline', 'reschedul_decline']))
+                                                    {{-- Schedule declined - allow new request if not at limit --}}
+                                                    @if($attemptCount < $maxAttempts)
+                                                        <button class="btn btn-sm btn-warning flex-fill" onclick="openScheduleModal({{ $booking->id }})">
+                                                            <i class="fa-solid fa-calendar-plus me-1"></i>Request Again ({{ $maxAttempts - $attemptCount }} left)
+                                                        </button>
+                                                    @else
+                                                        <button class="btn btn-sm btn-dark flex-fill" disabled>
+                                                            <i class="fa-solid fa-ban me-1"></i>No Attempts Left
+                                                        </button>
+                                                    @endif
+                                                @elseif(in_array($status, ['schedul_accepted', 'reschedul_accepted', 'confirmed']) && $showScheduledDate)
+                                                    {{-- Schedule approved - can reschedule --}}
+                                                    <button class="btn btn-sm btn-outline-primary flex-fill" onclick="openScheduleModal({{ $booking->id }})">
+                                                        <i class="fa-solid fa-calendar-edit me-1"></i>Reschedule
+                                                    </button>
+                                                @elseif(!$scheduledDate)
+                                                    {{-- No schedule yet --}}
                                                     <button class="btn btn-sm btn-primary flex-fill" onclick="openScheduleModal({{ $booking->id }})">
                                                         <i class="fa-solid fa-calendar-plus me-1"></i>Schedule
                                                     </button>
                                                 @else
+                                                    {{-- Has schedule --}}
                                                     <button class="btn btn-sm btn-outline-primary flex-fill" onclick="openScheduleModal({{ $booking->id }})">
                                                         <i class="fa-solid fa-calendar-edit me-1"></i>Reschedule
                                                     </button>

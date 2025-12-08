@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Tour;
 use Illuminate\Http\Request;
 use App\Models\Booking;
+use App\Models\BookingHistory;
 use App\Models\User;
 use App\Models\City;
 use App\Models\State;
@@ -553,6 +554,54 @@ class FrontendController extends Controller
             'updated_by' => $user->id,
         ]);
 
+        // Create initial booking history entry (customer self-service)
+        // Prepare form data - only include non-null values
+        $formData = array_filter([
+            'name' => $validated['name'] ?? null,
+            'phone' => $validated['phone'] ?? null,
+            'owner_type' => $validated['owner_type'] ?? null,
+            'main_property_type' => $validated['main_property_type'] ?? null,
+            'house_number' => $validated['house_number'] ?? null,
+            'building_name' => $validated['building_name'] ?? null,
+            'pincode' => $validated['pincode'] ?? null,
+            'city' => $validated['city'] ?? null,
+            'full_address' => $validated['full_address'] ?? null,
+            'payment_method' => $validated['payment_method'] ?? null,
+            'amount' => isset($validated['amount']) ? (int) $validated['amount'] : null,
+        ], function($value) {
+            return !is_null($value) && $value !== '';
+        });
+
+        // Prepare booking details - only include non-null values
+        $bookingDetails = array_filter([
+            'property_type_id' => $booking->property_type_id,
+            'property_sub_type_id' => $booking->property_sub_type_id,
+            'bhk_id' => $booking->bhk_id,
+            'furniture_type' => $booking->furniture_type,
+            'area' => $booking->area,
+            'price' => $booking->price,
+            'city_id' => $booking->city_id,
+            'state_id' => $booking->state_id,
+        ], function($value) {
+            return !is_null($value) && $value !== '';
+        });
+        
+        \App\Models\BookingHistory::create([
+            'booking_id' => $booking->id,
+            'from_status' => null,
+            'to_status' => 'pending',
+            'changed_by' => $user->id,
+            'notes' => 'Booking created by customer (self-service)',
+            'metadata' => [
+                'source' => 'customer_frontend',
+                'form_data' => $formData,
+                'booking_details' => $bookingDetails,
+                'payment_status' => 'paid',
+            ],
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
+
         // Create a tour for this booking
         Tour::create([
             'booking_id' => $booking->id,
@@ -626,6 +675,8 @@ class FrontendController extends Controller
             $booking->created_by = $user->id;
         }
 
+        $isNewBooking = !$validated['booking_id'];
+        
         $booking->user_id = $user->id;
         $booking->property_type_id = $mapping['property_type_id'];
         $booking->property_sub_type_id = $mapping['property_sub_type_id'];
@@ -642,11 +693,68 @@ class FrontendController extends Controller
         $booking->updated_by = $user->id;
         $booking->save();
 
+        // Create initial booking history entry for new bookings (customer self-service)
+        if ($isNewBooking) {
+            // Prepare form data - only include non-null values
+            $formData = array_filter([
+                'name' => $validated['name'] ?? null,
+                'phone' => $validated['phone'] ?? null,
+                'owner_type' => $validated['owner_type'] ?? null,
+                'main_property_type' => $validated['main_property_type'] ?? null,
+                // Residential fields
+                'residential_property_type' => $validated['residential_property_type'] ?? null,
+                'residential_furnish' => $validated['residential_furnish'] ?? null,
+                'residential_size' => $validated['residential_size'] ?? null,
+                'residential_area' => $validated['residential_area'] ?? null,
+                // Commercial fields
+                'commercial_property_type' => $validated['commercial_property_type'] ?? null,
+                'commercial_furnish' => $validated['commercial_furnish'] ?? null,
+                'commercial_area' => $validated['commercial_area'] ?? null,
+                // Other fields
+                'other_looking' => $validated['other_looking'] ?? null,
+                'other_option_details' => $validated['other_option_details'] ?? null,
+                'other_area' => $validated['other_area'] ?? null,
+                // Billing details
+                'firm_name' => $validated['firm_name'] ?? null,
+                'gst_no' => $validated['gst_no'] ?? null,
+            ], function($value) {
+                return !is_null($value) && $value !== '';
+            });
+
+            // Prepare booking details - only include non-null values
+            $bookingDetails = array_filter([
+                'property_type_id' => $booking->property_type_id,
+                'property_sub_type_id' => $booking->property_sub_type_id,
+                'bhk_id' => $booking->bhk_id,
+                'furniture_type' => $booking->furniture_type,
+                'area' => $booking->area,
+                'price' => $booking->price,
+            ], function($value) {
+                return !is_null($value) && $value !== '';
+            });
+            
+            \App\Models\BookingHistory::create([
+                'booking_id' => $booking->id,
+                'from_status' => null,
+                'to_status' => 'pending',
+                'changed_by' => $user->id,
+                'notes' => 'Booking created by customer (self-service - step by step)',
+                'metadata' => [
+                    'source' => 'customer_frontend_stepwise',
+                    'form_data' => $formData,
+                    'booking_details' => $bookingDetails,
+                ],
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+            ]);
+        }
+
         // Create tour only if this is a new booking (not an update)
-        if (!$validated['booking_id']) {
+        if ($isNewBooking) {
             \App\Models\Tour::create([
                 'booking_id' => $booking->id,
                 'name' => 'Tour for Booking #' . $booking->id,
+                'slug' => Str::slug('Tour for Booking #' . $booking->id),
                 'title' => 'Property Tour - ' . ($validated['name'] ?? 'Property'),
                 'status' => 'draft',
                 'revision' => 1,
@@ -755,11 +863,67 @@ class FrontendController extends Controller
 
             // If payment is completed, only allow schedule updates
             if ($booking->payment_status === 'paid') {
+                // Check if booking is blocked
+                if ($booking->status === 'reschedul_blocked') {
+                    $blockedNote = \App\Models\Setting::where('name', 'customer_attempt_note')->first();
+                    return response()->json([
+                        'success' => false,
+                        'message' => $blockedNote?->value ?? 'You have reached the maximum number of schedule attempts. Please contact admin for further assistance.'
+                    ], 422);
+                }
+                
+                $oldStatus = $booking->status;
+                $scheduleChanged = false;
+                
                 // Only update schedule-related fields
                 if (isset($validated['scheduled_date'])) {
+                    // Count customer's ACCEPTED schedule attempts (not pending)
+                    $attemptCount = BookingHistory::where('booking_id', $booking->id)
+                        ->whereIn('to_status', ['schedul_accepted', 'reschedul_accepted'])
+                        ->count();
+                    
+                    // Get max attempts from settings (default 3)
+                    $maxAttempts = \App\Models\Setting::where('name', 'customer_attempt')->first();
+                    $maxAttemptsValue = $maxAttempts ? (int) $maxAttempts->value : 3;
+                    
+                    // Check if customer has exceeded attempts
+                    if ($attemptCount >= $maxAttemptsValue) {
+                        // Block the booking
+                        $booking->status = 'reschedul_blocked';
+                        $booking->save();
+                        
+                        // Create history for blocking
+                        \App\Models\BookingHistory::create([
+                            'booking_id' => $booking->id,
+                            'from_status' => $oldStatus,
+                            'to_status' => 'reschedul_blocked',
+                            'changed_by' => $user->id,
+                            'notes' => 'Booking blocked - Maximum schedule attempts reached',
+                            'metadata' => [
+                                'step' => 'schedule_blocked',
+                                'attempt_count' => $attemptCount,
+                                'max_attempts' => $maxAttemptsValue,
+                                'blocked_at' => now()->toDateTimeString(),
+                            ],
+                            'ip_address' => $request->ip(),
+                            'user_agent' => $request->userAgent(),
+                        ]);
+                        
+                        $blockedNote = \App\Models\Setting::where('name', 'customer_attempt_note')->first();
+                        return response()->json([
+                            'success' => false,
+                            'message' => $blockedNote?->value ?? 'You have reached the maximum number of schedule attempts. Please contact admin for further assistance.',
+                            'blocked' => true,
+                            'attempts' => $attemptCount,
+                            'max_attempts' => $maxAttemptsValue
+                        ], 422);
+                    }
+                    
+                    $oldBookingDate = $booking->booking_date;
                     // Store scheduled date in booking_date field
                     $booking->booking_date = $validated['scheduled_date'];
-                    $booking->status = 'scheduled'; // Auto-set status to scheduled when date is set
+                    $booking->status = 'schedul_pending'; // Set status to schedule pending
+                    $scheduleChanged = true;
                 }
                 // Store notes in booking_notes field
                 if (isset($validated['notes']) || isset($validated['booking_notes'])) {
@@ -768,9 +932,42 @@ class FrontendController extends Controller
                 $booking->updated_by = $user->id;
                 $booking->save();
 
+                // Create history entry for schedule request
+                if ($scheduleChanged) {
+                    // Count ACCEPTED schedules for metadata
+                    $attemptCount = BookingHistory::where('booking_id', $booking->id)
+                        ->whereIn('to_status', ['schedul_accepted', 'reschedul_accepted'])
+                        ->count();
+                    
+                    $maxAttempts = \App\Models\Setting::where('name', 'customer_attempt')->first();
+                    $maxAttemptsValue = $maxAttempts ? (int) $maxAttempts->value : 3;
+                    
+                    \App\Models\BookingHistory::create([
+                        'booking_id' => $booking->id,
+                        'from_status' => $oldStatus,
+                        'to_status' => 'schedul_pending',
+                        'changed_by' => $user->id,
+                        'notes' => 'Schedule requested by customer',
+                        'metadata' => array_filter([
+                            'step' => 'schedule_request',
+                            'scheduled_date' => $validated['scheduled_date'],
+                            'old_booking_date' => $oldBookingDate?->format('Y-m-d'),
+                            'new_booking_date' => $booking->booking_date?->format('Y-m-d'),
+                            'notes' => $booking->booking_notes,
+                            'attempt_number' => $attemptCount,
+                            'max_attempts' => $maxAttemptsValue,
+                            'remaining_attempts' => $maxAttemptsValue - $attemptCount,
+                        ], function($value) {
+                            return !is_null($value) && $value !== '';
+                        }),
+                        'ip_address' => $request->ip(),
+                        'user_agent' => $request->userAgent(),
+                    ]);
+                }
+
                 return response()->json([
                     'success' => true,
-                    'message' => 'Schedule updated successfully. Property and address details are locked after payment.',
+                    'message' => 'Schedule request submitted successfully. Awaiting admin approval.',
                     'booking_id' => $booking->id,
                 ]);
             }
@@ -1545,6 +1742,9 @@ class FrontendController extends Controller
             }
         }
 
+        $oldStatus = $booking->status;
+        $oldPaymentStatus = $booking->payment_status;
+
         if ($orderStatus === 'PAID') {
             $booking->payment_status = 'paid';
             $booking->status = 'confirmed';
@@ -1557,6 +1757,189 @@ class FrontendController extends Controller
         }
 
         $booking->save();
+
+        // Create history entry for payment callback with complete booking data
+        // Always create history when callback is triggered to track all payment attempts
+        $statusChanged = ($oldPaymentStatus !== $booking->payment_status || $oldStatus !== $booking->status);
+        
+        // Check if history already exists for this exact callback to prevent duplicates from page refresh
+        $existingHistory = \App\Models\BookingHistory::where('booking_id', $booking->id)
+            ->where('notes', 'LIKE', '%' . $orderStatus . '%')
+            ->where('created_at', '>', now()->subMinutes(2))
+            ->exists();
+        
+        if (!$existingHistory) {
+            // Payment data
+            $paymentData = array_filter([
+                'order_id' => $booking->cashfree_order_id,
+                'order_status' => $orderStatus,
+                'payment_status' => $booking->payment_status,
+                'amount' => $booking->cashfree_payment_amount,
+                'currency' => $booking->cashfree_payment_currency,
+                'payment_method' => $booking->cashfree_payment_method,
+                'reference_id' => $booking->cashfree_reference_id,
+                'payment_message' => $booking->cashfree_payment_message,
+                'payment_at' => optional($booking->cashfree_payment_at)->toDateTimeString(),
+            ], function($value) {
+                return !is_null($value) && $value !== '';
+            });
+
+            // Property data
+            $propertyData = array_filter([
+                'property_type' => $booking->propertyType?->name,
+                'property_sub_type' => $booking->propertySubType?->name,
+                'bhk' => $booking->bhk?->name,
+                'furniture_type' => $booking->furniture_type,
+                'area' => $booking->area,
+                'price' => $booking->price,
+                'owner_type' => $booking->owner_type,
+                'firm_name' => $booking->firm_name,
+                'gst_no' => $booking->gst_no,
+            ], function($value) {
+                return !is_null($value) && $value !== '';
+            });
+
+            // Address data
+            $addressData = array_filter([
+                'house_no' => $booking->house_no,
+                'building' => $booking->building,
+                'society_name' => $booking->society_name,
+                'address_area' => $booking->address_area,
+                'landmark' => $booking->landmark,
+                'full_address' => $booking->full_address,
+                'pin_code' => $booking->pin_code,
+                'city' => $booking->city?->name,
+                'state' => $booking->state?->name,
+            ], function($value) {
+                return !is_null($value) && $value !== '';
+            });
+
+            // Set appropriate message based on payment status
+            if ($orderStatus === 'PAID') {
+                $notes = 'Payment successful - Booking confirmed';
+            } elseif (in_array($orderStatus, ['FAILED', 'EXPIRED', 'TERMINATED', 'TERMINATION_REQUESTED'])) {
+                $notes = 'Payment failed - ' . ($booking->cashfree_payment_message ?: 'Transaction declined');
+            } else {
+                $notes = 'Payment pending - Awaiting payment confirmation';
+            }
+
+            \App\Models\BookingHistory::create([
+                'booking_id' => $booking->id,
+                'from_status' => $oldStatus,
+                'to_status' => $booking->status,
+                'changed_by' => $booking->user_id,
+                'notes' => $notes,
+                'metadata' => [
+                    'step' => 'payment_callback',
+                    'payment_data' => $paymentData,
+                    'property_data' => $propertyData,
+                    'address_data' => $addressData,
+                    'old_payment_status' => $oldPaymentStatus,
+                    'new_payment_status' => $booking->payment_status,
+                    'payment_gateway_response' => $orderData, // Full Cashfree response
+                ],
+                'ip_address' => request()->ip(),
+                'user_agent' => request()->userAgent(),
+            ]);
+            
+            // Send SMS notification for successful payment
+            if ($orderStatus === 'PAID' && $booking->user && $booking->user->mobile) {
+                try {
+                    // PROPPIK: Your order is confirmed. You can now schedule your appointment on ##LINK##. – CREART
+                    // Template ID: 69295ee79cb8142aae77f2a2
+                    
+                    $mobile = $booking->user->mobile;
+                    
+                    // Ensure mobile has country code (91 for India)
+                    if (!str_starts_with($mobile, '91')) {
+                        $mobile = '91' . $mobile;
+                    }
+                    
+                    // Prepare SMS parameters for MSG91 template
+                    $smsParams = [
+                        'LINK' => 'https://proppik.com/'
+                    ];
+                    
+                    // Send SMS using MSG91 order_confirmation template
+                    $this->smsService->send(
+                        $mobile,                        // Mobile number with country code
+                        'order_confirmation',           // Template key from config/msg91.php
+                        $smsParams,                     // Template parameters
+                        [
+                            'type' => 'manual',
+                            'reference_type' => 'App\Models\Booking',
+                            'reference_id' => $booking->id,
+                            'notes' => 'Order confirmation SMS sent after successful payment'
+                        ]
+                    );
+                    
+                    \Log::info('Order confirmation SMS sent successfully', [
+                        'booking_id' => $booking->id,
+                        'mobile' => $mobile,
+                        'template' => 'order_confirmation',
+                        'template_id' => '69295ee79cb8142aae77f2a2',
+                        'link' => 'https://proppik.com/'
+                    ]);
+                } catch (\Exception $e) {
+                    // Log error but don't fail the payment process
+                    \Log::error('Failed to send order confirmation SMS', [
+                        'booking_id' => $booking->id,
+                        'mobile' => $booking->user->mobile ?? 'N/A',
+                        'error' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString()
+                    ]);
+                }
+            }
+            
+            // Send SMS notification for failed payment
+            if (in_array($orderStatus, ['FAILED', 'EXPIRED', 'TERMINATED', 'TERMINATION_REQUESTED', 'ACTIVE']) && $booking->user && $booking->user->mobile) {
+                try {
+                    // PROPPIK: Your payment could not be processed. Please try again or use another method. – CREART
+                    // Template ID: 69295eabe5d99077c61b7ac1
+                    
+                    $mobile = $booking->user->mobile;
+                    
+                    // Ensure mobile has country code (91 for India)
+                    if (!str_starts_with($mobile, '91')) {
+                        $mobile = '91' . $mobile;
+                    }
+                    
+                    // No additional parameters needed for payment_failed template
+                    $smsParams = [];
+                    
+                    // Send SMS using MSG91 payment_failed template
+                    $this->smsService->send(
+                        $mobile,                        // Mobile number with country code
+                        'payment_failed',               // Template key from config/msg91.php
+                        $smsParams,                     // Template parameters (empty for this template)
+                        [
+                            'type' => 'manual',
+                            'reference_type' => 'App\Models\Booking',
+                            'reference_id' => $booking->id,
+                            'notes' => 'Payment failed notification SMS sent to customer'
+                        ]
+                    );
+                    
+                    \Log::info('Payment failed SMS sent successfully', [
+                        'booking_id' => $booking->id,
+                        'mobile' => $mobile,
+                        'template' => 'payment_failed',
+                        'template_id' => '69295eabe5d99077c61b7ac1',
+                        'order_status' => $orderStatus,
+                        'payment_message' => $booking->cashfree_payment_message
+                    ]);
+                } catch (\Exception $e) {
+                    // Log error but don't fail the payment process
+                    \Log::error('Failed to send payment failed SMS', [
+                        'booking_id' => $booking->id,
+                        'mobile' => $booking->user->mobile ?? 'N/A',
+                        'order_status' => $orderStatus,
+                        'error' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString()
+                    ]);
+                }
+            }
+        }
 
         return [
             'booking_id' => $booking->id,
@@ -1610,6 +1993,11 @@ class FrontendController extends Controller
             ->with(['user', 'propertyType', 'propertySubType', 'bhk', 'city', 'state'])
             ->orderBy('created_at', 'desc')
             ->get();
+        
+        // If user has no bookings, redirect to setup page to create first booking
+        if ($bookings->isEmpty()) {
+            return redirect()->route('frontend.setup');
+        }
         
         // Get property types and BHK for edit modal (same as setup page)
         $types = PropertyType::with(['subTypes:id,property_type_id,name,icon'])->get(['id','name','icon']);

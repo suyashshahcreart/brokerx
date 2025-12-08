@@ -15,6 +15,22 @@ class Booking extends Model
     {
         return $this->hasOne(\App\Models\QR::class, 'booking_id');
     }
+
+    /**
+     * Get the booking history entries
+     */
+    public function histories()
+    {
+        return $this->hasMany(BookingHistory::class)->orderByDesc('created_at');
+    }
+
+    /**
+     * Get the latest booking history entry
+     */
+    public function latestHistory()
+    {
+        return $this->hasOne(BookingHistory::class)->latestOfMany();
+    }
     /** @use HasFactory<\Database\Factories\BookingFactory> */
     use HasFactory, SoftDeletes;
 
@@ -228,5 +244,97 @@ class Booking extends Model
     public function isReadyForPayment(): bool
     {
         return $this->hasCompletePropertyData() && $this->hasCompleteAddressData();
+    }
+
+    /**
+     * Change booking status and log to history
+     * 
+     * @param string $newStatus The new status to set
+     * @param int|null $userId The user making the change
+     * @param string|null $notes Optional notes about the change
+     * @param array|null $metadata Optional metadata
+     * @return bool
+     */
+    public function changeStatus(string $newStatus, ?int $userId = null, ?string $notes = null, ?array $metadata = null): bool
+    {
+        $oldStatus = $this->status;
+        
+        // Don't create history if status hasn't changed
+        if ($oldStatus === $newStatus) {
+            return true;
+        }
+
+        // Update the booking status
+        $this->status = $newStatus;
+        $this->save();
+
+        // Create history entry
+        BookingHistory::create([
+            'booking_id' => $this->id,
+            'from_status' => $oldStatus,
+            'to_status' => $newStatus,
+            'changed_by' => $userId ?? auth()->id(),
+            'notes' => $notes,
+            'metadata' => $metadata,
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent(),
+        ]);
+
+        return true;
+    }
+
+    /**
+     * Get all available booking statuses
+     * 
+     * @return array
+     */
+    public static function getAvailableStatuses(): array
+    {
+        return [
+            'inquiry',
+            'pending',
+            'schedul_pending',
+            'schedul_accepted',
+            'schedul_decline',
+            'reschedul_pending',
+            'reschedul_accepted',
+            'reschedul_decline',
+            'reschedul_blocked',
+            'schedul_assign',
+            'schedul_completed',
+            'tour_pending',
+            'tour_completed',
+            'tour_live',
+            'maintenance',
+            'expired',
+        ];
+    }
+
+    /**
+     * Get status label for display
+     * 
+     * @return string
+     */
+    public function getStatusLabelAttribute(): string
+    {
+        return match($this->status) {
+            'inquiry' => 'Inquiry',
+            'pending' => 'Pending',
+            'schedul_pending' => 'Schedule Pending',
+            'schedul_accepted' => 'Schedule Accepted',
+            'schedul_decline' => 'Schedule Declined',
+            'reschedul_pending' => 'Reschedule Pending',
+            'reschedul_accepted' => 'Reschedule Accepted',
+            'reschedul_decline' => 'Reschedule Declined',
+            'reschedul_blocked' => 'Reschedule Blocked',
+            'schedul_assign' => 'Schedule Assigned',
+            'schedul_completed' => 'Schedule Completed',
+            'tour_pending' => 'Tour Pending',
+            'tour_completed' => 'Tour Completed',
+            'tour_live' => 'Tour Live',
+            'maintenance' => 'Maintenance',
+            'expired' => 'Expired',
+            default => ucfirst($this->status),
+        };
     }
 }

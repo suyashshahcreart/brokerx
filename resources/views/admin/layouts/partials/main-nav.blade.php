@@ -48,12 +48,28 @@
 
                @can('booking_view')
                     <li class="nav-item">
-                         <a class="nav-link {{ request()->routeIs('admin.bookings.*') ? 'active' : '' }}"
+                         <a class="nav-link {{ request()->routeIs('admin.bookings.*') && !request()->routeIs('admin.pending-schedules.*') ? 'active' : '' }}"
                               href="{{ route('admin.bookings.index') }}">
                               <span class="nav-icon">
                                    <i class="ri-contacts-book-3-line"></i>
                               </span>
                               <span class="nav-text">Bookings</span>
+                         </a>
+                    </li>
+                    
+                    <li class="nav-item">
+                         <a class="nav-link {{ request()->routeIs('admin.pending-schedules.*') ? 'active' : '' }}"
+                              href="{{ route('admin.pending-schedules.index') }}">
+                              <span class="nav-icon">
+                                   <i class="ri-calendar-todo-line"></i>
+                              </span>
+                              <span class="nav-text">Pending Schedules</span>
+                              @php
+                                   $pendingCount = \App\Models\Booking::whereIn('status', ['schedul_pending', 'reschedul_pending'])->count();
+                              @endphp
+                              @if($pendingCount > 0)
+                                   <span class="badge bg-warning ms-auto">{{ $pendingCount }}</span>
+                              @endif
                          </a>
                     </li>
                @endcan
