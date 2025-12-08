@@ -150,15 +150,20 @@ if (document.getElementById('tour-dropzone') && !document.getElementById('tour-d
                             formData.append('files[]', file);
                         });
                         
-                        // Show loading overlay
+                        // Show loading overlay with spinner
                         const loadingOverlay = document.getElementById('tour-loading-overlay');
-                        const progressBar = document.getElementById('upload-progress-bar');
-                        const uploadStatus = document.getElementById('upload-status');
+                        const folderContainer = document.getElementById('folder-processing-container');
+                        const currentFolderName = document.getElementById('current-folder-name');
+                        const folderProgressBar = document.getElementById('folder-progress-bar');
+                        const folderStatus = document.getElementById('folder-status');
                         
                         if (loadingOverlay) {
                             loadingOverlay.style.display = 'flex';
-                            progressBar.style.width = '10%';
-                            uploadStatus.textContent = 'Uploading files...';
+                        }
+                        
+                        // Show folder container
+                        if (folderContainer) {
+                            folderContainer.style.display = 'block';
                         }
                         
                         // Show loading state on button
@@ -167,18 +172,48 @@ if (document.getElementById('tour-dropzone') && !document.getElementById('tour-d
                         submitBtn.disabled = true;
                         submitBtn.innerHTML = '<i class="ri-loader-4-line me-1"></i> Updating...';
                         
-                        // Simulate progress
-                        let progress = 10;
-                        const progressInterval = setInterval(() => {
-                            if (progress < 90) {
-                                progress += 10;
-                                if (progressBar) progressBar.style.width = progress + '%';
+                        // List of folders to display
+                        const folders = ['images', 'gallery', 'tiles', 'index.html', 'Json data'];
+                        let currentIndex = 0;
+                        let folderIntervalId = null;
+                        
+                        // Function to display folders in sequence
+                        function startFolderDisplay() {
+                            folderIntervalId = setInterval(() => {
                                 
-                                if (progress === 30) uploadStatus.textContent = 'Processing files...';
-                                if (progress === 60) uploadStatus.textContent = 'Extracting tour data...';
-                                if (progress === 80) uploadStatus.textContent = 'Almost done...';
-                            }
-                        }, 500);
+                                const folder = folders[currentIndex % folders.length];
+                                
+                                // Display folder name
+                                if (currentFolderName) {
+                                    currentFolderName.textContent = folder;
+                                }
+                                
+                                if (folderStatus) {
+                                    folderStatus.textContent = `Processing folder ${(currentIndex % folders.length) + 1} of ${folders.length}`;
+                                }
+                                
+                                // Reset and animate progress bar
+                                if (folderProgressBar) {
+                                    folderProgressBar.style.width = '0%';
+                                    let progress = 0;
+                                    const progressInterval = setInterval(() => {
+                                        progress += 2; // Increment by 2% every 100ms = 5 seconds total
+                                        if (folderProgressBar) {
+                                            folderProgressBar.style.width = progress + '%';
+                                        }
+                                        
+                                        if (progress >= 100) {
+                                            clearInterval(progressInterval);
+                                        }
+                                    }, 100);
+                                }
+                                
+                                currentIndex++;
+                            }, 5200); // 5 seconds per folder + 200ms pause
+                        }
+                        
+                        // Start displaying folders immediately
+                        startFolderDisplay();
                         
                         // Submit form via AJAX
                         fetch(form.action, {
@@ -191,12 +226,15 @@ if (document.getElementById('tour-dropzone') && !document.getElementById('tour-d
                         })
                         .then(response => response.json())
                         .then(data => {
-                            clearInterval(progressInterval);
+                            // Stop folder display animation
+                            if (folderIntervalId) {
+                                clearInterval(folderIntervalId);
+                            }
                             
                             if (data.success) {
-                                // Complete progress
-                                if (progressBar) progressBar.style.width = '100%';
-                                if (uploadStatus) uploadStatus.textContent = 'Upload complete!';
+                                // Show completion message
+                                if (folderStatus) folderStatus.textContent = 'Upload complete!';
+                                if (folderProgressBar) folderProgressBar.style.width = '100%';
                                 
                                 setTimeout(() => {
                                     if (loadingOverlay) loadingOverlay.style.display = 'none';
@@ -221,7 +259,11 @@ if (document.getElementById('tour-dropzone') && !document.getElementById('tour-d
                         })
                         .catch(error => {
                             console.error('Submit error:', error);
-                            clearInterval(progressInterval);
+                            
+                            // Stop folder display animation
+                            if (folderIntervalId) {
+                                clearInterval(folderIntervalId);
+                            }
                             
                             // Hide loading overlay
                             if (loadingOverlay) loadingOverlay.style.display = 'none';

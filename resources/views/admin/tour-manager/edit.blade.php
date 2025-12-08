@@ -218,16 +218,30 @@
 
 <!-- Loading Overlay -->
 <div id="tour-loading-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); z-index: 9999; justify-content: center; align-items: center;">
-    <div style="text-align: center; color: white;">
-        <div class="spinner-border text-success me-3" role="status" >
+    <div style="text-align: center; color: white; max-width: 500px; width: 90%;">
+        <div class="spinner-border text-secondary me-3" role="status">
             <span class="visually-hidden">Loading...</span>
         </div>
         <h4 class="mt-3">Uploading and Processing Tour...</h4>
         <p class="text-muted">This may take a few moments. Please don't close this window.</p>
-        <div class="progress mt-3" style="width: 300px; margin: 0 auto;">
-            <div id="upload-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
+        
+        <!-- Folder Processing Display -->
+        <div id="folder-processing-container" class="mt-4">
+            <div class="card bg-dark border-secondary" style="width: 100%;">
+                <div class="card-body">
+                    <h6 class="card-title text-white mb-3">Processing Folders</h6>
+                    <div id="current-folder-name" class="text-center mb-3 fw-bold text-success" style="font-size: 1.2rem; min-height: 32px;">
+                        <!-- Folder name will appear here -->
+                    </div>
+                    <div class="progress" style="height: 8px;">
+                        <div id="folder-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 0%"></div>
+                    </div>
+                    <div id="folder-status" class="mt-2 small text-muted text-center">
+                        <!-- Status text will appear here -->
+                    </div>
+                </div>
+            </div>
         </div>
-        <p id="upload-status" class="mt-2 small">Preparing upload...</p>
     </div>
 </div>
 @endsection
