@@ -1,22 +1,27 @@
 @extends('admin.layouts.vertical', ['title' => 'Edit Tour'])
 
 @section('content')
-<div class="container-fluid">
+<div class="">
     <div class="row">
         <div class="col-12">
-            <div class="page-title-box">
-                <div class="page-title-right">
-                    <a href="{{ route('admin.tour-manager.show', $tour->booking_id) }}" class="btn btn-secondary">
-                        <i class="ri-arrow-left-line me-1"></i> Back to Booking
-                    </a>
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+                <div>
+                    <nav aria-label="breadcrumb" class="mb-0">
+                        <ol class="breadcrumb mb-0">
+                            <li class="breadcrumb-item"><a href="{{ route('root') }}">Home</a></li>
+                            <li class="breadcrumb-item" aria-current="page"><a href="{{ route('admin.tour-manager.index') }}">Tour Management</a></li>
+                            <li class="breadcrumb-item active" aria-current="page">Edit</li>
+                            <li class="breadcrumb-item active" aria-current="page">{{ $tour->id }}</li>
+                        </ol>
+                    </nav>
+                    <h3 class="mb-0">Tour Management</h3>
                 </div>
-                <h4 class="page-title">
-                    <i class="ri-edit-line me-2"></i>Edit Tour
-                </h4>
+                <a href="{{ route('admin.tour-manager.index', $tour->booking_id) }}" class="btn btn-secondary">
+                        <i class="ri-arrow-left-line me-1"></i> Back to Booking
+                </a>
             </div>
         </div>
     </div>
-
     <div class="row">
         <!-- Main Content -->
         <div class="col-lg-8">
