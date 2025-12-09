@@ -54,20 +54,21 @@ class CalendarSchedule {
             // Get the API URL from the data attribute
             const apiBaseUrl = this.calendar.getAttribute('data-booking-api');
             const url = `${apiBaseUrl}?from_date=${fromDate}&to_date=${toDate}`;
-            
+
             const response = await fetch(url);
-            
+
             if (!response.ok) {
                 console.error('HTTP error:', response.status, response.statusText);
                 return [];
             }
-            
+
             const result = await response.json();
-            
+
             if (result.success && result.data) {
                 return result.data.map(booking => {
                     // Determine event color based on status
                     let className = 'bg-primary';
+                    //TODO: set colors according to status
                     if (booking.status === 'confirmed') className = 'bg-success';
                     else if (booking.status === 'pending') className = 'bg-warning';
                     else if (booking.status === 'cancelled') className = 'bg-danger';
@@ -75,9 +76,19 @@ class CalendarSchedule {
 
                     // Format the event title with booking time if available
                     let title = '';
+
                     if (booking.booking_time) {
-                        title += ` - ${booking.booking_time}`;
+                        const [h, m] = booking.booking_time.split(':'); // "13:30:00" → ["13","30","00"]
+
+                        let hours = parseInt(h, 10);
+                        const minutes = m;
+                        const period = hours >= 12 ? 'PM' : 'AM';
+
+                        hours = hours % 12 || 12; // 13 → 1, 00 → 12
+
+                        title += `${hours}:${minutes} ${period} `;
                     }
+
                     title += booking.firm_name || `Booking #${booking.id}`;
                     return {
                         id: booking.id,
