@@ -8,8 +8,11 @@ class AdminDashboardController extends Controller
 {
     public function index()
     {
-        // $title = 'Dashboard demo';
-        // dd($title);
-        return view('admin.dashboard');
+        $title = 'Dashboard';
+        if (auth()->user()->hasRole('photographer')) {
+            
+            return view('admin.photographer.index', ['title' => $title]);
+        }
+        return view('admin.dashboard',['title' => $title]);
     }
 }
