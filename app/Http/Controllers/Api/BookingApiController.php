@@ -271,34 +271,35 @@ class BookingApiController extends Controller
             'state:id,name'
         ]);
 
-        
+
         // Apply date range filter
         $query->whereBetween('booking_date', [
             $request->from_date,
             $request->to_date
         ]);
-        
+
         // Apply additional filters if provided
         // if ($request->filled('status')) {
         //     $query->where('status', $request->status);
         // }
-        
+
         // if ($request->filled('payment_status')) {
         //     $query->where('payment_status', $request->payment_status);
         // }
-        
+
         // if ($request->filled('city_id')) {
         //     $query->where('city_id', $request->city_id);
         // }
-        
+
         // if ($request->filled('state_id')) {
         //     $query->where('state_id', $request->state_id);
         // }
-        
+
         // Select specific fields
         $bookings = $query->select([
             'id',
             'booking_date',
+            'booking_time',
             'user_id',
             'property_type_id',
             'property_sub_type_id',
@@ -314,8 +315,9 @@ class BookingApiController extends Controller
             'tour_code',
             'created_at'
         ])
-        ->orderBy('booking_date', 'asc')
-        ->get();
+            ->orderBy('booking_date', 'asc')
+            ->orderBy('booking_time', 'asc')
+            ->get();
 
         return response()->json([
             'success' => true,

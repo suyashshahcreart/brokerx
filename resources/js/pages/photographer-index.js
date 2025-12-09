@@ -73,9 +73,15 @@ class CalendarSchedule {
                     else if (booking.status === 'cancelled') className = 'bg-danger';
                     else if (booking.status === 'completed') className = 'bg-info';
 
+                    // Format the event title with booking time if available
+                    let title = '';
+                    if (booking.booking_time) {
+                        title += ` - ${booking.booking_time}`;
+                    }
+                    title += booking.firm_name || `Booking #${booking.id}`;
                     return {
                         id: booking.id,
-                        title: booking.firm_name || `Booking #${booking.id}`,
+                        title: title,
                         start: booking.booking_date,
                         className: className,
                         extendedProps: {
@@ -85,6 +91,7 @@ class CalendarSchedule {
                             price: booking.price,
                             address: booking.full_address,
                             tourCode: booking.tour_code,
+                            bookingTime: booking.booking_time,
                             user: booking.user,
                             city: booking.city,
                             state: booking.state
