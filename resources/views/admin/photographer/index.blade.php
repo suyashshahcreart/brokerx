@@ -50,10 +50,9 @@
 
                     <div class="col-xl-9">
                         <div class="mt-4 mt-lg-0">
-                            <div id="calendar"></div>
+                            <div id="calendar" data-booking-api="{{ route('api.bookings.by-date-range') }}"></div>
                         </div>
                     </div> <!-- end col -->
-
                 </div> <!-- end row -->
             </div> <!-- end card body-->
         </div> <!-- end card -->

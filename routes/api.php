@@ -30,6 +30,7 @@ Route::middleware(['web', 'auth'])->group(function () {
     
     // Bookings API
     Route::get('/bookings', [BookingApiController::class, 'index'])->name('api.bookings.index');
+    Route::get('/bookings/by-date-range', [BookingApiController::class, 'getByDateRange'])->name('api.bookings.by-date-range');
     Route::get('/bookings/{id}', [BookingApiController::class, 'show'])->name('api.bookings.show');
     Route::get('/bookings/{id}/json', [BookingApiController::class, 'getJson'])->name('api.bookings.get-json');
     Route::post('/bookings/{id}/json', [BookingApiController::class, 'setJson'])->name('api.bookings.set-json');
