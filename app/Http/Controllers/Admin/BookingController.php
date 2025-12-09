@@ -241,7 +241,7 @@ class BookingController extends Controller
         $booking = Booking::create($validated);
 
         // Create initial booking history entry
-        \App\Models\BookingHistory::create([
+        BookingHistory::create([
             'booking_id' => $booking->id,
             'from_status' => null,
             'to_status' => $booking->status ?? 'pending',
@@ -540,7 +540,7 @@ class BookingController extends Controller
             $booking->save();
             
             // Create booking history entry for payment status change
-            \App\Models\BookingHistory::create([
+            BookingHistory::create([
                 'booking_id' => $booking->id,
                 'from_status' => $booking->status, // Booking status stays same
                 'to_status' => $booking->status,

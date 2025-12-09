@@ -9,6 +9,7 @@ use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\RoutingController;
 use App\Http\Controllers\AdminDashboardController;
+use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
@@ -73,6 +74,15 @@ Route::group(['prefix' => 'themes', 'middleware' => 'auth'], function () {
 
 Route::group(['prefix' => 'admin', 'as' => 'admin.', 'middleware' => ['web', 'auth']], function () {
     Route::get('/', [AdminDashboardController::class, 'index']);
+    
+    // Dashboard Analytics Routes
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard/analytics', [DashboardController::class, 'getAnalytics'])->name('dashboard.analytics');
+    Route::get('/dashboard/revenue', [DashboardController::class, 'getRevenueStats'])->name('dashboard.revenue');
+    Route::get('/dashboard/users', [DashboardController::class, 'getUserStats'])->name('dashboard.users');
+    Route::get('/dashboard/bookings', [DashboardController::class, 'getBookingStats'])->name('dashboard.bookings');
+    Route::get('/dashboard/properties', [DashboardController::class, 'getPropertyStats'])->name('dashboard.properties');
+    
     Route::resource('permissions', PermissionController::class);
     Route::resource('roles', RoleController::class);
     Route::resource('users', AdminUserController::class);

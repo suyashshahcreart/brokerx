@@ -23,14 +23,30 @@
 
                <li class="menu-title">Menu</li>
 
+               <!-- DASHBOARD--ADMIN -->
                <li class="nav-item">
-                    <a class="nav-link {{ request()->routeIs('admin.root') ? 'active' : '' }}"
-                         href="{{ route('root') }}">
+                    <a class="nav-link menu-arrow" href="#sidebarDashboards" data-bs-toggle="collapse" role="button"
+                         aria-expanded="false" aria-controls="sidebarDashboards">
                          <span class="nav-icon">
                               <i class="ri-dashboard-2-line"></i>
                          </span>
-                         <span class="nav-text">Dashboards</span>
+                         <span class="nav-text"> Dashboards </span>
                     </a>
+                    <div class="collapse" id="sidebarDashboards">
+                         <ul class="nav sub-navbar-nav">
+                              <li class="sub-nav-item">
+                                   <a class="sub-nav-link" href="{{ route('admin.dashboard') }}">Analytics</a>
+                              </li>
+                              <li class="sub-nav-item">
+                                   <a class="sub-nav-link"
+                                        href="#">Agent</a>
+                              </li>
+                              <li class="sub-nav-item">
+                                   <a class="sub-nav-link"
+                                        href="#">Customer</a>
+                              </li>
+                         </ul>
+                    </div>
                </li>
 
 
@@ -56,7 +72,7 @@
                               <span class="nav-text">Bookings</span>
                          </a>
                     </li>
-                    
+
                     <li class="nav-item">
                          <a class="nav-link {{ request()->routeIs('admin.pending-schedules.*') ? 'active' : '' }}"
                               href="{{ route('admin.pending-schedules.index') }}">
@@ -165,7 +181,8 @@
 
                     @can('qr_view')
                          <li class="nav-item">
-                              <a class="nav-link {{ request()->routeIs('admin.qr.*') ? 'active' : '' }}" href="{{ route('admin.qr.index') }}">
+                              <a class="nav-link {{ request()->routeIs('admin.qr.*') ? 'active' : '' }}"
+                                   href="{{ route('admin.qr.index') }}">
                                    <span class="nav-icon">
                                         <i class="ri-qr-code-line"></i>
                                    </span>
