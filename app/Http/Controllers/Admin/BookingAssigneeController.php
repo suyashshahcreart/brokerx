@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Models\BookingAssignee;
 use App\Models\Booking;
 use App\Models\User;
+use App\Models\City;
+use App\Models\State;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Yajra\DataTables\Facades\DataTables;
@@ -17,43 +19,72 @@ class BookingAssigneeController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $query = BookingAssignee::query()->with(['booking', 'user', 'createdBy']);
+            $query = Booking::query()
+                ->with(['user', 'city', 'state', 'propertyType', 'bhk', 'creator']);
 
             return DataTables::of($query)
-                ->addColumn('id', function (BookingAssignee $assignee) {
-                    return '<span class="badge bg-primary">' . $assignee->id . '</span>';
+                ->addColumn('id', function (Booking $booking) {
+                    return '<span class="badge bg-primary">#' . $booking->id . '</span>';
                 })
-                ->addColumn('booking', function (BookingAssignee $assignee) {
-                    if ($assignee->booking) {
-                        return '<a href="' . route('admin.bookings.show', $assignee->booking->id) . '" class="text-decoration-none">#' . $assignee->booking->id . ' - ' . ($assignee->booking->property_name ?? 'N/A') . '</a>';
+                ->addColumn('user', function (Booking $booking) {
+                    if ($booking->user) {
+                        return '<div>' . $booking->user->name . '</div>';
                     }
-                    return '<span class="text-muted">Booking Deleted</span>';
+                    return '<span class="text-muted">-</span>';
                 })
-                ->addColumn('user', function (BookingAssignee $assignee) {
-                    if ($assignee->user) {
-                        $avatar = $assignee->user->profile_photo_path 
-                            ? '<img src="' . \Storage::url($assignee->user->profile_photo_path) . '" class="avatar-sm rounded-circle" alt="' . $assignee->user->name . '">'
-                            : '<div class="avatar-sm rounded-circle bg-secondary d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;"><span class="text-white">' . substr($assignee->user->name, 0, 1) . '</span></div>';
-                        return '<div class="d-flex align-items-center gap-2">' . $avatar . '<span>' . $assignee->user->name . '</span></div>';
+                ->addColumn('property', function (Booking $booking) {
+                    $parts = [];
+                    if ($booking->bhk) {
+                        $parts[] = $booking->bhk->name;
                     }
-                    return '<span class="text-muted">User Deleted</span>';
+                    if ($booking->propertyType) {
+                        $parts[] = $booking->propertyType->name;
+                    }
+                    return count($parts) > 0 ? implode(' ', $parts) : '-';
                 })
-                ->editColumn('date', function (BookingAssignee $assignee) {
-                    return $assignee->date ? '<i class="ri-calendar-line"></i> ' . $assignee->date->format('d M Y') : '<span class="text-muted">-</span>';
+                ->addColumn('location', function (Booking $booking) {
+                    $parts = [];
+                    if ($booking->city) {
+                        $parts[] = $booking->city->name;
+                    }
+                    if ($booking->state) {
+                        $parts[] = $booking->state->name;
+                    }
+                    return count($parts) > 0 ? implode(', ', $parts) : '-';
                 })
-                ->editColumn('time', function (BookingAssignee $assignee) {
-                    return $assignee->time ? '<i class="ri-time-line"></i> ' . $assignee->time->format('H:i') : '<span class="text-muted">-</span>';
+                ->editColumn('booking_date', function (Booking $booking) {
+                    return $booking->booking_date ? \Carbon\Carbon::parse($booking->booking_date)->format('d M Y') : '-';
                 })
-                ->addColumn('created_by', function (BookingAssignee $assignee) {
-                    return $assignee->createdBy ? $assignee->createdBy->name : '<span class="text-muted">-</span>';
+                ->editColumn('status', function (Booking $booking) {
+                    $statusColors = [
+                        'pending' => 'warning',
+                        'confirmed' => 'success',
+                        'cancelled' => 'danger',
+                        'completed' => 'info',
+                    ];
+                    $color = $statusColors[$booking->status] ?? 'secondary';
+                    return '<span class="badge bg-' . $color . '">' . ucfirst($booking->status) . '</span>';
                 })
-                ->editColumn('created_at', function (BookingAssignee $assignee) {
-                    return '<small class="text-muted">' . $assignee->created_at->format('d M Y H:i') . '</small>';
+                ->editColumn('payment_status', function (Booking $booking) {
+                    $statusColors = [
+                        'pending' => 'warning',
+                        'paid' => 'success',
+                        'failed' => 'danger',
+                        'refunded' => 'info',
+                    ];
+                    $color = $statusColors[$booking->payment_status] ?? 'secondary';
+                    return '<span class="badge bg-' . $color . '">' . ucfirst($booking->payment_status) . '</span>';
                 })
-                ->addColumn('actions', function (BookingAssignee $assignee) {
-                    return view('admin.booking-assignees.partials.actions', compact('assignee'))->render();
+                ->addColumn('created_by', function (Booking $booking) {
+                    return $booking->creator ? $booking->creator->name : '-';
                 })
-                ->rawColumns(['id', 'booking', 'user', 'date', 'time', 'actions'])
+                ->editColumn('created_at', function (Booking $booking) {
+                    return $booking->created_at->format('d M Y H:i');
+                })
+                ->addColumn('actions', function (Booking $booking) {
+                    return view('admin.booking-assignees.partials.booking-actions', compact('booking'))->render();
+                })
+                ->rawColumns(['id', 'status', 'payment_status', 'actions'])
                 ->toJson();
         }
 
