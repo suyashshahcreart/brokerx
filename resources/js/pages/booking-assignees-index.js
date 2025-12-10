@@ -2,6 +2,11 @@
  * Booking Assignee Index Page
  * Handles DataTables initialization and interactions
  */
+import $ from 'jquery';
+import 'datatables.net-bs5';
+import moment from 'moment';
+import Swal from 'sweetalert2';
+import 'bootstrap/js/dist/dropdown';
 
 const baseUrl = window.location.origin + '/brokerx';
 const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
@@ -9,12 +14,40 @@ let table = null;
 
 // Initialize DataTable
 $(document).ready(function() {
+    // Initialize daterangepicker - it should be available from CDN script tag
+    if (typeof $.fn.daterangepicker === 'function') {
+        initializeDateRangePicker();
+    } else {
+        console.warn('daterangepicker not available, waiting...');
+        setTimeout(() => {
+            if (typeof $.fn.daterangepicker === 'function') {
+                initializeDateRangePicker();
+            }
+        }, 500);
+    }
+    
     table = $('#bookingAssigneesTable').DataTable({
         processing: true,
         serverSide: true,
         ajax: {
             url: window.location.pathname,
             type: 'GET',
+            data: function(d) {
+                // Add filter parameters
+                d.state_id = $('#filterState').val() || '';
+                d.city_id = $('#filterCity').val() || '';
+                d.status = $('#filterStatus').val() || '';
+                
+                // Handle date range
+                const dateRange = $('#filterDateRange').val();
+                if (dateRange) {
+                    const dates = dateRange.split(' - ');
+                    if (dates.length === 2) {
+                        d.date_from = dates[0];
+                        d.date_to = dates[1];
+                    }
+                }
+            },
             error: function(xhr, error, code) {
                 console.error('DataTable error:', xhr, error, code);
                 Swal.fire({
@@ -51,7 +84,66 @@ $(document).ready(function() {
             bindDeleteHandlers();
         }
     });
+
+    // Bind filter buttons
+    $('#applyFilters').on('click', function() {
+        table.draw();
+    });
+
+    $('#clearFilters').on('click', function() {
+        $('#filterState').val('');
+        $('#filterCity').val('');
+        $('#filterStatus').val('');
+        $('#filterDateRange').val('');
+        table.draw();
+    });
+
+    // Filter state - cascade cities
+    $('#filterState').on('change', function() {
+        const stateId = $(this).val();
+        const citySelect = $('#filterCity');
+        
+        if (stateId) {
+            citySelect.find('option').each(function() {
+                const $option = $(this);
+                if ($option.val() === '' || $option.data('state') == stateId) {
+                    $option.show();
+                } else {
+                    $option.hide();
+                }
+            });
+            citySelect.val('');
+        } else {
+            citySelect.find('option').show();
+            citySelect.val('');
+        }
+    });
 });
+
+/**
+ * Initialize Date Range Picker
+ */
+function initializeDateRangePicker() {
+    const today = moment();
+    const lastMonth = moment().subtract(1, 'month');
+
+    $('#filterDateRange').daterangepicker({
+        startDate: '',
+        endDate: '',
+        locale: {
+            format: 'DD/MM/YYYY'
+        },
+        autoUpdateInput: false
+    });
+
+    $('#filterDateRange').on('apply.daterangepicker', function(ev, picker) {
+        $(this).val(picker.startDate.format('YYYY-MM-DD') + ' - ' + picker.endDate.format('YYYY-MM-DD'));
+    });
+
+    $('#filterDateRange').on('cancel.daterangepicker', function(ev, picker) {
+        $(this).val('');
+    });
+}
 
 /**
  * Initialize Bootstrap dropdowns

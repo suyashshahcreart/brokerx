@@ -18,9 +18,35 @@ class BookingAssigneeController extends Controller
      */
     public function index(Request $request)
     {
+        // Get filter options for view
+        $states = State::all();
+        $cities = City::all();
+
         if ($request->ajax()) {
             $query = Booking::query()
-                ->with(['user', 'city', 'state', 'propertyType', 'bhk', 'creator']);
+                ->with(['user', 'propertyType', 'propertySubType', 'bhk', 'city', 'state']);
+
+            // Apply filters
+            if ($request->filled('state_id')) {
+                $query->where('state_id', $request->state_id);
+            }
+
+            if ($request->filled('city_id')) {
+                $query->where('city_id', $request->city_id);
+            }
+
+            if ($request->filled('status')) {
+                $query->where('status', $request->status);
+            } else {
+                $query->whereIn('status', ['Schedul_accepted', 'Reschedul_accepted']);
+            }
+
+            if ($request->filled('date_from') && $request->filled('date_to')) {
+                $query->whereBetween('booking_date', [
+                    $request->date_from,
+                    $request->date_to
+                ]);
+            }
 
             return DataTables::of($query)
                 ->addColumn('id', function (Booking $booking) {
@@ -28,7 +54,7 @@ class BookingAssigneeController extends Controller
                 })
                 ->addColumn('user', function (Booking $booking) {
                     if ($booking->user) {
-                        return '<div>' . $booking->user->name . '</div>';
+                        return $booking->user->name;
                     }
                     return '<span class="text-muted">-</span>';
                 })
@@ -88,7 +114,7 @@ class BookingAssigneeController extends Controller
                 ->toJson();
         }
 
-        return view('admin.booking-assignees.index');
+        return view('admin.booking-assignees.index', compact('states', 'cities'));
     }
 
     /**
