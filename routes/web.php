@@ -1,6 +1,7 @@
 <?php
 use App\Http\Controllers\Admin\HolidayController;
 use App\Http\Controllers\Admin\QRController;
+use App\Http\Controllers\Admin\BookingAssigneeController;
 use App\Http\Controllers\OtpController;
 use App\Http\Controllers\EmailOtpController;
 use App\Http\Controllers\BrokerController;
@@ -110,6 +111,7 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'middleware' => ['web', 'au
     Route::post('pending-schedules/{booking}/decline', [PendingScheduleController::class, 'decline'])->name('pending-schedules.decline');
     
     Route::resource('bookings', BookingController::class);
+    Route::resource('booking-assignees', BookingAssigneeController::class);
     Route::resource('portfolios', AdminPortfolioController::class);
     Route::resource('holidays', HolidayController::class);
     Route::resource('tours', TourController::class);

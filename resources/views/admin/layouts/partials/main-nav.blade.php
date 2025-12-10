@@ -72,6 +72,16 @@
                               @endif
                          </a>
                     </li>
+
+                    <li class="nav-item">
+                         <a class="nav-link {{ request()->routeIs('admin.booking-assignees.*') ? 'active' : '' }}"
+                              href="{{ route('admin.booking-assignees.index') }}">
+                              <span class="nav-icon">
+                                   <i class="ri-camera-lens-line"></i>
+                              </span>
+                              <span class="nav-text">Booking Assignees</span>
+                         </a>
+                    </li>
                @endcan
 
                @can('tour_view')
