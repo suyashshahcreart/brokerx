@@ -21,7 +21,10 @@ class BookingAssigneeController extends Controller
         // Get filter options for view
         $states = State::all();
         $cities = City::all();
-        $users = User::all();
+        // Get only photographers (filter by role)
+        $users = User::whereHas('roles', function($q) {
+            $q->where('name', 'photographer');
+        })->get();
 
         if ($request->ajax()) {
             $query = Booking::query()
@@ -110,7 +113,20 @@ class BookingAssigneeController extends Controller
                 })
                 ->addColumn('assign_action', function (Booking $booking) {
                     $date = $booking->booking_date ? \Carbon\Carbon::parse($booking->booking_date)->format('Y-m-d') : '';
-                    return '<button class="btn btn-sm btn-primary assign-btn" data-booking-id="' . $booking->id . '" data-booking-address="' . htmlspecialchars($booking->full_address ?? '') . '" data-booking-date="' . $date . '">
+                    $address = htmlspecialchars($booking->full_address ?? '');
+                    $city = htmlspecialchars($booking->city ? $booking->city->name : '');
+                    $state = htmlspecialchars($booking->state ? $booking->state->name : '');
+                    $pincode = htmlspecialchars($booking->pin_code ?? '');
+                    $userName = htmlspecialchars($booking->user ? $booking->user->name : '');
+                    
+                    return '<button class="btn btn-sm btn-primary assign-btn" 
+                        data-booking-id="' . $booking->id . '" 
+                        data-booking-address="' . $address . '"
+                        data-booking-city="' . $city . '"
+                        data-booking-state="' . $state . '"
+                        data-booking-pincode="' . $pincode . '"
+                        data-booking-customer="' . $userName . '"
+                        data-booking-date="' . $date . '">
                         <i class="ri-add-line me-1"></i>Assign
                     </button>';
                 })
@@ -144,14 +160,25 @@ class BookingAssigneeController extends Controller
         $validated = $request->validate([
             'booking_id' => 'required|exists:bookings,id',
             'user_id' => 'required|exists:users,id',
-            'date' => 'nullable|date',
-            'time' => 'nullable|date_format:H:i',
+            'time' => 'required|date_format:H:i',
         ]);
 
+        // Get booking to extract date
+        $booking = Booking::findOrFail($validated['booking_id']);
+        
+        // Set date from booking_date if available
+        $validated['date'] = $booking->booking_date;
         $validated['created_by'] = auth()->id();
         $validated['updated_by'] = auth()->id();
 
         $assignee = BookingAssignee::create($validated);
+
+        // Update booking status to tour_pending and set booking_time
+        $booking->update([
+            'status' => 'tour_pending',
+            'booking_time' => $validated['time'],
+            'updated_by' => auth()->id(),
+        ]);
 
         activity('booking_assignees')
             ->performedOn($assignee)
@@ -163,15 +190,22 @@ class BookingAssigneeController extends Controller
                     'user_id' => $assignee->user_id,
                     'date' => $assignee->date,
                     'time' => $assignee->time,
-                ]
+                ],
+                'booking_status_updated' => 'tour_pending',
             ])
-            ->log('Booking assignment created');
+            ->log('Booking assignment created and booking status updated to tour_pending');
 
         // If AJAX request, return JSON response
         if ($request->ajax()) {
             return response()->json([
                 'success' => true,
-                'message' => 'Booking assigned successfully'
+                'message' => 'Booking assigned successfully',
+                'data' => [
+                    'id' => $assignee->id,
+                    'booking_id' => $assignee->booking_id,
+                    'user_id' => $assignee->user_id,
+                    'photographer_name' => $assignee->user->name ?? '',
+                ]
             ]);
         }
 

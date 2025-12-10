@@ -130,26 +130,47 @@
             <form id="assignBookingForm" method="POST">
                 @csrf
                 <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">Address</label>
-                        <div class="alert alert-light border">
-                            <p id="modalAddress" class="mb-0"></p>
+                    <!-- Booking Details Section -->
+                    <div class="alert alert-info mb-3">
+                        <h6 class="mb-2">Booking Details</h6>
+                        <div class="row g-2 small">
+                            <div class="col-md-6">
+                                <strong>Customer Name:</strong>
+                                <p id="modalCustomer" class="mb-1">-</p>
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Pin Code:</strong>
+                                <p id="modalPincode" class="mb-1">-</p>
+                            </div>
+                            <div class="col-md-12">
+                                <strong>Address:</strong>
+                                <p id="modalAddress" class="mb-1">-</p>
+                            </div>
+                            <div class="col-md-6">
+                                <strong>City:</strong>
+                                <p id="modalCity" class="mb-0">-</p>
+                            </div>
+                            <div class="col-md-6">
+                                <strong>State:</strong>
+                                <p id="modalState" class="mb-0">-</p>
+                            </div>
                         </div>
                     </div>
 
+                    <!-- Assignment Details Section -->
                     <div class="row">
                         <div class="col-md-6">
                             <label for="modalDate" class="form-label">Booking Date</label>
                             <input type="date" id="modalDate" class="form-control" disabled>
                         </div>
                         <div class="col-md-6">
-                            <label for="assignTime" class="form-label">Assign Time</label>
+                            <label for="assignTime" class="form-label">Assign Time <span class="text-danger">*</span></label>
                             <input type="time" id="assignTime" name="time" class="form-control" required>
                         </div>
                     </div>
 
                     <div class="mb-3 mt-3">
-                        <label for="assignPhotographer" class="form-label">Select Photographer</label>
+                        <label for="assignPhotographer" class="form-label">Select Photographer <span class="text-danger">*</span></label>
                         <select id="assignPhotographer" name="user_id" class="form-select" required>
                             <option value="">-- Select Photographer --</option>
                             @foreach ($users ?? [] as $user)

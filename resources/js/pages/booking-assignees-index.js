@@ -116,6 +116,11 @@ $(document).ready(function() {
             return;
         }
         
+        // Disable submit button to prevent double submission
+        const submitBtn = this.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Assigning...';
+        
         const formData = new FormData();
         formData.append('booking_id', bookingId);
         formData.append('user_id', userId);
@@ -124,27 +129,58 @@ $(document).ready(function() {
         
         fetch('/brokerx/admin/booking-assignees', {
             method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json',
+            },
             body: formData
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(err => Promise.reject(err));
+            }
+            return response.json();
+        })
         .then(data => {
-            bootstrap.Modal.getInstance(document.getElementById('assignBookingModal')).hide();
+            // Close modal
+            const modalElement = document.getElementById('assignBookingModal');
+            const modalInstance = bootstrap.Modal.getInstance(modalElement);
+            if (modalInstance) {
+                modalInstance.hide();
+            }
             
+            // Show success message
             Swal.fire({
                 icon: 'success',
-                title: 'Success',
-                text: 'Booking assigned successfully'
+                title: 'Success!',
+                text: data.message || 'Booking assigned successfully',
+                timer: 2000,
+                showConfirmButton: false
             }).then(() => {
-                table.draw();
+                // Reload table data
+                table.draw(false);
             });
         })
         .catch(error => {
             console.error('Error:', error);
+            
+            let errorMessage = 'Failed to assign booking';
+            if (error.message) {
+                errorMessage = error.message;
+            } else if (error.errors) {
+                errorMessage = Object.values(error.errors).flat().join(', ');
+            }
+            
             Swal.fire({
                 icon: 'error',
                 title: 'Error',
-                text: 'Failed to assign booking'
+                text: errorMessage
             });
+        })
+        .finally(() => {
+            // Re-enable submit button
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = 'Assign';
         });
     });
 
@@ -210,10 +246,21 @@ function bindAssignButtons() {
         btn.addEventListener('click', function() {
             const bookingId = this.getAttribute('data-booking-id');
             const address = this.getAttribute('data-booking-address');
+            const city = this.getAttribute('data-booking-city');
+            const state = this.getAttribute('data-booking-state');
+            const pincode = this.getAttribute('data-booking-pincode');
+            const customer = this.getAttribute('data-booking-customer');
             const date = this.getAttribute('data-booking-date');
             
-            document.getElementById('modalAddress').textContent = address || 'No address available';
+            // Populate booking details
+            document.getElementById('modalCustomer').textContent = customer || '-';
+            document.getElementById('modalAddress').textContent = address || '-';
+            document.getElementById('modalCity').textContent = city || '-';
+            document.getElementById('modalState').textContent = state || '-';
+            document.getElementById('modalPincode').textContent = pincode || '-';
             document.getElementById('modalDate').value = date || '';
+            
+            // Reset form fields
             document.getElementById('assignTime').value = '';
             document.getElementById('assignPhotographer').value = '';
             
