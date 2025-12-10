@@ -42,7 +42,7 @@ class BookingAssigneeController extends Controller
             if ($request->filled('status')) {
                 $query->where('status', $request->status);
             } else {
-                $query->whereIn('status', ['Schedul_accepted', 'Reschedul_accepted']);
+                $query->whereIn('status', ['Schedul_accepted', 'Reschedul_accepted','Schedul_assign','Reschedul_assigned']);
             }
 
             if ($request->filled('date_from') && $request->filled('date_to')) {
@@ -91,9 +91,11 @@ class BookingAssigneeController extends Controller
                         'confirmed' => 'success',
                         'cancelled' => 'danger',
                         'completed' => 'info',
+                        'schedul_assign' => 'success',
+                        'tour_pending' => 'info',
                     ];
                     $color = $statusColors[$booking->status] ?? 'secondary';
-                    return '<span class="badge bg-' . $color . '">' . ucfirst($booking->status) . '</span>';
+                    return '<span class="badge bg-' . $color . '">' . ucfirst(str_replace('_', ' ', $booking->status)) . '</span>';
                 })
                 ->editColumn('payment_status', function (Booking $booking) {
                     $statusColors = [
@@ -112,6 +114,11 @@ class BookingAssigneeController extends Controller
                     return $booking->created_at->format('d M Y H:i');
                 })
                 ->addColumn('assign_action', function (Booking $booking) {
+                    // Don't show assign button if already assigned
+                    if ($booking->status === 'schedul_assign') {
+                        return '<button class="btn btn-sm btn-success" ><i class="ri-check-line me-1"></i>Assigned</button>';
+                    }
+                    
                     $date = $booking->booking_date ? \Carbon\Carbon::parse($booking->booking_date)->format('Y-m-d') : '';
                     $address = htmlspecialchars($booking->full_address ?? '');
                     $city = htmlspecialchars($booking->city ? $booking->city->name : '');
@@ -173,9 +180,9 @@ class BookingAssigneeController extends Controller
 
         $assignee = BookingAssignee::create($validated);
 
-        // Update booking status to tour_pending and set booking_time
+        // Update booking status to schedul_assign and set booking_time
         $booking->update([
-            'status' => 'tour_pending',
+            'status' => 'schedul_assign',
             'booking_time' => $validated['time'],
             'updated_by' => auth()->id(),
         ]);

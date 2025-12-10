@@ -1,10 +1,10 @@
 @extends('admin.layouts.vertical', ['title' => 'Booking Assignees', 'subTitle' => 'Property'])
 
 @section('css')
-<!-- DataTables CSS -->
-<link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet">
-<!-- DateRangePicker CSS (from CDN for proper jQuery plugin integration) -->
-<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+    <!-- DataTables CSS -->
+    <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    <!-- DateRangePicker CSS (from CDN for proper jQuery plugin integration) -->
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
 @endsection
 
 @section('content')
@@ -22,7 +22,8 @@
                     <h3 class="mb-0">Booking Assignees</h3>
                 </div>
                 <div class="d-flex align-items-center gap-2">
-                    <x-admin.back-button :fallback="route('admin.bookings.index')" :classes="['btn', 'btn-soft-secondary']" :merge="false" icon="ri-arrow-go-back-line" />
+                    <x-admin.back-button :fallback="route('admin.bookings.index')" :classes="['btn', 'btn-soft-secondary']"
+                        :merge="false" icon="ri-arrow-go-back-line" />
                 </div>
             </div>
 
@@ -64,7 +65,8 @@
                             <select id="filterCity" class="form-select form-select-sm">
                                 <option value="">All Cities</option>
                                 @foreach ($cities ?? [] as $city)
-                                    <option value="{{ $city->id }}" data-state="{{ $city->state_id }}">{{ $city->name }}</option>
+                                    <option value="{{ $city->id }}" data-state="{{ $city->state_id }}">{{ $city->name }}
+                                    </option>
                                 @endforeach
                             </select>
                         </div>
@@ -80,7 +82,8 @@
                         </div>
                         <div class="col-md-3">
                             <label for="filterDateRange" class="form-label">Date Range</label>
-                            <input type="text" id="filterDateRange" class="form-control form-control-sm" placeholder="Select date range" />
+                            <input type="text" id="filterDateRange" class="form-control form-control-sm"
+                                placeholder="Select date range" />
                         </div>
                         <div class="col-12">
                             <button type="button" class="btn btn-sm btn-primary" id="applyFilters">
@@ -117,103 +120,103 @@
             </div>
         </div>
     </div>
-@endsection
+    <!-- Assignment Modal -->
+    <div class="modal fade" id="assignBookingModal" tabindex="-1" aria-labelledby="assignBookingModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="assignBookingModalLabel">Assign Booking to Photographer</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="assignBookingForm" method="POST">
+                    @csrf
+                    <div class="modal-body">
+                        <!-- Booking Details Section -->
+                        <div class="alert alert-info mb-3">
+                            <h6 class="mb-2">Booking Details</h6>
+                            <div class="row g-2 small">
+                                <div class="col-md-6">
+                                    <strong>Customer Name:</strong>
+                                    <p id="modalCustomer" class="mb-1">-</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>Pin Code:</strong>
+                                    <p id="modalPincode" class="mb-1">-</p>
+                                </div>
+                                <div class="col-md-12">
+                                    <strong>Address:</strong>
+                                    <p id="modalAddress" class="mb-1">-</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>City:</strong>
+                                    <p id="modalCity" class="mb-0">-</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>State:</strong>
+                                    <p id="modalState" class="mb-0">-</p>
+                                </div>
+                            </div>
+                        </div>
 
-<!-- Assignment Modal -->
-<div class="modal fade" id="assignBookingModal" tabindex="-1" aria-labelledby="assignBookingModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="assignBookingModalLabel">Assign Booking to Photographer</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        <!-- Assignment Details Section -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label for="modalDate" class="form-label">Booking Date</label>
+                                <input type="date" id="modalDate" class="form-control" disabled>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="assignTime" class="form-label">Assign Time <span
+                                        class="text-danger">*</span></label>
+                                <input type="time" id="assignTime" name="time" class="form-control" required>
+                            </div>
+                        </div>
+
+                        <div class="mb-3 mt-3">
+                            <label for="assignPhotographer" class="form-label">Select Photographer <span
+                                    class="text-danger">*</span></label>
+                            <select id="assignPhotographer" name="user_id" class="form-select" required>
+                                <option value="">-- Select Photographer --</option>
+                                @foreach ($users ?? [] as $user)
+                                    <option value="{{ $user->id }}">{{ $user->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Assign</button>
+                    </div>
+                </form>
             </div>
-            <form id="assignBookingForm" method="POST">
-                @csrf
-                <div class="modal-body">
-                    <!-- Booking Details Section -->
-                    <div class="alert alert-info mb-3">
-                        <h6 class="mb-2">Booking Details</h6>
-                        <div class="row g-2 small">
-                            <div class="col-md-6">
-                                <strong>Customer Name:</strong>
-                                <p id="modalCustomer" class="mb-1">-</p>
-                            </div>
-                            <div class="col-md-6">
-                                <strong>Pin Code:</strong>
-                                <p id="modalPincode" class="mb-1">-</p>
-                            </div>
-                            <div class="col-md-12">
-                                <strong>Address:</strong>
-                                <p id="modalAddress" class="mb-1">-</p>
-                            </div>
-                            <div class="col-md-6">
-                                <strong>City:</strong>
-                                <p id="modalCity" class="mb-0">-</p>
-                            </div>
-                            <div class="col-md-6">
-                                <strong>State:</strong>
-                                <p id="modalState" class="mb-0">-</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Assignment Details Section -->
-                    <div class="row">
-                        <div class="col-md-6">
-                            <label for="modalDate" class="form-label">Booking Date</label>
-                            <input type="date" id="modalDate" class="form-control" disabled>
-                        </div>
-                        <div class="col-md-6">
-                            <label for="assignTime" class="form-label">Assign Time <span class="text-danger">*</span></label>
-                            <input type="time" id="assignTime" name="time" class="form-control" required>
-                        </div>
-                    </div>
-
-                    <div class="mb-3 mt-3">
-                        <label for="assignPhotographer" class="form-label">Select Photographer <span class="text-danger">*</span></label>
-                        <select id="assignPhotographer" name="user_id" class="form-select" required>
-                            <option value="">-- Select Photographer --</option>
-                            @foreach ($users ?? [] as $user)
-                                <option value="{{ $user->id }}">{{ $user->name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Assign</button>
-                </div>
-            </form>
         </div>
     </div>
-</div>
-
-@section('script')
-<!-- jQuery (must be loaded before DataTables) -->
-<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-<!-- Moment.js (required by DateRangePicker) -->
-<script src="https://cdn.jsdelivr.net/npm/moment@2.30.1/moment.min.js"></script>
-<!-- DateRangePicker (must be after jQuery and moment) -->
-<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.js"></script>
-<!-- DataTables -->
-<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
-<!-- SweetAlert2 -->
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
-<script>
-    // Wait for all external libraries to load, then initialize DataTable
-    document.addEventListener('DOMContentLoaded', function() {
-        // Ensure jQuery and DataTables are available
-        if (typeof jQuery !== 'undefined' && typeof $.fn.DataTable !== 'undefined') {
-            console.log('jQuery and DataTables are loaded, initializing...');
-        } else {
-            console.warn('jQuery or DataTables not fully loaded yet');
-        }
-    });
-</script>
-
-@vite(['resources/js/pages/booking-assignees-index.js'])
 @endsection
 
+@section('scripts')
+    <!-- jQuery (must be loaded before DataTables) -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <!-- Moment.js (required by DateRangePicker) -->
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.30.1/moment.min.js"></script>
+    <!-- DateRangePicker (must be after jQuery and moment) -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.js"></script>
+    <!-- DataTables -->
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
+    <script>
+        // Wait for all external libraries to load, then initialize DataTable
+        document.addEventListener('DOMContentLoaded', function () {
+            // Ensure jQuery and DataTables are available
+            if (typeof jQuery !== 'undefined' && typeof $.fn.DataTable !== 'undefined') {
+                console.log('jQuery and DataTables are loaded, initializing...');
+            } else {
+                console.warn('jQuery or DataTables not fully loaded yet');
+            }
+        });
+    </script>
+
+    @vite(['resources/js/pages/booking-assignees-index.js'])
+@endsection
