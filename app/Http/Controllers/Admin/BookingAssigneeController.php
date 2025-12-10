@@ -21,6 +21,7 @@ class BookingAssigneeController extends Controller
         // Get filter options for view
         $states = State::all();
         $cities = City::all();
+        $users = User::all();
 
         if ($request->ajax()) {
             $query = Booking::query()
@@ -107,14 +108,22 @@ class BookingAssigneeController extends Controller
                 ->editColumn('created_at', function (Booking $booking) {
                     return $booking->created_at->format('d M Y H:i');
                 })
-                ->addColumn('actions', function (Booking $booking) {
-                    return view('admin.booking-assignees.partials.booking-actions', compact('booking'))->render();
+                ->addColumn('assign_action', function (Booking $booking) {
+                    $date = $booking->booking_date ? \Carbon\Carbon::parse($booking->booking_date)->format('Y-m-d') : '';
+                    return '<button class="btn btn-sm btn-primary assign-btn" data-booking-id="' . $booking->id . '" data-booking-address="' . htmlspecialchars($booking->full_address ?? '') . '" data-booking-date="' . $date . '">
+                        <i class="ri-add-line me-1"></i>Assign
+                    </button>';
                 })
-                ->rawColumns(['id', 'status', 'payment_status', 'actions'])
+                ->addColumn('view_action', function (Booking $booking) {
+                    return '<a href="' . route('admin.bookings.show', $booking->id) . '" class="btn btn-sm btn-info" target="_blank">
+                        <i class="ri-eye-line"></i>
+                    </a>';
+                })
+                ->rawColumns(['id', 'status', 'payment_status', 'assign_action', 'view_action'])
                 ->toJson();
         }
 
-        return view('admin.booking-assignees.index', compact('states', 'cities'));
+        return view('admin.booking-assignees.index', compact('states', 'cities', 'users'));
     }
 
     /**
@@ -157,6 +166,14 @@ class BookingAssigneeController extends Controller
                 ]
             ])
             ->log('Booking assignment created');
+
+        // If AJAX request, return JSON response
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Booking assigned successfully'
+            ]);
+        }
 
         return redirect()->route('admin.booking-assignees.index')
             ->with('success', 'Booking assigned successfully.');

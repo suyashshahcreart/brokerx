@@ -4,6 +4,11 @@
     </button>
     <ul class="dropdown-menu dropdown-menu-end">
         <li>
+            <a class="dropdown-item" href="{{ route('admin.booking-assignees.create') }}" data-booking-id="{{ $booking->id }}">
+                <i class="ri-add-line me-2"></i>Assign Booking
+            </a>
+        </li>
+        <li>
             <a class="dropdown-item" href="{{ route('admin.bookings.show', $booking->id) }}">
                 <i class="ri-eye-line me-2"></i>View
             </a>

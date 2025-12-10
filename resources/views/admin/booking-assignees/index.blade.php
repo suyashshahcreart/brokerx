@@ -105,7 +105,8 @@
                                     <th>Payment</th>
                                     <th>Created By</th>
                                     <th>Created At</th>
-                                    <th class="text-end">Actions</th>
+                                    <th class="text-center">Assign</th>
+                                    <th class="text-center">View</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -117,6 +118,54 @@
         </div>
     </div>
 @endsection
+
+<!-- Assignment Modal -->
+<div class="modal fade" id="assignBookingModal" tabindex="-1" aria-labelledby="assignBookingModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="assignBookingModalLabel">Assign Booking to Photographer</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="assignBookingForm" method="POST">
+                @csrf
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Address</label>
+                        <div class="alert alert-light border">
+                            <p id="modalAddress" class="mb-0"></p>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label for="modalDate" class="form-label">Booking Date</label>
+                            <input type="date" id="modalDate" class="form-control" disabled>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="assignTime" class="form-label">Assign Time</label>
+                            <input type="time" id="assignTime" name="time" class="form-control" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-3 mt-3">
+                        <label for="assignPhotographer" class="form-label">Select Photographer</label>
+                        <select id="assignPhotographer" name="user_id" class="form-select" required>
+                            <option value="">-- Select Photographer --</option>
+                            @foreach ($users ?? [] as $user)
+                                <option value="{{ $user->id }}">{{ $user->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Assign</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
 @section('script')
 <!-- jQuery (must be loaded before DataTables) -->

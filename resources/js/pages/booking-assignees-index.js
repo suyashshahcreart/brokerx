@@ -67,7 +67,8 @@ $(document).ready(function() {
             { data: 'payment_status', name: 'payment_status', width: '100px' },
             { data: 'created_by', name: 'creator.name' },
             { data: 'created_at', name: 'created_at', width: '150px' },
-            { data: 'actions', name: 'actions', orderable: false, searchable: false, className: 'text-end', width: '80px' }
+            { data: 'assign_action', name: 'assign_action', orderable: false, searchable: false, width: '100px' },
+            { data: 'view_action', name: 'view_action', orderable: false, searchable: false, width: '80px' }
         ],
         order: [[8, 'desc']],
         pageLength: 25,
@@ -81,7 +82,7 @@ $(document).ready(function() {
         },
         drawCallback: function() {
             initializeDropdowns();
-            bindDeleteHandlers();
+            bindAssignButtons();
         }
     });
 
@@ -96,6 +97,55 @@ $(document).ready(function() {
         $('#filterStatus').val('');
         $('#filterDateRange').val('');
         table.draw();
+    });
+
+    // Handle assignment form submission
+    document.getElementById('assignBookingForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const bookingId = this.getAttribute('data-booking-id');
+        const userId = document.getElementById('assignPhotographer').value;
+        const time = document.getElementById('assignTime').value;
+        
+        if (!userId || !time) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Required Fields',
+                text: 'Please select a photographer and set a time'
+            });
+            return;
+        }
+        
+        const formData = new FormData();
+        formData.append('booking_id', bookingId);
+        formData.append('user_id', userId);
+        formData.append('time', time);
+        formData.append('_token', csrfToken);
+        
+        fetch('/brokerx/admin/booking-assignees', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            bootstrap.Modal.getInstance(document.getElementById('assignBookingModal')).hide();
+            
+            Swal.fire({
+                icon: 'success',
+                title: 'Success',
+                text: 'Booking assigned successfully'
+            }).then(() => {
+                table.draw();
+            });
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Failed to assign booking'
+            });
+        });
     });
 
     // Filter state - cascade cities
@@ -124,9 +174,6 @@ $(document).ready(function() {
  * Initialize Date Range Picker
  */
 function initializeDateRangePicker() {
-    const today = moment();
-    const lastMonth = moment().subtract(1, 'month');
-
     $('#filterDateRange').daterangepicker({
         startDate: '',
         endDate: '',
@@ -156,44 +203,26 @@ function initializeDropdowns() {
 }
 
 /**
- * Bind delete button handlers
+ * Bind assign booking buttons
  */
-function bindDeleteHandlers() {
-    document.querySelectorAll('form[data-delete-form]').forEach(form => {
-        const newForm = form.cloneNode(true);
-        if (form.parentNode) {
-            form.parentNode.replaceChild(newForm, form);
-        }
-        
-        newForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
+function bindAssignButtons() {
+    document.querySelectorAll('.assign-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
             const bookingId = this.getAttribute('data-booking-id');
+            const address = this.getAttribute('data-booking-address');
+            const date = this.getAttribute('data-booking-date');
             
-            Swal.fire({
-                title: 'Delete Booking?',
-                text: 'This action cannot be undone.',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#dc3545',
-                cancelButtonColor: '#6c757d',
-                confirmButtonText: 'Yes, Delete',
-                cancelButtonText: 'Cancel'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    this.submit();
-                }
-            });
+            document.getElementById('modalAddress').textContent = address || 'No address available';
+            document.getElementById('modalDate').value = date || '';
+            document.getElementById('assignTime').value = '';
+            document.getElementById('assignPhotographer').value = '';
+            
+            const form = document.getElementById('assignBookingForm');
+            form.action = '/brokerx/admin/booking-assignees';
+            form.setAttribute('data-booking-id', bookingId);
+            
+            const modal = new bootstrap.Modal(document.getElementById('assignBookingModal'));
+            modal.show();
         });
     });
 }
-
-/**
- * Delete booking
- */
-window.deleteBooking = function(bookingId) {
-    const form = document.querySelector(`form[data-booking-id="${bookingId}"]`);
-    if (form) {
-        form.dispatchEvent(new Event('submit'));
-    }
-};
