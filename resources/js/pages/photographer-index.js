@@ -10,6 +10,20 @@ import timeGridPlugin from '@fullcalendar/timegrid'
 import listPlugin from '@fullcalendar/list'
 import { Modal } from 'bootstrap'
 
+// date formate function formatDateTime(isoString, locale = 'en-IN') {
+function formatDateOnly(isoString, locale = 'en-IN') {
+    const d = new Date(isoString);
+
+    if (isNaN(d)) return 'Invalid Date';
+
+    return new Intl.DateTimeFormat(locale, {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    }).format(d);
+}
+
+
 class CalendarSchedule {
 
     constructor() {
@@ -75,11 +89,11 @@ class CalendarSchedule {
                         case 'schedul_assign':
                             className = 'bg-primary';
                             break;
-                        
+
                         case 'reschedul_assign':
                             className = 'bg-primary';
                             break;
-                        
+
                         case 'schedul_completed':
                             className = 'bg-success';
                             break;
@@ -90,17 +104,25 @@ class CalendarSchedule {
 
 
                     // Prefer booking_time, fallback to assignee time
-                    const rawTime = booking.booking_time || assignee.time;
+                    const rawTime = booking.booking_time;
                     let title = '';
                     if (rawTime) {
-                        const formattedTime = new Date(rawTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                        const [h, m] = rawTime.split(':');
+                        const date = new Date();
+                        date.setHours(h, m, 0);
+
+                        const formattedTime = date.toLocaleTimeString([], {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                        });
                         title += `${formattedTime} `;
                     }
                     title += booking.firm_name || `Booking #${booking.id || assignee.booking_id}`;
 
                     // Use assignment date (assignee.date) first, fall back to booking date
                     const startDate = assignee.date || booking.booking_date;
-
+                    
+                    console.log('Raw booking date: time:', startDate, rawTime);
                     return {
                         id: assignee.id,
                         title,

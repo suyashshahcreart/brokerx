@@ -294,6 +294,11 @@ class BookingApiController extends Controller
             $query->where('user_id', $user->id);
         }
 
+        // Filter to show only specific statuses
+        $query->whereHas('booking', function($q) {
+            $q->whereIn('status', ['schedul_assign', 'reschedul_assign', 'schedul_completed']);
+        });
+
         // Apply additional filters if provided
         // if ($request->filled('status')) {
         //     $query->whereHas('booking', function($q) {
