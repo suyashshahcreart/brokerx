@@ -1,4 +1,4 @@
-@extends('layouts.auth', ['title' => 'Login'])
+@extends('layouts.auth', ['title' => 'Photographer Login'])
 
 @section('content')
     <div class="col-xl-5">
@@ -15,12 +15,11 @@
                     </a>
                 </div>
 
-                <h2 class="fw-bold text-uppercase text-center fs-18">Log In</h2>
-                <p class="text-muted text-center mt-1 mb-4">Enter your email, mobile and password to access admin
-                    panel.</p>
+                <h2 class="fw-bold text-uppercase text-center fs-18">Photographer Login</h2>
+                <p class="text-muted text-center mt-1 mb-4">Enter your email, mobile and password to access photographer panel.</p>
 
                 <div class="px-4">
-                    <form method="POST" action="{{ route('admin.login') }}" class="authentication-form" data-otp-send="{{ route('otp.send') }}" data-otp-verify="{{ route('otp.verify') }}" data-email-otp-send="{{ route('email_otp.send') }}" data-email-otp-verify="{{ route('email_otp.verify') }}">
+                    <form method="POST" action="{{ route('admin.photographer.login') }}" class="authentication-form" data-otp-send="{{ route('otp.send') }}" data-otp-verify="{{ route('otp.verify') }}" data-email-otp-send="{{ route('email_otp.send') }}" data-email-otp-verify="{{ route('email_otp.verify') }}">
 
                         @csrf
                         @if (sizeof($errors) > 0)
@@ -68,30 +67,17 @@
                             <button id="btn-submit-login" class="btn btn-danger py-2 fw-medium" type="submit">Sign In</button>
                         </div>
                     </form>
-
-                    <!-- <p class="mt-3 fw-semibold no-span">OR sign with</p>
-                    <div class="text-center">
-                        <a href="javascript:void(0);" class="btn btn-outline-light shadow-none"><i
-                                class='bx bxl-google fs-20'></i></a>
-                        <a href="javascript:void(0);" class="btn btn-outline-light shadow-none"><i
-                                class='ri-facebook-fill fs-20'></i></a>
-                        <a href="javascript:void(0);" class="btn btn-outline-light shadow-none"><i
-                                class='bx bxl-github fs-20'></i></a>
-                    </div> -->
                 </div> <!-- end col -->
             </div> <!-- end card-body -->
         </div> <!-- end card -->
 
-        <p class="mb-0 text-center text-white">New here? <a href="{{ route('admin.register') }}"
-
+        <p class="mb-0 text-center text-white">New photographer? <a href="{{ route('admin.photographer.register') }}"
             class="text-reset text-unline-dashed fw-bold ms-1">Sign Up</a>
         </p>
         <p class="mb-0 text-center text-white mt-2">
-            <a href="{{ route('admin.photographer.login') }}" class="text-reset text-unline-dashed">
-                <i class='bx bx-camera me-1'></i>Login as Photographer
-            </a>
+            <a href="{{ route('admin.login') }}" class="text-reset text-unline-dashed">Back to Admin Login</a>
         </p>
-</div>
+    </div>
 @endsection
 
 @push('scripts')

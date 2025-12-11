@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\PhotographerVisitJob;
 use App\Models\Tour;
 use Illuminate\Http\Request;
 use App\Models\Booking;
@@ -35,7 +36,7 @@ class FrontendController extends Controller
     {
         // Get base price for display on landing page
         $basePrice = (int) (Setting::where('name', 'base_price')->value('value') ?? 599);
-        
+
         return view('frontend.index', compact('basePrice'));
     }
 
@@ -49,10 +50,10 @@ class FrontendController extends Controller
                 return redirect()->route('frontend.booking-dashboard');
             }
         }
-        
-        $types = PropertyType::with(['subTypes:id,property_type_id,name,icon'])->get(['id','name','icon']);
-        $states = State::with(['cities:id,state_id,name'])->get(['id','name','code']);
-        $cities = City::get(['id','name','state_id']);
+
+        $types = PropertyType::with(['subTypes:id,property_type_id,name,icon'])->get(['id', 'name', 'icon']);
+        $states = State::with(['cities:id,state_id,name'])->get(['id', 'name', 'code']);
+        $cities = City::get(['id', 'name', 'state_id']);
         $bhk = BHK::all();
         $hasBookings = Auth::check() ? Booking::where('user_id', Auth::id())->exists() : false;
         return view('frontend.setup', [
@@ -89,7 +90,7 @@ class FrontendController extends Controller
                 // User doesn't exist - create new user
                 $isNewUser = true;
                 $userStatus = 'new';
-                
+
                 // Parse full name into firstname and lastname
                 $nameParts = explode(' ', $name, 2);
                 $firstname = $nameParts[0];
@@ -109,7 +110,7 @@ class FrontendController extends Controller
 
             // Generate 6-digit OTP
             $otp = str_pad(random_int(100000, 999999), 6, '0', STR_PAD_LEFT);
-            
+
             // Save OTP to user table with 5 minute expiry
             $user->update([
                 'otp' => $otp,
@@ -134,7 +135,7 @@ class FrontendController extends Controller
                     ['OTP' => $otp],
                     [
                         'type' => 'manual',
-                        'reference_type' => \App\Models\User::class,
+                        'reference_type' => User::class,
                         'reference_id' => $user->id,
                         'notes' => $isNewUser ? 'Registration OTP' : 'Login OTP - Setup Page'
                     ]
@@ -198,8 +199,8 @@ class FrontendController extends Controller
             // Return success response with SMS status
             return response()->json([
                 'success' => true,
-                'message' => $isNewUser 
-                    ? 'Account created! OTP sent to your mobile number.' 
+                'message' => $isNewUser
+                    ? 'Account created! OTP sent to your mobile number.'
                     : 'OTP sent to your registered mobile number.',
                 'sms_sent' => $smsSent,
                 'data' => [
@@ -222,7 +223,7 @@ class FrontendController extends Controller
                 'errors' => $e->errors(),
                 'request_data' => $request->all()
             ]);
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed',
@@ -268,7 +269,7 @@ class FrontendController extends Controller
                 'message' => 'User not found. Please request OTP first.',
             ], 404);
         }
-        
+
         // Check if OTP exists
         if (!$user->otp) {
             return response()->json([
@@ -292,7 +293,7 @@ class FrontendController extends Controller
                 'message' => 'Invalid OTP. Please try again.',
             ], 422);
         }
-        
+
         // OTP is valid - clear it, mark mobile as verified, and log user in
         $user->update([
             'otp' => null,
@@ -393,7 +394,7 @@ class FrontendController extends Controller
                     ['OTP' => $otp],
                     [
                         'type' => 'manual',
-                        'reference_type' => \App\Models\User::class,
+                        'reference_type' => User::class,
                         'reference_id' => $user->id,
                         'notes' => $isNewUser ? 'Registration OTP - Login Page' : 'Login OTP'
                     ]
@@ -586,7 +587,7 @@ class FrontendController extends Controller
             return !is_null($value) && $value !== '';
         });
         
-        \App\Models\BookingHistory::create([
+        BookingHistory::create([
             'booking_id' => $booking->id,
             'from_status' => null,
             'to_status' => 'pending',
@@ -733,7 +734,7 @@ class FrontendController extends Controller
                 return !is_null($value) && $value !== '';
             });
             
-            \App\Models\BookingHistory::create([
+            BookingHistory::create([
                 'booking_id' => $booking->id,
                 'from_status' => null,
                 'to_status' => 'pending',
@@ -751,7 +752,7 @@ class FrontendController extends Controller
 
         // Create tour only if this is a new booking (not an update)
         if ($isNewBooking) {
-            \App\Models\Tour::create([
+            $tour = Tour::create([
                 'booking_id' => $booking->id,
                 'name' => 'Tour for Booking #' . $booking->id,
                 'slug' => Str::slug('Tour for Booking #' . $booking->id),
@@ -759,6 +760,40 @@ class FrontendController extends Controller
                 'status' => 'draft',
                 'revision' => 1,
             ]);
+            activity('tours')
+                ->performedOn($tour)
+                ->causedBy($request->user())
+                ->withProperties([
+                    'event' => 'created',
+                    'after' => $tour->toArray(),
+                    'booking_id' => $booking->id
+                ])
+                ->log('Tour created for booking');
+            // Create a photographer visit job for this booking
+            $job = PhotographerVisitJob::create([
+                'booking_id' => $booking->id,
+                'tour_id' => $tour->id,
+                'photographer_id' => null, // Will be assigned later
+                'status' => 'pending',
+                'priority' => 'normal',
+                'scheduled_date' => $booking->booking_date ?? now()->addDays(1),
+                'instructions' => 'Complete photography for property booking #' . $booking->id,
+                'created_by' => $request->user()->id ?? null,
+            ]);
+
+            // Generate and assign a unique job code
+            $job->job_code = 'JOB-' . str_pad($job->id, 6, '0', STR_PAD_LEFT);
+            $job->save();
+
+            activity('photographer_visit_jobs')
+                ->performedOn($job)
+                ->causedBy($request->user())
+                ->withProperties([
+                    'event' => 'created',
+                    'after' => $job->toArray(),
+                    'booking_id' => $booking->id
+                ])
+                ->log('Photographer visit job created for booking');
         }
 
         return response()->json([
@@ -865,7 +900,7 @@ class FrontendController extends Controller
             if ($booking->payment_status === 'paid') {
                 // Check if booking is blocked
                 if ($booking->status === 'reschedul_blocked') {
-                    $blockedNote = \App\Models\Setting::where('name', 'customer_attempt_note')->first();
+                    $blockedNote = Setting::where('name', 'customer_attempt_note')->first();
                     return response()->json([
                         'success' => false,
                         'message' => $blockedNote?->value ?? 'You have reached the maximum number of schedule attempts. Please contact admin for further assistance.'
@@ -883,7 +918,7 @@ class FrontendController extends Controller
                         ->count();
                     
                     // Get max attempts from settings (default 3)
-                    $maxAttempts = \App\Models\Setting::where('name', 'customer_attempt')->first();
+                    $maxAttempts = Setting::where('name', 'customer_attempt')->first();
                     $maxAttemptsValue = $maxAttempts ? (int) $maxAttempts->value : 3;
                     
                     // Check if customer has exceeded attempts
@@ -893,7 +928,7 @@ class FrontendController extends Controller
                         $booking->save();
                         
                         // Create history for blocking
-                        \App\Models\BookingHistory::create([
+                        BookingHistory::create([
                             'booking_id' => $booking->id,
                             'from_status' => $oldStatus,
                             'to_status' => 'reschedul_blocked',
@@ -909,7 +944,7 @@ class FrontendController extends Controller
                             'user_agent' => $request->userAgent(),
                         ]);
                         
-                        $blockedNote = \App\Models\Setting::where('name', 'customer_attempt_note')->first();
+                        $blockedNote = Setting::where('name', 'customer_attempt_note')->first();
                         return response()->json([
                             'success' => false,
                             'message' => $blockedNote?->value ?? 'You have reached the maximum number of schedule attempts. Please contact admin for further assistance.',
@@ -939,10 +974,10 @@ class FrontendController extends Controller
                         ->whereIn('to_status', ['schedul_accepted', 'reschedul_accepted'])
                         ->count();
                     
-                    $maxAttempts = \App\Models\Setting::where('name', 'customer_attempt')->first();
+                    $maxAttempts = Setting::where('name', 'customer_attempt')->first();
                     $maxAttemptsValue = $maxAttempts ? (int) $maxAttempts->value : 3;
                     
-                    \App\Models\BookingHistory::create([
+                    BookingHistory::create([
                         'booking_id' => $booking->id,
                         'from_status' => $oldStatus,
                         'to_status' => 'schedul_pending',
@@ -974,16 +1009,16 @@ class FrontendController extends Controller
 
             // Payment not done - allow full updates
             // Check if this is a price-only update (for payment flow)
-            $isPriceOnlyUpdate = isset($validated['price']) && 
-                                 empty($validated['owner_type']) && 
-                                 empty($validated['main_property_type']);
-            
+            $isPriceOnlyUpdate = isset($validated['price']) &&
+                empty($validated['owner_type']) &&
+                empty($validated['main_property_type']);
+
             if ($isPriceOnlyUpdate) {
                 // Price-only update: just update price and area if provided
                 if (isset($validated['price']) && $validated['price'] > 0) {
                     $booking->price = (int) $validated['price'];
                 }
-                
+
                 // Update area if provided
                 if (isset($validated['residential_area']) && $validated['residential_area'] > 0) {
                     $booking->area = (int) $validated['residential_area'];
@@ -992,21 +1027,23 @@ class FrontendController extends Controller
                 } elseif (isset($validated['other_area']) && $validated['other_area'] > 0) {
                     $booking->area = (int) $validated['other_area'];
                 }
-                
+
                 $booking->updated_by = $user->id;
                 $booking->save();
-                
+
                 return response()->json([
                     'success' => true,
                     'message' => 'Price updated successfully.',
                     'booking_id' => $booking->id,
                 ]);
             }
-            
+
             // Full update - validate required fields for property and address
-            if (empty($validated['owner_type']) || empty($validated['main_property_type']) || 
-                empty($validated['house_number']) || empty($validated['building_name']) || 
-                empty($validated['pincode']) || empty($validated['full_address'])) {
+            if (
+                empty($validated['owner_type']) || empty($validated['main_property_type']) ||
+                empty($validated['house_number']) || empty($validated['building_name']) ||
+                empty($validated['pincode']) || empty($validated['full_address'])
+            ) {
                 return response()->json([
                     'success' => false,
                     'message' => 'All required fields must be filled.',
@@ -1031,7 +1068,7 @@ class FrontendController extends Controller
             if (empty($cityName)) {
                 $cityName = 'Ahmedabad';
             }
-            
+
             try {
                 $city = City::where('name', $cityName)->first();
                 if (!$city) {
@@ -1051,7 +1088,7 @@ class FrontendController extends Controller
             try {
                 // Use update() method which respects fillable and handles mass assignment
                 $updateData = [];
-                
+
                 // Property fields
                 if (isset($validated['owner_type'])) {
                     $updateData['owner_type'] = $validated['owner_type'];
@@ -1087,7 +1124,7 @@ class FrontendController extends Controller
                 } elseif (isset($validated['other_area'])) {
                     $updateData['area'] = (int) $validated['other_area'];
                 }
-                
+
                 // Address fields
                 if (isset($validated['house_number'])) {
                     $updateData['house_no'] = $validated['house_number'];
@@ -1107,29 +1144,29 @@ class FrontendController extends Controller
                 if (isset($city->state_id)) {
                     $updateData['state_id'] = $city->state_id;
                 }
-                
+
                 // Schedule fields - save scheduled_date to booking_date
                 if (isset($validated['scheduled_date'])) {
                     $updateData['booking_date'] = $validated['scheduled_date'];
                     $updateData['status'] = 'scheduled'; // Auto-set status to scheduled when date is set
                 }
-                
+
                 // Booking notes - save notes to booking_notes field
                 if (isset($validated['notes']) || isset($validated['booking_notes'])) {
                     $updateData['booking_notes'] = $validated['notes'] ?? $validated['booking_notes'] ?? null;
                 }
-                
+
                 // Price
                 if (isset($validated['price']) && $validated['price'] > 0) {
                     $updateData['price'] = (int) $validated['price'];
                 }
-                
+
                 // Updated by
                 $updateData['updated_by'] = $user->id;
-                
+
                 // Update the booking
                 $booking->update($updateData);
-                
+
             } catch (\Illuminate\Database\QueryException $e) {
                 \Log::error('Database error saving booking: ' . $e->getMessage(), [
                     'booking_id' => $booking->id,
@@ -1185,13 +1222,13 @@ class FrontendController extends Controller
             $validated = $request->validate([
                 'booking_id' => 'required|integer|exists:bookings,id',
             ]);
-            
-            $booking = Booking::with(['propertyType','propertySubType','bhk','city','state','user'])->find($validated['booking_id']);
-            
+
+            $booking = Booking::with(['propertyType', 'propertySubType', 'bhk', 'city', 'state', 'user'])->find($validated['booking_id']);
+
             if (!$booking) {
                 return response()->json(['success' => false, 'message' => 'Booking not found.'], 404);
             }
-            
+
             return response()->json([
                 'success' => true,
                 'booking' => [
@@ -1201,10 +1238,10 @@ class FrontendController extends Controller
                     'property_category' => $booking->propertyType?->name,
                     'property_type' => $booking->propertyType?->name,
                     'property_sub_type' => $booking->propertySubType?->name,
-                'furniture_type' => $booking->furniture_type,
-                'bhk' => $booking->bhk?->name,
-                'bhk_id' => $booking->bhk_id,
-                'area' => $booking->area,
+                    'furniture_type' => $booking->furniture_type,
+                    'bhk' => $booking->bhk?->name,
+                    'bhk_id' => $booking->bhk_id,
+                    'area' => $booking->area,
                     'other_option_details' => $booking->other_option_details ?? null,
                     'other_details' => $booking->other_option_details ?? null, // Keep for backward compatibility
                     'firm_name' => $booking->firm_name ?? null,
@@ -1216,7 +1253,7 @@ class FrontendController extends Controller
                     'city' => $booking->city?->name ?? 'Ahmedabad',
                     'pincode' => $booking->pin_code,
                     'full_address' => $booking->full_address,
-                    'scheduled_date' => $booking->booking_date ? (is_string($booking->booking_date) ? $booking->booking_date : ($booking->booking_date instanceof \Carbon\Carbon ? $booking->booking_date->format('Y-m-d') : \Carbon\Carbon::parse($booking->booking_date)->format('Y-m-d'))) : null,
+                    'scheduled_date' => $booking->booking_date ? (is_string($booking->booking_date) ? $booking->booking_date : ($booking->booking_date instanceof Carbon ? $booking->booking_date->format('Y-m-d') : Carbon::parse($booking->booking_date)->format('Y-m-d'))) : null,
                     'scheduled_time' => null, // scheduled_time column doesn't exist in database
                     'booking_notes' => $booking->booking_notes ?? null,
                     'price_estimate' => $this->calculateEstimate($booking->area),
@@ -1292,7 +1329,7 @@ class FrontendController extends Controller
 
         return response()->json([
             'success' => true,
-            'bookings' => $bookings->map(fn ($booking) => $this->formatBookingForGrid($booking)),
+            'bookings' => $bookings->map(fn($booking) => $this->formatBookingForGrid($booking)),
         ]);
     }
 
@@ -1302,11 +1339,11 @@ class FrontendController extends Controller
     protected function mapPropertyData(array $data): array
     {
         $main = $data['main_property_type'] ?? null;
-        
+
         if (empty($main)) {
             throw new \InvalidArgumentException('Main property type is required');
         }
-        
+
         $propertyType = PropertyType::where('name', $main)->first();
         $propertyTypeId = $propertyType?->id;
 
@@ -1365,26 +1402,27 @@ class FrontendController extends Controller
     protected function calculateEstimate($area): int
     {
         $areaVal = (int) $area;
-        if ($areaVal <= 0) return 0;
-        
+        if ($areaVal <= 0)
+            return 0;
+
         // Fetch price settings from database with defaults
         $settings = Setting::whereIn('name', ['base_price', 'base_area', 'extra_area', 'extra_area_price'])
             ->pluck('value', 'name')
             ->toArray();
-        
+
         // Use settings from database or fallback to defaults
         $baseArea = (int) ($settings['base_area'] ?? 1500);
         $basePrice = (int) ($settings['base_price'] ?? 599);
         $extraArea = (int) ($settings['extra_area'] ?? 500);
         $extraAreaPrice = (int) ($settings['extra_area_price'] ?? 200);
-        
+
         $price = $basePrice;
         if ($areaVal > $baseArea) {
             $extra = $areaVal - $baseArea;
             $blocks = (int) ceil($extra / $extraArea);
             $price += $blocks * $extraAreaPrice;
         }
-        
+
         return $price;
     }
 
@@ -1430,7 +1468,7 @@ class FrontendController extends Controller
             if (!$amount || $amount <= 0) {
                 $amount = $this->calculateEstimate($booking->area);
             }
-            
+
             // Ensure amount is valid
             $amount = (float) $amount;
             $amount = round($amount, 2);
@@ -1466,7 +1504,7 @@ class FrontendController extends Controller
             if ($booking->cashfree_payment_session_id && $booking->cashfree_order_id) {
                 $existingAmount = $booking->cashfree_payment_amount ?: $booking->price;
                 $amountChanged = abs($existingAmount - $amount) > 0.01; // Allow small floating point differences
-                
+
                 // Only reuse session if payment is still pending AND amount hasn't changed
                 if (!$amountChanged && $booking->payment_status === 'pending' && $booking->cashfree_payment_status !== 'PAID') {
                     return response()->json([
@@ -1491,21 +1529,21 @@ class FrontendController extends Controller
             } else {
                 $orderId = $baseOrderId . '_' . Str::upper(Str::random(6));
             }
-            
+
             $customerId = 'cust_' . ($customer?->id ?? $booking->id);
             $returnUrl = config('cashfree.return_url') ?: route('frontend.cashfree.callback');
 
             // Ensure amount is a valid number and properly formatted
             $orderAmount = (float) $amount;
             $orderAmount = round($orderAmount, 2);
-            
+
             if ($orderAmount <= 0) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Invalid payment amount. Please ensure the area and price are set correctly.',
                 ], 422);
             }
-            
+
             $payload = [
                 'order_id' => $orderId,
                 'order_amount' => $orderAmount,
@@ -1538,13 +1576,13 @@ class FrontendController extends Controller
 
             $statusCode = $response['status_code'] ?? 500;
             $body = $response['json'] ?? null;
-            
+
             // Handle duplicate order ID error - retry with new ID
             if ($statusCode === 422 && isset($body['message']) && str_contains(strtolower($body['message']), 'order with same id')) {
                 // Generate a completely new order ID with timestamp
                 $orderId = $baseOrderId . '_' . time() . '_' . Str::upper(Str::random(6));
                 $payload['order_id'] = $orderId;
-                
+
                 try {
                     $response = $this->cashfree->createOrder($payload);
                     $statusCode = $response['status_code'] ?? 500;
@@ -1560,7 +1598,7 @@ class FrontendController extends Controller
                     ], 500);
                 }
             }
-            
+
             if ($statusCode < 200 || $statusCode >= 300 || empty($body['payment_session_id'])) {
                 Log::error('Cashfree order creation error', [
                     'booking_id' => $booking->id,
@@ -1574,18 +1612,18 @@ class FrontendController extends Controller
                 ], 422);
             }
 
-        $booking->cashfree_order_id = $body['order_id'] ?? $orderId;
-        $booking->cashfree_payment_session_id = $body['payment_session_id'];
-        $booking->cashfree_payment_status = $body['order_status'] ?? 'CREATED';
-        $booking->cashfree_payment_amount = (int) round($body['order_amount'] ?? $amount);
-        $booking->cashfree_payment_currency = $body['order_currency'] ?? 'INR';
-        $booking->cashfree_payment_meta = [
-            'customer_id' => $customerId,
-        ];
-        $booking->cashfree_last_response = $body;
-        $booking->price = $booking->price ?: (int) round($amount);
-        $booking->payment_status = 'pending';
-        $booking->save();
+            $booking->cashfree_order_id = $body['order_id'] ?? $orderId;
+            $booking->cashfree_payment_session_id = $body['payment_session_id'];
+            $booking->cashfree_payment_status = $body['order_status'] ?? 'CREATED';
+            $booking->cashfree_payment_amount = (int) round($body['order_amount'] ?? $amount);
+            $booking->cashfree_payment_currency = $body['order_currency'] ?? 'INR';
+            $booking->cashfree_payment_meta = [
+                'customer_id' => $customerId,
+            ];
+            $booking->cashfree_last_response = $body;
+            $booking->price = $booking->price ?: (int) round($amount);
+            $booking->payment_status = 'pending';
+            $booking->save();
 
             return response()->json([
                 'success' => true,
@@ -1763,7 +1801,7 @@ class FrontendController extends Controller
         $statusChanged = ($oldPaymentStatus !== $booking->payment_status || $oldStatus !== $booking->status);
         
         // Check if history already exists for this exact callback to prevent duplicates from page refresh
-        $existingHistory = \App\Models\BookingHistory::where('booking_id', $booking->id)
+        $existingHistory = BookingHistory::where('booking_id', $booking->id)
             ->where('notes', 'LIKE', '%' . $orderStatus . '%')
             ->where('created_at', '>', now()->subMinutes(2))
             ->exists();
@@ -1823,7 +1861,7 @@ class FrontendController extends Controller
                 $notes = 'Payment pending - Awaiting payment confirmation';
             }
 
-            \App\Models\BookingHistory::create([
+            BookingHistory::create([
                 'booking_id' => $booking->id,
                 'from_status' => $oldStatus,
                 'to_status' => $booking->status,
@@ -2000,14 +2038,14 @@ class FrontendController extends Controller
         }
         
         // Get property types and BHK for edit modal (same as setup page)
-        $types = PropertyType::with(['subTypes:id,property_type_id,name,icon'])->get(['id','name','icon']);
+        $types = PropertyType::with(['subTypes:id,property_type_id,name,icon'])->get(['id', 'name', 'icon']);
         $bhk = BHK::all();
-        
+
         // Get price settings for dynamic pricing
         $priceSettings = Setting::whereIn('name', ['base_price', 'base_area', 'extra_area', 'extra_area_price'])
             ->pluck('value', 'name')
             ->toArray();
-        
+
         return view('frontend.booking-dashboard', compact('bookings', 'types', 'bhk', 'priceSettings'));
     }
 

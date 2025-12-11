@@ -56,7 +56,7 @@
                               <span class="nav-text">Bookings</span>
                          </a>
                     </li>
-                    
+
                     <li class="nav-item">
                          <a class="nav-link {{ request()->routeIs('admin.pending-schedules.*') ? 'active' : '' }}"
                               href="{{ route('admin.pending-schedules.index') }}">
@@ -86,7 +86,8 @@
 
                @can('tour_view')
                     <li class="nav-item">
-                         <a class="nav-link" href="{{ route('admin.tours.index') }}">
+                         <a class="nav-link {{ request()->routeIs('admin.tours.*') ? 'active' : '' }}"
+                              href="{{ route('admin.tours.index') }}">
                               <span class="nav-icon">
                                    <i class="ri-map-pin-line"></i>
                               </span>
@@ -175,7 +176,8 @@
 
                     @can('qr_view')
                          <li class="nav-item">
-                              <a class="nav-link {{ request()->routeIs('admin.qr.*') ? 'active' : '' }}" href="{{ route('admin.qr.index') }}">
+                              <a class="nav-link {{ request()->routeIs('admin.qr.*') ? 'active' : '' }}"
+                                   href="{{ route('admin.qr.index') }}">
                                    <span class="nav-icon">
                                         <i class="ri-qr-code-line"></i>
                                    </span>

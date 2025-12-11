@@ -48,6 +48,12 @@ export default defineConfig({
                 'resources/js/pages/qr-index.js',
                 'resources/js/pages/tours-index.js',
                 'resources/js/pages/bookings-form.js',
+                'resources/js/pages/photographer-visit-jobs-index.js',
+                'resources/js/pages/photo-checkin-visit.js',
+                'resources/js/pages/photographer-visits-index.js',
+                'resources/js/pages/photographer-index.js',
+
+                //components
                 'resources/js/components/maps-google.js',
                 'resources/js/components/maps-vector.js',
                 'resources/js/components/maps-canada.js',

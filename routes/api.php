@@ -28,18 +28,22 @@ Route::middleware(['web', 'auth'])->group(function () {
     // Holidays API
     Route::get('/holidays', [HolidayController::class, 'indexAPI']);
 
-    // QR code 
     // API route to get booking detail by ID (returns JSON)
     Route::get('/bookings/api/list', [BookingController::class, 'apiList'])->name('bookings.api-list');
     Route::get('/bookings/details', [BookingController::class, 'getBookingDetails'])->name('bookings.details');
+
     // Assign booking to QR
     Route::post('/qr/assign-booking', [BookingController::class, 'assignBookingToQr'])->name('qr.assign-booking');
 
-    
     // Bookings API
     Route::get('/bookings', [BookingApiController::class, 'index'])->name('api.bookings.index');
+    Route::get('/bookings/by-date-range', [BookingApiController::class, 'getByDateRange'])->name('api.bookings.by-date-range');
     Route::get('/bookings/{id}', [BookingApiController::class, 'show'])->name('api.bookings.show');
     Route::get('/bookings/{id}/json', [BookingApiController::class, 'getJson'])->name('api.bookings.get-json');
     Route::post('/bookings/{id}/json', [BookingApiController::class, 'setJson'])->name('api.bookings.set-json');
+    Route::get('/bookings/api/list', [BookingController::class, 'apiList'])->name('bookings.api-list');
+    Route::get('/bookings/details', [BookingController::class, 'getBookingDetails'])->name('bookings.details');
 
+    // QR code 
+    Route::post('/qr/assign-booking', [BookingController::class, 'assignBookingToQr'])->name('qr.assign-booking');
 });

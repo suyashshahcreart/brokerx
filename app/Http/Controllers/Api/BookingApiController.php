@@ -251,6 +251,82 @@ class BookingApiController extends Controller
     }
 
     /**
+     * Get bookings by date range with selected fields.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getByDateRange(Request $request)
+    {
+        $request->validate([
+            'from_date' => 'required|date',
+            'to_date' => 'required|date|after_or_equal:from_date',
+        ]);
+
+        $query = Booking::with([
+            'propertyType:id,name',
+            'propertySubType:id,name',
+            'bhk:id,name',
+            'city:id,name',
+            'state:id,name'
+        ]);
+
+
+        // Apply date range filter
+        $query->whereBetween('booking_date', [
+            $request->from_date,
+            $request->to_date
+        ]);
+
+        // Apply additional filters if provided
+        // if ($request->filled('status')) {
+        //     $query->where('status', $request->status);
+        // }
+
+        // if ($request->filled('payment_status')) {
+        //     $query->where('payment_status', $request->payment_status);
+        // }
+
+        // if ($request->filled('city_id')) {
+        //     $query->where('city_id', $request->city_id);
+        // }
+
+        // if ($request->filled('state_id')) {
+        //     $query->where('state_id', $request->state_id);
+        // }
+
+        // Select specific fields
+        $bookings = $query->select([
+            'id',
+            'booking_date',
+            'booking_time',
+            'user_id',
+            'property_type_id',
+            'property_sub_type_id',
+            'bhk_id',
+            'city_id',
+            'state_id',
+            'status',
+            'payment_status',
+            'price',
+            'firm_name',
+            'full_address',
+            'pin_code',
+            'tour_code',
+            'created_at'
+        ])
+            ->orderBy('booking_date', 'asc')
+            ->orderBy('booking_time', 'asc')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'count' => $bookings->count(),
+            'data' => $bookings,
+        ]);
+    }
+
+    /**
      * Get JSON data for a specific booking.
      *
      * @param  int  $id

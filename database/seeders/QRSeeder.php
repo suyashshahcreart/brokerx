@@ -10,9 +10,18 @@ class QRSeeder extends Seeder
 {
     public function run(): void
     {
-        for ($i = 0; $i < 50; $i++) {
+        // Check if QR codes already exist
+        if (QR::count() >= 50) {
+            $this->command->info('QR codes already seeded. Skipping...');
+            return;
+        }
+
+        $existingCount = QR::count();
+        $needToCreate = 50 - $existingCount;
+
+        for ($i = 0; $i < $needToCreate; $i++) {
             QR::create([
-                'name' => 'QR Code ' . ($i + 1),
+                'name' => 'QR Code ' . ($existingCount + $i + 1),
                 'code' => $this->generateUniqueCode(),
                 'image' => null,
                 'qr_link' => 'https://example.com/qr/' . Str::random(8),
