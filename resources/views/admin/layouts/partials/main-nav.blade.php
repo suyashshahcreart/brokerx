@@ -74,6 +74,16 @@
                     </li>
 
                     <li class="nav-item">
+                         <a class="nav-link {{ request()->routeIs('admin.bookings.*') && !request()->routeIs('admin.pending-schedules.*') ? 'active' : '' }}"
+                              href="{{ route('admin.assignment-calendar') }}">
+                              <span class="nav-icon">
+                                   <i class="ri-calendar-todo-line"></i>
+                              </span>
+                              <span class="nav-text">Assignment Calender</span>
+                         </a>
+                    </li>
+
+                    <li class="nav-item">
                          <a class="nav-link {{ request()->routeIs('admin.booking-assignees.*') ? 'active' : '' }}"
                               href="{{ route('admin.booking-assignees.index') }}">
                               <span class="nav-icon">

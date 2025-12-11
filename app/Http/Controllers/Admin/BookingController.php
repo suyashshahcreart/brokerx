@@ -24,6 +24,12 @@ class BookingController extends Controller
         $this->middleware('permission:booking_edit')->only(['edit', 'update']);
         $this->middleware('permission:booking_delete')->only(['destroy']);
     }
+
+    //  calender view for assignments | ADMIN
+    public function AssignementCalender()
+    {
+        return view('admin.photographer.index', ['title' => 'Booking Assignment Calendar']);
+    }
     public function index(Request $request)
     {
         if ($request->ajax()) {
@@ -74,7 +80,6 @@ class BookingController extends Controller
         $canDelete = $request->user()->can('booking_delete');
         return view('admin.bookings.index', compact('canCreate', 'canEdit', 'canDelete'));
     }
-
     /**
      * API: Return bookings with filters (for modal, returns JSON)
      */
@@ -407,7 +412,6 @@ class BookingController extends Controller
     }
 
     /**
-<<<<<<< HEAD
      * API: Assign a booking to a QR code
      * POST: /api/qr/assign-booking
      * Params: qr_id, booking_id
