@@ -65,47 +65,61 @@ class CalendarSchedule {
             const result = await response.json();
 
             if (result.success && result.data) {
-                return result.data.map(booking => {
-                    // Determine event color based on status
-                    let className = 'bg-primary';
-                    //TODO: set colors according to status
-                    if (booking.status === 'confirmed') className = 'bg-success';
-                    else if (booking.status === 'pending') className = 'bg-warning';
-                    else if (booking.status === 'cancelled') className = 'bg-danger';
-                    else if (booking.status === 'completed') className = 'bg-info';
+                return result.data.map(assignee => {
+                    const booking = assignee.booking || {};
 
-                    // Format the event title with booking time if available
-                    let title = '';
+                    // Determine event color based on booking status
+                    let className = '';
+                    let status = booking.status;
+                    switch (status) {
+                        case 'schedul_assign':
+                            className = 'bg-primary';
+                            break;
+                        
+                        case 'reschedul_assign':
+                            className = 'bg-primary';
+                            break;
+                        
+                        case 'schedul_completed':
+                            className = 'bg-success';
+                            break;
 
-                    if (booking.booking_time) {
-                        const [h, m] = booking.booking_time.split(':'); // "13:30:00" → ["13","30","00"]
-
-                        let hours = parseInt(h, 10);
-                        const minutes = m;
-                        const period = hours >= 12 ? 'PM' : 'AM';
-
-                        hours = hours % 12 || 12; // 13 → 1, 00 → 12
-
-                        title += `${hours}:${minutes} ${period} `;
+                        default:
+                            className = 'bg-secondary'; // fallback for unknown statuses
                     }
 
-                    title += booking.firm_name || `Booking #${booking.id}`;
+
+                    // Prefer booking_time, fallback to assignee time
+                    const rawTime = booking.booking_time || assignee.time;
+                    let title = '';
+                    if (rawTime) {
+                        const formattedTime = new Date(rawTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                        title += `${formattedTime} `;
+                    }
+                    title += booking.firm_name || `Booking #${booking.id || assignee.booking_id}`;
+
+                    // Use assignment date (assignee.date) first, fall back to booking date
+                    const startDate = assignee.date || booking.booking_date;
+
                     return {
-                        id: booking.id,
-                        title: title,
-                        start: booking.booking_date,
-                        className: className,
+                        id: assignee.id,
+                        title,
+                        start: startDate,
+                        className,
                         extendedProps: {
-                            bookingId: booking.id,
+                            assigneeId: assignee.id,
+                            bookingId: booking.id || assignee.booking_id,
                             status: booking.status,
                             paymentStatus: booking.payment_status,
                             price: booking.price,
                             address: booking.full_address,
                             tourCode: booking.tour_code,
-                            bookingTime: booking.booking_time,
+                            bookingTime: rawTime,
+                            assignmentTime: assignee.time,
                             user: booking.user,
                             city: booking.city,
-                            state: booking.state
+                            state: booking.state,
+                            photographer: assignee.user
                         }
                     };
                 });

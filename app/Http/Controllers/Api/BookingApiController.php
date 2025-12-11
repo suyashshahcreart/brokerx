@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\BookingCollection;
 use App\Http\Resources\BookingResource;
 use App\Models\Booking;
+use App\Models\BookingAssignee;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -263,66 +264,71 @@ class BookingApiController extends Controller
             'to_date' => 'required|date|after_or_equal:from_date',
         ]);
 
-        $query = Booking::with([
-            'propertyType:id,name',
-            'propertySubType:id,name',
-            'bhk:id,name',
-            'city:id,name',
-            'state:id,name'
+        // Get the authenticated user
+        $user = Auth::user();
+
+        // Query BookingAssignee with related booking data
+        $query = BookingAssignee::with([
+            'booking' => function($q) {
+                $q->with([
+                    'propertyType:id,name',
+                    'propertySubType:id,name',
+                    'bhk:id,name',
+                    'city:id,name',
+                    'state:id,name',
+                    'user:id,firstname,lastname,email'
+                ]);
+            },
+            'user:id,firstname,lastname,email'
         ]);
 
-
-        // Apply date range filter
-        $query->whereBetween('booking_date', [
+        // Apply date range filter on booking_assignees.date
+        $query->whereBetween('date', [
             $request->from_date,
             $request->to_date
         ]);
 
+        // Filter based on user role
+        // If user is not admin, show only assignees assigned to this user (photographer)
+        if (!$user->hasRole('admin')) {
+            $query->where('user_id', $user->id);
+        }
+
         // Apply additional filters if provided
         // if ($request->filled('status')) {
-        //     $query->where('status', $request->status);
+        //     $query->whereHas('booking', function($q) {
+        //         $q->where('status', $request->status);
+        //     });
         // }
 
         // if ($request->filled('payment_status')) {
-        //     $query->where('payment_status', $request->payment_status);
+        //     $query->whereHas('booking', function($q) {
+        //         $q->where('payment_status', $request->payment_status);
+        //     });
         // }
 
         // if ($request->filled('city_id')) {
-        //     $query->where('city_id', $request->city_id);
+        //     $query->whereHas('booking', function($q) {
+        //         $q->where('city_id', $request->city_id);
+        //     });
         // }
 
         // if ($request->filled('state_id')) {
-        //     $query->where('state_id', $request->state_id);
+        //     $query->whereHas('booking', function($q) {
+        //         $q->where('state_id', $request->state_id);
+        //     });
         // }
 
-        // Select specific fields
-        $bookings = $query->select([
-            'id',
-            'booking_date',
-            'booking_time',
-            'user_id',
-            'property_type_id',
-            'property_sub_type_id',
-            'bhk_id',
-            'city_id',
-            'state_id',
-            'status',
-            'payment_status',
-            'price',
-            'firm_name',
-            'full_address',
-            'pin_code',
-            'tour_code',
-            'created_at'
-        ])
-            ->orderBy('booking_date', 'asc')
-            ->orderBy('booking_time', 'asc')
+        // Get results ordered by date and time
+        $bookingAssignees = $query
+            ->orderBy('date', 'asc')
+            ->orderBy('time', 'asc')
             ->get();
 
         return response()->json([
             'success' => true,
-            'count' => $bookings->count(),
-            'data' => $bookings,
+            'count' => $bookingAssignees->count(),
+            'data' => $bookingAssignees,
         ]);
     }
 
