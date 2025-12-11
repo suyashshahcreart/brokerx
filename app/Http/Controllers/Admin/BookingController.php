@@ -14,6 +14,7 @@ use App\Models\User;
 use App\Models\PhotographerVisitJob;
 use Illuminate\Http\Request;
 use Spatie\Activitylog\Models\Activity;
+use Yajra\DataTables\DataTables;
 
 class BookingController extends Controller
 {
@@ -33,8 +34,19 @@ class BookingController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $query = Booking::with(['user', 'propertyType', 'propertySubType', 'bhk', 'city', 'state']);
-            return \Yajra\DataTables\Facades\DataTables::of($query)
+            $query = Booking::with(['user', 'propertyType', 'propertySubType', 'bhk', 'city', 'state', 'assignees']);
+
+            // Filter bookings based on user role
+            if (auth()->user()->hasRole('admin')) {
+                // Admin can see all bookings
+            } elseif (auth()->user()->hasRole('photographer')) {
+                // Photographer can see only assigned bookings
+                $query->whereHas('assignees', function ($subQuery) {
+                    $subQuery->where('user_id', auth()->id());
+                });
+            }
+
+            return DataTables::of($query)
                 ->addColumn('user', function (Booking $booking) {
                     return $booking->user ? $booking->user->firstname . ' ' . $booking->user->lastname : '-';
                 })

@@ -29,10 +29,6 @@ class PhotographerVisitController extends Controller
     {
         if ($request->ajax()) {
             try {
-                \Log::info('DataTables AJAX request received', [
-                    'filters' => $request->only(['status', 'photographer_id', 'booking_id', 'date_from', 'date_to'])
-                ]);
-
                 $query = PhotographerVisit::with([
                     'booking',
                     'photographer',
