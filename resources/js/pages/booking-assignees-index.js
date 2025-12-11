@@ -13,7 +13,7 @@ const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribut
 let table = null;
 
 // Initialize DataTable
-$(document).ready(function() {
+$(document).ready(function () {
     // Initialize daterangepicker - it should be available from CDN script tag
     if (typeof $.fn.daterangepicker === 'function') {
         initializeDateRangePicker();
@@ -25,19 +25,19 @@ $(document).ready(function() {
             }
         }, 500);
     }
-    
+
     table = $('#bookingAssigneesTable').DataTable({
         processing: true,
         serverSide: true,
         ajax: {
             url: window.location.pathname,
             type: 'GET',
-            data: function(d) {
+            data: function (d) {
                 // Add filter parameters
                 d.state_id = $('#filterState').val() || '';
                 d.city_id = $('#filterCity').val() || '';
                 d.status = $('#filterStatus').val() || '';
-                
+
                 // Handle date range
                 const dateRange = $('#filterDateRange').val();
                 if (dateRange) {
@@ -48,7 +48,7 @@ $(document).ready(function() {
                     }
                 }
             },
-            error: function(xhr, error, code) {
+            error: function (xhr, error, code) {
                 console.error('DataTable error:', xhr, error, code);
                 Swal.fire({
                     icon: 'error',
@@ -80,18 +80,18 @@ $(document).ready(function() {
                 previous: '<i class="ri-arrow-left-s-line"></i>'
             }
         },
-        drawCallback: function() {
+        drawCallback: function () {
             initializeDropdowns();
             bindAssignButtons();
         }
     });
 
     // Bind filter buttons
-    $('#applyFilters').on('click', function() {
+    $('#applyFilters').on('click', function () {
         table.draw();
     });
 
-    $('#clearFilters').on('click', function() {
+    $('#clearFilters').on('click', function () {
         $('#filterState').val('');
         $('#filterCity').val('');
         $('#filterStatus').val('');
@@ -100,13 +100,13 @@ $(document).ready(function() {
     });
 
     // Handle assignment form submission
-    document.getElementById('assignBookingForm').addEventListener('submit', function(e) {
+    document.getElementById('assignBookingForm').addEventListener('submit', function (e) {
         e.preventDefault();
-        
+
         const bookingId = this.getAttribute('data-booking-id');
         const userId = document.getElementById('assignPhotographer').value;
         const time = document.getElementById('assignTime').value;
-        
+
         if (!userId || !time) {
             Swal.fire({
                 icon: 'warning',
@@ -115,18 +115,18 @@ $(document).ready(function() {
             });
             return;
         }
-        
+
         // Disable submit button to prevent double submission
         const submitBtn = this.querySelector('button[type="submit"]');
         submitBtn.disabled = true;
         submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Assigning...';
-        
+
         const formData = new FormData();
         formData.append('booking_id', bookingId);
         formData.append('user_id', userId);
         formData.append('time', time);
         formData.append('_token', csrfToken);
-        
+
         fetch('/brokerx/admin/booking-assignees', {
             method: 'POST',
             headers: {
@@ -135,62 +135,62 @@ $(document).ready(function() {
             },
             body: formData
         })
-        .then(response => {
-            if (!response.ok) {
-                return response.json().then(err => Promise.reject(err));
-            }
-            return response.json();
-        })
-        .then(data => {
-            // Close modal
-            const modalElement = document.getElementById('assignBookingModal');
-            const modalInstance = bootstrap.Modal.getInstance(modalElement);
-            if (modalInstance) {
-                modalInstance.hide();
-            }
-            
-            // Show success message
-            Swal.fire({
-                icon: 'success',
-                title: 'Success!',
-                text: data.message || 'Booking assigned successfully',
-                timer: 2000,
-                showConfirmButton: false
-            }).then(() => {
-                // Reload table data
-                table.draw(false);
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => Promise.reject(err));
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Close modal
+                const modalElement = document.getElementById('assignBookingModal');
+                const modalInstance = bootstrap.Modal.getInstance(modalElement);
+                if (modalInstance) {
+                    modalInstance.hide();
+                }
+
+                // Show success message
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Success!',
+                    text: data.message || 'Booking assigned successfully',
+                    timer: 2000,
+                    showConfirmButton: false
+                }).then(() => {
+                    // Reload table data
+                    table.draw(false);
+                });
+            })
+            .catch(error => {
+                console.error('Error:', error);
+
+                let errorMessage = 'Failed to assign booking';
+                if (error.message) {
+                    errorMessage = error.message;
+                } else if (error.errors) {
+                    errorMessage = Object.values(error.errors).flat().join(', ');
+                }
+
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: errorMessage
+                });
+            })
+            .finally(() => {
+                // Re-enable submit button
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = 'Assign';
             });
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            
-            let errorMessage = 'Failed to assign booking';
-            if (error.message) {
-                errorMessage = error.message;
-            } else if (error.errors) {
-                errorMessage = Object.values(error.errors).flat().join(', ');
-            }
-            
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: errorMessage
-            });
-        })
-        .finally(() => {
-            // Re-enable submit button
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = 'Assign';
-        });
     });
 
     // Filter state - cascade cities
-    $('#filterState').on('change', function() {
+    $('#filterState').on('change', function () {
         const stateId = $(this).val();
         const citySelect = $('#filterCity');
-        
+
         if (stateId) {
-            citySelect.find('option').each(function() {
+            citySelect.find('option').each(function () {
                 const $option = $(this);
                 if ($option.val() === '' || $option.data('state') == stateId) {
                     $option.show();
@@ -211,19 +211,18 @@ $(document).ready(function() {
  */
 function initializeDateRangePicker() {
     $('#filterDateRange').daterangepicker({
-        startDate: '',
-        endDate: '',
+        startDate: moment(),
+        endDate: moment().add(1, 'month'),
         locale: {
             format: 'DD/MM/YYYY'
-        },
-        autoUpdateInput: false
+        }
     });
 
-    $('#filterDateRange').on('apply.daterangepicker', function(ev, picker) {
+    $('#filterDateRange').on('apply.daterangepicker', function (ev, picker) {
         $(this).val(picker.startDate.format('YYYY-MM-DD') + ' - ' + picker.endDate.format('YYYY-MM-DD'));
     });
 
-    $('#filterDateRange').on('cancel.daterangepicker', function(ev, picker) {
+    $('#filterDateRange').on('cancel.daterangepicker', function (ev, picker) {
         $(this).val('');
     });
 }
@@ -233,7 +232,7 @@ function initializeDateRangePicker() {
  */
 function initializeDropdowns() {
     const dropdownElementList = [].slice.call(document.querySelectorAll('[data-bs-toggle="dropdown"]'));
-    dropdownElementList.map(function(dropdownToggleEl) {
+    dropdownElementList.map(function (dropdownToggleEl) {
         return new bootstrap.Dropdown(dropdownToggleEl);
     });
 }
@@ -243,7 +242,7 @@ function initializeDropdowns() {
  */
 function bindAssignButtons() {
     document.querySelectorAll('.assign-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
+        btn.addEventListener('click', function () {
             const bookingId = this.getAttribute('data-booking-id');
             const address = this.getAttribute('data-booking-address');
             const city = this.getAttribute('data-booking-city');
@@ -251,7 +250,7 @@ function bindAssignButtons() {
             const pincode = this.getAttribute('data-booking-pincode');
             const customer = this.getAttribute('data-booking-customer');
             const date = this.getAttribute('data-booking-date');
-            
+
             // Populate booking details
             document.getElementById('modalCustomer').textContent = customer || '-';
             document.getElementById('modalAddress').textContent = address || '-';
@@ -259,15 +258,15 @@ function bindAssignButtons() {
             document.getElementById('modalState').textContent = state || '-';
             document.getElementById('modalPincode').textContent = pincode || '-';
             document.getElementById('modalDate').value = date || '';
-            
+
             // Reset form fields
             document.getElementById('assignTime').value = '';
             document.getElementById('assignPhotographer').value = '';
-            
+
             const form = document.getElementById('assignBookingForm');
             form.action = '/brokerx/admin/booking-assignees';
             form.setAttribute('data-booking-id', bookingId);
-            
+
             const modal = new bootstrap.Modal(document.getElementById('assignBookingModal'));
             modal.show();
         });
