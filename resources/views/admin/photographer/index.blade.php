@@ -63,41 +63,63 @@
                 <div class="modal-content">
                     <form class="needs-validation" name="event-form" id="forms-event" novalidate>
                         <div class="modal-header p-3 border-bottom-0">
-                            <h5 class="modal-title" id="modal-title">Event</h5>
+                            <h5 class="modal-title" id="modal-title">Booking Assigne - Details</h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
                         <div class="modal-body px-3 pb-3 pt-0">
-                            <div class="row">
+                            <div class="row g-3">
                                 <div class="col-12">
-                                    <div class="mb-3">
-                                        <label class="control-label form-label">Event Name</label>
-                                        <input class="form-control" placeholder="Insert Event Name" type="text" name="title" id="event-title" required />
-                                        <div class="invalid-feedback">Please provide a valid event name</div>
+                                    <div class="alert alert-info mb-0">
+                                        <strong>Selected Booking Details</strong>
                                     </div>
                                 </div>
                                 <div class="col-12">
-                                    <div class="mb-3">
-                                        <label class="control-label form-label">Category</label>
-                                        <select class="form-select" name="category" id="event-category" required>
-                                            <option value="bg-primary">Blue</option>
-                                            <option value="bg-secondary">Gray Dark</option>
-                                            <option value="bg-success">Green</option>
-                                            <option value="bg-info">Cyan</option>
-                                            <option value="bg-warning">Yellow</option>
-                                            <option value="bg-danger">Red</option>
-                                            <option value="bg-dark">Dark</option>
-                                        </select>
-                                        <div class="invalid-feedback">Please select a valid event category</div>
-                                    </div>
+                                    <table class="table table-sm mb-0">
+                                        <tbody>
+                                            <tr>
+                                                <th style="width:35%">Booking ID</th>
+                                                <td id="modal-booking-id">—</td>
+                                            </tr>
+                                            <tr>
+                                                <th>Customer</th>
+                                                <td id="modal-booking-customer">—</td>
+                                            </tr>
+                                            <tr>
+                                                <th>Property</th>
+                                                <td id="modal-booking-property">—</td>
+                                            </tr>
+                                            <tr>
+                                                <th>Address</th>
+                                                <td id="modal-booking-address">—</td>
+                                            </tr>
+                                            <tr>
+                                                <th>City / State</th>
+                                                <td id="modal-booking-city-state">—</td>
+                                            </tr>
+                                            <tr>
+                                                <th>Pincode</th>
+                                                <td id="modal-booking-pincode">—</td>
+                                            </tr>
+                                            <tr>
+                                                <th>Scheduled Date</th>
+                                                <td id="modal-schedule-date">—</td>
+                                            </tr>
+                                            <tr>
+                                                <th>Scheduled Time</th>
+                                                <td id="modal-schedule-time">—</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="col-12 d-flex justify-content-between align-items-center mt-2">
+                                    <a id="modal-check-in-link" href="#" class="btn btn-primary">
+                                        <i class="ri-box-arrow-in-right-line me-1"></i> Go to Check-In
+                                    </a>
                                 </div>
                             </div>
-                            <div class="row">
-                                <div class="col-6">
-                                    <button type="button" class="btn btn-danger" id="btn-delete-event">Delete</button>
-                                </div>
-                                <div class="col-6 text-end">
-                                    <button type="button" class="btn btn-light me-1" data-bs-dismiss="modal">Close</button>
-                                    <button type="submit" class="btn btn-primary" id="btn-save-event">Save</button>
+                            <div class="row mt-3">
+                                <div class="col-12 text-end">
+                                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Close</button>
                                 </div>
                             </div>
                         </div>

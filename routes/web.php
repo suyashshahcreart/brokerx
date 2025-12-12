@@ -116,12 +116,18 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'middleware' => ['web', 'au
     Route::resource('bookings', BookingController::class);
     // Booking Assignees
     Route::resource('booking-assignees', BookingAssigneeController::class);
+    // Photographer visit check-in/out using BookingAssignee
+    Route::get('booking-assignees/{bookingAssignee}/check-in', [BookingAssigneeController::class, 'checkInForm'])->name('booking-assignees.check-in-form');
+    Route::post('booking-assignees/{bookingAssignee}/check-in', [BookingAssigneeController::class, 'checkIn'])->name('booking-assignees.check-in');
+    Route::get('booking-assignees/{bookingAssignee}/check-out', [BookingAssigneeController::class, 'checkOutForm'])->name('booking-assignees.check-out-form');
+    Route::post('booking-assignees/{bookingAssignee}/check-out', [BookingAssigneeController::class, 'checkOut'])->name('booking-assignees.check-out');
     Route::post('bookings/{booking}/reschedule', [BookingController::class, 'reschedule'])->name('admin.bookings.reschedule');
     Route::post('bookings/{booking}/update-ajax', [BookingController::class, 'updateAjax'])->name('admin.bookings.update-ajax');
     // PHOTOGRAPHER VISITS
     Route::resource('photographer-visits', PhotographerVisitController::class);
     Route::resource('photographer-visit-jobs', PhotographerVisitJobController::class);
     Route::post('photographer-visit-jobs/{photographerVisitJob}/assign', [PhotographerVisitJobController::class, 'assign'])->name('photographer-visit-jobs.assign');
+    // Legacy job-based check-in/out retained for backward compatibility
     Route::get('photographer-visit-jobs/{photographerVisitJob}/check-in', [PhotographerVisitJobController::class, 'checkInForm'])->name('photographer-visit-jobs.check-in-form');
     Route::post('photographer-visit-jobs/{photographerVisitJob}/check-in', [PhotographerVisitJobController::class, 'checkIn'])->name('photographer-visit-jobs.check-in');
     Route::get('photographer-visit-jobs/{photographerVisitJob}/check-out', [PhotographerVisitJobController::class, 'checkOutForm'])->name('photographer-visit-jobs.check-out-form');

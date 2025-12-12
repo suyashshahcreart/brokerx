@@ -32,8 +32,8 @@ class CalendarSchedule {
         this.calendar = document.getElementById('calendar');
         this.formEvent = document.getElementById('forms-event');
         this.btnNewEvent = document.getElementById('btn-new-event');
-        this.btnDeleteEvent = document.getElementById('btn-delete-event');
-        this.btnSaveEvent = document.getElementById('btn-save-event');
+        this.btnDeleteEvent = document.getElementById('btn-delete-event'); // May not exist
+        this.btnSaveEvent = document.getElementById('btn-save-event'); // May not exist
         this.modalTitle = document.getElementById('modal-title');
         this.calendarObj = null;
         this.selectedEvent = null;
@@ -42,14 +42,41 @@ class CalendarSchedule {
 
     onEventClick(info) {
         this.formEvent?.reset();
-        this.formEvent.classList.remove('was-validated');
+        this.formEvent?.classList.remove('was-validated');
         this.newEventData = null;
-        this.btnDeleteEvent.style.display = "block";
-        this.modalTitle.text = ('Edit Event');
-        this.modal.show();
+        if (this.btnDeleteEvent) {
+            this.btnDeleteEvent.style.display = "none";
+        }
+        this.modalTitle.textContent = 'Booking Assignment - Details';
+
         this.selectedEvent = info.event;
-        document.getElementById('event-title').value = this.selectedEvent.title;
-        document.getElementById('event-category').value = (this.selectedEvent.classNames[0]);
+        const props = this.selectedEvent.extendedProps;
+        const [h, m] = props.bookingTime.split(':');
+        const date = new Date();
+        date.setHours(h, m, 0);
+
+        const formattedTime = date.toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit',
+        });
+
+        // Populate modal fields with booking data
+        document.getElementById('modal-booking-id').textContent = `#${props.bookingId || '—'}`;
+        document.getElementById('modal-booking-customer').textContent = props.user?.firstname +" "+ props.user?.lastname || '—';
+        document.getElementById('modal-booking-property').textContent = props.propertyType; // Add property info if available
+        document.getElementById('modal-booking-address').textContent = props.address || '—';
+        document.getElementById('modal-booking-city-state').textContent =
+            `${props.city?.name || '—'}, ${props.state?.name || '—'}`;
+        document.getElementById('modal-booking-pincode').textContent = props.pincode ; // Add if available
+        document.getElementById('modal-schedule-date').textContent =
+            this.selectedEvent.start ? formatDateOnly(this.selectedEvent.start.toISOString()) : '—';
+        document.getElementById('modal-schedule-time').textContent = formattedTime || props.assignmentTime || '—';
+
+        // Set check-in and check-out button links using assigneeId
+        const assigneeId = props.assigneeId;
+
+        document.getElementById('modal-check-in-link').href = `./booking-assignees/${assigneeId}/check-in`;
+        this.modal.show();
     }
 
     onSelect(info) {
@@ -121,8 +148,7 @@ class CalendarSchedule {
 
                     // Use assignment date (assignee.date) first, fall back to booking date
                     const startDate = assignee.date || booking.booking_date;
-                    
-                    console.log('Raw booking date: time:', startDate, rawTime);
+
                     return {
                         id: assignee.id,
                         title,
@@ -137,7 +163,9 @@ class CalendarSchedule {
                             address: booking.full_address,
                             tourCode: booking.tour_code,
                             bookingTime: rawTime,
+                            propertyType: booking.property_type.name + " / " + booking.property_sub_type.name,
                             assignmentTime: assignee.time,
+                            pincode: booking.pin_code,
                             user: booking.user,
                             city: booking.city,
                             state: booking.state,
@@ -232,41 +260,25 @@ class CalendarSchedule {
             });
         });
 
-        // save event
-        self.formEvent?.addEventListener('submit', function (e) {
-            e.preventDefault();
-            const form = self.formEvent;
-
-            // validation
-            if (form.checkValidity()) {
-                if (self.selectedEvent) {
-                    self.selectedEvent.setProp('title', document.getElementById('event-title').value);
-                    self.selectedEvent.setProp('classNames', document.getElementById('event-category').value)
-
-                } else {
-                    const eventData = {
-                        title: document.getElementById('event-title').value,
-                        start: self.newEventData.date,
-                        allDay: self.newEventData.allDay,
-                        className: document.getElementById('event-category').value
-                    };
-                    self.calendarObj.addEvent(eventData);
-                }
+        // save event (disabled for booking view)
+        if (self.formEvent && self.btnSaveEvent) {
+            self.formEvent.addEventListener('submit', function (e) {
+                e.preventDefault();
+                // Form submission disabled for booking details view
                 self.modal.hide();
-            } else {
-                e.stopPropagation();
-                form.classList.add('was-validated');
-            }
-        });
+            });
+        }
 
         // delete event
-        self.btnDeleteEvent.addEventListener('click', function (e) {
-            if (self.selectedEvent) {
-                self.selectedEvent.remove();
-                self.selectedEvent = null;
-                self.modal.hide();
-            }
-        });
+        if (self.btnDeleteEvent) {
+            self.btnDeleteEvent.addEventListener('click', function (e) {
+                if (self.selectedEvent) {
+                    self.selectedEvent.remove();
+                    self.selectedEvent = null;
+                    self.modal.hide();
+                }
+            });
+        }
     }
 
 }
