@@ -406,6 +406,15 @@ class BookingAssigneeController extends Controller
                 'updated_by' => auth()->id(),
             ]);
 
+            // Update booking status to shedul_inproccess (as requested)
+            $booking = $bookingAssignee->booking;
+            if ($booking) {
+                $booking->update([
+                    'status' => 'schedul_inprogress',
+                    'updated_by' => auth()->id(),
+                ]);
+            }
+
             activity('booking_assignees')
                 ->performedOn($bookingAssignee)
                 ->causedBy(auth()->user())
@@ -547,6 +556,15 @@ class BookingAssigneeController extends Controller
             $bookingAssignee->update([
                 'updated_by' => auth()->id(),
             ]);
+
+            // Update booking status to shedule_complete
+            $booking = $bookingAssignee->booking;
+            if ($booking) {
+                $booking->update([
+                    'status' => 'schedul_completed',
+                    'updated_by' => auth()->id(),
+                ]);
+            }
 
             activity('booking_assignees')
                 ->performedOn($bookingAssignee)

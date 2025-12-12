@@ -115,6 +115,9 @@
                                     <a id="modal-check-in-link" href="#" class="btn btn-primary">
                                         <i class="ri-box-arrow-in-right-line me-1"></i> Go to Check-In
                                     </a>
+                                    <a id="modal-check-out-link" href="#" class="btn btn-warning">
+                                        <i class="ri-box-arrow-in-right-line me-1"></i> Go to Check-out
+                                    </a>
                                 </div>
                             </div>
                             <div class="row mt-3">

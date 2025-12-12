@@ -51,31 +51,62 @@ class CalendarSchedule {
 
         this.selectedEvent = info.event;
         const props = this.selectedEvent.extendedProps;
-        const [h, m] = props.bookingTime.split(':');
-        const date = new Date();
-        date.setHours(h, m, 0);
-
-        const formattedTime = date.toLocaleTimeString([], {
-            hour: '2-digit',
-            minute: '2-digit',
-        });
+        
+        // Safely format time
+        let formattedTime = '—';
+        if (props.bookingTime) {
+            const [h, m] = props.bookingTime.split(':');
+            const date = new Date();
+            date.setHours(h, m, 0);
+            formattedTime = date.toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+            });
+        }
 
         // Populate modal fields with booking data
         document.getElementById('modal-booking-id').textContent = `#${props.bookingId || '—'}`;
-        document.getElementById('modal-booking-customer').textContent = props.user?.firstname +" "+ props.user?.lastname || '—';
-        document.getElementById('modal-booking-property').textContent = props.propertyType; // Add property info if available
+        document.getElementById('modal-booking-customer').textContent = props.user ? (props.user.firstname + " " + props.user.lastname) : '—';
+        document.getElementById('modal-booking-property').textContent = props.propertyType || '—';
         document.getElementById('modal-booking-address').textContent = props.address || '—';
         document.getElementById('modal-booking-city-state').textContent =
             `${props.city?.name || '—'}, ${props.state?.name || '—'}`;
-        document.getElementById('modal-booking-pincode').textContent = props.pincode ; // Add if available
+        document.getElementById('modal-booking-pincode').textContent = props.pincode || '—';
         document.getElementById('modal-schedule-date').textContent =
             this.selectedEvent.start ? formatDateOnly(this.selectedEvent.start.toISOString()) : '—';
         document.getElementById('modal-schedule-time').textContent = formattedTime || props.assignmentTime || '—';
 
         // Set check-in and check-out button links using assigneeId
         const assigneeId = props.assigneeId;
+        const checkInUrl = `./booking-assignees/${assigneeId}/check-in`;
+        const checkOutUrl = `./booking-assignees/${assigneeId}/check-out`;
+        
+        const checkInBtn = document.getElementById('modal-check-in-link');
+        const checkOutBtn = document.getElementById('modal-check-out-link');
+        
+        // Only manipulate buttons if they exist in the DOM
+        if (checkInBtn && checkOutBtn) {
+            // Normalize and evaluate booking status for UI logic
+            const status = (props.status || '').toLowerCase();
+            console.log('Booking status:', status);
+            if (status === 'schedul_completed') {
+                // Hide both buttons for completed schedules
+                checkInBtn.style.display = 'none';
+                checkOutBtn.style.display = 'none';
+            }
+            else if (status === 'schedul_inprogress') {
+                // Show only check-out button for in-progress schedules (yellow)
+                checkOutBtn.style.display = 'inline-block';
+                checkInBtn.style.display = 'none';
+                checkOutBtn.href = checkOutUrl;
+            } else {
+                // Show check-in button for other statuses
+                checkInBtn.style.display = 'inline-block';
+                checkInBtn.href = checkInUrl;
+                checkOutBtn.style.display = 'none';
+            }
+        }
 
-        document.getElementById('modal-check-in-link').href = `./booking-assignees/${assigneeId}/check-in`;
         this.modal.show();
     }
 
@@ -121,8 +152,12 @@ class CalendarSchedule {
                             className = 'bg-primary';
                             break;
 
+                        case 'schedul_inprogress':
+                            className = 'bg-info'; // Yellow for in-progress
+                            break;
+
                         case 'schedul_completed':
-                            className = 'bg-success';
+                            className = 'bg-success'; // Green for completed
                             break;
 
                         default:
