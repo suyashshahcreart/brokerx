@@ -74,7 +74,7 @@
                     </li>
 
                     <li class="nav-item">
-                         <a class="nav-link {{ request()->routeIs('admin.bookings.*') && !request()->routeIs('admin.pending-schedules.*') ? 'active' : '' }}"
+                         <a class="nav-link {{ request()->routeIs('admin.assignment-calendar') && !request()->routeIs('admin.pending-schedules.*') ? 'active' : '' }}"
                               href="{{ route('admin.assignment-calendar') }}">
                               <span class="nav-icon">
                                    <i class="ri-calendar-todo-line"></i>
