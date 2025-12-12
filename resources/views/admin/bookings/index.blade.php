@@ -89,7 +89,7 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div class="col-md-3">
+                        <div class="d-none col-md-3">
                             <label for="filterStatus" class="form-label">Booking Status</label>
                             <select id="filterStatus" class="form-select form-select-sm">
                                 <option value="">All Status</option>
