@@ -96,6 +96,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             },
             { 
+                data: 'check_actions', 
+                name: 'check_actions', 
+                orderable: false, 
+                searchable: false,
+                render: function(data, type, row) {
+                    return data || '';
+                }
+            },
+            { 
                 data: 'actions', 
                 name: 'actions', 
                 orderable: false, 

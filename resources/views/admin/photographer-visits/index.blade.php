@@ -82,6 +82,7 @@
                                     <th>Booking</th>
                                     <th>Visit Date</th>
                                     <th width="120">Status</th>
+                                    <th>Check Actions</th>
                                     <th width="100" class="text-end">Actions</th>
                                 </tr>
                             </thead>

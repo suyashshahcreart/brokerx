@@ -1,4 +1,4 @@
-@extends('admin.layouts.vertical', ['title' => 'Check Out - ' . $photographerVisitJob->job_code])
+@extends('admin.layouts.vertical', ['title' => 'Check Out - Booking #' . $booking->id])
 
 @section('content')
 <div class="container-fluid">
@@ -6,12 +6,12 @@
         <div class="col-12">
             <div class="page-title-box">
                 <div class="page-title-right">
-                    <a href="{{ route('admin.photographer-visit-jobs.show', $photographerVisitJob) }}" class="btn btn-secondary">
-                        <i class="bi bi-arrow-left me-1"></i> Back to Job
+                    <a href="{{ route('admin.bookings.show', $booking) }}" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left me-1"></i> Back to Booking
                     </a>
                 </div>
                 <h4 class="page-title">
-                    <i class="bi bi-box-arrow-left me-2"></i>Check Out - {{ $photographerVisitJob->job_code }}
+                    <i class="bi bi-box-arrow-left me-2"></i>Check Out - Booking #{{ $booking->id }}
                 </h4>
             </div>
         </div>
@@ -21,42 +21,43 @@
         <div class="col-lg-8">
             <div class="card">
                 <div class="card-body">
-                    <!-- Job Details -->
+                    <!-- Booking Details -->
                     <div class="row mb-4">
                         <div class="col-md-6">
-                            <h5 class="card-title">Job Details</h5>
+                            <h5 class="card-title">Booking Details</h5>
                             <div class="table-responsive">
                                 <table class="table table-sm">
                                     <tr>
-                                        <th width="40%">Job Code:</th>
-                                        <td>{{ $photographerVisitJob->job_code }}</td>
+                                        <th width="40%">Booking ID:</th>
+                                        <td><strong>#{{ $booking->id }}</strong></td>
                                     </tr>
                                     <tr>
-                                        <th>Booking:</th>
-                                        <td>#{{ $photographerVisitJob->booking_id }}</td>
+                                        <th>Booking Status:</th>
+                                        <td>
+                                            <span class="badge bg-info">{{ $booking->status_label }}</span>
+                                        </td>
                                     </tr>
                                     <tr>
                                         <th>Photographer:</th>
-                                        <td>{{ $photographerVisitJob->photographer->name ?? 'N/A' }}</td>
+                                        <td>{{ $photographer ? ($photographer->firstname . ' ' . $photographer->lastname) : 'N/A' }}</td>
                                     </tr>
                                     <tr>
-                                        <th>Started At:</th>
-                                        <td>{{ $photographerVisitJob->started_at ? $photographerVisitJob->started_at->format('d M Y, h:i A') : 'N/A' }}</td>
-                                    </tr>
-                                    <tr>
-                                        <th>Duration:</th>
+                                        <th>Scheduled Date:</th>
                                         <td>
-                                            @if($photographerVisitJob->started_at)
-                                                @php
-                                                    $duration = now()->diff($photographerVisitJob->started_at);
-                                                    $hours = $duration->h + ($duration->days * 24);
-                                                    $minutes = $duration->i;
-                                                @endphp
-                                                {{ $hours > 0 ? $hours . 'h ' : '' }}{{ $minutes }}m
-                                            @else
+                                            @if($bookingAssignee->date)
+                                                {{ $bookingAssignee->date->format('d M Y') }}
+                                            @endif
+                                            @if($bookingAssignee->time)
+                                                {{ $bookingAssignee->time->format('h:i A') }}
+                                            @endif
+                                            @if(!$bookingAssignee->date && !$bookingAssignee->time)
                                                 N/A
                                             @endif
                                         </td>
+                                    </tr>
+                                    <tr>
+                                        <th>Booking Date:</th>
+                                        <td>{{ $booking->booking_date ? $booking->booking_date->format('d M Y') : 'N/A' }}</td>
                                     </tr>
                                 </table>
                             </div>
@@ -67,19 +68,31 @@
                                 <table class="table table-sm">
                                     <tr>
                                         <th width="40%">Property Type:</th>
-                                        <td>{{ $photographerVisitJob->booking->propertyType->name ?? 'N/A' }}</td>
+                                        <td>{{ $booking->propertyType->name ?? 'N/A' }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Sub Type:</th>
+                                        <td>{{ $booking->propertySubType->name ?? 'N/A' }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>BHK:</th>
+                                        <td>{{ $booking->bhk->name ?? 'N/A' }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Society/Building:</th>
+                                        <td>{{ $booking->society_name ?? $booking->building ?? 'N/A' }}</td>
                                     </tr>
                                     <tr>
                                         <th>Address:</th>
-                                        <td>{{ $photographerVisitJob->booking->society_name ?? $photographerVisitJob->booking->address_area }}</td>
+                                        <td>{{ $booking->full_address ?? ($booking->address_area ?? 'N/A') }}</td>
                                     </tr>
                                     <tr>
                                         <th>City:</th>
-                                        <td>{{ $photographerVisitJob->booking->city->name ?? 'N/A' }}</td>
+                                        <td>{{ $booking->city->name ?? 'N/A' }}, {{ $booking->state->name ?? '' }}</td>
                                     </tr>
                                     <tr>
-                                        <th>Instructions:</th>
-                                        <td>{{ $photographerVisitJob->instructions ?: 'N/A' }}</td>
+                                        <th>Pin Code:</th>
+                                        <td>{{ $booking->pin_code ?? 'N/A' }}</td>
                                     </tr>
                                 </table>
                             </div>
@@ -89,7 +102,7 @@
                     <hr>
 
                     <!-- Check-out Form -->
-                    <form action="{{ route('admin.photographer-visit-jobs.check-out', $photographerVisitJob) }}" method="POST" enctype="multipart/form-data">
+                    <form action="{{ route('admin.booking-assignees.check-out', $bookingAssignee) }}" method="POST" enctype="multipart/form-data">
                         @csrf
                         @if ($errors->any())
                             <div class="alert alert-danger">
@@ -166,11 +179,11 @@
                         </div>
 
                         <div class="d-flex justify-content-between">
-                            <a href="{{ route('admin.photographer-visit-jobs.show', $photographerVisitJob) }}" class="btn btn-secondary">
+                            <a href="{{ route('admin.bookings.show', $booking) }}" class="btn btn-secondary">
                                 <i class="bi bi-x-circle me-1"></i> Cancel
                             </a>
                             <button type="submit" class="btn btn-warning">
-                                <i class="bi bi-box-arrow-left me-1"></i> Check Out & Complete Job
+                                <i class="bi bi-box-arrow-left me-1"></i> Check Out & Complete Visit
                             </button>
                         </div>
                     </form>
@@ -187,9 +200,9 @@
                     <div class="alert alert-info">
                         <strong>What happens when you check out?</strong>
                         <ul class="mb-0 mt-2">
-                            <li>Job status changes to "Completed"</li>
+                            <li>Visit status changes to "Completed"</li>
                             <li>End time is recorded</li>
-                            <li>Job duration is calculated</li>
+                            <li>Visit duration is calculated</li>
                             <li>Work summary and photos are saved</li>
                         </ul>
                     </div>

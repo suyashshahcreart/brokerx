@@ -25,6 +25,7 @@ return new class extends Migration
             'reschedul_decline',
             'reschedul_blocked',
             'schedul_assign',
+            'schedul_inprogress',
             'schedul_completed',
             'tour_pending',
             'tour_completed',

@@ -319,6 +319,16 @@ class BookingAssigneeController extends Controller
             return redirect()->back()->with('error', 'You are not assigned to this booking.');
         }
 
+        // Prevent double check-in: if a visit for this booking is already checked in, block
+        $activeVisit = PhotographerVisit::where('booking_id', $bookingAssignee->booking_id)
+            ->where('status', 'checked_in')
+            ->orderByDesc('id')
+            ->first();
+
+        if ($activeVisit) {
+            return redirect()->back()->with('error', 'This booking is already checked in. Please check out the current visit before starting a new one.');
+        }
+
         $bookingAssignee->load(['booking.city', 'booking.state', 'booking.propertyType', 'booking.propertySubType', 'user']);
         $booking = $bookingAssignee->booking;
         $photographer = $bookingAssignee->user;
@@ -340,12 +350,16 @@ class BookingAssigneeController extends Controller
         ]);
 
         try {
-            // Check if job can be checked in
-            // if (!$photographerVisitJob->isAssigned()) {
-            //     return redirect()->route('admin.photographer-visit-jobs.show', $photographerVisitJob)
-            //         ->with('error', 'Job must be assigned to a photographer before check-in.');
-            // }
+            // Prevent double check-in: if a visit for this booking is already checked in, block
+            $activeVisit = PhotographerVisit::where('booking_id', $bookingAssignee->booking_id)
+                ->where('status', 'checked_in')
+                ->orderByDesc('id')
+                ->first();
 
+            if ($activeVisit) {
+                return redirect()->back()->with('error', 'This booking is already checked in. Please check out the current visit before starting a new one.');
+            }
+            
             // If needed, add status checks on BookingAssignee here
 
             // Handle photo upload
@@ -417,9 +431,26 @@ class BookingAssigneeController extends Controller
      */
     public function checkOutForm(BookingAssignee $bookingAssignee)
     {
+        // Ensure the authenticated user is the assigned photographer
+        if ((int)$bookingAssignee->user_id !== (int)auth()->id()) {
+            return redirect()->back()->with('error', 'You are not assigned to this booking.');
+        }
+
+        // Require an active check-in before check-out
+        $activeVisit = PhotographerVisit::where('booking_id', $bookingAssignee->booking_id)
+            ->where('status', 'checked_in')
+            ->orderByDesc('id')
+            ->first();
+
+        if (!$activeVisit) {
+            return redirect()->back()->with('error', 'No active check-in found for this booking. Please check in first.');
+        }
+
         // Load related booking and assignee user
-        $bookingAssignee->load(['booking', 'user']);
-        return view('admin.photographer-visit-jobs.check-out', compact('bookingAssignee'));
+        $bookingAssignee->load(['booking.city', 'booking.state', 'booking.propertyType', 'booking.propertySubType', 'user']);
+        $booking = $bookingAssignee->booking;
+        $photographer = $bookingAssignee->user;
+        return view('admin.photographer-visit-jobs.check-out', compact('booking', 'photographer', 'bookingAssignee'));
     }
 
     /**
@@ -439,6 +470,20 @@ class BookingAssigneeController extends Controller
         ]);
 
         try {
+            // Ensure the authenticated user is the assigned photographer
+            if ((int)$bookingAssignee->user_id !== (int)auth()->id()) {
+                return redirect()->back()->with('error', 'You are not assigned to this booking.');
+            }
+
+            // Require an active check-in before check-out
+            $activeVisit = PhotographerVisit::where('booking_id', $bookingAssignee->booking_id)
+                ->where('status', 'checked_in')
+                ->orderByDesc('id')
+                ->first();
+
+            if (!$activeVisit) {
+                return redirect()->back()->with('error', 'No active check-in found for this booking. Please check in first.');
+            }
             // Check if job can be checked out
             // If needed, add checks based on BookingAssignee state
 

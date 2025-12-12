@@ -31,6 +31,7 @@ class PhotographerVisitController extends Controller
             try {
                 $query = PhotographerVisit::with([
                     'booking',
+                    'booking.assignees.user',
                     'photographer',
                     'job',
                     'tour'
@@ -113,8 +114,44 @@ class PhotographerVisitController extends Controller
                         $actions .= '</div>';
                         return $actions;
                     })
-                    ->rawColumns(['booking_info', 'visit_date', 'status', 'actions'])
-                    ->only(['id', 'photographer_name', 'booking_info', 'visit_date', 'status', 'actions'])
+                    ->addColumn('check_actions', function (PhotographerVisit $visit) {
+                        if (!$visit->booking || !$visit->booking->assignees || $visit->booking->assignees->isEmpty()) {
+                            return '<span class="text-muted small">No assignee</span>';
+                        }
+
+                        $assignee = $visit->booking->assignees->first();
+                        $actions = '<div class="btn-group" role="group">';
+
+                        // Check if there's a completed visit for this booking
+                        $completedVisit = PhotographerVisit::where('booking_id', $visit->booking_id)
+                            ->where('status', 'completed')
+                            ->exists();
+
+                        if ($completedVisit) {
+                            // Show TOUR COMPLETE badge
+                            $actions .= '<span class="badge bg-success"><i class="ri-check-double-line me-1"></i>Tour Complete</span>';
+                        } else {
+                            // Check if there's an active checked-in visit for this booking
+                            $activeCheckedIn = PhotographerVisit::where('booking_id', $visit->booking_id)
+                                ->where('status', 'checked_in')
+                                ->exists();
+
+                            if ($activeCheckedIn) {
+                                // Show CHECK-OUT button
+                                $checkoutUrl = route('admin.booking-assignees.check-out-form', $assignee);
+                                $actions .= '<a href="' . $checkoutUrl . '" class="btn btn-sm btn-warning" title="Check Out"><i class="ri-logout-circle-line me-1"></i>Check Out</a>';
+                            } else {
+                                // Show CHECK-IN button
+                                $checkinUrl = route('admin.booking-assignees.check-in-form', $assignee);
+                                $actions .= '<a href="' . $checkinUrl . '" class="btn btn-sm btn-success" title="Check In"><i class="ri-login-circle-line me-1"></i>Check In</a>';
+                            }
+                        }
+
+                        $actions .= '</div>';
+                        return $actions;
+                    })
+                    ->rawColumns(['booking_info', 'visit_date', 'status', 'actions', 'check_actions'])
+                    ->only(['id', 'photographer_name', 'booking_info', 'visit_date', 'status', 'actions', 'check_actions'])
                     ->make(true);
             } catch (\Exception $e) {
                 \Log::error('DataTables Error in PhotographerVisitController', [

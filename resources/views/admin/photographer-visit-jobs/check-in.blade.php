@@ -6,7 +6,7 @@
         <div class="col-12">
             <div class="page-title-box">
                 <div class="page-title-right">
-                    <a href="{{ back() }}" class="btn btn-secondary">
+                    <a href="{{ route('admin.booking-assignees.index') }}" class="btn btn-secondary">
                         <i class="bi bi-arrow-left me-1"></i> Back to Booking
                     </a>
                 </div>
