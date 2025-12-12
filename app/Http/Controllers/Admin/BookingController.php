@@ -46,6 +46,26 @@ class BookingController extends Controller
                 });
             }
 
+            // Apply filters
+            if ($request->filled('state_id')) {
+                $query->where('state_id', $request->state_id);
+            }
+
+            if ($request->filled('city_id')) {
+                $query->where('city_id', $request->city_id);
+            }
+
+            if ($request->filled('status')) {
+                $query->where('status', $request->status);
+            }
+
+            if ($request->filled('date_from') && $request->filled('date_to')) {
+                $query->whereBetween('booking_date', [
+                    $request->date_from,
+                    $request->date_to
+                ]);
+            }
+
             return DataTables::of($query)
                 ->addColumn('user', function (Booking $booking) {
                     return $booking->user ? $booking->user->firstname . ' ' . $booking->user->lastname : '-';
@@ -87,10 +107,15 @@ class BookingController extends Controller
                 ->rawColumns(['type_subtype', 'city_state', 'status', 'payment_status', 'actions', 'schedule'])
                 ->toJson();
         }
+        
+        // Get filter options for view
+        $states = State::all();
+        $cities = City::all();
+        
         $canCreate = $request->user()->can('booking_create');
         $canEdit = $request->user()->can('booking_edit');
         $canDelete = $request->user()->can('booking_delete');
-        return view('admin.bookings.index', compact('canCreate', 'canEdit', 'canDelete'));
+        return view('admin.bookings.index', compact('canCreate', 'canEdit', 'canDelete', 'states', 'cities'));
     }
     /**
      * API: Return bookings with filters (for modal, returns JSON)

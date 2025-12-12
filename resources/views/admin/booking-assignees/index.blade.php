@@ -1,12 +1,5 @@
 @extends('admin.layouts.vertical', ['title' => 'Booking Assignees', 'subTitle' => 'Property'])
 
-@section('css')
-    <!-- DataTables CSS -->
-    <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet">
-    <!-- DateRangePicker CSS (from CDN for proper jQuery plugin integration) -->
-    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
-@endsection
-
 @section('content')
     <div class="row">
         <div class="col-12">
@@ -194,18 +187,6 @@
 @endsection
 
 @section('scripts')
-    <!-- jQuery (must be loaded before DataTables) -->
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    <!-- Moment.js (required by DateRangePicker) -->
-    <script src="https://cdn.jsdelivr.net/npm/moment@2.30.1/moment.min.js"></script>
-    <!-- DateRangePicker (must be after jQuery and moment) -->
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.js"></script>
-    <!-- DataTables -->
-    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
-    <!-- SweetAlert2 -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
     <script>
         // Wait for all external libraries to load, then initialize DataTable
         document.addEventListener('DOMContentLoaded', function () {
@@ -217,6 +198,5 @@
             }
         });
     </script>
-
     @vite(['resources/js/pages/booking-assignees-index.js'])
 @endsection

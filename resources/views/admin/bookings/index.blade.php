@@ -68,6 +68,54 @@
                     </div>
                 </div>
                 <div class="card-body">
+                    <!-- Filters Section -->
+                    <div class="row mb-4 g-3" id="filtersSection">
+                        <div class="col-md-3">
+                            <label for="filterState" class="form-label">State</label>
+                            <select id="filterState" class="form-select form-select-sm">
+                                <option value="">All States</option>
+                                @foreach ($states ?? [] as $state)
+                                    <option value="{{ $state->id }}">{{ $state->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="filterCity" class="form-label">City</label>
+                            <select id="filterCity" class="form-select form-select-sm">
+                                <option value="">All Cities</option>
+                                @foreach ($cities ?? [] as $city)
+                                    <option value="{{ $city->id }}" data-state="{{ $city->state_id }}">{{ $city->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="filterStatus" class="form-label">Booking Status</label>
+                            <select id="filterStatus" class="form-select form-select-sm">
+                                <option value="">All Status</option>
+                                <option value="pending">Pending</option>
+                                <option value="confirmed">Confirmed</option>
+                                <option value="cancelled">Cancelled</option>
+                                <option value="completed">Completed</option>
+                                <option value="Schedul_accepted">Schedul Accepted</option>
+                                <option value="Reschedul_accepted">Reschedul Accepted</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="filterDateRange" class="form-label">Date Range</label>
+                            <input type="text" id="filterDateRange" class="form-control form-control-sm"
+                                placeholder="Select date range" />
+                        </div>
+                        <div class="col-12">
+                            <button type="button" class="btn btn-sm btn-primary" id="applyFilters">
+                                <i class="ri-search-line me-2"></i>Apply Filters
+                            </button>
+                            <button type="button" class="btn btn-sm btn-secondary" id="clearFilters">
+                                <i class="ri-close-line me-2"></i>Clear Filters
+                            </button>
+                        </div>
+                    </div>
+
                     <div class="table-responsive">
                         <table class="table table-hover align-middle mb-0" id="bookings-table">
                             <thead class="table-light">
