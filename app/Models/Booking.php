@@ -58,6 +58,7 @@ class Booking extends Model
         'full_address',
         'pin_code',
         'booking_date',
+        'booking_time',
         'booking_notes',
         'payment_status',
         'status',
@@ -130,6 +131,11 @@ class Booking extends Model
     public function deleter()
     {
         return $this->belongsTo(User::class, 'deleted_by');
+    }
+
+    public function assignees()
+    {
+        return $this->hasMany(BookingAssignee::class);
     }
 
     /**

@@ -5,15 +5,16 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\BHK;
 use App\Models\Booking;
-use App\Models\BookingHistory;
 use App\Models\City;
 use App\Models\PropertySubType;
 use App\Models\PropertyType;
 use App\Models\State;
 use App\Models\Tour;
 use App\Models\User;
+use App\Models\PhotographerVisitJob;
 use Illuminate\Http\Request;
 use Spatie\Activitylog\Models\Activity;
+use Yajra\DataTables\DataTables;
 
 class BookingController extends Controller
 {
@@ -24,11 +25,48 @@ class BookingController extends Controller
         $this->middleware('permission:booking_edit')->only(['edit', 'update']);
         $this->middleware('permission:booking_delete')->only(['destroy']);
     }
+
+    //  calender view for assignments | ADMIN
+    public function AssignementCalender()
+    {
+        return view('admin.photographer.index', ['title' => 'Booking Assignment Calendar']);
+    }
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $query = Booking::with(['user', 'propertyType', 'propertySubType', 'bhk', 'city', 'state']);
-            return \Yajra\DataTables\Facades\DataTables::of($query)
+            $query = Booking::with(['user', 'propertyType', 'propertySubType', 'bhk', 'city', 'state', 'assignees']);
+
+            // Filter bookings based on user role
+            if (auth()->user()->hasRole('admin')) {
+                // Admin can see all bookings
+            } elseif (auth()->user()->hasRole('photographer')) {
+                // Photographer can see only assigned bookings
+                $query->whereHas('assignees', function ($subQuery) {
+                    $subQuery->where('user_id', auth()->id());
+                });
+            }
+
+            // Apply filters
+            if ($request->filled('state_id')) {
+                $query->where('state_id', $request->state_id);
+            }
+
+            if ($request->filled('city_id')) {
+                $query->where('city_id', $request->city_id);
+            }
+
+            if ($request->filled('status')) {
+                $query->where('status', $request->status);
+            }
+
+            if ($request->filled('date_from') && $request->filled('date_to')) {
+                $query->whereBetween('booking_date', [
+                    $request->date_from,
+                    $request->date_to
+                ]);
+            }
+
+            return DataTables::of($query)
                 ->addColumn('user', function (Booking $booking) {
                     return $booking->user ? $booking->user->firstname . ' ' . $booking->user->lastname : '-';
                 })
@@ -42,7 +80,6 @@ class BookingController extends Controller
                 ->editColumn('area', fn(Booking $booking) => number_format($booking->area))
                 ->editColumn('price', fn(Booking $booking) => '₹ ' . number_format($booking->price))
                 ->editColumn('booking_date', fn(Booking $booking) => optional($booking->booking_date)->format('Y-m-d') ?? '-')
-                ->addColumn('booking_notes', fn(Booking $booking) => $booking->booking_notes ?? '')
                 ->editColumn('status', fn(Booking $booking) => '<span class="badge bg-secondary text-uppercase">' . $booking->status . '</span>')
                 ->editColumn('payment_status', fn(Booking $booking) => '<span class="badge bg-info text-uppercase">' . $booking->payment_status . '</span>')
                 ->addColumn('schedule', function (Booking $booking) {
@@ -57,47 +94,29 @@ class BookingController extends Controller
                     $delete = route('admin.bookings.destroy', $booking);
                     $csrf = csrf_field();
                     $method = method_field('DELETE');
-                    
-                    $actions = '<div class="btn-group btn-group-sm" role="group">';
-                    
-                    // Add accept/decline buttons for pending schedules
-                    if (in_array($booking->status, ['schedul_pending', 'reschedul_pending']) && auth()->user()->can('booking_edit')) {
-                        $actions .= '
-                            <button onclick="acceptScheduleQuick(' . $booking->id . ')" class="btn btn-success" title="Accept Schedule">
-                                <i class="ri-check-line"></i>
-                            </button>
-                            <button onclick="declineScheduleQuick(' . $booking->id . ')" class="btn btn-danger" title="Decline Schedule">
-                                <i class="ri-close-line"></i>
-                            </button>
-                        ';
-                    }
-                    
-                    $actions .= '
-                        <a href="' . $view . '" class="btn btn-light border" title="View"><i class="ri-eye-line"></i></a>
-                        <a href="' . $edit . '" class="btn btn-soft-primary border" title="Edit"><i class="ri-edit-line"></i></a>
-                    ';
-                    
+                    $schedule = '';
                     if (auth()->user()->can('booking_delete')) {
-                        $actions .= '
-                            <button onclick="deleteBooking(' . $booking->id . ')" class="btn btn-soft-danger border" title="Delete">
-                                <i class="ri-delete-bin-line"></i>
-                            </button>
-                        ';
+                        $schedule = '<a href="#" class="btn btn-soft-warning btn-sm me-1" title="Schedule"><i class="ri-calendar-line"></i></a>';
                     }
-                    
-                    $actions .= '</div>';
-                    
-                    return $actions;
+                    return $schedule .
+                        '<a href="' . $view . '" class="btn btn-light btn-sm border" title="View"><i class="ri-eye-line"></i></a>' .
+                        ' <a href="' . $edit . '" class="btn btn-soft-primary btn-sm border" title="Edit"><i class="ri-edit-line"></i></a>' .
+                        ' <form action="' . $delete . '" method="POST" class="d-inline">' . $csrf . $method .
+                        '<button type="submit" class="btn btn-soft-danger btn-sm border" onclick="return confirm(\'Delete this booking?\')"><i class="ri-delete-bin-line"></i></button></form>';
                 })
                 ->rawColumns(['type_subtype', 'city_state', 'status', 'payment_status', 'actions', 'schedule'])
                 ->toJson();
         }
+        
+        // Get filter options for view
+        $states = State::all();
+        $cities = City::all();
+        
         $canCreate = $request->user()->can('booking_create');
         $canEdit = $request->user()->can('booking_edit');
         $canDelete = $request->user()->can('booking_delete');
-        return view('admin.bookings.index', compact('canCreate', 'canEdit', 'canDelete'));
+        return view('admin.bookings.index', compact('canCreate', 'canEdit', 'canDelete', 'states', 'cities'));
     }
-
     /**
      * API: Return bookings with filters (for modal, returns JSON)
      */
@@ -194,7 +213,7 @@ class BookingController extends Controller
         $states = State::orderBy('name')->get();
 
         $paymentStatuses = ['pending', 'paid', 'failed', 'refunded'];
-        $statuses = Booking::getAvailableStatuses();
+        $statuses = ['pending', 'confirmed', 'cancelled', 'completed'];
 
         return view('admin.bookings.create', compact(
             'users',
@@ -212,50 +231,36 @@ class BookingController extends Controller
     {
         $validated = $request->validate([
             'user_id' => ['required', 'exists:users,id'],
-            'owner_type' => ['nullable', 'string', 'in:Owner,Broker'],
             'property_type_id' => ['required', 'exists:property_types,id'],
             'property_sub_type_id' => ['required', 'exists:property_sub_types,id'],
-            'bhk_id' => ['nullable', 'exists:b_h_k_s,id'],
+            'bhk_id' => ['nullable', 'exists:bhks,id'],
             'city_id' => ['nullable', 'exists:cities,id'],
             'state_id' => ['nullable', 'exists:states,id'],
             'furniture_type' => ['nullable', 'string', 'max:255'],
             'area' => ['required', 'integer', 'min:0'],
             'price' => ['required', 'integer', 'min:0'],
-            'firm_name' => ['nullable', 'string', 'max:255'],
-            'gst_no' => ['nullable', 'string', 'max:50'],
-            'other_option_details' => ['nullable', 'string'],
-            'house_no' => ['required', 'string', 'max:255'],
-            'building' => ['required', 'string', 'max:255'],
+            'house_no' => ['nullable', 'string', 'max:255'],
+            'building' => ['nullable', 'string', 'max:255'],
             'society_name' => ['nullable', 'string', 'max:255'],
             'address_area' => ['nullable', 'string', 'max:255'],
             'landmark' => ['nullable', 'string', 'max:255'],
-            'full_address' => ['required', 'string'],
-            'pin_code' => ['required', 'string', 'size:6', 'regex:/^[0-9]{6}$/'],
+            'full_address' => ['nullable', 'string'],
+            'pin_code' => ['nullable', 'string', 'max:20'],
             'booking_date' => ['nullable', 'date'],
-            'payment_status' => ['nullable', 'in:unpaid,pending,paid,failed,refunded'],
-            'status' => ['nullable', 'in:inquiry,pending,confirmed,schedul_pending,schedul_accepted,schedul_decline,reschedul_pending,reschedul_accepted,reschedul_decline,reschedul_blocked,schedul_assign,schedul_completed,tour_pending,tour_completed,tour_live,completed,maintenance,cancelled,expired'],
+            'payment_status' => ['required', 'in:pending,paid,failed,refunded'],
+            'status' => ['required', 'in:pending,confirmed,cancelled,completed'],
         ]);
 
         $validated['created_by'] = $request->user()->id ?? null;
 
         $booking = Booking::create($validated);
 
-        // Create initial booking history entry
-        \App\Models\BookingHistory::create([
-            'booking_id' => $booking->id,
-            'from_status' => null,
-            'to_status' => $booking->status ?? 'pending',
-            'changed_by' => $request->user()->id,
-            'notes' => 'Booking created',
-            'ip_address' => $request->ip(),
-            'user_agent' => $request->userAgent(),
-        ]);
-
-        // Create a tour for this booking
+        // Create a tour for this booking with unique slug
         $tour = Tour::create([
             'booking_id' => $booking->id,
             'name' => 'Tour for Booking #' . $booking->id,
-            'title' => 'Property Tour - ' . ($booking->propertyType?->name ?? 'Property'),
+            'title' => 'Property Tour - Booking #' . $booking->id,
+            'slug' => 'tour-booking-' . $booking->id . '-' . time(),
             'status' => 'draft',
             'revision' => 1,
         ]);
@@ -278,13 +283,39 @@ class BookingController extends Controller
                 'booking_id' => $booking->id
             ])
             ->log('Tour created for booking');
+        
+        // Create a photographer visit job for this booking
+        $job = PhotographerVisitJob::create([
+            'booking_id' => $booking->id,
+            'tour_id' => $tour->id,
+            'photographer_id' => null, // Will be assigned later
+            'status' => 'pending',
+            'priority' => 'normal',
+            'scheduled_date' => $booking->booking_date ?? now()->addDays(1),
+            'instructions' => 'Complete photography for property booking #' . $booking->id,
+            'created_by' => $request->user()->id ?? null,
+        ]);
 
-        return redirect()->route('admin.bookings.index')->with('success', 'Booking and tour created successfully.');
+        // Generate and assign a unique job code
+        $job->job_code = 'JOB-' . str_pad($job->id, 6, '0', STR_PAD_LEFT);
+        $job->save();
+
+        activity('photographer_visit_jobs')
+            ->performedOn($job)
+            ->causedBy($request->user())
+            ->withProperties([
+                'event' => 'created',
+                'after' => $job->toArray(),
+                'booking_id' => $booking->id
+            ])
+            ->log('Photographer visit job created for booking');
+
+        return redirect()->route('admin.bookings.index')->with('success', 'Booking, tour, and photographer job created successfully.');
     }
 
     public function show(Booking $booking)
     {
-        $booking->load(['user', 'propertyType', 'propertySubType', 'bhk', 'city', 'state', 'creator', 'histories.changedBy.roles']);
+        $booking->load(['user', 'propertyType', 'propertySubType', 'bhk', 'city', 'state', 'creator']);
         return view('admin.bookings.show', compact('booking'));
     }
 
@@ -298,7 +329,7 @@ class BookingController extends Controller
         $states = State::orderBy('name')->get();
 
         $paymentStatuses = ['pending', 'paid', 'failed', 'refunded'];
-        $statuses = Booking::getAvailableStatuses();
+        $statuses = ['pending', 'confirmed', 'cancelled', 'completed'];
 
         // Load tour if linked
         $tour = Tour::where('booking_id', $booking->id)->first();
@@ -321,53 +352,31 @@ class BookingController extends Controller
     {
         $validated = $request->validate([
             'user_id' => ['required', 'exists:users,id'],
-            'owner_type' => ['nullable', 'string', 'in:Owner,Broker'],
             'property_type_id' => ['required', 'exists:property_types,id'],
             'property_sub_type_id' => ['required', 'exists:property_sub_types,id'],
-            'bhk_id' => ['nullable', 'exists:b_h_k_s,id'],
+            'bhk_id' => ['nullable', 'exists:bhks,id'],
             'city_id' => ['nullable', 'exists:cities,id'],
             'state_id' => ['nullable', 'exists:states,id'],
             'furniture_type' => ['nullable', 'string', 'max:255'],
             'area' => ['required', 'integer', 'min:0'],
             'price' => ['required', 'integer', 'min:0'],
-            'firm_name' => ['nullable', 'string', 'max:255'],
-            'gst_no' => ['nullable', 'string', 'max:50'],
-            'other_option_details' => ['nullable', 'string'],
-            'house_no' => ['required', 'string', 'max:255'],
-            'building' => ['required', 'string', 'max:255'],
+            'house_no' => ['nullable', 'string', 'max:255'],
+            'building' => ['nullable', 'string', 'max:255'],
             'society_name' => ['nullable', 'string', 'max:255'],
             'address_area' => ['nullable', 'string', 'max:255'],
             'landmark' => ['nullable', 'string', 'max:255'],
-            'full_address' => ['required', 'string'],
-            'pin_code' => ['required', 'string', 'size:6', 'regex:/^[0-9]{6}$/'],
+            'full_address' => ['nullable', 'string'],
+            'pin_code' => ['nullable', 'string', 'max:20'],
             'booking_date' => ['nullable', 'date'],
-            'payment_status' => ['nullable', 'in:unpaid,pending,paid,failed,refunded'],
-            'status' => ['nullable', 'in:inquiry,pending,confirmed,schedul_pending,schedul_accepted,schedul_decline,reschedul_pending,reschedul_accepted,reschedul_decline,reschedul_blocked,schedul_assign,schedul_completed,tour_pending,tour_completed,tour_live,completed,maintenance,cancelled,expired'],
+            'payment_status' => ['required', 'in:pending,paid,failed,refunded'],
+            'status' => ['required', 'in:pending,confirmed,cancelled,completed'],
         ]);
 
         $validated['updated_by'] = $request->user()->id ?? null;
 
         $before = $booking->getOriginal();
-        
-        // Check if status is being changed
-        $statusChanged = isset($validated['status']) && $validated['status'] !== $booking->status;
-        $oldStatus = $booking->status;
-        $newStatus = $validated['status'] ?? null;
-        
-        // Update booking (but we'll handle status separately if changed)
-        if ($statusChanged) {
-            // Remove status from validated array temporarily
-            $statusToSet = $validated['status'];
-            unset($validated['status']);
-            $booking->update($validated);
-            
-            // Use changeStatus method to update status and create history
-            $booking->changeStatus($statusToSet, $request->user()->id, 'Status updated via booking edit');
-        } else {
-            $booking->update($validated);
-        }
-        
-        $after = $booking->fresh()->toArray();
+        $booking->update($validated);
+        $after = $booking->toArray();
         $changes = [];
         foreach ($after as $key => $value) {
             if (!isset($before[$key]) || $before[$key] !== $value) {
@@ -433,11 +442,13 @@ class BookingController extends Controller
             ])
             ->log('Booking rescheduled');
 
-        return response()->json(['success' => true, 'new_date' => $booking->booking_date->format('Y-m-d')]);
+        return response()->json([
+            'success' => true, 
+            'new_date' => $booking->booking_date ? \Carbon\Carbon::parse($booking->booking_date)->format('Y-m-d') : null
+        ]);
     }
 
     /**
-
      * API: Assign a booking to a QR code
      * POST: /api/qr/assign-booking
      * Params: qr_id, booking_id
@@ -468,126 +479,50 @@ class BookingController extends Controller
 
         return response()->json(['success' => true, 'message' => 'Booking assigned to QR successfully.']);
     }
+
     /**
      * Update booking via AJAX
      */
     public function updateAjax(Request $request, Booking $booking)
     {
-        // Allow partial updates - only validate fields that are present in request
-        $rules = [
-            'user_id' => ['sometimes', 'required', 'exists:users,id'],
-            'owner_type' => ['sometimes', 'nullable', 'string', 'in:Owner,Broker'],
-            'property_type_id' => ['sometimes', 'required', 'exists:property_types,id'],
-            'property_sub_type_id' => ['sometimes', 'required', 'exists:property_sub_types,id'],
-            'area' => ['sometimes', 'required', 'numeric', 'min:0'],
-            'price' => ['sometimes', 'required', 'numeric', 'min:0'],
-            'payment_status' => ['sometimes', 'required', 'in:unpaid,pending,paid,failed,refunded'],
-            'status' => ['sometimes', 'required', 'in:inquiry,pending,confirmed,schedul_pending,schedul_accepted,schedul_decline,reschedul_pending,reschedul_accepted,reschedul_decline,reschedul_blocked,schedul_assign,schedul_completed,tour_pending,tour_completed,tour_live,completed,maintenance,cancelled,expired'],
-            'bhk_id' => ['sometimes', 'nullable', 'exists:b_h_k_s,id'],
-            'city_id' => ['sometimes', 'nullable', 'exists:cities,id'],
-            'state_id' => ['sometimes', 'nullable', 'exists:states,id'],
-            'furniture_type' => ['sometimes', 'nullable', 'string'],
-            'booking_date' => ['sometimes', 'nullable', 'date'],
-            'house_no' => ['sometimes', 'required', 'string', 'max:255'],
-            'building' => ['sometimes', 'required', 'string', 'max:255'],
-            'society_name' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'address_area' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'landmark' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'pin_code' => ['sometimes', 'required', 'string', 'size:6', 'regex:/^[0-9]{6}$/'],
-            'full_address' => ['sometimes', 'required', 'string'],
-            'firm_name' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'gst_no' => ['sometimes', 'nullable', 'string', 'max:50'],
-            'other_option_details' => ['sometimes', 'nullable', 'string'],
-            'notes' => ['sometimes', 'nullable', 'string'],
-        ];
+        $validated = $request->validate([
+            'user_id' => ['required', 'exists:users,id'],
+            'property_type_id' => ['required', 'exists:property_types,id'],
+            'property_sub_type_id' => ['required', 'exists:property_sub_types,id'],
+            'area' => ['required', 'numeric', 'min:0'],
+            'price' => ['required', 'numeric', 'min:0'],
+            'payment_status' => ['required', 'in:pending,paid,failed,refunded'],
+            'status' => ['required', 'in:pending,confirmed,cancelled,completed'],
+            'bhk_id' => ['nullable', 'exists:bhks,id'],
+            'city_id' => ['nullable', 'exists:cities,id'],
+            'state_id' => ['nullable', 'exists:states,id'],
+            'furniture_type' => ['nullable', 'string'],
+            'booking_date' => ['nullable', 'date'],
+            'house_no' => ['nullable', 'string', 'max:255'],
+            'building' => ['nullable', 'string', 'max:255'],
+            'society_name' => ['nullable', 'string', 'max:255'],
+            'address_area' => ['nullable', 'string', 'max:255'],
+            'landmark' => ['nullable', 'string', 'max:255'],
+            'pin_code' => ['nullable', 'string', 'max:20'],
+            'full_address' => ['nullable', 'string'],
+        ]);
 
-        $validated = $request->validate($rules);
-
-        // Get only the changed fields
-        $oldData = $booking->only(array_keys($validated));
-        
-        // Extract notes for history
-        $notes = $validated['notes'] ?? null;
-        unset($validated['notes']);
-        
-        // Check if status is being changed
-        if (isset($validated['status']) && $validated['status'] !== $booking->status) {
-            $statusNotes = $notes ?? 'Status changed via Quick Actions';
-            
-            // Use changeStatus method which creates history automatically
-            $booking->changeStatus(
-                $validated['status'], 
-                $request->user()->id,
-                $statusNotes,
-                [
-                    'source' => 'admin_quick_action',
-                    'ip_address' => $request->ip(),
-                    'user_agent' => $request->userAgent(),
-                ]
-            );
-            
-            // Remove status from validated to avoid double update
-            unset($validated['status']);
-        }
-        
-        // Check if payment status is being changed
-        if (isset($validated['payment_status']) && $validated['payment_status'] !== $booking->payment_status) {
-            $oldPaymentStatus = $booking->payment_status;
-            $newPaymentStatus = $validated['payment_status'];
-            
-            // Update payment status
-            $booking->payment_status = $newPaymentStatus;
-            $booking->save();
-            
-            // Create booking history entry for payment status change
-            \App\Models\BookingHistory::create([
-                'booking_id' => $booking->id,
-                'from_status' => $booking->status, // Booking status stays same
-                'to_status' => $booking->status,
-                'changed_by' => $request->user()->id,
-                'notes' => $notes ?? "Payment status changed from {$oldPaymentStatus} to {$newPaymentStatus}",
-                'metadata' => array_filter([
-                    'source' => 'admin_quick_action',
-                    'change_type' => 'payment_status',
-                    'old_payment_status' => $oldPaymentStatus,
-                    'new_payment_status' => $newPaymentStatus,
-                    'changed_by_name' => $request->user()->firstname . ' ' . $request->user()->lastname,
-                    'admin_notes' => $notes,
-                ], function($value) {
-                    return !is_null($value) && $value !== '';
-                }),
-                'ip_address' => $request->ip(),
-                'user_agent' => $request->userAgent(),
-            ]);
-            
-            // Remove payment_status from validated to avoid double update
-            unset($validated['payment_status']);
-        }
-        
-        // Update only the remaining provided fields
-        if (!empty($validated)) {
-            $booking->update($validated);
-        }
-
-        // Determine what was updated for logging
-        $updatedFields = array_keys($request->except('notes'));
-        $logMessage = 'Booking updated via AJAX: ' . implode(', ', $updatedFields);
+        $oldData = $booking->toArray();
+        $booking->update($validated);
 
         activity('bookings')
             ->performedOn($booking)
             ->causedBy($request->user())
             ->withProperties([
                 'old' => $oldData,
-                'attributes' => $booking->fresh()->only($updatedFields),
-                'updated_fields' => $updatedFields,
+                'attributes' => $booking->toArray(),
             ])
-            ->log($logMessage);
+            ->log('Booking updated via AJAX');
 
         return response()->json([
             'success' => true,
             'message' => 'Booking updated successfully',
-            'booking' => $booking->fresh()->load('histories.changedBy.roles'),
-            'updated_fields' => $updatedFields,
+            'booking' => $booking->fresh(),
         ]);
     }
 }

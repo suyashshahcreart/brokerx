@@ -85,7 +85,12 @@
         <p class="mb-0 text-center text-white">New here? <a href="{{ route('admin.register') }}"
 
             class="text-reset text-unline-dashed fw-bold ms-1">Sign Up</a>
-    </p>
+        </p>
+        <p class="mb-0 text-center text-white mt-2">
+            <a href="{{ route('admin.photographer.login') }}" class="text-reset text-unline-dashed">
+                <i class='bx bx-camera me-1'></i>Login as Photographer
+            </a>
+        </p>
 </div>
 @endsection
 

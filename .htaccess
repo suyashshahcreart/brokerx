@@ -4,7 +4,7 @@
     </IfModule>
 
     RewriteEngine On
-    RewriteBase /brokerx/
+    RewriteBase /
 
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
@@ -17,7 +17,7 @@
     # If file exists under /public/build, serve it (Vite output)
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteCond %{DOCUMENT_ROOT}/brokerx/public/build/$1 -f
+    RewriteCond %{DOCUMENT_ROOT}/public/build/$1 -f
     RewriteRule ^(.*)$ public/build/$1 [L]
 
     # Compatibility: requests to /assets/* should map to /public/build/assets/*
@@ -28,7 +28,7 @@
     # If file exists under /public, serve it transparently
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteCond %{DOCUMENT_ROOT}/brokerx/public/$1 -f
+    RewriteCond %{DOCUMENT_ROOT}/public/$1 -f
     RewriteRule ^(.*)$ public/$1 [L]
 
     # Send all other requests to front controller
@@ -36,5 +36,3 @@
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^ index.php [L]
 </IfModule>
-
-

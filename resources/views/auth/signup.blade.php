@@ -163,6 +163,11 @@
     </div> <!-- end card -->
 
     <p class="mb-0 text-center text-white">I already have an account <a href="{{ route('admin.login') }}" class="text-reset text-unline-dashed fw-bold ms-1">Sign In</a></p>
+    <p class="mb-0 text-center text-white mt-2">
+        <a href="{{ route('admin.photographer.register') }}" class="text-reset text-unline-dashed">
+            <i class='bx bx-camera me-1'></i>Register as Photographer
+        </a>
+    </p>
 </div> <!-- end col -->
 
 @endsection

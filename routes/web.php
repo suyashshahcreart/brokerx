@@ -1,10 +1,12 @@
 <?php
 use App\Http\Controllers\Admin\HolidayController;
 use App\Http\Controllers\Admin\QRController;
+use App\Http\Controllers\Admin\BookingAssigneeController;
 use App\Http\Controllers\OtpController;
 use App\Http\Controllers\EmailOtpController;
 use App\Http\Controllers\BrokerController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\Photographer\JobController;
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\RoutingController;
@@ -17,6 +19,7 @@ use App\Http\Controllers\Admin\BookingController;
 use App\Http\Controllers\Admin\BookingStatusController;
 use App\Http\Controllers\Admin\PendingScheduleController;
 use App\Http\Controllers\Admin\PortfolioController as AdminPortfolioController;
+use App\Http\Controllers\Admin\PhotographerVisitController;
 use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\TourController;
 use App\Http\Controllers\FrontendController;
@@ -76,11 +79,11 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'middleware' => ['web', 'au
     Route::resource('permissions', PermissionController::class);
     Route::resource('roles', RoleController::class);
     Route::resource('users', AdminUserController::class);
-    
+    Route::get('assignment-calendar', [BookingController::class, 'AssignementCalender'])->name('assignment-calendar');
     // Booking custom routes (BEFORE resource to prevent route conflicts)
     Route::post('bookings/{booking}/update-ajax', [BookingController::class, 'updateAjax'])->name('bookings.update-ajax');
     Route::post('bookings/{booking}/reschedule', [BookingController::class, 'reschedule'])->name('bookings.reschedule');
-    
+
     // Booking Status Management Routes
     Route::prefix('bookings/{booking}')->name('bookings.status.')->group(function () {
         Route::post('approve-schedule', [BookingStatusController::class, 'approveSchedule'])->name('approve-schedule');
@@ -99,33 +102,67 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'middleware' => ['web', 'au
         Route::post('change-status', [BookingStatusController::class, 'changeStatus'])->name('change-status');
         Route::get('history', [BookingStatusController::class, 'getBookingHistory'])->name('history');
     });
-    
+
     // Booking Status Statistics
     Route::get('bookings-status/statistics', [BookingStatusController::class, 'getStatusStatistics'])->name('bookings.status.statistics');
     Route::post('bookings-status/bulk-update', [BookingStatusController::class, 'bulkUpdateStatus'])->name('bookings.status.bulk-update');
-    
+
     // Pending Schedules Management
     Route::get('pending-schedules', [PendingScheduleController::class, 'index'])->name('pending-schedules.index');
     Route::post('pending-schedules/{booking}/accept', [PendingScheduleController::class, 'accept'])->name('pending-schedules.accept');
     Route::post('pending-schedules/{booking}/decline', [PendingScheduleController::class, 'decline'])->name('pending-schedules.decline');
-    
+    // Bookings
     Route::resource('bookings', BookingController::class);
+    // Booking Assignees
+    Route::resource('booking-assignees', BookingAssigneeController::class);
+    // Photographer visit check-in/out using BookingAssignee
+    Route::get('booking-assignees/{bookingAssignee}/check-in', [BookingAssigneeController::class, 'checkInForm'])->name('booking-assignees.check-in-form');
+    Route::post('booking-assignees/{bookingAssignee}/check-in', [BookingAssigneeController::class, 'checkIn'])->name('booking-assignees.check-in');
+    Route::get('booking-assignees/{bookingAssignee}/check-out', [BookingAssigneeController::class, 'checkOutForm'])->name('booking-assignees.check-out-form');
+    Route::post('booking-assignees/{bookingAssignee}/check-out', [BookingAssigneeController::class, 'checkOut'])->name('booking-assignees.check-out');
+    Route::post('bookings/{booking}/reschedule', [BookingController::class, 'reschedule'])->name('admin.bookings.reschedule');
+    Route::post('bookings/{booking}/update-ajax', [BookingController::class, 'updateAjax'])->name('admin.bookings.update-ajax');
+    
+   
+    
+    
+    // PHOTOGRAPHER VISITS
+    Route::resource('photographer-visits', PhotographerVisitController::class);
+    // Legacy job-based check-in/out retained for backward compatibility
+    Route::get('photographer-visit-jobs/{photographerVisitJob}/check-in', [PhotographerVisitController::class, 'checkInForm'])->name('photographer-visit-jobs.check-in-form');
+    Route::post('photographer-visit-jobs/{photographerVisitJob}/check-in', [PhotographerVisitController::class, 'checkIn'])->name('photographer-visit-jobs.check-in');
+    Route::get('photographer-visit-jobs/{photographerVisitJob}/check-out', [PhotographerVisitController::class, 'checkOutForm'])->name('photographer-visit-jobs.check-out-form');
+    Route::post('photographer-visit-jobs/{photographerVisitJob}/check-out', [PhotographerVisitController::class, 'checkOut'])->name('photographer-visit-jobs.check-out');
+    // Portfolios
     Route::resource('portfolios', AdminPortfolioController::class);
     Route::resource('holidays', HolidayController::class);
     Route::resource('tours', TourController::class);
+    // AJAX Tour routes
     Route::post('tours/{tour}/update-ajax', [TourController::class, 'updateAjax'])->name('admin.tours.update-ajax');
     Route::post('tours/create-ajax', [TourController::class, 'createAjax'])->name('admin.tours.create-ajax');
     Route::post('tours/{tour}/unlink-ajax', [TourController::class, 'unlinkAjax'])->name('admin.tours.unlink-ajax');
+    // Settings
     Route::resource('settings', SettingController::class);
     Route::get('activity', [ActivityLogController::class, 'index'])->name('activity.index');
+    // QR Code Management
     Route::post('qr/bulk-generate', [QRController::class, 'bulkGenerate'])->name('qr.bulk-generate');
     Route::post('qr/bulk-delete', [QRController::class, 'bulkDelete'])->name('qr.bulk-delete');
     Route::get('qr/{qr}/download', [QRController::class, 'download'])->name('qr.download');
+    // QR Code Resource Routes
     Route::resource('qr', QRController::class);
 });
 
 Route::group(['prefix' => 'brokerx', 'as' => 'brokerx.', 'middleware' => ['web', 'auth']], function () {
     Route::get('/', [BrokerXController::class, 'index'])->name('index');
+});
+
+// Photographer routes
+Route::group(['prefix' => 'photo', 'as' => 'photographer.', 'middleware' => ['web', 'auth', 'role:photographer']], function () {
+    Route::get('/jobs', [JobController::class, 'index'])->name('jobs.index');
+    Route::get('/jobs/{job}', [JobController::class, 'show'])->name('jobs.show');
+    Route::post('/jobs/{job}/accept', [JobController::class, 'accept'])->name('jobs.accept');
+    Route::post('/jobs/{job}/complete', [JobController::class, 'complete'])->name('jobs.complete');
+    Route::get('/jobs/upcoming', [JobController::class, 'upcoming'])->name('jobs.upcoming');
 });
 
 // Public frontend routes

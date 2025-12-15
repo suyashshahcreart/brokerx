@@ -19,6 +19,12 @@ class BookingSeeder extends Seeder
      */
     public function run(): void
     {
+        // Check if bookings already exist
+        if (Booking::count() >= 5) {
+            $this->command->info('Bookings already seeded. Skipping...');
+            return;
+        }
+
         // Get existing data
         $users = User::all();
         $propertyTypes = PropertyType::all();
@@ -37,8 +43,10 @@ class BookingSeeder extends Seeder
         $paymentStatuses = ['pending', 'paid', 'failed', 'refunded'];
         $statuses = ['pending', 'confirmed', 'cancelled', 'completed'];
 
-        // Create 10 sample bookings
-        for ($i = 0; $i < 5; $i++) {
+        $needToCreate = 5 - Booking::count();
+
+        // Create sample bookings
+        for ($i = 0; $i < $needToCreate; $i++) {
             $city = $cities->isNotEmpty() ? $cities->random() : null;
             $state = $states->isNotEmpty() ? $states->random() : null;
 
@@ -66,6 +74,6 @@ class BookingSeeder extends Seeder
             ]);
         }
 
-        $this->command->info('Created 10 sample bookings successfully.');
+        $this->command->info('Created ' . $needToCreate . ' sample bookings successfully.');
     }
 }

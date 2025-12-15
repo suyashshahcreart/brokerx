@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\BookingCollection;
 use App\Http\Resources\BookingResource;
 use App\Models\Booking;
+use App\Models\BookingAssignee;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -248,6 +249,92 @@ class BookingApiController extends Controller
             // Default sorting
             $query->orderBy('created_at', 'desc');
         }
+    }
+
+    /**
+     * Get bookings by date range with selected fields.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getByDateRange(Request $request)
+    {
+        $request->validate([
+            'from_date' => 'required|date',
+            'to_date' => 'required|date|after_or_equal:from_date',
+        ]);
+
+        // Get the authenticated user
+        $user = Auth::user();
+
+        // Query BookingAssignee with related booking data
+        $query = BookingAssignee::with([
+            'booking' => function($q) {
+                $q->with([
+                    'propertyType:id,name',
+                    'propertySubType:id,name',
+                    'bhk:id,name',
+                    'city:id,name',
+                    'state:id,name',
+                    'user:id,firstname,lastname,email'
+                ]);
+            },
+            'user:id,firstname,lastname,email'
+        ]);
+
+        // Apply date range filter on booking_assignees.date
+        $query->whereBetween('date', [
+            $request->from_date,
+            $request->to_date
+        ]);
+
+        // Filter based on user role
+        // If user is not admin, show only assignees assigned to this user (photographer)
+        if (!$user->hasRole('admin')) {
+            $query->where('user_id', $user->id);
+        }
+
+        // Filter to show only specific statuses
+        $query->whereHas('booking', function($q) {
+            $q->whereIn('status', ['schedul_assign', 'reschedul_assign','schedul_inprogress', 'schedul_completed']);
+        });
+
+        // Apply additional filters if provided
+        // if ($request->filled('status')) {
+        //     $query->whereHas('booking', function($q) {
+        //         $q->where('status', $request->status);
+        //     });
+        // }
+
+        // if ($request->filled('payment_status')) {
+        //     $query->whereHas('booking', function($q) {
+        //         $q->where('payment_status', $request->payment_status);
+        //     });
+        // }
+
+        // if ($request->filled('city_id')) {
+        //     $query->whereHas('booking', function($q) {
+        //         $q->where('city_id', $request->city_id);
+        //     });
+        // }
+
+        // if ($request->filled('state_id')) {
+        //     $query->whereHas('booking', function($q) {
+        //         $q->where('state_id', $request->state_id);
+        //     });
+        // }
+
+        // Get results ordered by date and time
+        $bookingAssignees = $query
+            ->orderBy('date', 'asc')
+            ->orderBy('time', 'asc')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'count' => $bookingAssignees->count(),
+            'data' => $bookingAssignees,
+        ]);
     }
 
     /**

@@ -1,6 +1,8 @@
 import $ from "jquery";
 import flatpickr from "flatpickr";
 import "flatpickr/dist/flatpickr.min.css";
+import 'datatables.net-bs5';
+import moment from 'moment';
 
 window.$ = $;
 window.jQuery = $;
@@ -14,10 +16,62 @@ document.addEventListener('DOMContentLoaded', function () {
 	const table = $('#bookings-table');
 	if (!table.length) return;
 
+	// Initialize daterangepicker
+	let dateRangePicker = null;
+	if (typeof $.fn.daterangepicker === 'function') {
+		initializeDateRangePicker();
+	} else {
+		setTimeout(() => {
+			if (typeof $.fn.daterangepicker === 'function') {
+				initializeDateRangePicker();
+			}
+		}, 500);
+	}
+
+	function initializeDateRangePicker() {
+		const input = $('#filterDateRange');
+		if (!input.length) return;
+		
+		dateRangePicker = input.daterangepicker({
+			autoUpdateInput: false,
+			locale: {
+				cancelLabel: 'Clear',
+				format: 'YYYY-MM-DD'
+			}
+		});
+
+		input.on('apply.daterangepicker', function(ev, picker) {
+			$(this).val(picker.startDate.format('YYYY-MM-DD') + ' - ' + picker.endDate.format('YYYY-MM-DD'));
+		});
+
+		input.on('cancel.daterangepicker', function(ev, picker) {
+			$(this).val('');
+		});
+	}
+
 	const dataTable = table.DataTable({
 		processing: true,
 		serverSide: true,
-		ajax: window.bookingIndexUrl || '',
+		ajax: {
+			url: window.bookingIndexUrl || '',
+			type: 'GET',
+			data: function (d) {
+				// Add filter parameters
+				d.state_id = $('#filterState').val() || '';
+				d.city_id = $('#filterCity').val() || '';
+				d.status = $('#filterStatus').val() || '';
+
+				// Handle date range
+				const dateRange = $('#filterDateRange').val();
+				if (dateRange) {
+					const dates = dateRange.split(' - ');
+					if (dates.length === 2) {
+						d.date_from = dates[0];
+						d.date_to = dates[1];
+					}
+				}
+			}
+		},
 		order: [[0, 'desc']],
 		columns: [
 			{ data: 'id', name: 'id' },
@@ -34,10 +88,50 @@ document.addEventListener('DOMContentLoaded', function () {
 		],
 		language: {
 			search: '_INPUT_',
-			searchPlaceholder: 'Search bookings...'
+			searchPlaceholder: 'Search bookings...',
+			emptyTable: "No bookings found",
+			processing: "Processing...",
+			paginate: {
+				next: '<i class="ri-arrow-right-s-line"></i>',
+				previous: '<i class="ri-arrow-left-s-line"></i>'
+			}
 		},
 		lengthMenu: [10, 25, 50, 100],
 		responsive: true
+	});
+
+	// Bind filter buttons
+	$('#applyFilters').on('click', function () {
+		dataTable.draw();
+	});
+
+	$('#clearFilters').on('click', function () {
+		$('#filterState').val('');
+		$('#filterCity').val('');
+		$('#filterStatus').val('');
+		$('#filterDateRange').val('');
+		dataTable.draw();
+	});
+
+	// Filter state - cascade cities
+	$('#filterState').on('change', function () {
+		const stateId = $(this).val();
+		const citySelect = $('#filterCity');
+
+		if (stateId) {
+			citySelect.find('option').each(function () {
+				const $option = $(this);
+				if ($option.val() === '' || $option.data('state') == stateId) {
+					$option.show();
+				} else {
+					$option.hide();
+				}
+			});
+			citySelect.val('');
+		} else {
+			citySelect.find('option').show();
+			citySelect.val('');
+		}
 	});
 
 	let holidays = [];
