@@ -95,6 +95,13 @@ class PermissionsRolesSeeder extends Seeder
             'tour_create',
             'tour_edit',
             'tour_delete',
+
+            // Booking Assignee management
+            'booking_assignee_view',
+            'booking_assignee_create',
+            'booking_assignee_edit',
+            'booking_assignee_delete',
+            'booking_assignee_assign',
         ];
 
         foreach ($permissions as $permissionName) {
@@ -127,6 +134,12 @@ class PermissionsRolesSeeder extends Seeder
             'user_edit',
             'user_delete',
             'user_manage_roles',
+            // booking assignees
+            'booking_assignee_view',
+            'booking_assignee_create',
+            'booking_assignee_edit',
+            'booking_assignee_delete',
+            'booking_assignee_assign',
         ])->get();
 
         $brokerRole->syncPermissions($defaultBrokerPermissions);
@@ -140,6 +153,8 @@ class PermissionsRolesSeeder extends Seeder
             'photographer_visit_job_edit',
             'booking_view',
             'portfolio_view',
+            // allow photographers to view their assignments
+            'booking_assignee_view',
         ])->get();
 
         $photographerRole->syncPermissions($photographerPermissions);

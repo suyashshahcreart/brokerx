@@ -56,7 +56,9 @@
                               <span class="nav-text">Bookings</span>
                          </a>
                     </li>
+               @endcan
 
+               @unless(auth()->user()->hasRole('photographer'))
                     <li class="nav-item">
                          <a class="nav-link {{ request()->routeIs('admin.pending-schedules.*') ? 'active' : '' }}"
                               href="{{ route('admin.pending-schedules.index') }}">
@@ -72,32 +74,37 @@
                               @endif
                          </a>
                     </li>
+               @endunless
 
-                    <li class="nav-item">
-                         <a class="nav-link {{ request()->routeIs('admin.assignment-calendar') && !request()->routeIs('admin.pending-schedules.*') ? 'active' : '' }}"
-                              href="{{ route('admin.assignment-calendar') }}">
-                              <span class="nav-icon">
-                                   <i class="ri-calendar-todo-line"></i>
-                              </span>
-                              <span class="nav-text">Assignment Calender</span>
-                         </a>
-                    </li>
+               <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('admin.assignment-calendar') && !request()->routeIs('admin.pending-schedules.*') ? 'active' : '' }}"
+                         href="{{ route('admin.assignment-calendar') }}">
+                         <span class="nav-icon">
+                              <i class="ri-calendar-todo-line"></i>
+                         </span>
+                         <span class="nav-text">Assignment Calender</span>
+                    </a>
+               </li>
 
-                    <li class="nav-item">
-                         <a class="nav-link {{ request()->routeIs('admin.booking-assignees.*') ? 'active' : '' }}"
-                              href="{{ route('admin.booking-assignees.index') }}">
-                              <span class="nav-icon">
-                                   <i class="ri-camera-lens-line"></i>
-                              </span>
-                              <span class="nav-text">Booking Assignees</span>
-                         </a>
-                    </li>
-               @endcan
+               @unless(auth()->user()->hasRole('photographer'))
+                    @can('booking_assignee_view')
+                         <li class="nav-item">
+                              <a class="nav-link {{ request()->routeIs('admin.booking-assignees.*') ? 'active' : '' }}"
+                                   href="{{ route('admin.booking-assignees.index') }}">
+                                   <span class="nav-icon">
+                                        <i class="ri-camera-lens-line"></i>
+                                   </span>
+                                   <span class="nav-text">Booking Assignees</span>
+                              </a>
+                         </li>
+                    @endcan
+               @endunless
 
                <!-- photographer -->
-                @can('photographer_visit_view')
+               @can('photographer_visit_view')
                     <li class="nav-item">
-                         <a class="nav-link {{ request()->routeIs('admin.photographer-visits.*') ? 'active' : '' }}" href="{{ route('admin.photographer-visits.index') }}">
+                         <a class="nav-link {{ request()->routeIs('admin.photographer-visits.*') ? 'active' : '' }}"
+                              href="{{ route('admin.photographer-visits.index') }}">
                               <span class="nav-icon">
                                    <i class="ri-camera-line"></i>
                               </span>

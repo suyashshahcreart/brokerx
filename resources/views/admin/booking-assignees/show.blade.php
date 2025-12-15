@@ -187,17 +187,21 @@
                     <a href="{{ route('admin.booking-assignees.index') }}" class="btn btn-secondary">
                         <i class="ri-arrow-go-back-line me-1"></i> Back
                     </a>
-                    <a href="{{ route('admin.booking-assignees.edit', $bookingAssignee->id) }}" class="btn btn-primary">
-                        <i class="ri-edit-line me-1"></i> Edit
-                    </a>
-                    <form method="POST" action="{{ route('admin.booking-assignees.destroy', $bookingAssignee->id) }}"
-                        style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this assignment?');">
-                        @csrf
-                        @method('DELETE')
-                        <button type="submit" class="btn btn-danger">
-                            <i class="ri-delete-bin-line me-1"></i> Delete
-                        </button>
-                    </form>
+                    @can('booking_assignee_edit')
+                        <a href="{{ route('admin.booking-assignees.edit', $bookingAssignee->id) }}" class="btn btn-primary">
+                            <i class="ri-edit-line me-1"></i> Edit
+                        </a>
+                    @endcan
+                    @can('booking_assignee_delete')
+                        <form method="POST" action="{{ route('admin.booking-assignees.destroy', $bookingAssignee->id) }}"
+                            style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this assignment?');">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="btn btn-danger">
+                                <i class="ri-delete-bin-line me-1"></i> Delete
+                            </button>
+                        </form>
+                    @endcan
                 </div>
             </div>
         </div>

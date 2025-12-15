@@ -39,13 +39,13 @@ class PhotographerVisitController extends Controller
                     'tour'
                 ])->orderBy('created_at', 'desc');
 
+                // If the current user is a photographer, only show their visits
+                if ($request->user() && $request->user()->hasRole('photographer')) {
+                    $query->where('photographer_id', $request->user()->id);
+                }
                 // Apply filters
                 if ($request->filled('status')) {
                     $query->where('status', $request->status);
-                }
-
-                if ($request->filled('photographer_id')) {
-                    $query->where('photographer_id', $request->photographer_id);
                 }
 
                 if ($request->filled('booking_id')) {
@@ -164,7 +164,13 @@ class PhotographerVisitController extends Controller
             }
         }
 
-        $photographers = User::role('photographer')->get();
+        // If the current user is a photographer, only include themselves in the
+        // photographers list to avoid exposing other users in the UI filters.
+        if ($request->user() && $request->user()->hasRole('photographer')) {
+            $photographers = collect([$request->user()]);
+        } else {
+            $photographers = User::role('photographer')->get();
+        }
         $bookings = Booking::orderBy('created_at', 'desc')->limit(100)->get();
 
         $canCreate = $request->user()->can('photographer_visit_create');

@@ -15,6 +15,13 @@ use Yajra\DataTables\Facades\DataTables;
 
 class BookingAssigneeController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('permission:booking_assignee_view')->only(['index', 'show']);
+        $this->middleware('permission:booking_assignee_create')->only(['create', 'store']);
+        $this->middleware('permission:booking_assignee_edit')->only(['edit', 'update']);
+        $this->middleware('permission:booking_assignee_delete')->only(['destroy']);
+    }
     /**
      * Display a listing of the resource.
      */
@@ -116,6 +123,11 @@ class BookingAssigneeController extends Controller
                     return $booking->created_at->format('d M Y H:i');
                 })
                 ->addColumn('assign_action', function (Booking $booking) {
+                    // Check assign permission
+                    if (!auth()->user()->can('booking_assignee_create')) {
+                        return '';
+                    }
+
                     // Don't show assign button if already assigned
                     if ($booking->status === 'schedul_assign') {
                         return '<button class="btn btn-sm btn-success" ><i class="ri-check-line me-1"></i>Assigned</button>';
