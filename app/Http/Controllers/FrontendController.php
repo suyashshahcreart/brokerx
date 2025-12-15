@@ -101,6 +101,7 @@ class FrontendController extends Controller
                     'firstname' => $firstname,
                     'lastname' => $lastname,
                     'mobile' => $mobile,
+                    'email' => 'user_' . $mobile . '@temp.com', // Temporary email (required by database)
                 ]);
 
                 // Assign customer role
@@ -655,6 +656,7 @@ class FrontendController extends Controller
                 'firstname' => $nameParts[0],
                 'lastname' => $nameParts[1] ?? '',
                 'mobile' => $validated['phone'],
+                'email' => 'user_' . $validated['phone'] . '@temp.com', // Temporary email (required by database)
             ]);
             $customerRole = Role::firstOrCreate(['name' => 'customer']);
             $user->assignRole($customerRole);

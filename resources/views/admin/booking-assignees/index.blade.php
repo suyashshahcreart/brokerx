@@ -122,7 +122,11 @@
                     <h5 class="modal-title" id="assignBookingModalLabel">Assign Booking to Photographer</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
+<<<<<<< HEAD
                 <form id="assignBookingForm" method="POST" action="{{ route('admin.booking-assignees.store') }}" >
+=======
+                <form id="assignBookingForm" method="POST" action="{{ route('admin.booking-assignees.store') }}">
+>>>>>>> df384e15e66c1315deb4653def4a531d805aff14
                     @csrf
                     <div class="modal-body">
                         <!-- Booking Details Section -->

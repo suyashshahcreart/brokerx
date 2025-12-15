@@ -7,8 +7,6 @@ import 'datatables.net-bs5';
 import moment from 'moment';
 import Swal from 'sweetalert2';
 import 'bootstrap/js/dist/dropdown';
-
-const baseUrl = window.location.origin + '/brokerx';
 const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 let table = null;
 
@@ -127,7 +125,9 @@ $(document).ready(function () {
         formData.append('time', time);
         formData.append('_token', csrfToken);
 
-        fetch('/brokerx/admin/booking-assignees', {
+        const storeUrl = document.getElementById('assignBookingForm')?.getAttribute('action') || window.location.pathname;
+
+        fetch(storeUrl, {
             method: 'POST',
             headers: {
                 'X-Requested-With': 'XMLHttpRequest',
@@ -264,7 +264,6 @@ function bindAssignButtons() {
             document.getElementById('assignPhotographer').value = '';
 
             const form = document.getElementById('assignBookingForm');
-            form.action = '/brokerx/admin/booking-assignees';
             form.setAttribute('data-booking-id', bookingId);
 
             const modal = new bootstrap.Modal(document.getElementById('assignBookingModal'));
