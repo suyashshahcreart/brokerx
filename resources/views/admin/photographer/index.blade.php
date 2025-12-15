@@ -21,7 +21,7 @@
         <div class="card">
             <div class="card-body">
                 <div class="row">
-                    <div class="col-xl-3">
+                    <div class="d-none col-0">
                         <div class="d-grid">
                             <button type="button" class="btn btn-primary" id="btn-new-event">
                                 <i class="ri-add-line fs-18 me-2"></i> Add New Schedule
@@ -48,7 +48,7 @@
                         </div>
                     </div> <!-- end col-->
 
-                    <div class="col-xl-9">
+                    <div class="col-xl-12">
                         <div class="mt-4 mt-lg-0">
                             <div id="calendar" data-booking-api="{{ route('api.bookings.by-date-range') }}"></div>
                         </div>
