@@ -325,8 +325,11 @@ class BookingAssigneeController extends Controller
             ->orderByDesc('id')
             ->first();
 
+
+
         if ($activeVisit) {
-            return redirect()->back()->with('error', 'This booking is already checked in. Please check out the current visit before starting a new one.');
+            
+            return redirect()->route('admin.photographer-visits.index')->with('error', 'This booking is already checked in. Please check out the current visit before starting a new one.');
         }
 
         $bookingAssignee->load(['booking.city', 'booking.state', 'booking.propertyType', 'booking.propertySubType', 'user']);
