@@ -4,11 +4,8 @@ $returnUrlRoute = env('CASHFREE_RETURN_URL', 'frontend.cashfree.callback');
 // Convert route name to full URL if it's a route name (not a full URL)
 $returnUrl = $returnUrlRoute;
 if (strpos($returnUrlRoute, 'http') !== 0 && strpos($returnUrlRoute, '/') !== 0) {
-    try {
-        $returnUrl = route($returnUrlRoute);
-    } catch (\Exception $e) {
-        $returnUrl = route('frontend.cashfree.callback');
-    }
+    // Use app URL with a default path if route() is not yet available
+    $returnUrl = rtrim(env('APP_URL', ''), '/') . '/cashfree/callback';
 }
 
 return [

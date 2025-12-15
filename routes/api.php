@@ -21,10 +21,13 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
-// Settings API routes - using web auth for same-origin requests
+// Public Settings API routes (no auth required for frontend setup page)
+Route::get('/settings/{name}', [SettingController::class, 'apiGet'])->name('api.settings.get.public');
+
+// Protected Settings API routes - using web auth for same-origin requests
 Route::middleware(['web', 'auth'])->group(function () {
     Route::post('/settings/update', [SettingController::class, 'apiUpdate'])->name('api.settings.update');
-    Route::get('/settings/{name}', [SettingController::class, 'apiGet'])->name('api.settings.get');
+    // Note: GET /settings/{name} is public (defined above) - no auth required
     // Holidays API
     Route::get('/holidays', [HolidayController::class, 'indexAPI']);
 
