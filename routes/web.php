@@ -2,7 +2,6 @@
 use App\Http\Controllers\Admin\HolidayController;
 use App\Http\Controllers\Admin\QRController;
 use App\Http\Controllers\Admin\BookingAssigneeController;
-use App\Http\Controllers\Admin\PhotographerVisitJobController;
 use App\Http\Controllers\OtpController;
 use App\Http\Controllers\EmailOtpController;
 use App\Http\Controllers\BrokerController;
@@ -125,13 +124,11 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'middleware' => ['web', 'au
     Route::post('bookings/{booking}/update-ajax', [BookingController::class, 'updateAjax'])->name('admin.bookings.update-ajax');
     // PHOTOGRAPHER VISITS
     Route::resource('photographer-visits', PhotographerVisitController::class);
-    Route::resource('photographer-visit-jobs', PhotographerVisitJobController::class);
-    Route::post('photographer-visit-jobs/{photographerVisitJob}/assign', [PhotographerVisitJobController::class, 'assign'])->name('photographer-visit-jobs.assign');
     // Legacy job-based check-in/out retained for backward compatibility
-    Route::get('photographer-visit-jobs/{photographerVisitJob}/check-in', [PhotographerVisitJobController::class, 'checkInForm'])->name('photographer-visit-jobs.check-in-form');
-    Route::post('photographer-visit-jobs/{photographerVisitJob}/check-in', [PhotographerVisitJobController::class, 'checkIn'])->name('photographer-visit-jobs.check-in');
-    Route::get('photographer-visit-jobs/{photographerVisitJob}/check-out', [PhotographerVisitJobController::class, 'checkOutForm'])->name('photographer-visit-jobs.check-out-form');
-    Route::post('photographer-visit-jobs/{photographerVisitJob}/check-out', [PhotographerVisitJobController::class, 'checkOut'])->name('photographer-visit-jobs.check-out');
+    Route::get('photographer-visit-jobs/{photographerVisitJob}/check-in', [PhotographerVisitController::class, 'checkInForm'])->name('photographer-visit-jobs.check-in-form');
+    Route::post('photographer-visit-jobs/{photographerVisitJob}/check-in', [PhotographerVisitController::class, 'checkIn'])->name('photographer-visit-jobs.check-in');
+    Route::get('photographer-visit-jobs/{photographerVisitJob}/check-out', [PhotographerVisitController::class, 'checkOutForm'])->name('photographer-visit-jobs.check-out-form');
+    Route::post('photographer-visit-jobs/{photographerVisitJob}/check-out', [PhotographerVisitController::class, 'checkOut'])->name('photographer-visit-jobs.check-out');
     // Portfolios
     Route::resource('portfolios', AdminPortfolioController::class);
     Route::resource('holidays', HolidayController::class);

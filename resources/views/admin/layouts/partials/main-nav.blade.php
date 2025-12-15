@@ -106,17 +106,6 @@
                     </li>
                @endcan
 
-               @can('photographer_visit_job_view')
-                    <li class="nav-item">
-                         <a class="nav-link {{ request()->routeIs('admin.photographer-visit-jobs.*') ? 'active' : '' }}" href="{{ route('admin.photographer-visit-jobs.index') }}">
-                              <span class="nav-icon">
-                                   <i class="ri-briefcase-line"></i>
-                              </span>
-                              <span class="nav-text">Photographer Jobs</span>
-                         </a>
-                    </li>
-               @endcan
-
                @can('tour_view')
                     <li class="nav-item">
                          <a class="nav-link {{ request()->routeIs('admin.tours.*') ? 'active' : '' }}"
