@@ -70,3 +70,20 @@ p.no-span {
           left: 1.5%;
      }
 }
+
+// Sign In button custom color to match logo base color
+.authentication-form {
+     .btn-danger,
+     #btn-submit-login,
+     #btn-submit-register {
+          background-color: #1f395a !important;
+          border-color: #1f395a !important;
+          
+          &:hover,
+          &:focus,
+          &:active {
+               background-color: #152742 !important;
+               border-color: #152742 !important;
+          }
+     }
+}

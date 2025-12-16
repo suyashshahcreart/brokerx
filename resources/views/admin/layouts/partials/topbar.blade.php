@@ -20,6 +20,15 @@
                </div>
 
                <div class="d-flex align-items-center gap-1">
+
+                    <!-- Theme Color (Light/Dark) -->
+                    <div class="topbar-item">
+                         <a href="{{ route('admin.assignment-calendar') }}" class="topbar-button" >
+                              <i class="ri-calendar-todo-line fs-24"></i>
+                         </a>
+                    </div>
+
+
                     <!-- Theme Color (Light/Dark) -->
                     <div class="topbar-item">
                          <button type="button" class="topbar-button" id="light-dark-mode">

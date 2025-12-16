@@ -1,12 +1,12 @@
 <div class="main-nav">
      <!-- Sidebar Logo -->
      <div class="logo-box">
-          <a href="#" class="logo-dark">
+          <a href="{{ route('admin.index') }}" class="logo-dark">
                <img src="{{ asset('images/proppik-logo-sm.png') }}" class="logo-sm" alt="logo sm">
                <img src="{{ asset('images/proppik-logo.jpg') }}" class="logo-lg" alt="logo dark">
           </a>
 
-          <a href="#" class="logo-light">
+          <a href="{{ route('admin.index') }}" class="logo-light">
                <img src="{{ asset('images/proppik-logo-sm.png') }}" class="logo-sm" alt="logo sm">
                <img src="{{ asset('images/proppik-logo-light.png') }}" class="logo-lg" alt="logo light">
           </a>
@@ -24,8 +24,8 @@
                <li class="menu-title">Menu</li>
 
                <li class="nav-item">
-                    <a class="nav-link {{ request()->routeIs('admin.root') ? 'active' : '' }}"
-                         href="{{ route('root') }}">
+                    <a class="nav-link {{ request()->routeIs('admin.index') ? 'active' : '' }}"
+                         href="{{ route('admin.index') }}">
                          <span class="nav-icon">
                               <i class="ri-dashboard-2-line"></i>
                          </span>
@@ -57,23 +57,25 @@
                          </a>
                     </li>
 
-                    <li class="nav-item">
-                         <a class="nav-link {{ request()->routeIs('admin.pending-schedules.*') ? 'active' : '' }}"
-                              href="{{ route('admin.pending-schedules.index') }}">
-                              <span class="nav-icon">
-                                   <i class="ri-calendar-todo-line"></i>
-                              </span>
-                              <span class="nav-text">Pending Schedules</span>
-                              @php
-                                   $pendingCount = \App\Models\Booking::whereIn('status', ['schedul_pending', 'reschedul_pending'])->count();
-                              @endphp
-                              @if($pendingCount > 0)
-                                   <span class="badge bg-warning ms-auto">{{ $pendingCount }}</span>
-                              @endif
-                         </a>
-                    </li>
+                    @unlessrole('photographer')
+                         <li class="nav-item">
+                              <a class="nav-link {{ request()->routeIs('admin.pending-schedules.*') ? 'active' : '' }}"
+                                   href="{{ route('admin.pending-schedules.index') }}">
+                                   <span class="nav-icon">
+                                        <i class="ri-calendar-todo-line"></i>
+                                   </span>
+                                   <span class="nav-text">Pending Schedules</span>
+                                   @php
+                                        $pendingCount = \App\Models\Booking::whereIn('status', ['schedul_pending', 'reschedul_pending'])->count();
+                                   @endphp
+                                   @if($pendingCount > 0)
+                                        <span class="badge bg-warning ms-auto">{{ $pendingCount }}</span>
+                                   @endif
+                              </a>
+                         </li>
+                    @endunlessrole
 
-                    <li class="nav-item">
+                    <li class="nav-item @unlessrole('photographer') d-none @else d- @endunless">
                          <a class="nav-link {{ request()->routeIs('admin.assignment-calendar') && !request()->routeIs('admin.pending-schedules.*') ? 'active' : '' }}"
                               href="{{ route('admin.assignment-calendar') }}">
                               <span class="nav-icon">
@@ -83,15 +85,17 @@
                          </a>
                     </li>
 
-                    <li class="nav-item">
-                         <a class="nav-link {{ request()->routeIs('admin.booking-assignees.*') ? 'active' : '' }}"
-                              href="{{ route('admin.booking-assignees.index') }}">
-                              <span class="nav-icon">
-                                   <i class="ri-camera-lens-line"></i>
-                              </span>
-                              <span class="nav-text">Booking Assignees</span>
-                         </a>
-                    </li>
+                    @unlessrole('photographer')
+                         <li class="nav-item ">
+                              <a class="nav-link {{ request()->routeIs('admin.booking-assignees.*') ? 'active' : '' }}"
+                                   href="{{ route('admin.booking-assignees.index') }}">
+                                   <span class="nav-icon">
+                                        <i class="ri-camera-lens-line"></i>
+                                   </span>
+                                   <span class="nav-text">Booking Assignees</span>
+                              </a>
+                         </li>
+                    @endunlessrole
                @endcan
 
                <!-- photographer -->
@@ -172,7 +176,7 @@
                     @endcan
 
                     @can('activity_view')
-                         <li class="nav-item">
+                         <li class="nav-item d-none">
                               <a class="nav-link {{ request()->routeIs('admin.activity.*') ? 'active' : '' }}"
                                    href="{{ route('admin.activity.index') }}">
                                    <span class="nav-icon">
