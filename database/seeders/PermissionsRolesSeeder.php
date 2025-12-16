@@ -52,7 +52,7 @@ class PermissionsRolesSeeder extends Seeder
             'portfolio_create',
             'portfolio_edit',
             'portfolio_delete',
-            
+
             //booking 
             'booking_view',
             'booking_create',
@@ -95,6 +95,13 @@ class PermissionsRolesSeeder extends Seeder
             'tour_create',
             'tour_edit',
             'tour_delete',
+
+            // Booking Assignee management
+            'booking_assignee_view',
+            'booking_assignee_create',
+            'booking_assignee_edit',
+            'booking_assignee_delete',
+            'booking_assignee_assign',
         ];
 
         foreach ($permissions as $permissionName) {
@@ -104,6 +111,7 @@ class PermissionsRolesSeeder extends Seeder
         $adminRole = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
         $brokerRole = Role::firstOrCreate(['name' => 'broker', 'guard_name' => 'web']);
         $photographerRole = Role::firstOrCreate(['name' => 'photographer', 'guard_name' => 'web']);
+        $customer = Role::firstOrCreate(['name' => 'customer', 'guard_name' => 'web']);
 
         $adminRole->syncPermissions(Permission::all());
 
