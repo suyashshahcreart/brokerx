@@ -6,6 +6,7 @@ use App\Models\BookingAssignee;
 use App\Models\Booking;
 use App\Models\BookingHistory;
 use App\Models\PhotographerVisit;
+use App\Models\Setting;
 use App\Models\User;
 use App\Models\City;
 use App\Models\State;
@@ -175,7 +176,82 @@ class BookingAssigneeController extends Controller
 
         // Get booking to extract date
         $booking = Booking::findOrFail($validated['booking_id']);
-        
+
+        // Validate assigned time against photographer availability settings
+        $from = Setting::where('name', 'photographer_available_from')->value('value') ?? '08:00';
+        $to = Setting::where('name', 'photographer_available_to')->value('value') ?? '21:00';
+        $duration = (int) (Setting::where('name', 'photographer_working_duration')->value('value') ?? 60);
+
+        $toMinutes = function ($t) {
+            $parts = explode(':', $t);
+            if (count($parts) < 2) return null;
+            return (int)$parts[0] * 60 + (int)$parts[1];
+        };
+
+        $timeMins = $toMinutes($validated['time']);
+        $fromMins = $toMinutes($from);
+        $toMins = $toMinutes($to);
+        // Per user request: allow start times up to the configured 'to' (do not subtract duration)
+
+        if ($fromMins === null || $toMins === null || $timeMins === null) {
+            $error = 'Invalid time format for photographer availability or selected time.';
+            if ($request->ajax()) {
+                return response()->json(['success' => false, 'message' => $error], 422);
+            }
+            return redirect()->back()->with('error', $error)->withInput();
+        }
+
+        if ($toMins < $fromMins) {
+            $error = 'Invalid photographer availability: end time is before start time.';
+            if ($request->ajax()) {
+                return response()->json(['success' => false, 'message' => $error], 422);
+            }
+            return redirect()->back()->with('error', $error)->withInput();
+        }
+
+        if ($timeMins < $fromMins || $timeMins > $toMins) {
+            $error = 'Selected time is outside allowed photographer availability.';
+            if ($request->ajax()) {
+                return response()->json(['success' => false, 'message' => $error], 422);
+            }
+            return redirect()->back()->with('error', $error)->withInput();
+        }
+
+        // Check for overlapping assignments for the selected photographer on the same date
+        // We treat assignments as occupying a [start, start + duration) interval and reject overlapping intervals
+        $duration = (int) $duration; // ensure integer minutes
+        $newStart = $timeMins;
+        $newEnd = $timeMins + $duration;
+
+        $existingAssignments = BookingAssignee::where('user_id', $validated['user_id'])
+            ->whereDate('date', $booking->booking_date)
+            ->get();
+
+        foreach ($existingAssignments as $assignment) {
+            $existingTime = $assignment->time;
+            // time may be stored as datetime or string; normalize to H:i
+            if ($existingTime instanceof \DateTime) {
+                $existingTimeStr = $existingTime->format('H:i');
+            } elseif (is_object($existingTime) && method_exists($existingTime, 'format')) {
+                $existingTimeStr = $existingTime->format('H:i');
+            } else {
+                $existingTimeStr = (string) $existingTime;
+            }
+
+            $existingStart = $toMinutes($existingTimeStr);
+            if ($existingStart === null) continue;
+            $existingEnd = $existingStart + $duration;
+
+            // Overlap check
+            if ($newStart < $existingEnd && $newEnd > $existingStart) {
+                $error = 'Selected photographer already has an assignment that overlaps the chosen time.';
+                if ($request->ajax()) {
+                    return response()->json(['success' => false, 'message' => $error], 422);
+                }
+                return redirect()->back()->with('error', $error)->withInput();
+            }
+        }
+
         // Set date from booking_date if available
         $validated['date'] = $booking->booking_date;
         $validated['created_by'] = auth()->id();

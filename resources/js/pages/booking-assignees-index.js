@@ -139,6 +139,37 @@ $(document).ready(function () {
             return;
         }
 
+        // Client-side double check: ensure selected time is within allowed range and aligned to slots
+        const assignTimeInput = document.getElementById('assignTime');
+        const modalEl = document.getElementById('assignBookingModal');
+        const availableFrom = modalEl?.dataset?.photographerFrom || '08:00';
+        const availableTo = modalEl?.dataset?.photographerTo || '21:00';
+        const workingDuration = parseInt(modalEl?.dataset?.photographerDuration || '60', 10);
+
+        function toMinutesLocal(t) {
+            const parts = (t || '').split(':'); if (parts.length < 2) return null; return parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
+        }
+
+        const timeMins = toMinutesLocal(time);
+        const fromMins = toMinutesLocal(availableFrom);
+        const toMins = toMinutesLocal(availableTo);
+        // Note: using a select with 15-min slots; max allowed is availableTo
+
+        if (timeMins === null) {
+            Swal.fire({ icon: 'warning', title: 'Invalid Time', text: 'Please choose a valid time.' });
+            return;
+        }
+
+        if (toMins < fromMins) {
+            Swal.fire({ icon: 'warning', title: 'No Available Slot', text: 'No available slots configured. Please update settings.' });
+            return;
+        }
+
+        if (timeMins < fromMins || timeMins > toMins) {
+            Swal.fire({ icon: 'warning', title: 'Time Not Allowed', text: `Selected time is outside allowed photographer availability (${availableFrom} — ${availableTo}).` });
+            return;
+        }
+
         // Disable submit button to prevent double submission
         const submitBtn = this.querySelector('button[type="submit"]');
         submitBtn.disabled = true;
@@ -340,8 +371,96 @@ function bindAssignButtons() {
             document.getElementById('modalDate').value = date || '';
 
             // Reset form fields
-            document.getElementById('assignTime').value = '';
-            document.getElementById('assignPhotographer').value = '';
+            const assignTimeEl = document.getElementById('assignTime');
+            assignTimeEl.value = '';
+            const assignPhotographerEl = document.getElementById('assignPhotographer');
+            assignPhotographerEl.value = '';
+
+            // Read photographer availability from modal data attributes
+            const modalEl = document.getElementById('assignBookingModal');
+            const availableFrom = modalEl?.dataset?.photographerFrom || '08:00';
+            const availableTo = modalEl?.dataset?.photographerTo || '21:00';
+            const workingDuration = parseInt(modalEl?.dataset?.photographerDuration || '60', 10);
+
+            function toMinutes(t) {
+                const parts = (t || '').split(':');
+                if (parts.length < 2) return null;
+                return parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
+            }
+
+            function formatHM(m) {
+                const h = Math.floor(m / 60).toString().padStart(2, '0');
+                const mm = (m % 60).toString().padStart(2, '0');
+                return `${h}:${mm}`;
+            }
+
+            // Display in 12-hour format with AM/PM for user-friendly labels
+            function formatDisplay(m) {
+                const hours = Math.floor(m / 60);
+                const minutes = m % 60;
+                const period = hours >= 12 ? 'PM' : 'AM';
+                let h12 = hours % 12;
+                if (h12 === 0) h12 = 12;
+                return `${h12}:${minutes.toString().padStart(2, '0')} ${period}`;
+            }
+
+            const fromM = toMinutes(availableFrom);
+            const toM = toMinutes(availableTo);
+            const slotStep = 15; // minutes between options
+
+            // Update helper text and disable select until photographer is chosen
+            const helper = document.getElementById('assignTimeHelper');
+            if (helper) {
+                helper.textContent = 'Select a photographer first to see available 15-minute slots.';
+            }
+            assignTimeEl.disabled = true;
+            // Clear existing options
+            assignTimeEl.innerHTML = '<option value="">Select a time</option>';
+
+            function populateTimeOptions() {
+                assignTimeEl.innerHTML = '<option value="">Select a time</option>';
+                if (toM < fromM) return;
+                for (let t = fromM; t <= toM; t += slotStep) {
+                    const opt = document.createElement('option');
+                    opt.value = formatHM(t);
+                    opt.textContent = formatDisplay(t);
+                    assignTimeEl.appendChild(opt);
+                }
+                // Ensure final availableTo is present
+                const lastVal = formatHM(toM);
+                if (![...assignTimeEl.options].some(o => o.value === lastVal)) {
+                    const opt = document.createElement('option');
+                    opt.value = lastVal;
+                    opt.textContent = formatDisplay(toM);
+                    assignTimeEl.appendChild(opt);
+                }
+            }
+
+            // Enable/disable and populate select based on photographer selection
+            assignPhotographerEl.onchange = function () {
+                if (this.value) {
+                    if (toM < fromM) {
+                        assignTimeEl.disabled = true;
+                        assignTimeEl.innerHTML = '<option value="">Select a time</option>';
+                        if (helper) helper.textContent = 'No available slots for photographers. Please update settings.';
+                        return;
+                    }
+
+                    populateTimeOptions();
+                    assignTimeEl.disabled = false;
+                    // Select first available
+                    if (!assignTimeEl.value && assignTimeEl.options.length > 1) {
+                        assignTimeEl.value = assignTimeEl.options[1].value;
+                    }
+                    assignTimeEl.focus();
+                    if (helper) helper.textContent = `Available slots: ${formatDisplay(fromM)} — ${formatDisplay(toM)} (every ${slotStep} min)`;
+                } else {
+                    assignTimeEl.disabled = true;
+                    assignTimeEl.value = '';
+                    assignTimeEl.innerHTML = '<option value="">Select a time</option>';
+                    if (helper) helper.textContent = 'Select a photographer first to see available 15-minute slots.';
+                }
+            };
 
             const form = document.getElementById('assignBookingForm');
             form.setAttribute('data-booking-id', bookingId);

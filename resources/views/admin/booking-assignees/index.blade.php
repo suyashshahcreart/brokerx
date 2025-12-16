@@ -115,7 +115,7 @@
     </div>
     <!-- Assignment Modal -->
     <div class="modal fade" id="assignBookingModal" tabindex="-1" aria-labelledby="assignBookingModalLabel"
-        aria-hidden="true">
+        aria-hidden="true" data-photographer-from="{{ \App\Models\Setting::where('name','photographer_available_from')->value('value') ?? '08:00' }}" data-photographer-to="{{ \App\Models\Setting::where('name','photographer_available_to')->value('value') ?? '21:00' }}" data-photographer-duration="{{ \App\Models\Setting::where('name','photographer_working_duration')->value('value') ?? '60' }}">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
@@ -152,19 +152,7 @@
                             </div>
                         </div>
 
-                        <!-- Assignment Details Section -->
-                        <div class="row">
-                            <div class="col-md-6">
-                                <label for="modalDate" class="form-label">Booking Date</label>
-                                <input type="date" id="modalDate" class="form-control" disabled>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="assignTime" class="form-label">Assign Time <span
-                                        class="text-danger">*</span></label>
-                                <input type="time" id="assignTime" name="time" class="form-control" required>
-                            </div>
-                        </div>
-
+                        <!-- Photographer Select -->
                         <div class="mb-3 mt-3">
                             <label for="assignPhotographer" class="form-label">Select Photographer <span
                                     class="text-danger">*</span></label>
@@ -174,6 +162,22 @@
                                     <option value="{{ $user->id }}">{{ $user->name }}</option>
                                 @endforeach
                             </select>
+                        </div>
+
+                        <!-- Assignment Details Section -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label for="modalDate" class="form-label">Booking Date</label>
+                                <input type="date" id="modalDate" class="form-control" disabled>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="assignTime" class="form-label">Assign Time <span
+                                        class="text-danger">*</span></label>
+                                <select id="assignTime" name="time" class="form-select" disabled required>
+                                    <option value="">Select a time</option>
+                                </select>
+                                <div id="assignTimeHelper" class="form-text text-muted small">Select a photographer first to see available 15-minute slots.</div>
+                            </div> 
                         </div>
                     </div>
                     <div class="modal-footer">
