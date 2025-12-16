@@ -75,7 +75,7 @@ Route::group(['prefix' => 'themes', 'middleware' => 'auth'], function () {
 
 
 Route::group(['prefix' => 'admin', 'as' => 'admin.', 'middleware' => ['web', 'auth']], function () {
-    Route::get('/', [AdminDashboardController::class, 'index']);
+    Route::get('/', [AdminDashboardController::class, 'index'])->name('index');
     Route::resource('permissions', PermissionController::class);
     Route::resource('roles', RoleController::class);
     Route::resource('users', AdminUserController::class);

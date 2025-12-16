@@ -7,7 +7,7 @@
             <div class="card-body px-3 py-5">
                 <div class="mx-auto mb-4 text-center auth-logo">
                     <a href="##" class="logo-dark">
-                        <img src="{{ asset('images/logo-dark.png') }}" height="32" alt="logo dark">
+                        <img src="{{ asset('images/proppik-logo.jpg') }}" height="32" alt="logo dark">
                     </a>
 
                     <a href="##" class="logo-light">
