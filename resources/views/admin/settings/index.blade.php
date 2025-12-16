@@ -94,6 +94,16 @@
                                                 <small class="form-text text-muted">Booking schedule dates will be available starting from next day + this number of days. For example, if set to 7, bookings will be available from 7 days from next day onwards.</small>
                                             </div>
 
+                                            <!-- PER DAY BOOKING -->
+                                            <div class="mb-3">
+                                                <label for="per_day_booking" class="form-label">Per Day Booking <span
+                                                        class="text-danger">*</span></label>
+                                                <input type="number" name="per_day_booking" id="per_day_booking"
+                                                    value="{{ $settings['per_day_booking'] ?? '20' }}" class="form-control"
+                                                    placeholder="e.g., 20" required min="1" max="1000">
+                                                <small class="form-text text-muted">Maximum number of bookings allowed per day. If a date reaches this limit, it will be automatically disabled in the calendar. This count includes all booking statuses except declined schedules (schedul_decline).</small>
+                                            </div>
+
                                             <!-- CUSTOMER SCHEDULE ATTEMPTS -->
                                             <div class="mb-3">
                                                 <label for="customer_attempt" class="form-label">Customer Schedule Attempts <span

@@ -3,8 +3,13 @@
  * Handles DataTables initialization and interactions
  */
 import $ from 'jquery';
+// Only set if not already set (app.js might have set it)
+if (typeof window.$ === 'undefined') {
+    window.$ = window.jQuery = $;
+}
+
 import 'datatables.net-bs5';
-import moment from 'moment';
+
 import Swal from 'sweetalert2';
 import 'bootstrap/js/dist/dropdown';
 const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
@@ -12,17 +17,37 @@ let table = null;
 
 // Initialize DataTable
 $(document).ready(function () {
-    // Initialize daterangepicker - it should be available from CDN script tag
-    if (typeof $.fn.daterangepicker === 'function') {
-        initializeDateRangePicker();
-    } else {
-        console.warn('daterangepicker not available, waiting...');
-        setTimeout(() => {
-            if (typeof $.fn.daterangepicker === 'function') {
-                initializeDateRangePicker();
+    // Wait for moment and daterangepicker from app.js (loaded by layout)
+    // app.js loads moment and daterangepicker, so we should use those
+    let waitAttempts = 0;
+    const maxWaitAttempts = 100; // Wait up to 10 seconds
+    
+    const initDateRangePicker = () => {
+        waitAttempts++;
+        
+        // Check if moment is available and has localeData function from app.js
+        if (typeof window.moment === 'undefined' || 
+            typeof window.moment.localeData !== 'function' || 
+            typeof $.fn.daterangepicker === 'undefined') {
+            // Wait for app.js to load them
+            if (waitAttempts < maxWaitAttempts) {
+                setTimeout(initDateRangePicker, 100);
+            } else {
+                console.error('Timeout waiting for moment and daterangepicker from app.js');
             }
-        }, 500);
-    }
+            return;
+        }
+        
+        // Ensure moment locale is set
+        if (typeof window.moment.localeData === 'function') {
+            window.moment.locale('en');
+        }
+        
+        initializeDateRangePicker();
+    };
+    
+    // Initialize daterangepicker (will use the one from app.js)
+    initDateRangePicker();
 
     table = $('#bookingAssigneesTable').DataTable({
         processing: true,
@@ -210,21 +235,76 @@ $(document).ready(function () {
  * Initialize Date Range Picker
  */
 function initializeDateRangePicker() {
-    $('#filterDateRange').daterangepicker({
-        startDate: moment(),
-        endDate: moment().add(1, 'month'),
-        locale: {
-            format: 'DD/MM/YYYY'
+    const input = $('#filterDateRange');
+    if (!input.length || input.length === 0) {
+        // Element doesn't exist yet, try again later
+        setTimeout(initializeDateRangePicker, 200);
+        return;
+    }
+    
+    // Ensure moment is available and has localeData
+    if (typeof window.moment === 'undefined' || typeof window.moment.localeData !== 'function') {
+        console.error('Moment.js is not available or localeData is not a function');
+        // Try to fix it
+        if (typeof window.moment !== 'undefined') {
+            window.moment.locale('en');
         }
-    });
+        if (typeof window.moment === 'undefined' || typeof window.moment.localeData !== 'function') {
+            return;
+        }
+    }
+    
+    // Ensure daterangepicker is available
+    if (typeof $.fn.daterangepicker === 'undefined') {
+        console.error('Daterangepicker is not available');
+        return;
+    }
+    
+    // Check if already initialized
+    if (input.data('daterangepicker')) {
+        return;
+    }
+    
+    try {
+        // Use window.moment from app.js
+        const momentInstance = window.moment;
+        
+        // Verify moment has localeData before proceeding
+        if (typeof momentInstance === 'undefined' || typeof momentInstance.localeData !== 'function') {
+            console.error('Moment is not available or localeData is not a function');
+            return;
+        }
+        
+        // Ensure locale is set
+        momentInstance.locale('en');
+        
+        input.daterangepicker({
+            startDate: momentInstance(),
+            endDate: momentInstance().add(1, 'month'),
+            locale: {
+                format: 'DD/MM/YYYY'
+            },
+            autoUpdateInput: false
+        });
 
-    $('#filterDateRange').on('apply.daterangepicker', function (ev, picker) {
-        $(this).val(picker.startDate.format('YYYY-MM-DD') + ' - ' + picker.endDate.format('YYYY-MM-DD'));
-    });
+        input.on('apply.daterangepicker', function (ev, picker) {
+            $(this).val(picker.startDate.format('YYYY-MM-DD') + ' - ' + picker.endDate.format('YYYY-MM-DD'));
+            // Reload table if it exists
+            if (table) {
+                table.draw();
+            }
+        });
 
-    $('#filterDateRange').on('cancel.daterangepicker', function (ev, picker) {
-        $(this).val('');
-    });
+        input.on('cancel.daterangepicker', function (ev, picker) {
+            $(this).val('');
+            // Reload table if it exists
+            if (table) {
+                table.draw();
+            }
+        });
+    } catch (error) {
+        console.error('Error initializing daterangepicker:', error);
+    }
 }
 
 /**

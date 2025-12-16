@@ -203,6 +203,25 @@
 @endsection
 
 @section('content')
+    {{-- Flash Messages --}}
+    @if(session('error'))
+        <div class="container mt-4">
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="fa-solid fa-exclamation-circle me-2"></i>
+                <strong>Error:</strong> {{ session('error') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        </div>
+    @endif
+    @if(session('success'))
+        <div class="container mt-4">
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="fa-solid fa-check-circle me-2"></i>
+                <strong>Success:</strong> {{ session('success') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        </div>
+    @endif
     <!-- Progress scroll totop -->
     <div class="progress-wrap cursor-pointer">
         <svg class="progress-circle svg-content" width="100%" height="100%" viewBox="-1 -1 102 102">
@@ -326,13 +345,23 @@
                                 // Check if blocked
                                 $isBlocked = $status === 'reschedul_blocked';
                                 
-                                // Get ACCEPTED attempt count and max attempts (not pending)
+                                // Get attempt count and max attempts
                                 $attemptCount = 0;
                                 $maxAttempts = 3;
                                 if ($isBlocked || in_array($status, ['schedul_pending', 'schedul_accepted', 'schedul_decline', 'reschedul_pending', 'reschedul_accepted', 'reschedul_decline'])) {
-                                    $attemptCount = \App\Models\BookingHistory::where('booking_id', $booking->id)
+                                    // Count accepted attempts
+                                    $acceptedAttempts = \App\Models\BookingHistory::where('booking_id', $booking->id)
                                         ->whereIn('to_status', ['schedul_accepted', 'reschedul_accepted'])
                                         ->count();
+                                    
+                                    // If status is pending, add 1 for the current pending attempt
+                                    if (in_array($status, ['schedul_pending', 'reschedul_pending'])) {
+                                        $attemptCount = $acceptedAttempts + 1;
+                                    } else {
+                                        // For accepted or declined, use the accepted count
+                                        $attemptCount = $acceptedAttempts;
+                                    }
+                                    
                                     $maxAttemptsSetting = \App\Models\Setting::where('name', 'customer_attempt')->first();
                                     $maxAttempts = $maxAttemptsSetting ? (int) $maxAttemptsSetting->value : 3;
                                 }
@@ -433,6 +462,24 @@
                                                 <div class="mb-2">
                                                     <small class="text-muted"><i class="fa-solid fa-chart-line me-1"></i>Attempt {{ $attemptCount }} of {{ $maxAttempts }}</small>
                                                 </div>
+                                                @php
+                                                    // Get decline reason from latest history entry
+                                                    $declineReason = null;
+                                                    $latestHistory = \App\Models\BookingHistory::where('booking_id', $booking->id)
+                                                        ->whereIn('to_status', ['schedul_decline', 'reschedul_decline'])
+                                                        ->orderBy('created_at', 'desc')
+                                                        ->first();
+                                                    if ($latestHistory && isset($latestHistory->metadata['reason'])) {
+                                                        $declineReason = $latestHistory->metadata['reason'];
+                                                    }
+                                                @endphp
+                                                @if($declineReason)
+                                                    <div class="alert alert-danger py-2 mb-2" role="alert">
+                                                        <small class="d-block">
+                                                            <i class="fa-solid fa-exclamation-triangle me-1"></i><strong>Reason:</strong> {{ $declineReason }}
+                                                        </small>
+                                                    </div>
+                                                @endif
                                                 @if($attemptCount >= $maxAttempts)
                                                     {{-- Show blocked message when at limit --}}
                                                     <div class="alert alert-danger py-2 mb-2" role="alert">
@@ -450,9 +497,39 @@
                                                     </div>
                                                 @endif
                                             @elseif(in_array($status, ['schedul_accepted', 'reschedul_accepted']) && $showScheduledDate)
+                                                {{-- Info message for accepted status - waiting for photographer assignment --}}
+                                                <div class="alert alert-info py-2 mb-2" role="alert" style="border-left: 4px solid #0dcaf0; background-color: #d1ecf1;">
+                                                    <small class="d-block">
+                                                        <i class="fa-solid fa-clock me-1"></i><strong>Photographer Assignment in Progress:</strong> Your booking date has been accepted! In a short time, a photographer will be assigned and a specific time will be set for when the photographer visits your property to start your property tour photography. Please wait for the admin to assign the photographer and schedule the visit time.
+                                                    </small>
+                                                </div>
+                                                
                                                 <div class="mb-2">
                                                     <small class="text-success"><i class="fa-solid fa-calendar-check me-1"></i><strong>Scheduled:</strong> {{ $scheduledDate }} at {{ $booking->scheduled_time ?? 'TBD' }}</small>
                                                 </div>
+                                                
+                                                {{-- Admin notes only visible to admin users (not shown to customers) --}}
+                                                @php
+                                                    $isAdmin = Auth::check() && (Auth::user()->hasRole('admin') || Auth::user()->hasRole('super_admin'));
+                                                    // Get admin notes from latest history entry
+                                                    $adminNotes = null;
+                                                    if ($isAdmin) {
+                                                        $latestHistory = \App\Models\BookingHistory::where('booking_id', $booking->id)
+                                                            ->whereIn('to_status', ['schedul_accepted', 'reschedul_accepted'])
+                                                            ->orderBy('created_at', 'desc')
+                                                            ->first();
+                                                        if ($latestHistory && isset($latestHistory->metadata['admin_notes'])) {
+                                                            $adminNotes = $latestHistory->metadata['admin_notes'];
+                                                        }
+                                                    }
+                                                @endphp
+                                                @if($adminNotes && $isAdmin)
+                                                    <div class="alert alert-secondary py-2 mb-2" role="alert" style="border-left: 4px solid #6c757d;">
+                                                        <small class="d-block">
+                                                            <i class="fa-solid fa-user-shield me-1"></i><strong>Admin Notes:</strong> {{ $adminNotes }}
+                                                        </small>
+                                                    </div>
+                                                @endif
                                             @elseif($showScheduledDate)
                                                 <div class="mb-2">
                                                     <small class="text-success"><i class="fa-solid fa-calendar-check me-1"></i><strong>Scheduled:</strong> {{ $scheduledDate }} at {{ $booking->scheduled_time ?? 'TBD' }}</small>
@@ -483,9 +560,9 @@
                                         
                                         <div class="d-flex gap-2">
                                             {{-- View button - always shown --}}
-                                            <button class="btn btn-sm btn-info flex-fill" onclick="openViewModal({{ $booking->id }})">
+                                            <a href="{{ route('frontend.booking.show', $booking->id) }}" class="btn btn-sm btn-info flex-fill">
                                                 <i class="fa-solid fa-eye me-1"></i>View
-                                            </button>
+                                            </a>
                                             
                                             @if($isPaymentPaid)
                                                 {{-- Payment is paid - show schedule button based on status --}}
@@ -512,7 +589,12 @@
                                                     @endif
                                                 @elseif(in_array($status, ['schedul_accepted', 'reschedul_accepted', 'confirmed']) && $showScheduledDate)
                                                     {{-- Schedule approved - can reschedule --}}
-                                                    <button class="btn btn-sm btn-outline-primary flex-fill" onclick="openScheduleModal({{ $booking->id }})">
+                                                    <button class="btn btn-sm btn-outline-primary flex-fill reschedule-btn" 
+                                                            onclick="openScheduleModal({{ $booking->id }}, this)"
+                                                            data-status="{{ $status }}"
+                                                            data-booking-date="{{ $booking->booking_date ? \Carbon\Carbon::parse($booking->booking_date)->format('Y-m-d') : '' }}"
+                                                            data-attempt-count="{{ $attemptCount }}"
+                                                            data-max-attempts="{{ $maxAttempts }}">
                                                         <i class="fa-solid fa-calendar-edit me-1"></i>Reschedule
                                                     </button>
                                                 @elseif(!$scheduledDate)
@@ -522,7 +604,12 @@
                                                     </button>
                                                 @else
                                                     {{-- Has schedule --}}
-                                                    <button class="btn btn-sm btn-outline-primary flex-fill" onclick="openScheduleModal({{ $booking->id }})">
+                                                    <button class="btn btn-sm btn-outline-primary flex-fill reschedule-btn" 
+                                                            onclick="openScheduleModal({{ $booking->id }}, this)"
+                                                            data-status="{{ $status }}"
+                                                            data-booking-date="{{ $booking->booking_date ? \Carbon\Carbon::parse($booking->booking_date)->format('Y-m-d') : '' }}"
+                                                            data-attempt-count="{{ $attemptCount }}"
+                                                            data-max-attempts="{{ $maxAttempts }}">
                                                         <i class="fa-solid fa-calendar-edit me-1"></i>Reschedule
                                                     </button>
                                                 @endif
@@ -568,13 +655,19 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
+                    {{-- Blocked Message (will be populated dynamically) --}}
+                    <div id="blockedWarning" style="display: none;"></div>
+                    
+                    {{-- Reschedule Warning Message (will be populated dynamically) --}}
+                    <div id="rescheduleWarning" style="display: none;"></div>
+                    
                     <form id="scheduleForm">
                         <input type="hidden" id="scheduleBookingId">
                         <div class="mb-3">
                             <label class="form-label">Select Date <span class="text-danger">*</span></label>
                             <div class="date-input-group">
                                 <input type="text" class="form-control" id="scheduleDate" placeholder="Select a date" required readonly>
-                                <i class="ri-calendar-line date-icon"></i>
+                                <i class="ri-calendar-line date-icon" id="scheduleDateIcon"></i>
                             </div>
                         </div>
                         <div class="mb-3">
@@ -585,7 +678,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" onclick="saveSchedule()">Save Schedule</button>
+                    <button type="button" class="btn btn-primary" id="saveScheduleBtn" onclick="saveSchedule()">Save Schedule</button>
                 </div>
             </div>
         </div>
@@ -1013,17 +1106,225 @@
         // Convert Laravel bookings to frontend format for modal operations
         if (bookings && bookings.length > 0) {
             bookings = bookings.map(booking => {
+                // Get attempt count and max attempts from booking data
+                // These should be calculated on the backend and passed in the booking object
+                let attemptCount = booking.attempt_count || 0;
+                let maxAttempts = booking.max_attempts || 3;
+                const status = booking.status || 'pending';
+                
+                // If attempt_count is not provided, calculate it from status
+                if (!booking.attempt_count && ['schedul_pending', 'schedul_accepted', 'schedul_decline', 'reschedul_pending', 'reschedul_accepted', 'reschedul_decline', 'reschedul_blocked'].includes(status)) {
+                    // Try to get from history if available
+                    const acceptedAttempts = (booking.history || []).filter(h => 
+                        h && ['schedul_accepted', 'reschedul_accepted'].includes(h.to_status)
+                    ).length;
+                    
+                    if (['schedul_pending', 'reschedul_pending'].includes(status)) {
+                        attemptCount = acceptedAttempts + 1;
+                    } else {
+                        attemptCount = acceptedAttempts;
+                    }
+                }
+                
                 return {
                     id: booking.id,
-                    scheduledDate: booking.scheduled_date || null,
+                    status: status,
+                    booking_date: booking.booking_date || null,
+                    scheduled_date: booking.scheduled_date || booking.booking_date || null,
                     scheduledTime: booking.scheduled_time || null,
-                    scheduleNotes: booking.schedule_notes || null
+                    scheduleNotes: booking.schedule_notes || null,
+                    booking_notes: booking.booking_notes || null,
+                    notes: booking.notes || null,
+                    attemptCount: attemptCount,
+                    maxAttempts: maxAttempts
                 };
             });
         }
 
         // Flatpickr instance for schedule date
         let scheduleDatePicker = null;
+        
+        // Open schedule modal - Make it globally accessible (defined early to be available for onclick handlers)
+        window.openScheduleModal = async function(bookingId, triggerButton = null) {
+            const booking = bookings.find(b => b.id === bookingId);
+            if (!booking) return;
+
+            document.getElementById('scheduleBookingId').value = bookingId;
+            const existingDate = booking.scheduled_date || booking.booking_date || '';
+            document.getElementById('scheduleNotes').value = booking.booking_notes || booking.notes || '';
+
+            // Get attempt data from button that triggered the modal (if reschedule)
+            const blockedDiv = document.getElementById('blockedWarning');
+            const warningDiv = document.getElementById('rescheduleWarning');
+            const scheduleModal = document.getElementById('scheduleModal');
+            const scheduleDateInput = document.getElementById('scheduleDate');
+            const scheduleNotesInput = document.getElementById('scheduleNotes');
+            const scheduleDateIcon = document.getElementById('scheduleDateIcon');
+            const saveScheduleBtn = document.getElementById('saveScheduleBtn');
+            
+            let status = booking.status || 'pending';
+            let oldDate = booking.booking_date || booking.scheduled_date || null;
+            let attemptCount = booking.attemptCount || 0;
+            let maxAttempts = booking.maxAttempts || 3;
+            
+            // Get data from button if available (for reschedule buttons)
+            if (triggerButton && triggerButton.dataset) {
+                status = triggerButton.dataset.status || status;
+                oldDate = triggerButton.dataset.bookingDate || oldDate;
+                attemptCount = parseInt(triggerButton.dataset.attemptCount || attemptCount);
+                maxAttempts = parseInt(triggerButton.dataset.maxAttempts || maxAttempts);
+            }
+            
+            // Check if blocked (max attempts reached or status is reschedul_blocked)
+            const isBlocked = status === 'reschedul_blocked' || attemptCount >= maxAttempts;
+            
+            // Store original date and status for comparison
+            if (scheduleModal) {
+                scheduleModal.dataset.originalDate = oldDate || '';
+                scheduleModal.dataset.originalStatus = status;
+                scheduleModal.dataset.originalNotes = booking.booking_notes || booking.notes || '';
+            }
+            
+            // Show blocked message if max attempts reached
+            if (isBlocked) {
+                // Fetch admin contact info (you can replace these with actual settings)
+                const adminEmail = '{{ \App\Models\Setting::where("name", "support_email")->value("value") ?? "support@proppik.in" }}';
+                const adminPhone = '{{ \App\Models\Setting::where("name", "support_phone")->value("value") ?? "+91-XXXXXXXXXX" }}';
+                
+                const blockedHTML = `
+                    <div class="alert alert-danger py-3 mb-3" role="alert" style="border-left: 4px solid #dc3545; background-color: #f8d7da;">
+                        <div class="d-flex align-items-start">
+                            <i class="fa-solid fa-ban me-2 mt-1" style="color: #dc3545; font-size: 1.1rem;"></i>
+                            <div>
+                                <strong class="d-block mb-2" style="color: #721c24;">Maximum Attempts Reached</strong>
+                                <p class="mb-2 small" style="color: #721c24; line-height: 1.6;">
+                                    You have lost all your attempts (${attemptCount}/${maxAttempts}). You have now lost this booking.
+                                </p>
+                                <p class="mb-2 small" style="color: #721c24; line-height: 1.6;">
+                                    <strong>Please create a new booking to start the process again.</strong>
+                                </p>
+                                <p class="mb-0 small" style="color: #721c24; line-height: 1.6;">
+                                    If you have any doubts or queries, please contact the administration department:<br>
+                                    <i class="fa-solid fa-phone me-1"></i><strong>Phone:</strong> ${adminPhone}<br>
+                                    <i class="fa-solid fa-envelope me-1"></i><strong>Email:</strong> ${adminEmail}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                blockedDiv.innerHTML = blockedHTML;
+                blockedDiv.style.display = 'block';
+                warningDiv.style.display = 'none';
+                
+                // Disable inputs and button
+                if (scheduleDateInput) {
+                    scheduleDateInput.disabled = true;
+                    scheduleDateInput.style.cursor = 'not-allowed';
+                    scheduleDateInput.style.opacity = '0.6';
+                }
+                if (scheduleNotesInput) {
+                    scheduleNotesInput.disabled = true;
+                    scheduleNotesInput.style.cursor = 'not-allowed';
+                    scheduleNotesInput.style.opacity = '0.6';
+                }
+                if (scheduleDateIcon) {
+                    scheduleDateIcon.style.cursor = 'not-allowed';
+                    scheduleDateIcon.style.opacity = '0.5';
+                }
+                if (saveScheduleBtn) {
+                    saveScheduleBtn.disabled = true;
+                    saveScheduleBtn.style.cursor = 'not-allowed';
+                    saveScheduleBtn.style.opacity = '0.6';
+                }
+            } else {
+                // Not blocked - enable inputs and button
+                blockedDiv.innerHTML = '';
+                blockedDiv.style.display = 'none';
+                
+                if (scheduleDateInput) {
+                    scheduleDateInput.disabled = false;
+                    scheduleDateInput.style.cursor = '';
+                    scheduleDateInput.style.opacity = '';
+                }
+                if (scheduleNotesInput) {
+                    scheduleNotesInput.disabled = false;
+                    scheduleNotesInput.style.cursor = '';
+                    scheduleNotesInput.style.opacity = '';
+                }
+                if (scheduleDateIcon) {
+                    scheduleDateIcon.style.cursor = 'pointer';
+                    scheduleDateIcon.style.opacity = '';
+                }
+                if (saveScheduleBtn) {
+                    saveScheduleBtn.disabled = false;
+                    saveScheduleBtn.style.cursor = '';
+                    saveScheduleBtn.style.opacity = '';
+                }
+                
+                const isReschedule = ['schedul_accepted', 'reschedul_accepted'].includes(status);
+
+                if (isReschedule && oldDate) {
+                    // Format old date
+                    const oldDateObj = new Date(oldDate);
+                    const formattedOldDate = oldDateObj.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+                    
+                    // Calculate remaining attempts
+                    const remainingAttempts = maxAttempts - attemptCount;
+                    const isLastAttempt = attemptCount >= maxAttempts - 1;
+                    
+                    let warningHTML = `
+                        <div class="alert alert-warning py-3 mb-3" role="alert" style="border-left: 4px solid #ffc107; background-color: #fff3cd;">
+                            <div class="d-flex align-items-start">
+                                <i class="fa-solid fa-exclamation-triangle me-2 mt-1" style="color: #ffc107; font-size: 1.1rem;"></i>
+                                <div>
+                                    <strong class="d-block mb-2" style="color: #856404;">Reschedule Warning</strong>
+                                    <p class="mb-2 small" style="color: #856404; line-height: 1.6;">
+                                        <strong>Current Accepted Date:</strong> ${formattedOldDate}
+                                    </p>
+                                    <p class="mb-2 small" style="color: #856404; line-height: 1.6;">
+                                        If you change this date, it will count as a new attempt. You have already completed <strong>${attemptCount}</strong> of <strong>${maxAttempts}</strong> attempts.
+                                    </p>
+                    `;
+                    
+                    if (isLastAttempt) {
+                        warningHTML += `
+                                    <p class="mb-0 small" style="color: #721c24; line-height: 1.6; font-weight: 600;">
+                                        <i class="fa-solid fa-ban me-1"></i><strong>Warning:</strong> This is your last attempt! If you reschedule and this attempt reaches the maximum limit (${maxAttempts}), you will lose this booking and will need to create a new booking to start the process again.
+                                    </p>
+                        `;
+                    } else {
+                        warningHTML += `
+                                    <p class="mb-0 small" style="color: #856404; line-height: 1.6;">
+                                        <i class="fa-solid fa-info-circle me-1"></i>You have <strong>${remainingAttempts}</strong> attempt(s) remaining. If you reach the maximum limit (${maxAttempts}), you will lose this booking and will need to create a new booking to start the process again.
+                                    </p>
+                        `;
+                    }
+                    
+                    warningHTML += `
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    warningDiv.innerHTML = warningHTML;
+                    warningDiv.style.display = 'block';
+                } else {
+                    warningDiv.innerHTML = '';
+                    warningDiv.style.display = 'none';
+                }
+            }
+
+            const modal = new bootstrap.Modal(document.getElementById('scheduleModal'));
+            modal.show();
+            
+            // Initialize Flatpickr after modal is shown (only if not blocked)
+            if (!isBlocked) {
+                setTimeout(() => {
+                    initScheduleDatePicker(existingDate || null);
+                }, 100);
+            }
+        };
         
         // Initialize dashboard
         document.addEventListener('DOMContentLoaded', function () {
@@ -1068,12 +1369,13 @@
                 const data = await response.json();
                 const holidays = (data.holidays || []).map(h => h.date);
                 const availableDays = data.day_limit && data.day_limit.value ? parseInt(data.day_limit.value, 10) : 30;
+                const disabledDates = data.disabled_dates || []; // Dates that have reached per day booking limit
                 
-                return { holidays, availableDays };
+                return { holidays, availableDays, disabledDates };
             } catch (error) {
                 console.error('Error fetching holidays:', error);
                 // Return defaults on error
-                return { holidays: [], availableDays: 30 };
+                return { holidays: [], availableDays: 30, disabledDates: [] };
             }
         }
 
@@ -1088,7 +1390,7 @@
             if (!scheduleDateInput) return;
             
             // Fetch holidays and available days, then initialize
-            fetchHolidaysAndAvailableDays().then(({ holidays, availableDays }) => {
+            fetchHolidaysAndAvailableDays().then(({ holidays, availableDays, disabledDates }) => {
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
                 
@@ -1096,12 +1398,15 @@
                 const maxDate = new Date(today);
                 maxDate.setDate(today.getDate() + availableDays);
                 
+                // Combine holidays and disabled dates (dates at booking limit)
+                const allDisabledDates = [...holidays, ...disabledDates];
+                
                 // Initialize Flatpickr
                 scheduleDatePicker = flatpickr(scheduleDateInput, {
                     dateFormat: 'Y-m-d',
                     minDate: today,
                     maxDate: maxDate,
-                    disable: holidays,
+                    disable: allDisabledDates,
                     defaultDate: selectedDate || null,
                     allowInput: false,
                     clickOpens: true,
@@ -1119,39 +1424,76 @@
                             }
                             instance.clear();
                         }
+                        // Validate that selected date is not at booking limit
+                        else if (disabledDates.includes(dateStr)) {
+                            if (typeof Swal !== 'undefined') {
+                                Swal.fire({
+                                    icon: 'warning',
+                                    title: 'Date Fully Booked',
+                                    text: 'This date has reached the maximum number of bookings. Please choose another date.',
+                                    timer: 2000,
+                                    showConfirmButton: false
+                                });
+                            }
+                            instance.clear();
+                        }
                     }
                 });
             });
         }
 
-        // Open schedule modal
-        async function openScheduleModal(bookingId) {
-            const booking = bookings.find(b => b.id === bookingId);
-            if (!booking) return;
-
-            document.getElementById('scheduleBookingId').value = bookingId;
-            const existingDate = booking.scheduled_date || booking.booking_date || '';
-            document.getElementById('scheduleNotes').value = booking.booking_notes || booking.notes || '';
-
-            const modal = new bootstrap.Modal(document.getElementById('scheduleModal'));
-            modal.show();
-            
-            // Initialize Flatpickr after modal is shown
-            setTimeout(() => {
-                initScheduleDatePicker(existingDate || null);
-            }, 100);
-        }
-
-        // Save schedule
-        async function saveSchedule() {
+        // Save schedule - Make it globally accessible
+        window.saveSchedule = async function() {
             const bookingId = parseInt(document.getElementById('scheduleBookingId').value);
-            const scheduleDate = document.getElementById('scheduleDate').value;
+            const scheduleDateInput = document.getElementById('scheduleDate');
+            const scheduleDate = scheduleDateInput ? scheduleDateInput.value : '';
             const scheduleNotes = document.getElementById('scheduleNotes').value.trim();
+            
+            // Check if inputs are disabled (blocked state)
+            if (scheduleDateInput && scheduleDateInput.disabled) {
+                await showSweetAlert('error', 'Action Not Allowed', 'You have reached the maximum number of attempts. Please create a new booking.');
+                return;
+            }
 
             if (!scheduleDate) {
                 await showSweetAlert('warning', 'Validation Error', 'Please select a date');
                 return;
             }
+            
+            // Check if this is a reschedule (status is schedul_accepted or reschedul_accepted)
+            const scheduleModal = document.getElementById('scheduleModal');
+            const originalStatus = scheduleModal?.dataset.originalStatus || '';
+            const originalDate = scheduleModal?.dataset.originalDate || '';
+            const isReschedule = ['schedul_accepted', 'reschedul_accepted'].includes(originalStatus);
+            const dateChanged = originalDate && scheduleDate !== originalDate;
+            
+            // If reschedule and date changed, show confirmation
+            if (isReschedule && dateChanged) {
+                const originalDateFormatted = new Date(originalDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+                const newDateFormatted = new Date(scheduleDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+                
+                const result = await Swal.fire({
+                    icon: 'warning',
+                    title: 'Confirm Date Change',
+                    html: `
+                        <p>You have changed the date from <strong>${originalDateFormatted}</strong> to <strong>${newDateFormatted}</strong>.</p>
+                        <p>This will count as a new attempt and may affect your booking status.</p>
+                        <p><strong>Are you sure you want to proceed?</strong></p>
+                    `,
+                    showCancelButton: true,
+                    confirmButtonColor: '#dc3545',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Yes, Change Date',
+                    cancelButtonText: 'Cancel'
+                });
+                
+                if (!result.isConfirmed) {
+                    return; // User cancelled
+                }
+            }
+            
+            // Determine if we should only update notes (date not changed in reschedule)
+            const updateNotesOnly = isReschedule && !dateChanged;
 
             try {
                 // Make AJAX request to update booking in database
@@ -1166,7 +1508,8 @@
                         booking_id: bookingId,
                         scheduled_date: scheduleDate,
                         notes: scheduleNotes || null,
-                        booking_notes: scheduleNotes || null
+                        booking_notes: scheduleNotes || null,
+                        update_notes_only: updateNotesOnly
                     })
                 });
                 
@@ -1176,8 +1519,9 @@
                     const modal = bootstrap.Modal.getInstance(document.getElementById('scheduleModal'));
                     modal.hide();
 
-                    document.getElementById('successTitle').textContent = 'Schedule Updated!';
-                    document.getElementById('successMessage').textContent = 'Booking schedule has been updated successfully.';
+                    const isNotesOnly = updateNotesOnly;
+                    document.getElementById('successTitle').textContent = isNotesOnly ? 'Notes Updated!' : 'Schedule Updated!';
+                    document.getElementById('successMessage').textContent = data.message || (isNotesOnly ? 'Notes updated successfully.' : 'Booking schedule has been updated successfully.');
                     const successModal = new bootstrap.Modal(document.getElementById('successModal'));
                     successModal.show();
                     
@@ -1192,7 +1536,7 @@
                 console.error('Error updating schedule:', error);
                 await showSweetAlert('error', 'Error', 'Failed to update schedule. Please try again.');
             }
-        }
+        };
 
         // Delete booking
         function deleteBooking(bookingId) {

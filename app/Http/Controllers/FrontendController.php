@@ -6,6 +6,7 @@ use App\Models\PhotographerVisitJob;
 use App\Models\Tour;
 use Illuminate\Http\Request;
 use App\Models\Booking;
+use App\Models\BookingAssignee;
 use App\Models\BookingHistory;
 use App\Models\User;
 use App\Models\City;
@@ -40,16 +41,7 @@ class FrontendController extends Controller
         return view('frontend.index', compact('basePrice'));
     }
 
-    public function setup(Request $request)
-    {
-        // If user is logged in and has bookings, always redirect to booking dashboard first
-        // They can only access setup page from the "New Booking" button in dashboard
-        if (Auth::check()) {
-            $hasBookings = Booking::where('user_id', Auth::id())->exists();
-            if ($hasBookings && !$request->has('force_new')) {
-                return redirect()->route('frontend.booking-dashboard');
-            }
-        }
+    public function setup(Request $request){
 
         $types = PropertyType::with(['subTypes:id,property_type_id,name,icon'])->get(['id', 'name', 'icon']);
         $states = State::with(['cities:id,state_id,name'])->get(['id', 'name', 'code']);
@@ -881,6 +873,7 @@ class FrontendController extends Controller
                 'notes' => 'nullable|string',
                 'booking_notes' => 'nullable|string',
                 'price' => 'nullable|numeric|min:0',
+                'update_notes_only' => 'nullable|boolean',
             ]);
 
             $user = Auth::user();
@@ -911,9 +904,81 @@ class FrontendController extends Controller
                 
                 $oldStatus = $booking->status;
                 $scheduleChanged = false;
+                $updateNotesOnly = $validated['update_notes_only'] ?? false;
                 
                 // Only update schedule-related fields
                 if (isset($validated['scheduled_date'])) {
+                    $oldBookingDate = $booking->booking_date;
+                    $newBookingDate = $validated['scheduled_date'];
+                    
+                    // Compare dates properly (handle Carbon dates)
+                    $oldDateStr = $oldBookingDate ? (\Carbon\Carbon::parse($oldBookingDate)->format('Y-m-d')) : null;
+                    $newDateStr = \Carbon\Carbon::parse($newBookingDate)->format('Y-m-d');
+                    $dateChanged = $oldDateStr && $oldDateStr !== $newDateStr;
+                    
+                    // If update_notes_only is true, only update notes and don't change status/attempts
+                    if ($updateNotesOnly && !$dateChanged) {
+                        // Only update notes, no status change, no attempt count, no history
+                        if (isset($validated['notes']) || isset($validated['booking_notes'])) {
+                            $booking->booking_notes = $validated['notes'] ?? $validated['booking_notes'] ?? null;
+                        }
+                        $booking->updated_by = $user->id;
+                        $booking->save();
+                        
+                        return response()->json([
+                            'success' => true,
+                            'message' => 'Notes updated successfully.',
+                            'booking_id' => $booking->id,
+                        ]);
+                    }
+                    
+                    // Date changed or new schedule - proceed with full update
+                    
+                    // Check if there's an existing photographer assignment
+                    // If rescheduling, we need to remove the assignment but keep history
+                    $existingAssignees = BookingAssignee::where('booking_id', $booking->id)
+                        ->with('user')
+                        ->get()
+                        ->filter(function($assignee) {
+                            return $assignee->user && $assignee->user->hasRole('photographer');
+                        });
+                    
+                    // Store old assignment info for history before deletion
+                    $oldAssignmentInfo = null;
+                    $assignmentRemoved = false;
+                    if ($existingAssignees->isNotEmpty()) {
+                        $oldAssignee = $existingAssignees->first();
+                        $oldPhotographer = $oldAssignee->user;
+                        $oldAssignmentInfo = [
+                            'photographer_id' => $oldPhotographer->id ?? null,
+                            'photographer_name' => $oldPhotographer->name ?? null,
+                            'photographer_phone' => $oldPhotographer->mobile ?? null,
+                            'old_assigned_date' => $oldAssignee->date ? \Carbon\Carbon::parse($oldAssignee->date)->format('Y-m-d') : null,
+                            'old_assigned_time' => $oldAssignee->time ? \Carbon\Carbon::parse($oldAssignee->time)->format('H:i') : null,
+                        ];
+                        
+                        // Delete all photographer assignments for this booking
+                        // This removes the assignment but booking history remains intact
+                        foreach ($existingAssignees as $assignee) {
+                            $assignee->delete(); // Soft delete
+                        }
+                        $assignmentRemoved = true;
+                    }
+                    
+                    // Also check and remove PhotographerVisitJob if exists
+                    $visitJob = PhotographerVisitJob::where('booking_id', $booking->id)->first();
+                    if ($visitJob) {
+                        $visitJob->delete(); // Soft delete
+                        $assignmentRemoved = true;
+                    }
+                    
+                    // Clear booking_time when rescheduling (photographer assignment removed)
+                    // Clear it whenever date changes or assignment is removed
+                    // This ensures booking_time is empty when rescheduling
+                    if ($dateChanged || $assignmentRemoved || empty($booking->booking_time)) {
+                        $booking->booking_time = null;
+                    }
+                    
                     // Count customer's ACCEPTED schedule attempts (not pending)
                     $attemptCount = BookingHistory::where('booking_id', $booking->id)
                         ->whereIn('to_status', ['schedul_accepted', 'reschedul_accepted'])
@@ -956,12 +1021,12 @@ class FrontendController extends Controller
                         ], 422);
                     }
                     
-                    $oldBookingDate = $booking->booking_date;
                     // Store scheduled date in booking_date field
                     $booking->booking_date = $validated['scheduled_date'];
                     $booking->status = 'schedul_pending'; // Set status to schedule pending
                     $scheduleChanged = true;
                 }
+                
                 // Store notes in booking_notes field
                 if (isset($validated['notes']) || isset($validated['booking_notes'])) {
                     $booking->booking_notes = $validated['notes'] ?? $validated['booking_notes'] ?? null;
@@ -969,7 +1034,7 @@ class FrontendController extends Controller
                 $booking->updated_by = $user->id;
                 $booking->save();
 
-                // Create history entry for schedule request
+                // Create history entry for schedule request (only if schedule changed)
                 if ($scheduleChanged) {
                     // Count ACCEPTED schedules for metadata
                     $attemptCount = BookingHistory::where('booking_id', $booking->id)
@@ -979,22 +1044,44 @@ class FrontendController extends Controller
                     $maxAttempts = Setting::where('name', 'customer_attempt')->first();
                     $maxAttemptsValue = $maxAttempts ? (int) $maxAttempts->value : 3;
                     
+                    // Determine if this is a reschedule (checking if old status was accepted or assigned)
+                    $isReschedule = in_array($oldStatus, ['schedul_accepted', 'reschedul_accepted', 'schedul_assign']);
+                    
+                    // Build notes based on whether it's a reschedule
+                    $historyNotes = $isReschedule ? 'Reschedule requested by customer' : 'Schedule requested by customer';
+                    
+                    // Build metadata
+                    $metadata = [
+                        'step' => $isReschedule ? 'reschedule_request' : 'schedule_request',
+                        'scheduled_date' => $validated['scheduled_date'],
+                        'old_booking_date' => $oldBookingDate ? (\Carbon\Carbon::parse($oldBookingDate)->format('Y-m-d')) : null,
+                        'new_booking_date' => $booking->booking_date ? (\Carbon\Carbon::parse($booking->booking_date)->format('Y-m-d')) : null,
+                        'notes' => $booking->booking_notes,
+                        'attempt_number' => $attemptCount,
+                        'max_attempts' => $maxAttemptsValue,
+                        'remaining_attempts' => $maxAttemptsValue - $attemptCount,
+                    ];
+                    
+                    // Add old assignment info if it existed (for reschedule)
+                    if ($isReschedule && $assignmentRemoved) {
+                        if (isset($oldAssignmentInfo) && $oldAssignmentInfo) {
+                            $metadata['old_assignment'] = $oldAssignmentInfo;
+                            $photographerName = $oldAssignmentInfo['photographer_name'] ?? 'Unknown';
+                            $historyNotes .= ' - Photographer assignment removed (Photographer: ' . $photographerName . ')';
+                        } else {
+                            $historyNotes .= ' - Previous photographer assignment removed due to date change';
+                        }
+                        $metadata['assignment_removed'] = true;
+                        $metadata['booking_time_cleared'] = true;
+                    }
+                    
                     BookingHistory::create([
                         'booking_id' => $booking->id,
                         'from_status' => $oldStatus,
                         'to_status' => 'schedul_pending',
                         'changed_by' => $user->id,
-                        'notes' => 'Schedule requested by customer',
-                        'metadata' => array_filter([
-                            'step' => 'schedule_request',
-                            'scheduled_date' => $validated['scheduled_date'],
-                            'old_booking_date' => $oldBookingDate?->format('Y-m-d'),
-                            'new_booking_date' => $booking->booking_date?->format('Y-m-d'),
-                            'notes' => $booking->booking_notes,
-                            'attempt_number' => $attemptCount,
-                            'max_attempts' => $maxAttemptsValue,
-                            'remaining_attempts' => $maxAttemptsValue - $attemptCount,
-                        ], function($value) {
+                        'notes' => $historyNotes,
+                        'metadata' => array_filter($metadata, function($value) {
                             return !is_null($value) && $value !== '';
                         }),
                         'ip_address' => $request->ip(),
@@ -1004,7 +1091,7 @@ class FrontendController extends Controller
 
                 return response()->json([
                     'success' => true,
-                    'message' => 'Schedule request submitted successfully. Awaiting admin approval.',
+                    'message' => $scheduleChanged ? 'Schedule request submitted successfully. Awaiting admin approval.' : 'Notes updated successfully.',
                     'booking_id' => $booking->id,
                 ]);
             }
@@ -1698,7 +1785,7 @@ class FrontendController extends Controller
             ], 422);
         }
 
-        $summary = $this->syncBookingWithCashfreeOrder($booking, $orderData);
+        $summary = $this->syncBookingWithCashfreeOrder($booking, $orderData, false);
 
         return response()->json([
             'success' => true,
@@ -1755,7 +1842,7 @@ class FrontendController extends Controller
         ]);
     }
 
-    protected function syncBookingWithCashfreeOrder(Booking $booking, array $orderData): array
+    protected function syncBookingWithCashfreeOrder(Booking $booking, array $orderData, bool $sendSMS = true): array
     {
         $orderStatus = strtoupper($orderData['order_status'] ?? 'UNKNOWN');
         $payments = $orderData['payments'] ?? [];
@@ -1883,7 +1970,7 @@ class FrontendController extends Controller
             ]);
             
             // Send SMS notification for successful payment
-            if ($orderStatus === 'PAID' && $booking->user && $booking->user->mobile) {
+            if ($orderStatus === 'PAID' && $booking->user && $booking->user->mobile && $sendSMS) {
                 try {
                     // PROPPIK: Your order is confirmed. You can now schedule your appointment on ##LINK##. – CREART
                     // Template ID: 69295ee79cb8142aae77f2a2
@@ -1932,7 +2019,7 @@ class FrontendController extends Controller
             }
             
             // Send SMS notification for failed payment
-            if (in_array($orderStatus, ['FAILED', 'EXPIRED', 'TERMINATED', 'TERMINATION_REQUESTED', 'ACTIVE']) && $booking->user && $booking->user->mobile) {
+            if (in_array($orderStatus, ['FAILED', 'EXPIRED', 'TERMINATED', 'TERMINATION_REQUESTED', 'ACTIVE']) && $booking->user && $booking->user->mobile && $sendSMS) {
                 try {
                     // PROPPIK: Your payment could not be processed. Please try again or use another method. – CREART
                     // Template ID: 69295eabe5d99077c61b7ac1
@@ -2049,6 +2136,122 @@ class FrontendController extends Controller
             ->toArray();
 
         return view('frontend.booking-dashboard', compact('bookings', 'types', 'bhk', 'priceSettings'));
+    }
+
+    /**
+     * Show individual booking details page
+     */
+    public function showBooking($id)
+    {
+        $booking = Booking::with(['user', 'propertyType', 'propertySubType', 'bhk', 'city', 'state', 'assignees.user'])
+            ->where('id', $id)
+            ->where('user_id', Auth::id())
+            ->first();
+        
+        // If booking doesn't exist or doesn't belong to the user, redirect with error
+        if (!$booking) {
+            return redirect()->route('frontend.booking-dashboard')
+                ->with('error', 'This is not your booking. You can only view your own bookings.');
+        }
+
+        // Calculate estimated price
+        $estimatedPrice = $this->calculateEstimate($booking->area);
+        $priceToShow = $booking->price ?? $estimatedPrice;
+
+        // Get booking history
+        $history = BookingHistory::where('booking_id', $booking->id)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        // Calculate attempt count and max attempts (same logic as dashboard)
+        $status = $booking->status ?? 'pending';
+        $isBlocked = $status === 'reschedul_blocked';
+        $attemptCount = 0;
+        $maxAttempts = 3;
+        
+        // Get decline reason or admin notes from latest history entry
+        $declineReason = null;
+        $adminNotes = null;
+        
+        if ($history->isNotEmpty()) {
+            if (in_array($status, ['schedul_decline', 'reschedul_decline'])) {
+                // Get latest decline history entry
+                $declineHistory = $history->where('to_status', $status)->first();
+                if ($declineHistory && isset($declineHistory->metadata['reason'])) {
+                    $declineReason = $declineHistory->metadata['reason'];
+                }
+            } elseif (in_array($status, ['schedul_accepted', 'reschedul_accepted'])) {
+                // Get latest accepted history entry
+                $acceptedHistory = $history->where('to_status', $status)->first();
+                if ($acceptedHistory && isset($acceptedHistory->metadata['admin_notes'])) {
+                    $adminNotes = $acceptedHistory->metadata['admin_notes'];
+                }
+            }
+        }
+        
+        if ($isBlocked || in_array($status, ['schedul_pending', 'schedul_accepted', 'schedul_decline', 'reschedul_pending', 'reschedul_accepted', 'reschedul_decline'])) {
+            // Count accepted attempts
+            $acceptedAttempts = BookingHistory::where('booking_id', $booking->id)
+                ->whereIn('to_status', ['schedul_accepted', 'reschedul_accepted'])
+                ->count();
+            
+            // If status is pending, add 1 for the current pending attempt
+            if (in_array($status, ['schedul_pending', 'reschedul_pending'])) {
+                $attemptCount = $acceptedAttempts + 1;
+            } else {
+                // For accepted or declined, use the accepted count
+                $attemptCount = $acceptedAttempts;
+            }
+            
+            $maxAttemptsSetting = Setting::where('name', 'customer_attempt')->first();
+            $maxAttempts = $maxAttemptsSetting ? (int) $maxAttemptsSetting->value : 3;
+        }
+
+        // Format status text
+        $statusText = match($status) {
+            'schedul_pending' => 'Pending Approval',
+            'schedul_accepted' => 'Scheduled',
+            'schedul_decline' => 'Declined',
+            'reschedul_pending' => 'Reschedule Pending',
+            'reschedul_accepted' => 'Rescheduled',
+            'reschedul_decline' => 'Reschedule Declined',
+            'reschedul_blocked' => 'Blocked',
+            default => ucfirst(str_replace('_', ' ', $status))
+        };
+
+        // Get property types and BHK for edit modal (same as dashboard)
+        $types = PropertyType::with(['subTypes:id,property_type_id,name,icon'])->get(['id', 'name', 'icon']);
+        $bhk = BHK::all();
+
+        // Get price settings for dynamic pricing
+        $priceSettings = Setting::whereIn('name', ['base_price', 'base_area', 'extra_area', 'extra_area_price'])
+            ->pluck('value', 'name')
+            ->toArray();
+
+        return view('frontend.booking-show', compact('booking', 'priceToShow', 'history', 'attemptCount', 'maxAttempts', 'statusText', 'isBlocked', 'types', 'bhk', 'priceSettings', 'declineReason', 'adminNotes'));
+    }
+
+    /**
+     * Display user profile page
+     */
+    public function profile()
+    {
+        $user = Auth::user();
+        
+        if (!$user) {
+            return redirect()->route('frontend.login');
+        }
+
+        // Get user's booking count
+        $bookingCount = Booking::where('user_id', $user->id)->count();
+        
+        // Get user's total bookings
+        $bookings = Booking::where('user_id', $user->id)
+            ->with(['propertyType', 'propertySubType', 'city', 'state'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return view('frontend.profile', compact('user', 'bookingCount', 'bookings'));
     }
 
     /**

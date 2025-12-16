@@ -13,11 +13,30 @@
 Homestead.json
 Homestead.yaml
 auth.json
+
+# Lock files - ignore so local and production can have separate lock files
+yarn.lock
+composer.lock
+package-lock.json
+
+# Log files
 npm-debug.log
 yarn-error.log
+*.log
+logs/
+*.log.*
+
+# IDE and Editor files
 /.fleet
 /.idea
 /.vscode
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Project specific
 /Docs
 /tours
 .htaccess

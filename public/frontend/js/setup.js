@@ -392,6 +392,11 @@ function hydrateAuthUser() {
     if (toStep2Btn) {
         toStep2Btn.disabled = false;
     }
+    // Show Clear and Proceed to Property buttons when user is already authenticated
+    const contactActionButtons = el('contactActionButtons');
+    if (contactActionButtons) {
+        contactActionButtons.classList.remove('hidden');
+    }
 }
 
 function isUserAuthenticated() {
@@ -570,6 +575,11 @@ if (sendOtpBtn) sendOtpBtn.addEventListener('click', async (e) => {
             el('otpSentBadge').classList.remove('hidden');
             el('otpInfoAlert').classList.remove('hidden');
             el('toStep2').disabled = true;
+            // Hide Clear and Proceed to Property buttons when OTP is sent
+            const contactActionButtons = el('contactActionButtons');
+            if (contactActionButtons) {
+                contactActionButtons.classList.add('hidden');
+            }
             
             // Disable name input, phone input, and send OTP button (keep visible but read-only)
             const nameInput = el('inputName');
@@ -785,6 +795,11 @@ if (verifyOtpBtn) verifyOtpBtn.addEventListener('click', async () => {
             el('otpSentBadge').classList.remove('hidden');
             el('otpSentBadge').innerText = 'Verified ✓';
             el('toStep2').disabled = false;
+            // Show Clear and Proceed to Property buttons when OTP is verified successfully
+            const contactActionButtons = el('contactActionButtons');
+            if (contactActionButtons) {
+                contactActionButtons.classList.remove('hidden');
+            }
             console.log('✅ OTP verified successfully:', result.user);
             state.isAuthenticated = true;
             setupContext.authenticated = true;
@@ -877,6 +892,11 @@ if (skipContactBtn) skipContactBtn.addEventListener('click', () => {
     el('otpSentBadge').classList.add('hidden');
     el('toStep2').disabled = true;
     state.contactLocked = false;
+    // Hide Clear and Proceed to Property buttons when clearing
+    const contactActionButtons = el('contactActionButtons');
+    if (contactActionButtons) {
+        contactActionButtons.classList.add('hidden');
+    }
     
     // Reset resend button
     const resendOtpBtn = el('resendOtp');

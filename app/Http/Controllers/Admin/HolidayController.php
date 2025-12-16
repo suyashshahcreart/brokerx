@@ -7,6 +7,7 @@ use App\Models\Holiday;
 use App\Models\Setting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class HolidayController extends Controller
 {
@@ -30,6 +31,10 @@ class HolidayController extends Controller
             $available_day = Setting::where('name', 'avaliable_days')->first();
         }
         
+        // Get per day booking limit
+        $perDayBooking = Setting::where('name', 'per_day_booking')->first();
+        $perDayLimit = $perDayBooking && $perDayBooking->value ? (int) $perDayBooking->value : 20;
+        
         $dayLimit = $available_day && $available_day->value ? (int) $available_day->value : 30;
         $start = \Carbon\Carbon::today()->toDateString();
         $end = \Carbon\Carbon::today()->addDays($dayLimit)->toDateString();
@@ -37,7 +42,32 @@ class HolidayController extends Controller
             ->orderBy('date')
             ->get(['id', 'name', 'date']);
 
-        return response()->json(['holidays' => $holidays, 'day_limit' => $available_day]);
+        // Get booking counts for each date (excluding schedul_decline status)
+        // Count all statuses except schedul_decline
+        $bookingCounts = \App\Models\Booking::whereNotNull('booking_date')
+            ->whereBetween('booking_date', [$start, $end])
+            ->where('status', '!=', 'schedul_decline')
+            ->selectRaw('DATE(booking_date) as date, COUNT(*) as count')
+            ->groupBy(DB::raw('DATE(booking_date)'))
+            ->get()
+            ->pluck('count', 'date')
+            ->toArray();
+
+        // Get dates that have reached the limit
+        $disabledDates = [];
+        foreach ($bookingCounts as $date => $count) {
+            if ($count >= $perDayLimit) {
+                $disabledDates[] = $date;
+            }
+        }
+
+        return response()->json([
+            'holidays' => $holidays,
+            'day_limit' => $available_day,
+            'per_day_booking' => $perDayBooking,
+            'booking_counts' => $bookingCounts,
+            'disabled_dates' => $disabledDates
+        ]);
     }
 
     public function create()

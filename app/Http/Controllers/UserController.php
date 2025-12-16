@@ -11,19 +11,23 @@ class UserController extends Controller
     /**
      * Update the authenticated user's information.
      */
-    public function update(Request $request)
+    public function update(Request $request, $id)
     {
+        // Ensure user can only update their own profile
         $user = Auth::user();
+        if ($user->id != $id) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized'
+                ], 403);
+            }
+            return redirect()->back()->with('error', 'Unauthorized');
+        }
 
         $validated = $request->validate([
             'firstname' => ['required', 'string', 'max:255'],
             'lastname' => ['required', 'string', 'max:255'],
-            'mobile' => [
-                'required',
-                'string',
-                'max:20',
-                Rule::unique('users')->ignore($user->id),
-            ],
             'email' => [
                 'required',
                 'string',
@@ -33,16 +37,20 @@ class UserController extends Controller
             ],
         ]);
 
-        // Check if mobile or email changed - if so, reset verification status
-        if ($user->mobile !== $validated['mobile']) {
-            $validated['mobile_verified_at'] = null;
-        }
-
+        // Check if email changed - if so, reset verification status
         if ($user->email !== $validated['email']) {
             $validated['email_verified_at'] = null;
         }
 
         $user->update($validated);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Profile updated successfully',
+                'user' => $user->fresh()
+            ]);
+        }
 
         return redirect()->back()->with('user_success', 'Personal information updated successfully!');
     }

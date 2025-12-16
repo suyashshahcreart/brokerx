@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Models\BookingAssignee;
 use App\Models\Booking;
+use App\Models\BookingHistory;
 use App\Models\PhotographerVisit;
 use App\Models\User;
 use App\Models\City;
@@ -182,11 +183,34 @@ class BookingAssigneeController extends Controller
 
         $assignee = BookingAssignee::create($validated);
 
+        // Get photographer details for history
+        $photographer = \App\Models\User::find($validated['user_id']);
+        $oldStatus = $booking->status;
+
         // Update booking status to schedul_assign and set booking_time
         $booking->update([
             'status' => 'schedul_assign',
             'booking_time' => $validated['time'],
             'updated_by' => auth()->id(),
+        ]);
+
+        // Create booking history entry
+        BookingHistory::create([
+            'booking_id' => $booking->id,
+            'from_status' => $oldStatus,
+            'to_status' => 'schedul_assign',
+            'changed_by' => auth()->id(),
+            'notes' => 'Photographer assigned: ' . ($photographer->name ?? 'Unknown'),
+            'metadata' => [
+                'photographer_id' => $photographer->id ?? null,
+                'photographer_name' => $photographer->name ?? null,
+                'photographer_phone' => $photographer->mobile ?? null,
+                'assigned_date' => $assignee->date ? \Carbon\Carbon::parse($assignee->date)->format('Y-m-d') : null,
+                'assigned_time' => $assignee->time ? \Carbon\Carbon::parse($assignee->time)->format('H:i') : null,
+                'assignee_id' => $assignee->id,
+            ],
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
         ]);
 
         activity('booking_assignees')
@@ -200,9 +224,9 @@ class BookingAssigneeController extends Controller
                     'date' => $assignee->date,
                     'time' => $assignee->time,
                 ],
-                'booking_status_updated' => 'tour_pending',
+                'booking_status_updated' => 'schedul_assign',
             ])
-            ->log('Booking assignment created and booking status updated to tour_pending');
+            ->log('Booking assignment created and booking status updated to schedul_assign');
 
         // If AJAX request, return JSON response
         if ($request->ajax()) {

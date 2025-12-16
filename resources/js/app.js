@@ -13,11 +13,23 @@ import 'datatables.net-bs5/css/dataTables.bootstrap5.min.css';
 import 'select2/dist/css/select2.min.css';
 import 'select2';
 import moment from 'moment';
+// Set default locale (moment includes 'en' by default)
+moment.locale('en');
+// Make moment available globally before daterangepicker loads
 window.moment = moment;
 import 'daterangepicker/daterangepicker.css';
+// Use static import instead of dynamic import to avoid code-splitting issues
+// daterangepicker needs moment to be available globally
+import daterangepicker from 'daterangepicker';
+// Attach daterangepicker to jQuery if available
+if (typeof window.$ !== 'undefined' && window.$.fn) {
+    window.$.fn.daterangepicker = daterangepicker;
+}
+window.daterangepicker = daterangepicker;
+// Keep the promise-based loader for backward compatibility
 const loadDateRangePicker = () => {
     if (!window.__daterangepickerPromise) {
-        window.__daterangepickerPromise = import('daterangepicker');
+        window.__daterangepickerPromise = Promise.resolve(daterangepicker);
     }
     return window.__daterangepickerPromise;
 };

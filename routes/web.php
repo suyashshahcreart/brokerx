@@ -177,6 +177,8 @@ Route::get('/terms-conditions', [FrontendController::class, 'termsConditions'])-
 // Protected frontend routes (require authentication)
 Route::middleware('auth')->group(function () {
     Route::get('/booking-dashboard', [FrontendController::class, 'bookingDashboard'])->name('frontend.booking-dashboard');
+    Route::get('/booking/{id}', [FrontendController::class, 'showBooking'])->name('frontend.booking.show');
+    Route::get('/profile', [FrontendController::class, 'profile'])->name('frontend.profile');
 });
 
 // Frontend Portfolio routes (authenticated users)

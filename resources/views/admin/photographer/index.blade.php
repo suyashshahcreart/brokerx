@@ -50,7 +50,11 @@
 
                     <div class="col-xl-9">
                         <div class="mt-4 mt-lg-0">
-                            <div id="calendar" data-booking-api="{{ route('api.bookings.by-date-range') }}"></div>
+                            <div id="calendar" 
+                                 data-booking-api="{{ route('api.bookings.by-date-range') }}"
+                                 data-check-in-route="{{ url('admin/booking-assignees') }}/:id/check-in"
+                                 data-check-out-route="{{ url('admin/booking-assignees') }}/:id/check-out"
+                                 data-booking-show-route="{{ url('admin/bookings') }}/:id"></div>
                         </div>
                     </div> <!-- end col -->
                 </div> <!-- end row -->
@@ -111,13 +115,21 @@
                                         </tbody>
                                     </table>
                                 </div>
-                                <div class="col-12 d-flex justify-content-between align-items-center mt-2">
-                                    <a id="modal-check-in-link" href="#" class="btn btn-primary">
-                                        <i class="ri-box-arrow-in-right-line me-1"></i> Go to Check-In
-                                    </a>
-                                    <a id="modal-check-out-link" href="#" class="btn btn-warning">
-                                        <i class="ri-box-arrow-in-right-line me-1"></i> Go to Check-out
-                                    </a>
+                                <div class="col-12 mt-2" id="modal-action-buttons">
+                                    <div class="d-flex flex-wrap gap-2" id="modal-buttons-container">
+                                        <a id="modal-check-in-link" href="#" class="btn btn-primary" style="display: none;">
+                                            <i class="ri-box-arrow-in-right-line me-1"></i> Go to Check-In
+                                        </a>
+                                        <a id="modal-check-out-link" href="#" class="btn btn-warning" style="display: none;">
+                                            <i class="ri-box-arrow-out-left-line me-1"></i> Go to Check-Out
+                                        </a>
+                                        <a id="modal-view-booking-link" href="#" class="btn btn-info" style="display: none;">
+                                            <i class="ri-eye-line me-1"></i> View Booking Details
+                                        </a>
+                                        <a id="modal-completed-link" href="#" class="btn btn-success" style="display: none;" disabled>
+                                            <i class="ri-checkbox-circle-line me-1"></i> Completed
+                                        </a>
+                                    </div>
                                 </div>
                             </div>
                             <div class="row mt-3">
