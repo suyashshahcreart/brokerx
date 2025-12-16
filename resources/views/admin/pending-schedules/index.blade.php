@@ -152,8 +152,15 @@
         const rowData = dataTable.rows().data().toArray().find(row => row.id === bookingId);
         
         const requestedDate = rowData?.booking_date || 'Not specified';
-        const customerNotes = rowData?.booking_notes || '';
+        const customerNotes = (rowData?.booking_notes || '').trim();
         const userName = rowData?.user || 'N/A';
+        
+        // Escape HTML to prevent XSS
+        const escapeHtml = (text) => {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        };
 
         const htmlContent = `
             <div class="text-start mb-3">
@@ -165,12 +172,17 @@
                 </div>
                 ${customerNotes ? `
                     <div class="mb-3">
-                        <small class="text-muted d-block mb-1"><strong>Customer Notes:</strong></small>
-                        <div class="alert alert-info py-2 mb-0"><small>${customerNotes}</small></div>
+                        <label class="form-label mb-2" style="font-weight: 600; color: #495057;"><strong>Customer Notes:</strong></label>
+                        <div class="alert alert-info py-3 mb-0" style="background-color: #d1ecf1; border-left: 4px solid #0dcaf0;">
+                            <div class="d-flex align-items-start">
+                                <i class="ri-message-3-line me-2 mt-1" style="color: #0dcaf0; font-size: 1.1rem;"></i>
+                                <div style="color: #055160; line-height: 1.6; white-space: pre-wrap;">${escapeHtml(customerNotes)}</div>
+                            </div>
+                        </div>
                     </div>
                 ` : ''}
                 <div>
-                    <small class="text-muted d-block mb-1"><strong>Admin Notes (Optional):</strong></small>
+                    <label class="form-label mb-2" style="font-weight: 600; color: #495057;"><strong>Admin Notes (Optional):</strong></label>
                 </div>
             </div>
         `;
@@ -241,8 +253,15 @@
         const rowData = dataTable.rows().data().toArray().find(row => row.id === bookingId);
         
         const requestedDate = rowData?.booking_date || 'Not specified';
-        const customerNotes = rowData?.booking_notes || '';
+        const customerNotes = (rowData?.booking_notes || '').trim();
         const userName = rowData?.user || 'N/A';
+        
+        // Escape HTML to prevent XSS
+        const escapeHtml = (text) => {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        };
         
         // Build booking details HTML
         let detailsHtml = '<div class="border-bottom pb-2 mb-3">';
@@ -255,8 +274,13 @@
         // Add customer notes if available
         if (customerNotes) {
             detailsHtml += '<div class="mb-3">';
-            detailsHtml += '<small class="text-muted d-block mb-1"><strong>Customer Notes:</strong></small>';
-            detailsHtml += '<div class="alert alert-info py-2 mb-0"><small>' + customerNotes + '</small></div>';
+            detailsHtml += '<label class="form-label mb-2" style="font-weight: 600; color: #495057;"><strong>Customer Notes:</strong></label>';
+            detailsHtml += '<div class="alert alert-info py-3 mb-0" style="background-color: #d1ecf1; border-left: 4px solid #0dcaf0;">';
+            detailsHtml += '<div class="d-flex align-items-start">';
+            detailsHtml += '<i class="ri-message-3-line me-2 mt-1" style="color: #0dcaf0; font-size: 1.1rem;"></i>';
+            detailsHtml += '<div style="color: #055160; line-height: 1.6; white-space: pre-wrap;">' + escapeHtml(customerNotes) + '</div>';
+            detailsHtml += '</div>';
+            detailsHtml += '</div>';
             detailsHtml += '</div>';
         }
         

@@ -76,34 +76,72 @@ class CalendarSchedule {
             this.selectedEvent.start ? formatDateOnly(this.selectedEvent.start.toISOString()) : '—';
         document.getElementById('modal-schedule-time').textContent = formattedTime || props.assignmentTime || '—';
 
-        // Set check-in and check-out button links using assigneeId
-        const assigneeId = props.assigneeId;
-        const checkInUrl = `./booking-assignees/${assigneeId}/check-in`;
-        const checkOutUrl = `./booking-assignees/${assigneeId}/check-out`;
+        // Get route templates from data attributes
+        const checkInRouteTemplate = this.calendar.getAttribute('data-check-in-route');
+        const checkOutRouteTemplate = this.calendar.getAttribute('data-check-out-route');
+        const bookingShowRouteTemplate = this.calendar.getAttribute('data-booking-show-route');
         
+        // Get IDs
+        const assigneeId = props.assigneeId;
+        const bookingId = props.bookingId;
+        
+        // Build URLs by replacing :id placeholder
+        const checkInUrl = checkInRouteTemplate ? checkInRouteTemplate.replace(':id', assigneeId) : `./booking-assignees/${assigneeId}/check-in`;
+        const checkOutUrl = checkOutRouteTemplate ? checkOutRouteTemplate.replace(':id', assigneeId) : `./booking-assignees/${assigneeId}/check-out`;
+        const bookingShowUrl = bookingShowRouteTemplate ? bookingShowRouteTemplate.replace(':id', bookingId) : `./bookings/${bookingId}`;
+        
+        // Get all button elements
         const checkInBtn = document.getElementById('modal-check-in-link');
         const checkOutBtn = document.getElementById('modal-check-out-link');
+        const viewBookingBtn = document.getElementById('modal-view-booking-link');
+        const completedBtn = document.getElementById('modal-completed-link');
         
-        // Only manipulate buttons if they exist in the DOM
-        if (checkInBtn && checkOutBtn) {
-            // Normalize and evaluate booking status for UI logic
-            const status = (props.status || '').toLowerCase();
-            console.log('Booking status:', status);
-            if (status === 'schedul_completed') {
-                // Hide both buttons for completed schedules
-                checkInBtn.style.display = 'none';
-                checkOutBtn.style.display = 'none';
+        // Normalize and evaluate booking status for UI logic
+        const status = (props.status || '').toLowerCase();
+        console.log('Booking status:', status, 'Assignee ID:', assigneeId, 'Booking ID:', bookingId);
+        
+        // Hide all buttons first
+        if (checkInBtn) checkInBtn.style.display = 'none';
+        if (checkOutBtn) checkOutBtn.style.display = 'none';
+        if (viewBookingBtn) viewBookingBtn.style.display = 'none';
+        if (completedBtn) completedBtn.style.display = 'none';
+        
+        // Show buttons based on status
+        if (status === 'schedul_completed' || status === 'tour_completed') {
+            // Completed - show completed button (disabled) and view booking
+            if (completedBtn) {
+                completedBtn.style.display = 'inline-block';
+                completedBtn.disabled = true;
             }
-            else if (status === 'schedul_inprogress') {
-                // Show only check-out button for in-progress schedules (yellow)
+            if (viewBookingBtn && bookingId) {
+                viewBookingBtn.style.display = 'inline-block';
+                viewBookingBtn.href = bookingShowUrl;
+            }
+        } else if (status === 'schedul_inprogress' || status === 'tour_pending' || status === 'tour_live') {
+            // In progress - show check-out button and view booking
+            if (checkOutBtn && assigneeId) {
                 checkOutBtn.style.display = 'inline-block';
-                checkInBtn.style.display = 'none';
                 checkOutBtn.href = checkOutUrl;
-            } else {
-                // Show check-in button for other statuses
+            }
+            if (viewBookingBtn && bookingId) {
+                viewBookingBtn.style.display = 'inline-block';
+                viewBookingBtn.href = bookingShowUrl;
+            }
+        } else if (status === 'schedul_assign' || status === 'reschedul_assign') {
+            // Assigned but not started - show check-in button and view booking
+            if (checkInBtn && assigneeId) {
                 checkInBtn.style.display = 'inline-block';
                 checkInBtn.href = checkInUrl;
-                checkOutBtn.style.display = 'none';
+            }
+            if (viewBookingBtn && bookingId) {
+                viewBookingBtn.style.display = 'inline-block';
+                viewBookingBtn.href = bookingShowUrl;
+            }
+        } else {
+            // Other statuses - show view booking button only
+            if (viewBookingBtn && bookingId) {
+                viewBookingBtn.style.display = 'inline-block';
+                viewBookingBtn.href = bookingShowUrl;
             }
         }
 

@@ -168,7 +168,7 @@
 @endsection
 
 @section('content')
-<section class="page-header section-padding-bottom-b section-padding-top-t page-header">
+<section class="page-header section-padding-bottom-b section-padding-top-t page-header mb-0">
     <div class="container">
         <div class="row">
             <div class="col-md-12">
@@ -178,10 +178,10 @@
     </div>
 </section>
 
-<div class="page bg-light section-padding-bottom section-padding-top">
-    <div class="panel container">
+<div class="page bg-light">
+    <div class="container">
         <div class="content">
-            <div class="payment-status-container">
+            <div class="payment-status-container pt-0">
                 @php
                     $status = strtoupper($status ?? 'UNKNOWN');
                     $isSuccess = $status === 'PAID';
@@ -258,7 +258,7 @@
                         </div>
 
                         @if(!empty($details['raw']))
-                        <div class="details-section">
+                        <div class="details-section d-none">
                             <details>
                                 <summary class="details-toggle">
                                     <span>Show Technical Details</span>
@@ -277,6 +277,10 @@
                             <a href="{{ route('frontend.download-receipt', ['booking_id' => $details['booking_id']]) }}" class="btn-action btn-primary-action" target="_blank">
                                 <i class="fa-solid fa-download me-2"></i>Download Receipt
                             </a>
+                            
+                            <a href="{{ route('frontend.booking.show', ['id' => $details['booking_id'], 'open_schedule' => '1']) }}" class="btn-action btn-primary-action">
+                                <i class="fa-solid fa-calendar-plus me-2"></i>Schedule Appointment
+                            </a>
                         @endif
                         
                         @if(!empty($details['booking_id']))
@@ -284,18 +288,6 @@
                                 <i class="fa-solid fa-list me-2"></i>View My Bookings
                             </a>
                         @endif
-                        
-                        @php
-                            $returnParams = array_filter([
-                                'booking_id' => $details['booking_id'] ?? null,
-                                'order_id' => $details['order_id'] ?? ($orderId ?? null),
-                                'open_payment' => 1,
-                            ]);
-                        @endphp
-                        
-                        <a href="{{ route('frontend.setup', array_filter($returnParams)) }}" class="btn-action btn-secondary-action">
-                            <i class="fa-solid fa-arrow-left me-2"></i>Back to Setup
-                        </a>
                         
                         <a href="{{ route('frontend.index') }}" class="btn-action btn-secondary-action">
                             <i class="fa-solid fa-home me-2"></i>Go to Home

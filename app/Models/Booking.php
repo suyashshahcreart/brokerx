@@ -139,6 +139,14 @@ class Booking extends Model
     }
 
     /**
+     * Get the photographer visit job for this booking
+     */
+    public function photographerVisitJob()
+    {
+        return $this->hasOne(PhotographerVisitJob::class);
+    }
+
+    /**
      * Check if booking has complete property data
      * Based on validation logic from setup page
      */

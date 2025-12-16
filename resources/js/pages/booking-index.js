@@ -3,10 +3,13 @@ import flatpickr from "flatpickr";
 import "flatpickr/dist/flatpickr.min.css";
 import 'datatables.net-bs5';
 import moment from 'moment';
+// Set default locale (moment includes 'en' by default)
+moment.locale('en');
 
 window.$ = $;
 window.jQuery = $;
 window.flatpickr = flatpickr;
+window.moment = moment;
 
 // Additional custom logic can be added here if needed
 document.addEventListener('DOMContentLoaded', function () {
@@ -18,36 +21,76 @@ document.addEventListener('DOMContentLoaded', function () {
 
 	// Initialize daterangepicker
 	let dateRangePicker = null;
-	if (typeof $.fn.daterangepicker === 'function') {
+	
+	// Wait for moment and daterangepicker to be available
+	const initDateRangePicker = () => {
+		if (typeof window.moment === 'undefined' || typeof $.fn.daterangepicker === 'undefined') {
+			setTimeout(initDateRangePicker, 100);
+			return;
+		}
 		initializeDateRangePicker();
-	} else {
-		setTimeout(() => {
-			if (typeof $.fn.daterangepicker === 'function') {
-				initializeDateRangePicker();
-			}
-		}, 500);
-	}
-
+	};
+	
 	function initializeDateRangePicker() {
 		const input = $('#filterDateRange');
-		if (!input.length) return;
+		if (!input.length || input.length === 0) {
+			// Element doesn't exist yet, try again later
+			setTimeout(initializeDateRangePicker, 200);
+			return;
+		}
 		
-		dateRangePicker = input.daterangepicker({
-			autoUpdateInput: false,
-			locale: {
-				cancelLabel: 'Clear',
-				format: 'YYYY-MM-DD'
+		// Ensure moment is available
+		if (typeof window.moment === 'undefined') {
+			console.error('Moment.js is not available');
+			return;
+		}
+		
+		// Ensure daterangepicker is available
+		if (typeof $.fn.daterangepicker === 'undefined') {
+			console.error('Daterangepicker is not available');
+			return;
+		}
+		
+		// Check if already initialized
+		if (input.data('daterangepicker')) {
+			return; // Already initialized
+		}
+		
+		try {
+			// Ensure the element is in the DOM
+			if (!input.is(':visible') && !document.body.contains(input[0])) {
+				setTimeout(initializeDateRangePicker, 200);
+				return;
 			}
-		});
+			
+			// Initialize daterangepicker with proper configuration
+			// Don't specify parentEl - let daterangepicker use default (appends to body)
+			dateRangePicker = input.daterangepicker({
+				autoUpdateInput: false,
+				locale: {
+					cancelLabel: 'Clear',
+					format: 'YYYY-MM-DD'
+				},
+				opens: 'left'
+			});
 
-		input.on('apply.daterangepicker', function(ev, picker) {
-			$(this).val(picker.startDate.format('YYYY-MM-DD') + ' - ' + picker.endDate.format('YYYY-MM-DD'));
-		});
+			input.on('apply.daterangepicker', function(ev, picker) {
+				$(this).val(picker.startDate.format('YYYY-MM-DD') + ' - ' + picker.endDate.format('YYYY-MM-DD'));
+			});
 
-		input.on('cancel.daterangepicker', function(ev, picker) {
-			$(this).val('');
-		});
+			input.on('cancel.daterangepicker', function(ev, picker) {
+				$(this).val('');
+			});
+		} catch (error) {
+			console.error('Error initializing daterangepicker:', error);
+			// Don't retry on error to avoid infinite loop
+		}
 	}
+	
+	// Start initialization after a short delay to ensure DOM is ready
+	setTimeout(() => {
+		initDateRangePicker();
+	}, 300);
 
 	const dataTable = table.DataTable({
 		processing: true,
@@ -229,14 +272,56 @@ document.addEventListener('DOMContentLoaded', function () {
 	});
 
 	// Schedule submit button
-	$('#scheduleSubmitBtn').on('click', function () {
+	$('#scheduleSubmitBtn').on('click', async function () {
 		const bookingId = $('#schedule-booking-id').val();
 		const date = $('#schedule-date').val();
+		const currentDateText = $('#current-booking-date').text();
+		
 		if (!date) {
 			$('#schedule-date').addClass('is-invalid');
 			return;
 		}
 		$('#schedule-date').removeClass('is-invalid');
+		
+		// Check if date has changed - normalize dates for comparison
+		let dateChanged = false;
+		let currentDateFormatted = null;
+		if (currentDateText && currentDateText !== 'Not set') {
+			// currentDateText might be in YYYY-MM-DD format
+			currentDateFormatted = currentDateText.trim();
+			// Normalize both dates to YYYY-MM-DD for comparison
+			const newDateFormatted = date.trim();
+			dateChanged = currentDateFormatted !== newDateFormatted;
+		} else {
+			// If no current date, this is a new schedule (not a change)
+			dateChanged = false;
+		}
+		
+		// Show confirmation if date changed
+		if (dateChanged && typeof Swal !== 'undefined') {
+			const oldDateFormatted = new Date(currentDateFormatted).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+			const newDateFormatted = new Date(date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+			
+			const result = await Swal.fire({
+				icon: 'warning',
+				title: 'Confirm Date Change',
+				html: `
+					<p>You are changing the booking date from <strong>${oldDateFormatted}</strong> to <strong>${newDateFormatted}</strong>.</p>
+					<p class="text-danger"><strong>Warning:</strong> This will remove any existing photographer assignments and clear the booking time.</p>
+					<p><strong>Are you sure you want to proceed?</strong></p>
+				`,
+				showCancelButton: true,
+				confirmButtonColor: '#dc3545',
+				cancelButtonColor: '#6c757d',
+				confirmButtonText: 'Yes, Change Date',
+				cancelButtonText: 'Cancel'
+			});
+			
+			if (!result.isConfirmed) {
+				return; // User cancelled
+			}
+		}
+		
 		// Use correct route for reschedule
 		const baseUrl = window.appBaseUrl || '';
 		$.ajax({
@@ -254,7 +339,7 @@ document.addEventListener('DOMContentLoaded', function () {
 						Swal.fire({
 							icon: 'success',
 							title: 'Success',
-							text: 'Booking rescheduled successfully!',
+							text: dateChanged ? 'Booking date changed successfully! Photographer assignments have been removed.' : 'Booking scheduled successfully!',
 							timer: 2000,
 							showConfirmButton: false
 						});

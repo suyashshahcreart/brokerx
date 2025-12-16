@@ -252,7 +252,7 @@
 
             <div class="row">
                 <!-- Property Details -->
-                <div class="col-lg-6 mb-3">
+                <div class="col-lg-6 col-md-6 mb-3">
                     <div class="card border bg-light-subtle h-100">
                         <div class="card-header bg-primary-subtle border-primary">
                             <h5 class="card-title mb-0"><i class="ri-building-line me-2"></i>Property Details</h5>
@@ -330,37 +330,37 @@
 
 
                         <!-- Furnish Type (if applicable) -->
-                        @if($booking->furniture_type)
                         <div class="row">
-                            <div class="col-6">
-                                <div class="info-label">Furnish Type</div>
-                                <div class="info-value">
-                                    @if($booking->furniture_type == 'Furnished')
-                                        <div class="chip active" style="cursor: default;">
-                                            <i class="ri-sofa-line me-1"></i> Fully Furnished
-                                        </div>
-                                    @elseif($booking->furniture_type == 'Semi-Furnished')
-                                        <div class="chip active" style="cursor: default;">
-                                            <i class="ri-lightbulb-line me-1"></i> Semi Furnished
-                                        </div>
-                                    @elseif($booking->furniture_type == 'Unfurnished')
-                                        <div class="chip active" style="cursor: default;">
-                                            <i class="ri-door-line me-1"></i> Unfurnished
-                                        </div>
-                                    @endif
+                            @if($booking->furniture_type)
+                                <div class="col-6">
+                                    <div class="info-label">Furnish Type</div>
+                                    <div class="info-value">
+                                        @if($booking->furniture_type == 'Furnished')
+                                            <div class="chip active" style="cursor: default;">
+                                                <i class="ri-sofa-line me-1"></i> Fully Furnished
+                                            </div>
+                                        @elseif($booking->furniture_type == 'Semi-Furnished')
+                                            <div class="chip active" style="cursor: default;">
+                                                <i class="ri-lightbulb-line me-1"></i> Semi Furnished
+                                            </div>
+                                        @elseif($booking->furniture_type == 'Unfurnished')
+                                            <div class="chip active" style="cursor: default;">
+                                                <i class="ri-door-line me-1"></i> Unfurnished
+                                            </div>
+                                        @endif
+                                    </div>
                                 </div>
-                            </div>
-                        @endif
+                            @endif
 
-                        <!-- Size (BHK) - For Residential -->
-                        @if($booking->bhk_id && $currentPropertyType == 'Residential')
-                            <div class="col-6">
-                                <div class="info-label">Size (BHK / RK)</div>
-                                <div class="info-value">
-                                    <div class="chip active" style="cursor: default;">{{ $booking->bhk?->name }}</div>
+                            <!-- Size (BHK) - For Residential -->
+                            @if($booking->bhk_id && $currentPropertyType == 'Residential')
+                                <div class="col-6">
+                                    <div class="info-label">Size (BHK / RK)</div>
+                                    <div class="info-value">
+                                        <div class="chip active" style="cursor: default;">{{ $booking->bhk?->name }}</div>
+                                    </div>
                                 </div>
-                            </div>
-                        @endif
+                            @endif
                         </div>
 
                         <!-- Other Option Details -->
@@ -368,7 +368,7 @@
                         <div class="row">
                             <div class="col-12">
                                 <div class="info-label">Other Option Details</div>
-                                <div class="info-value">
+                                <div class="info-value mb-2">
                                     <div class="alert alert-info border-info mb-0 py-2">
                                         <small>{{ $booking->other_option_details }}</small>
                                     </div>
@@ -377,8 +377,33 @@
                         </div>
                         @endif
 
+                        <!-- Billing Details -->
+                        @if($booking->firm_name || $booking->gst_no)
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="alert alert-light border mb-2" role="alert">
+                                    <small class="d-block mb-1" style="font-weight: 600;"><i class="ri-briefcase-line me-1"></i> Company Billing Details</small>
+                                    <div class="row">
+                                        @if($booking->firm_name)
+                                        <div class="col-6">
+                                            <small class="text-muted d-block" style="font-size: 10px;">COMPANY NAME</small>
+                                            <small class="d-block">{{ $booking->firm_name }}</small>
+                                        </div>
+                                        @endif
+                                        @if($booking->gst_no)
+                                        <div class="col-6">
+                                            <small class="text-muted d-block" style="font-size: 10px;">GST NO</small>
+                                            <small class="d-block">{{ $booking->gst_no }}</small>
+                                        </div>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        @endif
+
                         <!-- Area, Price, Date - HIGHLIGHTED -->
-                        <div class="row mt-3">
+                        <div class="row">
                             <div class="col-md-6">
                                 <div class="card bg-primary-subtle border-primary mb-2">
                                     <div class="card-body p-3">
@@ -406,33 +431,10 @@
                         </div>
 
 
-                        <!-- Billing Details -->
-                        @if($booking->firm_name || $booking->gst_no)
-                        <div class="row">
-                            <div class="col-12">
-                                <div class="alert alert-light border py-2 mb-2" role="alert">
-                                    <small class="d-block mb-1" style="font-weight: 600;"><i class="ri-briefcase-line me-1"></i> Company Billing Details</small>
-                                    <div class="row">
-                                        @if($booking->firm_name)
-                                        <div class="col-6">
-                                            <small class="text-muted d-block" style="font-size: 10px;">COMPANY NAME</small>
-                                            <small class="d-block">{{ $booking->firm_name }}</small>
-                                        </div>
-                                        @endif
-                                        @if($booking->gst_no)
-                                        <div class="col-6">
-                                            <small class="text-muted d-block" style="font-size: 10px;">GST NO</small>
-                                            <small class="d-block">{{ $booking->gst_no }}</small>
-                                        </div>
-                                        @endif
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        @endif
+                        
 
                         <!-- Status Information - HIGHLIGHTED -->
-                        <div class="row mt-3">
+                        <div class="row">
                             <div class="col-md-6">
                                 @php
                                     $paymentColors = [
@@ -515,7 +517,7 @@
                 <!-- End Property Details col-6 -->
 
                 <!-- Address Details -->
-                <div class="col-lg-6 mb-3">
+                <div class="col-lg-6 col-md-6 mb-3">
                     <div class="card border bg-light-subtle h-100">
                         <div class="card-header bg-success-subtle border-success">
                             <h5 class="card-title mb-0"><i class="ri-map-pin-line me-2"></i>Address Details</h5>
@@ -600,12 +602,22 @@
                                                         <strong class="text-dark">{{ $booking->booking_date->format('d M, Y') }}</strong>
                                                         <small class="text-muted ms-1">({{ $booking->booking_date->format('l') }})</small>
                                                     </div>
+                                                    @if($booking->booking_time)
                                                     <div class="vr"></div>
                                                     <div>
                                                         <small class="text-muted d-block" style="font-size: 10px;">TIME</small>
-                                                        <strong class="text-dark">{{ $booking->booking_date->format('h:i A') }}</strong>
+                                                        <strong class="text-dark">{{ \Carbon\Carbon::parse($booking->booking_time)->format('h:i A') }}</strong>
+                                                    </div>
+                                                    @endif
+                                                </div>
+                                                @if($booking->booking_notes)
+                                                <div class="mt-2 pt-2 border-top">
+                                                    <small class="text-muted d-block mb-1" style="font-size: 10px; font-weight: 600;">CUSTOMER NOTES</small>
+                                                    <div class="alert alert-light border mb-0 py-2">
+                                                        <small><i class="ri-message-3-line me-1"></i>{{ $booking->booking_notes }}</small>
                                                     </div>
                                                 </div>
+                                                @endif
                                                 @php
                                                     // Get the last reschedule activity using Spatie Activity Log
                                                     $rescheduleActivity = \Spatie\Activitylog\Models\Activity::where('subject_type', \App\Models\Booking::class)
@@ -614,6 +626,64 @@
                                                         ->latest()
                                                         ->first();
                                                 @endphp
+                                                @php
+                                                    // Get photographer assignee (user with photographer role)
+                                                    $photographerAssignee = $booking->assignees->first(function($assignee) {
+                                                        return $assignee->user && $assignee->user->hasRole('photographer');
+                                                    });
+                                                    $photographer = $photographerAssignee?->user;
+                                                    $isPhotographerAssigned = $photographer && $photographerAssignee;
+                                                @endphp
+                                                
+                                                @if($isPhotographerAssigned)
+                                                <div class="mt-3 pt-3 border-top">
+                                                    <div class="alert alert-success mb-0 py-2" style="background-color: #d4edda; border-color: #c3e6cb;">
+                                                        <div class="d-flex align-items-start mb-2">
+                                                            <i class="ri-user-check-line me-2 mt-1" style="color: #28a745;"></i>
+                                                            <div class="flex-grow-1">
+                                                                <strong class="d-block mb-1" style="color: #155724; font-size: 0.9rem;">Photographer Assigned</strong>
+                                                                <div class="small" style="color: #155724;">
+                                                                    <div class="mb-1">
+                                                                        <i class="ri-user-line me-1"></i>
+                                                                        <strong>Name:</strong> {{ $photographer->firstname }} {{ $photographer->lastname }}
+                                                                    </div>
+                                                                    <div class="mb-1">
+                                                                        <i class="ri-phone-line me-1"></i>
+                                                                        <strong>Phone:</strong> 
+                                                                        <a href="tel:{{ $photographer->mobile }}" class="text-decoration-none" style="color: #155724;">
+                                                                            {{ $photographer->mobile }}
+                                                                        </a>
+                                                                    </div>
+                                                                    @if($photographerAssignee->date)
+                                                                        <div class="mb-1">
+                                                                            <i class="ri-calendar-check-line me-1"></i>
+                                                                            <strong>Scheduled Date:</strong> {{ \Carbon\Carbon::parse($photographerAssignee->date)->format('d M, Y') }}
+                                                                        </div>
+                                                                    @endif
+                                                                    @if($photographerAssignee->time)
+                                                                        <div class="mb-1">
+                                                                            <i class="ri-time-line me-1"></i>
+                                                                            <strong>Time:</strong> {{ \Carbon\Carbon::parse($photographerAssignee->time)->format('h:i A') }}
+                                                                        </div>
+                                                                    @elseif($booking->booking_time)
+                                                                        <div class="mb-1">
+                                                                            <i class="ri-time-line me-1"></i>
+                                                                            <strong>Time:</strong> {{ \Carbon\Carbon::parse($booking->booking_time)->format('h:i A') }}
+                                                                        </div>
+                                                                    @endif
+                                                                    @if($photographerAssignee->created_at)
+                                                                        <div class="mb-0">
+                                                                            <i class="ri-calendar-event-line me-1"></i>
+                                                                            <strong>Assigned:</strong> {{ \Carbon\Carbon::parse($photographerAssignee->created_at)->format('d M, Y h:i A') }}
+                                                                        </div>
+                                                                    @endif
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                @endif
+                                                
                                                 @if($rescheduleActivity)
                                                 <div class="border-top pt-2 mt-2">
                                                     <small class="text-muted">
@@ -1212,6 +1282,55 @@
                             </div>
                         @endif
 
+                        <!-- Booking Assignees (if schedule accepted) -->
+                        @if(in_array($booking->status, ['schedul_accepted', 'reschedul_accepted']))
+                            <hr class="my-3">
+                            
+                            <div class="card border-info mb-3">
+                                <div class="card-header bg-info-subtle border-info py-2">
+                                    <h6 class="mb-0 text-info">
+                                        <i class="ri-user-add-line me-1"></i> Booking Assignees
+                                    </h6>
+                                </div>
+                                <div class="card-body p-3">
+                                    @php
+                                        $photographerAssignee = $booking->assignees->first(function($assignee) {
+                                            return $assignee->user && $assignee->user->hasRole('photographer');
+                                        });
+                                    @endphp
+                                    
+                                    @if($photographerAssignee)
+                                        <div class="alert alert-success mb-3 py-2">
+                                            <div class="d-flex align-items-center justify-content-between">
+                                                <div>
+                                                    <strong class="d-block mb-1">Assigned Photographer</strong>
+                                                    <small class="d-block mb-1">
+                                                        <i class="ri-user-line me-1"></i>{{ $photographerAssignee->user->firstname }} {{ $photographerAssignee->user->lastname }}
+                                                    </small>
+                                                    @if($photographerAssignee->date)
+                                                        <small class="d-block mb-1">
+                                                            <i class="ri-calendar-line me-1"></i>Date: {{ \Carbon\Carbon::parse($photographerAssignee->date)->format('d M, Y') }}
+                                                        </small>
+                                                    @endif
+                                                    @if($photographerAssignee->time)
+                                                        <small class="d-block">
+                                                            <i class="ri-time-line me-1"></i>Time: {{ \Carbon\Carbon::parse($photographerAssignee->time)->format('h:i A') }}
+                                                        </small>
+                                                    @endif
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @else
+                                        <p class="text-muted small mb-3">No photographer assigned yet. Click the button below to assign one.</p>
+                                    @endif
+                                    
+                                    <button class="btn btn-info btn-sm w-100" data-bs-toggle="modal" data-bs-target="#assignBookingModal">
+                                        <i class="ri-user-add-line me-1"></i> Assign Photographer
+                                    </button>
+                                </div>
+                            </div>
+                        @endif
+
                         <hr class="my-3">
 
                         <!-- Edit Button -->
@@ -1309,6 +1428,76 @@
         </div>
     </div>
 </div>
+
+    <!-- Assign Booking to Photographer Modal -->
+    <div class="modal fade" id="assignBookingModal" tabindex="-1" aria-labelledby="assignBookingModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="assignBookingModalLabel">Assign Booking to Photographer</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="assignBookingForm" method="POST" action="{{ route('admin.booking-assignees.store') }}">
+                    @csrf
+                    <input type="hidden" name="booking_id" value="{{ $booking->id }}">
+                    <div class="modal-body">
+                        <!-- Booking Details Section -->
+                        <div class="alert alert-info mb-3">
+                            <h6 class="mb-2">Booking Details</h6>
+                            <div class="row g-2 small">
+                                <div class="col-md-6">
+                                    <strong>Customer Name:</strong>
+                                    <p id="modalCustomer" class="mb-1">{{ $booking->user->firstname }} {{ $booking->user->lastname }}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>Pin Code:</strong>
+                                    <p id="modalPincode" class="mb-1">{{ $booking->pin_code ?? '-' }}</p>
+                                </div>
+                                <div class="col-md-12">
+                                    <strong>Address:</strong>
+                                    <p id="modalAddress" class="mb-1">{{ $booking->full_address ?? ($booking->house_no . ', ' . $booking->building . ', ' . ($booking->society_name ?? '') . ', ' . ($booking->address_area ?? '')) }}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>City:</strong>
+                                    <p id="modalCity" class="mb-0">{{ $booking->city?->name ?? '-' }}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>State:</strong>
+                                    <p id="modalState" class="mb-0">{{ $booking->state?->name ?? '-' }}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Assignment Details Section -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label for="modalDate" class="form-label">Booking Date</label>
+                                <input type="date" id="modalDate" class="form-control" value="{{ $booking->booking_date ? $booking->booking_date->format('Y-m-d') : '' }}" disabled>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="assignTime" class="form-label">Assign Time <span class="text-danger">*</span></label>
+                                <input type="time" id="assignTime" name="time" class="form-control" required>
+                            </div>
+                        </div>
+
+                        <div class="mb-3 mt-3">
+                            <label for="assignPhotographer" class="form-label">Select Photographer <span class="text-danger">*</span></label>
+                            <select id="assignPhotographer" name="user_id" class="form-select" required>
+                                <option value="">-- Select Photographer --</option>
+                                @foreach ($photographers ?? [] as $photographer)
+                                    <option value="{{ $photographer->id }}">{{ $photographer->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Assign</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 
 @endsection
 
@@ -1724,8 +1913,15 @@
     // Accept Schedule from Show Page
     async function acceptScheduleFromShow() {
         const requestedDate = '{{ $booking->booking_date ? $booking->booking_date->format("F j, Y") : "Not specified" }}';
-        const customerNotes = '{{ $booking->booking_notes ?? "" }}';
+        const customerNotes = '{{ addslashes($booking->booking_notes ?? "") }}';
         const customerName = '{{ $booking->user ? $booking->user->firstname . " " . $booking->user->lastname : "N/A" }}';
+        
+        // Escape HTML to prevent XSS
+        const escapeHtml = (text) => {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        };
         
         const htmlContent = `
             <div class="text-start mb-3">
@@ -1733,14 +1929,19 @@
                     <p class="mb-2"><strong class="text-muted">Customer:</strong> ${customerName}</p>
                     <p class="mb-0"><strong class="text-muted">Requested Date:</strong> <span class="text-primary">${requestedDate}</span></p>
                 </div>
-                ${customerNotes ? `
+                ${customerNotes && customerNotes.trim() ? `
                     <div class="mb-3">
-                        <small class="text-muted d-block mb-1"><strong>Customer Notes:</strong></small>
-                        <div class="alert alert-info py-2 mb-0"><small>${customerNotes}</small></div>
+                        <label class="form-label mb-2" style="font-weight: 600; color: #495057;"><strong>Customer Notes:</strong></label>
+                        <div class="alert alert-info py-3 mb-0" style="background-color: #d1ecf1; border-left: 4px solid #0dcaf0;">
+                            <div class="d-flex align-items-start">
+                                <i class="ri-message-3-line me-2 mt-1" style="color: #0dcaf0; font-size: 1.1rem;"></i>
+                                <div style="color: #055160; line-height: 1.6; white-space: pre-wrap;">${escapeHtml(customerNotes)}</div>
+                            </div>
+                        </div>
                     </div>
                 ` : ''}
                 <div>
-                    <small class="text-muted d-block mb-1"><strong>Admin Notes (Optional):</strong></small>
+                    <label class="form-label mb-2" style="font-weight: 600; color: #495057;"><strong>Admin Notes (Optional):</strong></label>
                 </div>
             </div>
         `;
@@ -1801,8 +2002,15 @@
     // Decline Schedule from Show Page
     async function declineScheduleFromShow() {
         const requestedDate = '{{ $booking->booking_date ? $booking->booking_date->format("F j, Y") : "Not specified" }}';
-        const customerNotes = '{{ $booking->booking_notes ?? "" }}';
+        const customerNotes = '{{ addslashes($booking->booking_notes ?? "") }}';
         const customerName = '{{ $booking->user ? $booking->user->firstname . " " . $booking->user->lastname : "N/A" }}';
+        
+        // Escape HTML to prevent XSS
+        const escapeHtml = (text) => {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        };
         
         const htmlContent = `
             <div class="text-start mb-3">
@@ -1810,14 +2018,19 @@
                     <p class="mb-2"><strong class="text-muted">Customer:</strong> ${customerName}</p>
                     <p class="mb-0"><strong class="text-muted">Requested Date:</strong> <span class="text-primary">${requestedDate}</span></p>
                 </div>
-                ${customerNotes ? `
+                ${customerNotes && customerNotes.trim() ? `
                     <div class="mb-3">
-                        <small class="text-muted d-block mb-1"><strong>Customer Notes:</strong></small>
-                        <div class="alert alert-info py-2 mb-0"><small>${customerNotes}</small></div>
+                        <label class="form-label mb-2" style="font-weight: 600; color: #495057;"><strong>Customer Notes:</strong></label>
+                        <div class="alert alert-info py-3 mb-0" style="background-color: #d1ecf1; border-left: 4px solid #0dcaf0;">
+                            <div class="d-flex align-items-start">
+                                <i class="ri-message-3-line me-2 mt-1" style="color: #0dcaf0; font-size: 1.1rem;"></i>
+                                <div style="color: #055160; line-height: 1.6; white-space: pre-wrap;">${escapeHtml(customerNotes)}</div>
+                            </div>
+                        </div>
                     </div>
                 ` : ''}
                 <div>
-                    <small class="text-muted d-block mb-1"><strong>Reason for Decline:</strong> <span class="text-danger">*</span></small>
+                    <label class="form-label mb-2" style="font-weight: 600; color: #495057;"><strong>Reason for Decline:</strong> <span class="text-danger">*</span></label>
                 </div>
             </div>
         `;
@@ -1880,5 +2093,90 @@
             }
         }
     }
+
+    // Handle assignment form submission
+    document.addEventListener('DOMContentLoaded', function() {
+        const assignForm = document.getElementById('assignBookingForm');
+        if (assignForm) {
+            assignForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+
+                const userId = document.getElementById('assignPhotographer').value;
+                const time = document.getElementById('assignTime').value;
+
+                if (!userId || !time) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Required Fields',
+                        text: 'Please select a photographer and set a time'
+                    });
+                    return;
+                }
+
+                // Disable submit button to prevent double submission
+                const submitBtn = this.querySelector('button[type="submit"]');
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Assigning...';
+
+                const formData = new FormData(this);
+
+                fetch(this.action, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json',
+                    },
+                    body: formData
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(err => Promise.reject(err));
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // Close modal
+                    const modalElement = document.getElementById('assignBookingModal');
+                    const modalInstance = bootstrap.Modal.getInstance(modalElement);
+                    if (modalInstance) {
+                        modalInstance.hide();
+                    }
+
+                    // Show success message
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success!',
+                        text: data.message || 'Booking assigned successfully',
+                        timer: 2000,
+                        showConfirmButton: false
+                    }).then(() => {
+                        // Reload page to show updated assignment
+                        window.location.reload();
+                    });
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+
+                    let errorMessage = 'Failed to assign booking';
+                    if (error.message) {
+                        errorMessage = error.message;
+                    } else if (error.errors) {
+                        errorMessage = Object.values(error.errors).flat().join(', ');
+                    }
+
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: errorMessage
+                    });
+                })
+                .finally(() => {
+                    // Re-enable submit button
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = 'Assign';
+                });
+            });
+        }
+    });
 </script>
 @endsection

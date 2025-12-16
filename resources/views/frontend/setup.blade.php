@@ -294,7 +294,7 @@
                                     <div class="col-12 muted-small">Didn't receive? <a href="#" class="text-primary fw-semibold" id="resendOtp">Resend</a></div>
                                 </div>
                             </div>
-                            <div class="d-flex flex-column flex-sm-row gap-2 justify-content-end mt-4">
+                            <div id="contactActionButtons" class="d-flex flex-column flex-sm-row gap-2 justify-content-end mt-4 {{ $isLoggedIn ? '' : 'hidden' }}">
                                 <button type="button" class="btn btn-outline-secondary me-2" id="skipContact">Clear</button>
                                 <button type="button" class="btn btn-primary" id="toStep2" disabled>Proceed to Property</button>
                             </div>

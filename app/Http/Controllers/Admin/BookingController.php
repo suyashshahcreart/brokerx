@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\BHK;
 use App\Models\Booking;
+use App\Models\BookingAssignee;
+use App\Models\BookingHistory;
 use App\Models\City;
 use App\Models\PropertySubType;
 use App\Models\PropertyType;
@@ -315,8 +317,14 @@ class BookingController extends Controller
 
     public function show(Booking $booking)
     {
-        $booking->load(['user', 'propertyType', 'propertySubType', 'bhk', 'city', 'state', 'creator']);
-        return view('admin.bookings.show', compact('booking'));
+        $booking->load(['user', 'propertyType', 'propertySubType', 'bhk', 'city', 'state', 'creator', 'assignees.user']);
+        
+        // Get photographers for assignment modal
+        $photographers = \App\Models\User::whereHas('roles', function($q) {
+            $q->where('name', 'photographer');
+        })->get();
+        
+        return view('admin.bookings.show', compact('booking', 'photographers'));
     }
 
     public function edit(Booking $booking)
@@ -428,8 +436,119 @@ class BookingController extends Controller
         $request->validate([
             'schedule_date' => ['required', 'date'],
         ]);
+        
         $oldDate = $booking->booking_date;
-        $booking->booking_date = $request->input('schedule_date');
+        $newDate = $request->input('schedule_date');
+        $oldStatus = $booking->status;
+        
+        // Compare dates to check if date actually changed
+        $oldDateStr = $oldDate ? \Carbon\Carbon::parse($oldDate)->format('Y-m-d') : null;
+        $newDateStr = \Carbon\Carbon::parse($newDate)->format('Y-m-d');
+        $dateChanged = $oldDateStr && $oldDateStr !== $newDateStr;
+        
+        // Determine new status based on current status
+        // If status is schedul_assign or reschedul_assign, and date is changed, change to schedul_accepted or reschedul_accepted
+        $newStatus = $oldStatus;
+        $statusChanged = false;
+        
+        // If date changed, remove photographer assignments (same logic as frontend)
+        if ($dateChanged) {
+            // Check if status should change when date is updated
+            if (in_array($oldStatus, ['schedul_assign', 'reschedul_assign'])) {
+                if ($oldStatus === 'schedul_assign') {
+                    $newStatus = 'schedul_accepted';
+                } else {
+                    $newStatus = 'reschedul_accepted';
+                }
+                $statusChanged = true;
+            }
+            // Check if there's an existing photographer assignment
+            $existingAssignees = BookingAssignee::where('booking_id', $booking->id)
+                ->with('user')
+                ->get()
+                ->filter(function($assignee) {
+                    return $assignee->user && $assignee->user->hasRole('photographer');
+                });
+            
+            // Store old assignment info for history before deletion
+            $oldAssignmentInfo = null;
+            $assignmentRemoved = false;
+            if ($existingAssignees->isNotEmpty()) {
+                $oldAssignee = $existingAssignees->first();
+                $oldPhotographer = $oldAssignee->user;
+                $oldAssignmentInfo = [
+                    'photographer_id' => $oldPhotographer->id ?? null,
+                    'photographer_name' => $oldPhotographer->name ?? null,
+                    'photographer_phone' => $oldPhotographer->mobile ?? null,
+                    'old_assigned_date' => $oldAssignee->date ? \Carbon\Carbon::parse($oldAssignee->date)->format('Y-m-d') : null,
+                    'old_assigned_time' => $oldAssignee->time ? \Carbon\Carbon::parse($oldAssignee->time)->format('H:i') : null,
+                ];
+                
+                // Delete all photographer assignments for this booking
+                // This removes the assignment but booking history remains intact
+                foreach ($existingAssignees as $assignee) {
+                    $assignee->delete(); // Soft delete
+                }
+                $assignmentRemoved = true;
+            }
+            
+            // Also check and remove PhotographerVisitJob if exists
+            $visitJob = PhotographerVisitJob::where('booking_id', $booking->id)->first();
+            if ($visitJob) {
+                $visitJob->delete(); // Soft delete
+                $assignmentRemoved = true;
+            }
+            
+            // Clear booking_time when rescheduling (photographer assignment removed)
+            if ($dateChanged || $assignmentRemoved) {
+                $booking->booking_time = null;
+            }
+            
+            // Create booking history entry for date change
+            if ($assignmentRemoved) {
+                $photographerName = $oldAssignmentInfo['photographer_name'] ?? 'Unknown';
+                BookingHistory::create([
+                    'booking_id' => $booking->id,
+                    'from_status' => $oldStatus,
+                    'to_status' => $oldStatus, // Status will be updated separately if needed
+                    'changed_by' => auth()->id(),
+                    'notes' => 'Booking date changed by admin - Photographer assignment removed (Photographer: ' . $photographerName . ')',
+                    'metadata' => [
+                        'old_date' => $oldDateStr,
+                        'new_date' => $newDateStr,
+                        'old_assignment' => $oldAssignmentInfo,
+                        'assignment_removed' => true,
+                        'booking_time_cleared' => true,
+                    ],
+                    'ip_address' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                ]);
+            }
+        }
+        
+        // Update booking date and status
+        $booking->booking_date = $newDate;
+        $booking->updated_by = auth()->id();
+        
+        // Update status if it needs to change (from schedul_assign to schedul_accepted)
+        if ($statusChanged) {
+            $booking->status = $newStatus;
+            
+            // Create booking history entry for status change
+            $booking->changeStatus(
+                $newStatus,
+                auth()->id(),
+                'Booking date updated by admin - Status changed from ' . $oldStatus . ' to ' . $newStatus,
+                [
+                    'old_date' => $oldDateStr,
+                    'new_date' => $newDateStr,
+                    'old_status' => $oldStatus,
+                    'new_status' => $newStatus,
+                    'changed_by_admin' => true,
+                ]
+            );
+        }
+        
         $booking->save();
 
         activity('bookings')
@@ -439,12 +558,22 @@ class BookingController extends Controller
                 'event' => 'rescheduled',
                 'old_date' => $oldDate,
                 'new_date' => $booking->booking_date,
+                'old_status' => $oldStatus,
+                'new_status' => $booking->status,
+                'date_changed' => $dateChanged,
+                'status_changed' => $statusChanged,
+                'assignment_removed' => $assignmentRemoved ?? false,
             ])
-            ->log('Booking rescheduled');
+            ->log('Booking rescheduled' . 
+                ($statusChanged ? ' - Status changed from ' . $oldStatus . ' to ' . $booking->status : '') .
+                ($assignmentRemoved ?? false ? ' - Photographer assignment removed' : ''));
 
         return response()->json([
             'success' => true, 
-            'new_date' => $booking->booking_date ? \Carbon\Carbon::parse($booking->booking_date)->format('Y-m-d') : null
+            'new_date' => $booking->booking_date ? \Carbon\Carbon::parse($booking->booking_date)->format('Y-m-d') : null,
+            'new_status' => $booking->status,
+            'status_changed' => $statusChanged,
+            'assignment_removed' => $assignmentRemoved ?? false,
         ]);
     }
 
