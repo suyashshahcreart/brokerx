@@ -9,6 +9,7 @@ import dayGridPlugin from '@fullcalendar/daygrid'
 import timeGridPlugin from '@fullcalendar/timegrid'
 import listPlugin from '@fullcalendar/list'
 import { Modal } from 'bootstrap'
+import { end } from '@popperjs/core';
 
 // date formate function formatDateTime(isoString, locale = 'en-IN') {
 function formatDateOnly(isoString, locale = 'en-IN') {
@@ -39,7 +40,7 @@ class CalendarSchedule {
         this.selectedEvent = null;
         this.newEventData = null;
     }
-
+    // Event Clck {{ BOOKING SELECT AND mODEL OPEN }}
     onEventClick(info) {
         this.formEvent?.reset();
         this.formEvent?.classList.remove('was-validated');
@@ -51,7 +52,7 @@ class CalendarSchedule {
 
         this.selectedEvent = info.event;
         const props = this.selectedEvent.extendedProps;
-        
+
         // Safely format time
         let formattedTime = '—';
         if (props.bookingTime) {
@@ -80,32 +81,32 @@ class CalendarSchedule {
         const checkInRouteTemplate = this.calendar.getAttribute('data-check-in-route');
         const checkOutRouteTemplate = this.calendar.getAttribute('data-check-out-route');
         const bookingShowRouteTemplate = this.calendar.getAttribute('data-booking-show-route');
-        
+
         // Get IDs
         const assigneeId = props.assigneeId;
         const bookingId = props.bookingId;
-        
+
         // Build URLs by replacing :id placeholder
         const checkInUrl = checkInRouteTemplate ? checkInRouteTemplate.replace(':id', assigneeId) : `./booking-assignees/${assigneeId}/check-in`;
         const checkOutUrl = checkOutRouteTemplate ? checkOutRouteTemplate.replace(':id', assigneeId) : `./booking-assignees/${assigneeId}/check-out`;
         const bookingShowUrl = bookingShowRouteTemplate ? bookingShowRouteTemplate.replace(':id', bookingId) : `./bookings/${bookingId}`;
-        
+
         // Get all button elements
         const checkInBtn = document.getElementById('modal-check-in-link');
         const checkOutBtn = document.getElementById('modal-check-out-link');
         const viewBookingBtn = document.getElementById('modal-view-booking-link');
         const completedBtn = document.getElementById('modal-completed-link');
-        
+
         // Normalize and evaluate booking status for UI logic
         const status = (props.status || '').toLowerCase();
         console.log('Booking status:', status, 'Assignee ID:', assigneeId, 'Booking ID:', bookingId);
-        
+
         // Hide all buttons first
         if (checkInBtn) checkInBtn.style.display = 'none';
         if (checkOutBtn) checkOutBtn.style.display = 'none';
         if (viewBookingBtn) viewBookingBtn.style.display = 'none';
         if (completedBtn) completedBtn.style.display = 'none';
-        
+
         // Show buttons based on status
         if (status === 'schedul_completed' || status === 'tour_completed') {
             // Completed - show completed button (disabled) and view booking
@@ -148,6 +149,7 @@ class CalendarSchedule {
         this.modal.show();
     }
 
+    // EVENT SELECT AND MODEL OPEN
     onSelect(info) {
         this.formEvent?.reset();
         this.formEvent?.classList.remove('was-validated');
@@ -158,7 +160,7 @@ class CalendarSchedule {
         this.modal.show();
         this.calendarObj.unselect();
     }
-
+    // Fetch bookings from API
     async fetchBookings(fromDate, toDate) {
         try {
             // Get the API URL from the data attribute
@@ -219,14 +221,66 @@ class CalendarSchedule {
                     }
                     title += booking.firm_name || `Booking #${booking.id || assignee.booking_id}`;
 
-                    // Use assignment date (assignee.date) first, fall back to booking date
-                    const startDate = assignee.date || booking.booking_date;
+                    const working_Duration = 120; // minutes
+                    // Convert booking_date (UTC) to India Standard Time (IST) and use that date
+                    const datePart = booking.booking_date; // e.g. "2025-12-17T18:30:00.000000Z"
+                    const timePart = booking.booking_time; // e.g. "12:00:00" or null
+
+                    // Parse booking_date as UTC, then shift to IST (+05:30) to get the correct local date
+                    const IST_OFFSET_MIN = 5 * 60 + 30; // 330 minutes
+                    let dateOnly;
+                    const parsedBookingUtc = new Date(datePart);
+                    if (!isNaN(parsedBookingUtc)) {
+                        const istMs = parsedBookingUtc.getTime() + IST_OFFSET_MIN * 60 * 1000;
+                        const istDt = new Date(istMs);
+                        const pad = (n) => String(n).padStart(2, '0');
+                        dateOnly = `${istDt.getFullYear()}-${pad(istDt.getMonth() + 1)}-${pad(istDt.getDate())}`;
+                    } else {
+                        // Fallback: take the date portion if parsing failed
+                        dateOnly = (datePart || '').split('T')[0];
+                    }
+
+                    // Default values
+                    let eventStart = dateOnly; // date-only (all-day) by default
+                    let eventEnd = undefined;
+                    let allDay = !timePart;
+
+                    if (timePart) {
+                        // Normalize time "HH:MM" -> "HH:MM:SS"
+                        const t = ('' + timePart).trim();
+                        const normalized = t.length === 5 ? `${t}:00` : t;
+
+                        // Parse time components
+                        const parts = normalized.split(':').map(Number);
+                        const hh = parts[0] || 0;
+                        const mm = parts[1] || 0;
+                        const ss = parts[2] || 0;
+
+                        // Compute UTC ms that corresponds to this IST local time on dateOnly
+                        const [yStr, mStr, dStr] = dateOnly.split('-');
+                        const y = parseInt(yStr, 10);
+                        const m = parseInt(mStr, 10);
+                        const d = parseInt(dStr, 10);
+
+                        // Date.UTC gives ms for UTC time; subtract IST offset to get UTC timestamp matching the IST local time
+                        const utcMsForIstLocal = Date.UTC(y, m - 1, d, hh, mm, ss) - IST_OFFSET_MIN * 60 * 1000;
+                        const startDt = new Date(utcMsForIstLocal);
+                        const endDt = new Date(utcMsForIstLocal + working_Duration * 60 * 1000);
+
+                        eventStart = startDt.toISOString();
+                        eventEnd = endDt.toISOString();
+                        allDay = false;
+                    }
+
+                    console.log('Booking Event (IST-based):', { dateOnly, timePart, eventStart, eventEnd, allDay });
 
                     return {
                         id: assignee.id,
                         title,
-                        start: startDate,
-                        className,
+                        start: eventStart,
+                        end: eventEnd,
+                        allDay: allDay,
+                        classNames: [className],
                         extendedProps: {
                             assigneeId: assignee.id,
                             bookingId: booking.id || assignee.booking_id,
@@ -258,25 +312,12 @@ class CalendarSchedule {
         /*  Initialize the calendar  */
         const today = new Date();
         const self = this;
-        const externalEventContainerEl = document.getElementById('external-events');
-
-        new Draggable(externalEventContainerEl, {
-            itemSelector: '.external-event',
-            eventData: function (eventEl) {
-                return {
-                    title: eventEl.innerText,
-                    classNames: eventEl.getAttribute('data-class')
-                };
-            }
-        });
 
         // cal - init
         self.calendarObj = new Calendar(self.calendar, {
-
             plugins: [dayGridPlugin, timeGridPlugin, listPlugin],
+            slotMaxTime: '24:00:00',
             slotDuration: '00:30:00', /* If we want to split day time each 15minutes */
-            slotMinTime: '07:00:00',
-            slotMaxTime: '19:00:00',
             themeSystem: 'bootstrap',
             bootstrapFontAwesome: false,
             buttonText: {
@@ -300,13 +341,13 @@ class CalendarSchedule {
                 // Format dates to YYYY-MM-DD
                 const fromDate = info.start.toISOString().split('T')[0];
                 const toDate = info.end.toISOString().split('T')[0];
-
                 const events = await self.fetchBookings(fromDate, toDate);
+                console.log('Fetching events from', events.length);
                 successCallback(events);
             },
             editable: true,
             droppable: true, // this allows things to be dropped onto the calendar !!!
-            // dayMaxEventRows: false, // allow "more" link when too many events
+            dayMaxEventRows: false, // allow "more" link when too many events
             selectable: true,
             dateClick: function (info) {
                 self.onSelect(info);
@@ -315,45 +356,12 @@ class CalendarSchedule {
                 self.onEventClick(info);
             },
             datesSet: function (info) {
-                console.log('Calendar view changed:', {
-                    startDate: info.start,
-                    endDate: info.end,
-                    currentView: info.view.type
-                });
+                console.log('Calendar view changed:', info);
             }
         });
 
         self.calendarObj.render();
-
-        // on new event button click
-        self.btnNewEvent.addEventListener('click', function (e) {
-            self.onSelect({
-                date: new Date(),
-                allDay: true
-            });
-        });
-
-        // save event (disabled for booking view)
-        if (self.formEvent && self.btnSaveEvent) {
-            self.formEvent.addEventListener('submit', function (e) {
-                e.preventDefault();
-                // Form submission disabled for booking details view
-                self.modal.hide();
-            });
-        }
-
-        // delete event
-        if (self.btnDeleteEvent) {
-            self.btnDeleteEvent.addEventListener('click', function (e) {
-                if (self.selectedEvent) {
-                    self.selectedEvent.remove();
-                    self.selectedEvent = null;
-                    self.modal.hide();
-                }
-            });
-        }
     }
-
 }
 document.addEventListener('DOMContentLoaded', function (e) {
     new CalendarSchedule().init();
