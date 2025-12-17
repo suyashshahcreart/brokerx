@@ -222,17 +222,58 @@ class CalendarSchedule {
                     title += booking.firm_name || `Booking #${booking.id || assignee.booking_id}`;
 
                     const working_Duration = 120; // minutes
-                    // Use assignment date (assignee.date) first, fall back to booking date
-                    const datePart = booking.booking_date;
-                    const timePart = booking.booking_time;
+                    // Convert booking_date (UTC) to India Standard Time (IST) and use that date
+                    const datePart = booking.booking_date; // e.g. "2025-12-17T18:30:00.000000Z"
+                    const timePart = booking.booking_time; // e.g. "12:00:00" or null
 
-                    // 1. Take only the date (YYYY-MM-DD)
-                    const dateOnly = datePart.split("T")[0];
-                    // 2. Build start datetime (local time, no inherited time)
-                    const eventStart = new Date(`${dateOnly}T${timePart}`);
-                    // 3. Add duration (minutes → ms)
-                    const eventEnd = new Date(eventStart.getTime() + working_Duration * 60 * 1000);
-                    const allDay = !timePart; // If no specific time, treat as all-day event
+                    // Parse booking_date as UTC, then shift to IST (+05:30) to get the correct local date
+                    const IST_OFFSET_MIN = 5 * 60 + 30; // 330 minutes
+                    let dateOnly;
+                    const parsedBookingUtc = new Date(datePart);
+                    if (!isNaN(parsedBookingUtc)) {
+                        const istMs = parsedBookingUtc.getTime() + IST_OFFSET_MIN * 60 * 1000;
+                        const istDt = new Date(istMs);
+                        const pad = (n) => String(n).padStart(2, '0');
+                        dateOnly = `${istDt.getFullYear()}-${pad(istDt.getMonth() + 1)}-${pad(istDt.getDate())}`;
+                    } else {
+                        // Fallback: take the date portion if parsing failed
+                        dateOnly = (datePart || '').split('T')[0];
+                    }
+
+                    // Default values
+                    let eventStart = dateOnly; // date-only (all-day) by default
+                    let eventEnd = undefined;
+                    let allDay = !timePart;
+
+                    if (timePart) {
+                        // Normalize time "HH:MM" -> "HH:MM:SS"
+                        const t = ('' + timePart).trim();
+                        const normalized = t.length === 5 ? `${t}:00` : t;
+
+                        // Parse time components
+                        const parts = normalized.split(':').map(Number);
+                        const hh = parts[0] || 0;
+                        const mm = parts[1] || 0;
+                        const ss = parts[2] || 0;
+
+                        // Compute UTC ms that corresponds to this IST local time on dateOnly
+                        const [yStr, mStr, dStr] = dateOnly.split('-');
+                        const y = parseInt(yStr, 10);
+                        const m = parseInt(mStr, 10);
+                        const d = parseInt(dStr, 10);
+
+                        // Date.UTC gives ms for UTC time; subtract IST offset to get UTC timestamp matching the IST local time
+                        const utcMsForIstLocal = Date.UTC(y, m - 1, d, hh, mm, ss) - IST_OFFSET_MIN * 60 * 1000;
+                        const startDt = new Date(utcMsForIstLocal);
+                        const endDt = new Date(utcMsForIstLocal + working_Duration * 60 * 1000);
+
+                        eventStart = startDt.toISOString();
+                        eventEnd = endDt.toISOString();
+                        allDay = false;
+                    }
+
+                    console.log('Booking Event (IST-based):', { dateOnly, timePart, eventStart, eventEnd, allDay });
+
                     return {
                         id: assignee.id,
                         title,
