@@ -1,8 +1,4 @@
-@extends('admin.layouts.vertical')
-
-@section('css')
-@vite(['node_modules/fullcalendar/main.min.css'])
-@endsection
+@extends('admin.layouts.vertical', ['title' => 'Bookings Assigner Calender', 'subTitle' => 'Manage Booking Assigner Schedules'])
 
 @section('content')
 <div class="row">
@@ -10,7 +6,7 @@
         <div class="page-title-box">
             <h4 class="mb-0 fw-semibold">{{ $title }}</h4>
             <ol class="breadcrumb mb-0">
-                <li class="breadcrumb-item"><a href="javascript: void(0);">Photographer</a></li>
+                <li class="breadcrumb-item"><a href="javascript: void(0);">Bookings</a></li>
                 <li class="breadcrumb-item active">{{ $title }}</li>
             </ol>
         </div>
@@ -176,6 +172,6 @@
 
 @endsection
 
-@section('script-bottom')
+@section('scripts')
 @vite(['resources/js/pages/photographer-index.js'])
 @endsection

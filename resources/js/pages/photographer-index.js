@@ -277,8 +277,6 @@ class CalendarSchedule {
                         allDay = false;
                     }
 
-                    console.log('Booking Event (IST-based):', { dateOnly, timePart, eventStart, eventEnd, allDay });
-
                     return {
                         id: assignee.id,
                         title,
@@ -347,16 +345,15 @@ class CalendarSchedule {
                 const fromDate = info.start.toISOString().split('T')[0];
                 const toDate = info.end.toISOString().split('T')[0];
                 const events = await self.fetchBookings(fromDate, toDate);
-                console.log('Fetching events from', events.length);
                 successCallback(events);
             },
             editable: true,
             droppable: true, // this allows things to be dropped onto the calendar !!!
             dayMaxEventRows: false, // allow "more" link when too many events
             selectable: true,
-            dateClick: function (info) {
-                self.onSelect(info);
-            },
+            // dateClick: function (info) {
+            //     self.onSelect(info);
+            // },
             eventClick: function (info) {
                 self.onEventClick(info);
             },
