@@ -324,36 +324,7 @@ class CalendarSchedule {
         });
 
         self.calendarObj.render();
-
-        // on new event button click
-        self.btnNewEvent.addEventListener('click', function (e) {
-            self.onSelect({
-                date: new Date(),
-                allDay: true
-            });
-        });
-
-        // save event (disabled for booking view)
-        if (self.formEvent && self.btnSaveEvent) {
-            self.formEvent.addEventListener('submit', function (e) {
-                e.preventDefault();
-                // Form submission disabled for booking details view
-                self.modal.hide();
-            });
-        }
-
-        // delete event
-        if (self.btnDeleteEvent) {
-            self.btnDeleteEvent.addEventListener('click', function (e) {
-                if (self.selectedEvent) {
-                    self.selectedEvent.remove();
-                    self.selectedEvent = null;
-                    self.modal.hide();
-                }
-            });
-        }
     }
-
 }
 document.addEventListener('DOMContentLoaded', function (e) {
     new CalendarSchedule().init();
