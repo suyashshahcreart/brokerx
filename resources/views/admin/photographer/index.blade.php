@@ -48,6 +48,36 @@
                         </div>
                     </div> <!-- end col-->
                     <div class="col-xl-12">
+                        @if(auth()->check() && auth()->user()->hasRole('admin'))
+                        <div class="mt-2 mb-3">
+                            <div class="row g-2">
+                                <div class="col-md-4">
+                                    <label for="filterPhotographer" class="form-label">Photographer</label>
+                                    <select id="filterPhotographer" class="form-select form-select-sm">
+                                        <option value="">All Photographers</option>
+                                        @foreach($photographers as $photographer)
+                                            <option value="{{ $photographer->id }}">{{ $photographer->firstname }} {{ $photographer->lastname }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="filterStatus" class="form-label">Status</label>
+                                    <select id="filterStatus" class="form-select form-select-sm">
+                                        <option value="">All Statuses</option>
+                                        @foreach($statuses as $status)
+                                            <option value="{{ $status }}">{{ ucfirst(str_replace('_', ' ', $status)) }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-md-2 d-flex align-items-end">
+                                    <div class="w-100">
+                                        <button id="btnClearFilters" type="button" class="btn btn-sm btn-outline-secondary w-50">Clear filters</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        @endif
+
                         <div class="mt-4 mt-lg-0">
                             <div id="calendar" 
                                  data-booking-api="{{ route('api.bookings.by-date-range') }}"
