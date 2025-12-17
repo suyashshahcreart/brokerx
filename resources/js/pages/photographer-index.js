@@ -156,7 +156,7 @@ class CalendarSchedule {
         this.selectedEvent = null;
         this.newEventData = info;
         this.btnDeleteEvent.style.display = "none";
-        this.modalTitle.text = ('Add New Event');
+        this.modalTitle.textContent = 'Add New Event';
         this.modal.show();
         this.calendarObj.unselect();
     }
