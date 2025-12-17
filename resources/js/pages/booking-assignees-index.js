@@ -438,28 +438,113 @@ function bindAssignButtons() {
 
             // Enable/disable and populate select based on photographer selection
             assignPhotographerEl.onchange = function () {
-                if (this.value) {
-                    if (toM < fromM) {
-                        assignTimeEl.disabled = true;
-                        assignTimeEl.innerHTML = '<option value="">Select a time</option>';
-                        if (helper) helper.textContent = 'No available slots for photographers. Please update settings.';
-                        return;
-                    }
-
-                    populateTimeOptions();
-                    assignTimeEl.disabled = false;
-                    // Select first available
-                    if (!assignTimeEl.value && assignTimeEl.options.length > 1) {
-                        assignTimeEl.value = assignTimeEl.options[1].value;
-                    }
-                    assignTimeEl.focus();
-                    if (helper) helper.textContent = `Available slots: ${formatDisplay(fromM)} — ${formatDisplay(toM)} (every ${slotStep} min)`;
-                } else {
+                if (!this.value) {
                     assignTimeEl.disabled = true;
                     assignTimeEl.value = '';
                     assignTimeEl.innerHTML = '<option value="">Select a time</option>';
                     if (helper) helper.textContent = 'Select a photographer first to see available 15-minute slots.';
+                    return;
                 }
+
+                if (toM < fromM) {
+                    assignTimeEl.disabled = true;
+                    assignTimeEl.innerHTML = '<option value="">Select a time</option>';
+                    if (helper) helper.textContent = 'No available slots for photographers. Please update settings.';
+                    return;
+                }
+
+                // Ensure booking date is set
+                const dateVal = document.getElementById('modalDate').value;
+                if (!dateVal) {
+                    assignTimeEl.disabled = true;
+                    assignTimeEl.innerHTML = '<option value="">Select a time</option>';
+                    if (helper) helper.textContent = 'Please select a booking date first.';
+                    return;
+                }
+
+                // Show loading state
+                if (helper) helper.textContent = 'Loading photographer slots...';
+                assignTimeEl.disabled = true;
+                assignTimeEl.innerHTML = '<option value="">Loading...</option>';
+
+                // Call API to get existing assignments for this photographer on the date
+                fetch(`/api/booking-assignees/slots?date=${encodeURIComponent(dateVal)}&user_id=${encodeURIComponent(this.value)}`, {
+                    method: 'GET',
+                    credentials: 'same-origin',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    }
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        if (response.status === 403) {
+                            if (helper) helper.textContent = 'Forbidden to view slots for selected user.';
+                            assignTimeEl.disabled = true;
+                            assignTimeEl.innerHTML = '<option value="">Select a time</option>';
+                            return Promise.reject({ message: 'Forbidden' });
+                        }
+                        return response.json().then(err => Promise.reject(err));
+                    }
+                    return response.json();
+                })
+                .then(json => {
+                    if (!json || json.success === false) {
+                        if (helper) helper.textContent = json?.message || 'Failed to load slots';
+                        assignTimeEl.disabled = true;
+                        assignTimeEl.innerHTML = '<option value="">Select a time</option>';
+                        return;
+                    }
+
+                    // Build set of occupied slot values (HH:MM) based on returned assignments and working duration
+                    const occupied = new Set();
+                    const duration = workingDuration || 60; // minutes
+                    const step = slotStep;
+
+                    (json.data || []).forEach(s => {
+                        if (!s.time) return;
+                        const parts = s.time.split(':');
+                        if (parts.length < 2) return;
+                        const start = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
+                        // block slots from start -> start + duration
+                        for (let m = start; m < start + duration; m += step) {
+                            // normalize to hh:mm
+                            const hh = Math.floor(m / 60).toString().padStart(2, '0');
+                            const mm = (m % 60).toString().padStart(2, '0');
+                            occupied.add(`${hh}:${mm}`);
+                        }
+                    });
+
+                    // Rebuild available options excluding occupied ones
+                    assignTimeEl.innerHTML = '<option value="">Select a time</option>';
+                    for (let t = fromM; t <= toM; t += slotStep) {
+                        const val = formatHM(t);
+                        if (occupied.has(val)) continue; // skip occupied slot
+                        const opt = document.createElement('option');
+                        opt.value = val;
+                        opt.textContent = formatDisplay(t);
+                        assignTimeEl.appendChild(opt);
+                    }
+
+                    if (assignTimeEl.options.length <= 1) {
+                        assignTimeEl.disabled = true;
+                        if (helper) helper.textContent = 'No available slots on this date for selected photographer.';
+                    } else {
+                        assignTimeEl.disabled = false;
+                        // Select first available slot
+                        if (!assignTimeEl.value && assignTimeEl.options.length > 1) {
+                            assignTimeEl.value = assignTimeEl.options[1].value;
+                        }
+                        assignTimeEl.focus();
+                        if (helper) helper.textContent = `Available slots: ${formatDisplay(fromM)} — ${formatDisplay(toM)} (every ${slotStep} min)`;
+                    }
+                })
+                .catch(err => {
+                    console.error('Error loading slots:', err);
+                    if (helper) helper.textContent = err?.message || 'Failed to load slots.';
+                    assignTimeEl.disabled = true;
+                    assignTimeEl.innerHTML = '<option value="">Select a time</option>';
+                });
             };
 
             const form = document.getElementById('assignBookingForm');
