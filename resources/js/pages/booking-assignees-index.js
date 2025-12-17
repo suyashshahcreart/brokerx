@@ -496,32 +496,42 @@ function bindAssignButtons() {
                         return;
                     }
 
-                    // Build set of occupied slot values (HH:MM) based on returned assignments and working duration
-                    const occupied = new Set();
+                    // Build occupied intervals based on returned assignments and working duration
                     const duration = workingDuration || 60; // minutes
                     const step = slotStep;
+                    const occupiedIntervals = [];
 
                     (json.data || []).forEach(s => {
                         if (!s.time) return;
                         const parts = s.time.split(':');
                         if (parts.length < 2) return;
                         const start = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
-                        // block slots from start -> start + duration
-                        for (let m = start; m < start + duration; m += step) {
-                            // normalize to hh:mm
-                            const hh = Math.floor(m / 60).toString().padStart(2, '0');
-                            const mm = (m % 60).toString().padStart(2, '0');
-                            occupied.add(`${hh}:${mm}`);
-                        }
+                        const end = start + duration;
+                        occupiedIntervals.push({ start, end });
                     });
 
-                    // Rebuild available options excluding occupied ones
+                    // Rebuild available options excluding those that would overlap occupied intervals
                     assignTimeEl.innerHTML = '<option value="">Select a time</option>';
                     for (let t = fromM; t <= toM; t += slotStep) {
-                        const val = formatHM(t);
-                        if (occupied.has(val)) continue; // skip occupied slot
+                        const candidateStart = t;
+                        const candidateEnd = t + duration;
+
+                        // Ensure the candidate assignment fits within photographer availability
+                        if (candidateEnd > toM) continue;
+
+                        // Check overlap with any occupied interval
+                        let overlaps = false;
+                        for (const occ of occupiedIntervals) {
+                            if (candidateStart < occ.end && candidateEnd > occ.start) {
+                                overlaps = true;
+                                break;
+                            }
+                        }
+
+                        if (overlaps) continue;
+
                         const opt = document.createElement('option');
-                        opt.value = val;
+                        opt.value = formatHM(t);
                         opt.textContent = formatDisplay(t);
                         assignTimeEl.appendChild(opt);
                     }
