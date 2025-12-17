@@ -9,6 +9,7 @@ import dayGridPlugin from '@fullcalendar/daygrid'
 import timeGridPlugin from '@fullcalendar/timegrid'
 import listPlugin from '@fullcalendar/list'
 import { Modal } from 'bootstrap'
+import { end } from '@popperjs/core';
 
 // date formate function formatDateTime(isoString, locale = 'en-IN') {
 function formatDateOnly(isoString, locale = 'en-IN') {
@@ -39,7 +40,7 @@ class CalendarSchedule {
         this.selectedEvent = null;
         this.newEventData = null;
     }
-
+    // Event Clck {{ BOOKING SELECT AND mODEL OPEN }}
     onEventClick(info) {
         this.formEvent?.reset();
         this.formEvent?.classList.remove('was-validated');
@@ -51,7 +52,7 @@ class CalendarSchedule {
 
         this.selectedEvent = info.event;
         const props = this.selectedEvent.extendedProps;
-        
+
         // Safely format time
         let formattedTime = '—';
         if (props.bookingTime) {
@@ -80,32 +81,32 @@ class CalendarSchedule {
         const checkInRouteTemplate = this.calendar.getAttribute('data-check-in-route');
         const checkOutRouteTemplate = this.calendar.getAttribute('data-check-out-route');
         const bookingShowRouteTemplate = this.calendar.getAttribute('data-booking-show-route');
-        
+
         // Get IDs
         const assigneeId = props.assigneeId;
         const bookingId = props.bookingId;
-        
+
         // Build URLs by replacing :id placeholder
         const checkInUrl = checkInRouteTemplate ? checkInRouteTemplate.replace(':id', assigneeId) : `./booking-assignees/${assigneeId}/check-in`;
         const checkOutUrl = checkOutRouteTemplate ? checkOutRouteTemplate.replace(':id', assigneeId) : `./booking-assignees/${assigneeId}/check-out`;
         const bookingShowUrl = bookingShowRouteTemplate ? bookingShowRouteTemplate.replace(':id', bookingId) : `./bookings/${bookingId}`;
-        
+
         // Get all button elements
         const checkInBtn = document.getElementById('modal-check-in-link');
         const checkOutBtn = document.getElementById('modal-check-out-link');
         const viewBookingBtn = document.getElementById('modal-view-booking-link');
         const completedBtn = document.getElementById('modal-completed-link');
-        
+
         // Normalize and evaluate booking status for UI logic
         const status = (props.status || '').toLowerCase();
         console.log('Booking status:', status, 'Assignee ID:', assigneeId, 'Booking ID:', bookingId);
-        
+
         // Hide all buttons first
         if (checkInBtn) checkInBtn.style.display = 'none';
         if (checkOutBtn) checkOutBtn.style.display = 'none';
         if (viewBookingBtn) viewBookingBtn.style.display = 'none';
         if (completedBtn) completedBtn.style.display = 'none';
-        
+
         // Show buttons based on status
         if (status === 'schedul_completed' || status === 'tour_completed') {
             // Completed - show completed button (disabled) and view booking
@@ -148,6 +149,7 @@ class CalendarSchedule {
         this.modal.show();
     }
 
+    // EVENT SELECT AND MODEL OPEN
     onSelect(info) {
         this.formEvent?.reset();
         this.formEvent?.classList.remove('was-validated');
@@ -158,7 +160,7 @@ class CalendarSchedule {
         this.modal.show();
         this.calendarObj.unselect();
     }
-
+    // Fetch bookings from API
     async fetchBookings(fromDate, toDate) {
         try {
             // Get the API URL from the data attribute
@@ -219,14 +221,25 @@ class CalendarSchedule {
                     }
                     title += booking.firm_name || `Booking #${booking.id || assignee.booking_id}`;
 
+                    const working_Duration = 120; // minutes
                     // Use assignment date (assignee.date) first, fall back to booking date
-                    const startDate = assignee.date || booking.booking_date;
+                    const datePart = booking.booking_date;
+                    const timePart = booking.booking_time;
 
+                    // 1. Take only the date (YYYY-MM-DD)
+                    const dateOnly = datePart.split("T")[0];
+                    // 2. Build start datetime (local time, no inherited time)
+                    const eventStart = new Date(`${dateOnly}T${timePart}`);
+                    // 3. Add duration (minutes → ms)
+                    const eventEnd = new Date(eventStart.getTime() + working_Duration * 60 * 1000);
+                    const allDay = !timePart; // If no specific time, treat as all-day event
                     return {
                         id: assignee.id,
                         title,
-                        start: startDate,
-                        className,
+                        start: eventStart,
+                        end: eventEnd,
+                        allDay: allDay,
+                        classNames: [className],
                         extendedProps: {
                             assigneeId: assignee.id,
                             bookingId: booking.id || assignee.booking_id,
@@ -258,25 +271,12 @@ class CalendarSchedule {
         /*  Initialize the calendar  */
         const today = new Date();
         const self = this;
-        const externalEventContainerEl = document.getElementById('external-events');
-
-        new Draggable(externalEventContainerEl, {
-            itemSelector: '.external-event',
-            eventData: function (eventEl) {
-                return {
-                    title: eventEl.innerText,
-                    classNames: eventEl.getAttribute('data-class')
-                };
-            }
-        });
 
         // cal - init
         self.calendarObj = new Calendar(self.calendar, {
-
             plugins: [dayGridPlugin, timeGridPlugin, listPlugin],
+            slotMaxTime: '24:00:00',
             slotDuration: '00:30:00', /* If we want to split day time each 15minutes */
-            slotMinTime: '07:00:00',
-            slotMaxTime: '19:00:00',
             themeSystem: 'bootstrap',
             bootstrapFontAwesome: false,
             buttonText: {
@@ -300,13 +300,13 @@ class CalendarSchedule {
                 // Format dates to YYYY-MM-DD
                 const fromDate = info.start.toISOString().split('T')[0];
                 const toDate = info.end.toISOString().split('T')[0];
-
                 const events = await self.fetchBookings(fromDate, toDate);
+                console.log('Fetching events from', events.length);
                 successCallback(events);
             },
             editable: true,
             droppable: true, // this allows things to be dropped onto the calendar !!!
-            // dayMaxEventRows: false, // allow "more" link when too many events
+            dayMaxEventRows: false, // allow "more" link when too many events
             selectable: true,
             dateClick: function (info) {
                 self.onSelect(info);
@@ -315,11 +315,7 @@ class CalendarSchedule {
                 self.onEventClick(info);
             },
             datesSet: function (info) {
-                console.log('Calendar view changed:', {
-                    startDate: info.start,
-                    endDate: info.end,
-                    currentView: info.view.type
-                });
+                console.log('Calendar view changed:', info);
             }
         });
 
