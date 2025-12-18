@@ -11,6 +11,112 @@ import listPlugin from '@fullcalendar/list'
 import { Modal } from 'bootstrap'
 import { end } from '@popperjs/core';
 
+// ---------------------------
+// Utilities & helpers
+// ---------------------------
+
+/** Map booking status to Bootstrap bg class */
+function statusToClass(statusRaw) {
+    const status = (statusRaw || '').toLowerCase();
+    switch (status) {
+        case 'schedul_assign':
+        case 'reschedul_assign':
+            return 'bg-success';
+        case 'schedul_accepted':
+        case 'reschedul_accepted':
+            return 'bg-warning';
+        case 'schedul_inprogress':
+            return 'bg-info';
+        case 'schedul_completed':
+            return 'bg-success';
+        case 'cancelled':
+            return 'bg-danger';
+        case 'pending':
+        case 'schedul_pending':
+            return 'bg-secondary';
+        case 'confirmed':
+        case 'scheduled':
+            return 'bg-primary';
+        default:
+            return 'bg-secondary';
+    }
+}
+
+/** Convert booking_date (assumed UTC string) into IST YYYY-MM-DD */
+function toIstDateOnly(utcDateString) {
+    const IST_OFFSET_MIN = 5 * 60 + 30; // +05:30
+    const parsed = new Date(utcDateString);
+    if (isNaN(parsed)) return (utcDateString || '').split('T')[0] || '';
+    const istMs = parsed.getTime() + IST_OFFSET_MIN * 60 * 1000;
+    const ist = new Date(istMs);
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${ist.getFullYear()}-${pad(ist.getMonth() + 1)}-${pad(ist.getDate())}`;
+}
+
+/**
+ * Compute event timing from booking date/time using IST conversion.
+ * Returns { start, end, allDay, dateOnly }
+ */
+function computeEventTimes(bookingDate, bookingTime, durationMin = 120) {
+    const dateOnly = toIstDateOnly(bookingDate);
+    if (!bookingTime) {
+        return { start: dateOnly, end: undefined, allDay: true, dateOnly };
+    }
+
+    const t = ('' + bookingTime).trim();
+    const normalized = t.length === 5 ? `${t}:00` : t; // HH:MM -> HH:MM:SS
+    const parts = normalized.split(':').map(Number);
+    const hh = parts[0] || 0;
+    const mm = parts[1] || 0;
+    const ss = parts[2] || 0;
+
+    const IST_OFFSET_MIN = 5 * 60 + 30;
+    const [yStr, mStr, dStr] = dateOnly.split('-');
+    const y = parseInt(yStr, 10);
+    const m = parseInt(mStr, 10);
+    const d = parseInt(dStr, 10);
+    const utcMsForIstLocal = Date.UTC(y, m - 1, d, hh, mm, ss) - IST_OFFSET_MIN * 60 * 1000;
+    const startDt = new Date(utcMsForIstLocal);
+    const endDt = new Date(utcMsForIstLocal + durationMin * 60 * 1000);
+    return { start: startDt.toISOString(), end: endDt.toISOString(), allDay: false, dateOnly };
+}
+
+/** Format event title from booking data */
+function formatEventTitle(booking) {
+    let title = '';
+    const rawTime = booking.booking_time;
+    if (rawTime) {
+        const [h, m] = rawTime.split(':');
+        const date = new Date();
+        date.setHours(h, m, 0);
+        const formattedTime = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        title += `${formattedTime} `;
+    }
+    title += booking.firm_name || `Booking #${booking.id}`;
+    return { title, rawTime };
+}
+
+/** Build extendedProps payload for calendar events */
+function buildExtendedProps(booking, assignee, rawTime) {
+    return {
+        assigneeId: assignee?.id ?? null,
+        bookingId: booking.id,
+        status: booking.status,
+        paymentStatus: booking.payment_status,
+        price: booking.price,
+        address: booking.full_address,
+        tourCode: booking.tour_code,
+        bookingTime: rawTime,
+        propertyType: `${booking?.propertyType?.name || ''} / ${booking?.propertySubType?.name || ''}`,
+        assignmentTime: assignee?.time ?? null,
+        pincode: booking.pin_code,
+        user: booking.user,
+        city: booking.city,
+        state: booking.state,
+        photographer: assignee?.user ?? null,
+    };
+}
+
 // date formate function formatDateTime(isoString, locale = 'en-IN') {
 function formatDateOnly(isoString, locale = 'en-IN') {
     const d = new Date(isoString);
@@ -30,6 +136,7 @@ class CalendarSchedule {
     constructor() {
         this.body = document.body;
         this.modal = new Modal(document.getElementById('event-modal'), { backdrop: 'static' });
+        this.assignModal = new Modal(document.getElementById('assignBookingModal'), { backdrop: 'static' });
         this.calendar = document.getElementById('calendar');
         this.formEvent = document.getElementById('forms-event');
         this.btnNewEvent = document.getElementById('btn-new-event');
@@ -39,10 +146,28 @@ class CalendarSchedule {
         this.calendarObj = null;
         this.selectedEvent = null;
         this.newEventData = null;
+        this.isAdmin = (this.calendar?.getAttribute('data-is-admin') === '1');
+        this.photoCard = document.getElementById('photographer-details-card');
+        this.photoCardFields = {
+            bookingId: document.getElementById('ph-booking-id'),
+            customer: document.getElementById('ph-customer'),
+            property: document.getElementById('ph-property'),
+            address: document.getElementById('ph-address'),
+            cityState: document.getElementById('ph-city-state'),
+            pincode: document.getElementById('ph-pincode'),
+            date: document.getElementById('ph-date'),
+            time: document.getElementById('ph-time'),
+            status: document.getElementById('ph-status'),
+        };
+
+        // Routes for actions
+        this.checkInRouteTpl = this.calendar?.getAttribute('data-check-in-route') || '';
+        this.checkOutRouteTpl = this.calendar?.getAttribute('data-check-out-route') || '';
+        this.bookingShowRouteTpl = this.calendar?.getAttribute('data-booking-show-route') || '';
     }
     // Event Clck {{ BOOKING SELECT AND mODEL OPEN }}
     onEventClick(info) {
-        this.formEvent?.reset();
+        // Fetch bookings from API
         this.formEvent?.classList.remove('was-validated');
         this.newEventData = null;
         if (this.btnDeleteEvent) {
@@ -65,88 +190,96 @@ class CalendarSchedule {
             });
         }
 
-        // Populate modal fields with booking data
-        document.getElementById('modal-booking-id').textContent = `#${props.bookingId || '—'}`;
-        document.getElementById('modal-booking-customer').textContent = props.user ? (props.user.firstname + " " + props.user.lastname) : '—';
-        document.getElementById('modal-booking-property').textContent = props.propertyType || '—';
-        document.getElementById('modal-booking-address').textContent = props.address || '—';
-        document.getElementById('modal-booking-city-state').textContent =
-            `${props.city?.name || '—'}, ${props.state?.name || '—'}`;
-        document.getElementById('modal-booking-pincode').textContent = props.pincode || '—';
-        document.getElementById('modal-schedule-date').textContent =
-            this.selectedEvent.start ? formatDateOnly(this.selectedEvent.start.toISOString()) : '—';
-        document.getElementById('modal-schedule-time').textContent = formattedTime || props.assignmentTime || '—';
+        if (!this.isAdmin) {
+            this.updatePhotographerDetails(props, formattedTime);
+            return;
+        }
+        // Fill modal details
+        const user = props.user || {};
+        const city = props.city || {};
+        const state = props.state || {};
+        const property = props.propertyType || '';
 
-        // Get route templates from data attributes
-        const checkInRouteTemplate = this.calendar.getAttribute('data-check-in-route');
-        const checkOutRouteTemplate = this.calendar.getAttribute('data-check-out-route');
-        const bookingShowRouteTemplate = this.calendar.getAttribute('data-booking-show-route');
+        const bookingIdEl = document.getElementById('modal-booking-id');
+        const customerEl = document.getElementById('modal-booking-customer');
+        const propertyEl = document.getElementById('modal-booking-property');
+        const addressEl = document.getElementById('modal-booking-address');
+        const cityStateEl = document.getElementById('modal-booking-city-state');
+        const pincodeEl = document.getElementById('modal-booking-pincode');
+        const schedDateEl = document.getElementById('modal-schedule-date');
+        const schedTimeEl = document.getElementById('modal-schedule-time');
 
-        // Get IDs
-        const assigneeId = props.assigneeId;
-        const bookingId = props.bookingId;
+        if (bookingIdEl) bookingIdEl.textContent = String(props.bookingId || '—');
+        if (customerEl) customerEl.textContent = `${user.firstname || ''} ${user.lastname || ''}`.trim() || '—';
+        if (propertyEl) propertyEl.textContent = property || '—';
+        if (addressEl) addressEl.textContent = props.address || '—';
+        if (cityStateEl) cityStateEl.textContent = `${city.name || ''} / ${state.name || ''}`.trim() || '—';
+        if (pincodeEl) pincodeEl.textContent = props.pincode || '—';
+        if (schedDateEl) schedDateEl.textContent = formatDateOnly(this.selectedEvent.startStr || props.dateOnly || '');
+        if (schedTimeEl) schedTimeEl.textContent = formattedTime;
 
-        // Build URLs by replacing :id placeholder
-        const checkInUrl = checkInRouteTemplate ? checkInRouteTemplate.replace(':id', assigneeId) : `./booking-assignees/${assigneeId}/check-in`;
-        const checkOutUrl = checkOutRouteTemplate ? checkOutRouteTemplate.replace(':id', assigneeId) : `./booking-assignees/${assigneeId}/check-out`;
-        const bookingShowUrl = bookingShowRouteTemplate ? bookingShowRouteTemplate.replace(':id', bookingId) : `./bookings/${bookingId}`;
+        // Action buttons
+        const btnContainer = document.getElementById('modal-buttons-container');
+        const checkInLink = document.getElementById('modal-check-in-link');
+        const checkOutLink = document.getElementById('modal-check-out-link');
+        const viewBookingLink = document.getElementById('modal-view-booking-link');
+        const completedLink = document.getElementById('modal-completed-link');
 
-        // Get all button elements
-        const checkInBtn = document.getElementById('modal-check-in-link');
-        const checkOutBtn = document.getElementById('modal-check-out-link');
-        const viewBookingBtn = document.getElementById('modal-view-booking-link');
-        const completedBtn = document.getElementById('modal-completed-link');
+        // Hide all by default
+        if (checkInLink) checkInLink.style.display = 'none';
+        if (checkOutLink) checkOutLink.style.display = 'none';
+        if (completedLink) completedLink.style.display = 'none';
 
-        // Normalize and evaluate booking status for UI logic
-        const status = (props.status || '').toLowerCase();
-        console.log('Booking status:', status, 'Assignee ID:', assigneeId, 'Booking ID:', bookingId);
+        // View booking always available
+        if (viewBookingLink && this.bookingShowRouteTpl) {
+            viewBookingLink.href = this.bookingShowRouteTpl.replace(':id', String(props.bookingId));
+            viewBookingLink.style.display = 'inline-block';
+        }
 
-        // Hide all buttons first
-        if (checkInBtn) checkInBtn.style.display = 'none';
-        if (checkOutBtn) checkOutBtn.style.display = 'none';
-        if (viewBookingBtn) viewBookingBtn.style.display = 'none';
-        if (completedBtn) completedBtn.style.display = 'none';
-
-        // Show buttons based on status
-        if (status === 'schedul_completed' || status === 'tour_completed') {
-            // Completed - show completed button (disabled) and view booking
-            if (completedBtn) {
-                completedBtn.style.display = 'inline-block';
-                completedBtn.disabled = true;
+        // Add/Update Assign button for admins when status accepted
+        if (btnContainer) {
+            // remove previous injected assign button if any
+            const prevAssign = document.getElementById('modal-assign-btn');
+            if (prevAssign && prevAssign.parentElement === btnContainer) {
+                btnContainer.removeChild(prevAssign);
             }
-            if (viewBookingBtn && bookingId) {
-                viewBookingBtn.style.display = 'inline-block';
-                viewBookingBtn.href = bookingShowUrl;
-            }
-        } else if (status === 'schedul_inprogress' || status === 'tour_pending' || status === 'tour_live') {
-            // In progress - show check-out button and view booking
-            if (checkOutBtn && assigneeId) {
-                checkOutBtn.style.display = 'inline-block';
-                checkOutBtn.href = checkOutUrl;
-            }
-            if (viewBookingBtn && bookingId) {
-                viewBookingBtn.style.display = 'inline-block';
-                viewBookingBtn.href = bookingShowUrl;
-            }
-        } else if (status === 'schedul_assign' || status === 'reschedul_assign') {
-            // Assigned but not started - show check-in button and view booking
-            if (checkInBtn && assigneeId) {
-                checkInBtn.style.display = 'inline-block';
-                checkInBtn.href = checkInUrl;
-            }
-            if (viewBookingBtn && bookingId) {
-                viewBookingBtn.style.display = 'inline-block';
-                viewBookingBtn.href = bookingShowUrl;
-            }
-        } else {
-            // Other statuses - show view booking button only
-            if (viewBookingBtn && bookingId) {
-                viewBookingBtn.style.display = 'inline-block';
-                viewBookingBtn.href = bookingShowUrl;
+
+            const status = (props.status || '').toLowerCase();
+            const canAssign = this.isAdmin && (status === 'schedul_accepted' || status === 'reschedul_accepted');
+            if (canAssign) {
+                const assignBtn = document.createElement('button');
+                assignBtn.id = 'modal-assign-btn';
+                assignBtn.type = 'button';
+                assignBtn.className = 'btn btn-primary';
+                assignBtn.innerHTML = '<i class="ri-user-add-line me-1"></i> Assign Photographer';
+                assignBtn.addEventListener('click', () => this.openAssignModal(props));
+                btnContainer.appendChild(assignBtn);
             }
         }
 
         this.modal.show();
+    }
+
+    // For photographers: show booking basics in the inline card
+    updatePhotographerDetails(props, formattedTime) {
+        if (!this.photoCard) return;
+
+        const user = props.user || {};
+        const city = props.city || {};
+        const state = props.state || {};
+
+        const setText = (el, value) => { if (el) el.textContent = value || '—'; };
+        setText(this.photoCardFields.bookingId, props.bookingId ? String(props.bookingId) : '—');
+        setText(this.photoCardFields.customer, `${user.firstname || ''} ${user.lastname || ''}`.trim() || '—');
+        setText(this.photoCardFields.property, props.propertyType || '—');
+        setText(this.photoCardFields.address, props.address || '—');
+        setText(this.photoCardFields.cityState, `${city.name || ''} / ${state.name || ''}`.trim() || '—');
+        setText(this.photoCardFields.pincode, props.pincode || '—');
+        setText(this.photoCardFields.date, formatDateOnly(this.selectedEvent?.startStr || props.dateOnly || ''));
+        setText(this.photoCardFields.time, formattedTime || '—');
+        setText(this.photoCardFields.status, props.status || '—');
+
+        this.photoCard.classList.remove('d-none');
     }
 
     // EVENT SELECT AND MODEL OPEN
@@ -350,6 +483,85 @@ class CalendarSchedule {
             console.error('Error fetching bookings:', error);
             return [];
         }
+    }
+
+    // Open assignment modal and prefill details
+    openAssignModal(props) {
+        const modalEl = document.getElementById('assignBookingModal');
+        if (!modalEl) return;
+
+        // Hidden fields
+        const bookingIdInput = document.getElementById('assignBookingId');
+        const dateInputHidden = document.getElementById('assignDate');
+
+        const dateStr = (this.selectedEvent && this.selectedEvent.startStr) ? this.selectedEvent.startStr : '';
+        if (bookingIdInput) bookingIdInput.value = String(props.bookingId || '');
+        if (dateInputHidden) dateInputHidden.value = (dateStr || '').split('T')[0] || '';
+
+        // Visible booking details
+        const customerEl = document.getElementById('modalCustomer');
+        const pinEl = document.getElementById('modalPincode');
+        const addrEl = document.getElementById('modalAddress');
+        const cityEl = document.getElementById('modalCity');
+        const stateEl = document.getElementById('modalState');
+        const dateEl = document.getElementById('modalDate');
+
+        if (customerEl) customerEl.textContent = `${props?.user?.firstname || ''} ${props?.user?.lastname || ''}`.trim() || '-';
+        if (pinEl) pinEl.textContent = props.pincode || '-';
+        if (addrEl) addrEl.textContent = props.address || '-';
+        if (cityEl) cityEl.textContent = props?.city?.name || '-';
+        if (stateEl) stateEl.textContent = props?.state?.name || '-';
+        if (dateEl) dateEl.value = (dateStr || '').split('T')[0] || '';
+
+        // Reset selects
+        const photographerSel = document.getElementById('assignPhotographer');
+        const timeSel = document.getElementById('assignTime');
+        const timeHelper = document.getElementById('assignTimeHelper');
+        if (photographerSel) photographerSel.value = '';
+        if (timeSel) {
+            timeSel.innerHTML = '<option value="">Select a time</option>';
+            timeSel.disabled = true;
+        }
+        if (timeHelper) timeHelper.textContent = 'Select a photographer first to see available slots.';
+
+        // When photographer changes, populate available slots
+        if (photographerSel) {
+            photographerSel.onchange = () => {
+                if (!timeSel) return;
+                this.populateTimeSlots(timeSel);
+                timeSel.disabled = false;
+            };
+        }
+
+        this.assignModal.show();
+    }
+
+    // Populate time slots using settings from the modal's data attributes
+    populateTimeSlots(selectEl) {
+        const modalEl = document.getElementById('assignBookingModal');
+        if (!modalEl || !selectEl) return;
+
+        const from = modalEl.getAttribute('data-photographer-from') || '08:00';
+        const to = modalEl.getAttribute('data-photographer-to') || '21:00';
+        const durationMin = parseInt(modalEl.getAttribute('data-photographer-duration') || '60', 10);
+
+        const [fromH, fromM] = from.split(':').map(Number);
+        const [toH, toM] = to.split(':').map(Number);
+
+        const cur = new Date();
+        cur.setHours(fromH, fromM, 0, 0);
+        const end = new Date();
+        end.setHours(toH, toM, 0, 0);
+
+        const options = ['<option value="">Select a time</option>'];
+        while (cur < end) {
+            const hh = String(cur.getHours()).padStart(2, '0');
+            const mm = String(cur.getMinutes()).padStart(2, '0');
+            const label = cur.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            options.push(`<option value="${hh}:${mm}">${label}</option>`);
+            cur.setMinutes(cur.getMinutes() + durationMin);
+        }
+        selectEl.innerHTML = options.join('');
     }
 
     init() {
