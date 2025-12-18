@@ -1,8 +1,4 @@
-@extends('admin.layouts.vertical')
-
-@section('css')
-@vite(['node_modules/fullcalendar/main.min.css'])
-@endsection
+@extends('admin.layouts.vertical', ['title' => 'Bookings Assigner Calender', 'subTitle' => 'Manage Booking Assigner Schedules'])
 
 @section('content')
 <div class="row">
@@ -10,7 +6,7 @@
         <div class="page-title-box">
             <h4 class="mb-0 fw-semibold">{{ $title }}</h4>
             <ol class="breadcrumb mb-0">
-                <li class="breadcrumb-item"><a href="javascript: void(0);">Photographer</a></li>
+                <li class="breadcrumb-item"><a href="javascript: void(0);">Bookings</a></li>
                 <li class="breadcrumb-item active">{{ $title }}</li>
             </ol>
         </div>
@@ -48,6 +44,36 @@
                         </div>
                     </div> <!-- end col-->
                     <div class="col-xl-12">
+                        @if(auth()->check() && auth()->user()->hasRole('admin'))
+                        <div class="mt-2 mb-3">
+                            <div class="row g-2">
+                                <div class="col-md-4">
+                                    <label for="filterPhotographer" class="form-label">Photographer</label>
+                                    <select id="filterPhotographer" class="form-select form-select-sm">
+                                        <option value="">All Photographers</option>
+                                        @foreach($photographers as $photographer)
+                                            <option value="{{ $photographer->id }}">{{ $photographer->firstname }} {{ $photographer->lastname }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="filterStatus" class="form-label">Status</label>
+                                    <select id="filterStatus" class="form-select form-select-sm">
+                                        <option value="">All Statuses</option>
+                                        @foreach($statuses as $status)
+                                            <option value="{{ $status }}">{{ ucfirst(str_replace('_', ' ', $status)) }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-md-2 d-flex align-items-end">
+                                    <div class="w-100">
+                                        <button id="btnClearFilters" type="button" class="btn btn-sm btn-outline-secondary w-50">Clear filters</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        @endif
+
                         <div class="mt-4 mt-lg-0">
                             <div id="calendar" 
                                  data-booking-api="{{ route('api.bookings.by-date-range') }}"
@@ -146,6 +172,6 @@
 
 @endsection
 
-@section('script-bottom')
+@section('scripts')
 @vite(['resources/js/pages/photographer-index.js'])
 @endsection

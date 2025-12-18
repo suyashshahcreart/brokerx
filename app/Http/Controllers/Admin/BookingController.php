@@ -31,7 +31,18 @@ class BookingController extends Controller
     //  calender view for assignments | ADMIN
     public function AssignementCalender()
     {
-        return view('admin.photographer.index', ['title' => 'Booking Assignment Calendar']);
+        // Provide photographer list and schedule-related statuses to the view
+        $photographers = User::whereHas('roles', function($q){
+            $q->where('name', 'photographer');
+        })->orderBy('firstname')->get();
+
+        $statuses = ['schedul_assign', 'reschedul_assign', 'schedul_inprogress', 'schedul_completed'];
+
+        return view('admin.photographer.index', [
+            'title' => 'Booking Assignment Calendar',
+            'photographers' => $photographers,
+            'statuses' => $statuses
+        ]);
     }
     public function index(Request $request)
     {

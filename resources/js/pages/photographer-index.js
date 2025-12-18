@@ -156,7 +156,7 @@ class CalendarSchedule {
         this.selectedEvent = null;
         this.newEventData = info;
         this.btnDeleteEvent.style.display = "none";
-        this.modalTitle.text = ('Add New Event');
+        this.modalTitle.textContent = 'Add New Event';
         this.modal.show();
         this.calendarObj.unselect();
     }
@@ -165,7 +165,12 @@ class CalendarSchedule {
         try {
             // Get the API URL from the data attribute
             const apiBaseUrl = this.calendar.getAttribute('data-booking-api');
-            const url = `${apiBaseUrl}?from_date=${fromDate}&to_date=${toDate}`;
+            // Read filter values from the DOM (if present)
+            const photographer = document.getElementById('filterPhotographer')?.value;
+            const statusFilter = document.getElementById('filterStatus')?.value;
+            let url = `${apiBaseUrl}?from_date=${fromDate}&to_date=${toDate}`;
+            if (photographer) url += `&photographer=${encodeURIComponent(photographer)}`;
+            if (statusFilter) url += `&status=${encodeURIComponent(statusFilter)}`;
 
             const response = await fetch(url);
 
@@ -272,8 +277,6 @@ class CalendarSchedule {
                         allDay = false;
                     }
 
-                    console.log('Booking Event (IST-based):', { dateOnly, timePart, eventStart, eventEnd, allDay });
-
                     return {
                         id: assignee.id,
                         title,
@@ -342,16 +345,15 @@ class CalendarSchedule {
                 const fromDate = info.start.toISOString().split('T')[0];
                 const toDate = info.end.toISOString().split('T')[0];
                 const events = await self.fetchBookings(fromDate, toDate);
-                console.log('Fetching events from', events.length);
                 successCallback(events);
             },
             editable: true,
             droppable: true, // this allows things to be dropped onto the calendar !!!
             dayMaxEventRows: false, // allow "more" link when too many events
             selectable: true,
-            dateClick: function (info) {
-                self.onSelect(info);
-            },
+            // dateClick: function (info) {
+            //     self.onSelect(info);
+            // },
             eventClick: function (info) {
                 self.onEventClick(info);
             },
@@ -361,6 +363,25 @@ class CalendarSchedule {
         });
 
         self.calendarObj.render();
+
+        // Attach filter change listeners to refetch events when selection changes
+        const fp = document.getElementById('filterPhotographer');
+        const fs = document.getElementById('filterStatus');
+        if (fp) fp.addEventListener('change', () => self.calendarObj.refetchEvents());
+        if (fs) fs.addEventListener('change', () => self.calendarObj.refetchEvents());
+
+        // Clear filters button: reset selects and refetch events
+        const btnClear = document.getElementById('btnClearFilters');
+        if (btnClear) btnClear.addEventListener('click', () => {
+            if (fp) fp.value = '';
+            if (fs) fs.value = '';
+            // trigger change events for other handlers if needed
+            if (typeof Event === 'function') {
+                fp?.dispatchEvent(new Event('change'));
+                fs?.dispatchEvent(new Event('change'));
+            }
+            self.calendarObj.refetchEvents();
+        });
     }
 }
 document.addEventListener('DOMContentLoaded', function (e) {
