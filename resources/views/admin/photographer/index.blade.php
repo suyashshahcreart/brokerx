@@ -118,7 +118,7 @@
                             <div class="col-xl-9">
                                 <!-- calendar for Admin -->
                                 <div class="mt-4 mt-lg-0">
-                                    <div id="calendar" data-booking-api="{{ route('api.bookings.by-date-range') }}"
+                                    <div id="calendar" data-booking-api="{{ route('api.booking-assignees.all-bookings') }}"
                                         data-check-in-route="{{ url('admin/booking-assignees') }}/:id/check-in"
                                         data-check-out-route="{{ url('admin/booking-assignees') }}/:id/check-out"
                                         data-booking-show-route="{{ url('admin/bookings') }}/:id"></div>
@@ -128,7 +128,7 @@
                         <!-- calender for Photographer -->
                         <div class="col-xl-12">
                             <div class="mt-4 mt-lg-0">
-                                <div id="calendar" data-booking-api="{{ route('api.bookings.by-date-range') }}"
+                                <div id="calendar" data-booking-api="{{ route('api.booking-assignees.all-bookings') }}"
                                     data-check-in-route="{{ url('admin/booking-assignees') }}/:id/check-in"
                                     data-check-out-route="{{ url('admin/booking-assignees') }}/:id/check-out"
                                     data-booking-show-route="{{ url('admin/bookings') }}/:id"></div>

@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\HolidayController;
 use App\Http\Controllers\Api\BookingApiController;
-use App\Http\Controllers\Api\BookingAssigneController;
+use App\Http\Controllers\Admin\ajax\BookingAssigneController;
 /*
 |--------------------------------------------------------------------------
 | API Routes

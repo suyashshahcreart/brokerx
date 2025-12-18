@@ -36,7 +36,7 @@ class BookingController extends Controller
             $q->where('name', 'photographer');
         })->orderBy('firstname')->get();
 
-        $statuses = ['schedul_assign', 'reschedul_assign', 'schedul_inprogress', 'schedul_completed'];
+        $statuses = [ 'pending' ,'confirmed', 'schedul_assign', 'reschedul_assign', 'schedul_pending', 'schedul_inprogress', 'schedul_completed'];
 
         return view('admin.photographer.index', [
             'title' => 'Booking Assignment Calendar',

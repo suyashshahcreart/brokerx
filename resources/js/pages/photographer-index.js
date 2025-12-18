@@ -182,35 +182,45 @@ class CalendarSchedule {
             const result = await response.json();
 
             if (result.success && result.data) {
-                return result.data.map(assignee => {
-                    const booking = assignee.booking || {};
+                const events = [];
+
+                // Process each booking item from API
+                result.data.forEach(item => {
+                    const booking = item.booking || {};
+                    const assignees = item.assignees || [];
 
                     // Determine event color based on booking status
                     let className = '';
-                    let status = booking.status;
+                    let status = (booking.status || '').toLowerCase();
+
                     switch (status) {
                         case 'schedul_assign':
-                            className = 'bg-primary';
+                            className = 'bg-primary'; // Assigned → primary
                             break;
-
                         case 'reschedul_assign':
-                            className = 'bg-primary';
+                            className = 'bg-success'; // Assigned → success
                             break;
-
+                        case 'schedul_accepted':
+                        case 'reschedul_accepted':
+                            className = 'bg-warning'; // Accepted → warning
+                            break;
                         case 'schedul_inprogress':
-                            className = 'bg-info'; // Yellow for in-progress
+                            className = 'bg-info'; // In-progress → info
                             break;
-
                         case 'schedul_completed':
-                            className = 'bg-success'; // Green for completed
+                            className = 'bg-success'; // Completed → success
                             break;
-
+                        case 'cancelled':
+                            className = 'bg-danger';
+                            break;
+                        case 'schedul_pending':
+                            className = 'bg-secondary';
+                            break;
                         default:
                             className = 'bg-secondary'; // fallback for unknown statuses
                     }
 
-
-                    // Prefer booking_time, fallback to assignee time
+                    // Prefer booking_time
                     const rawTime = booking.booking_time;
                     let title = '';
                     if (rawTime) {
@@ -224,14 +234,13 @@ class CalendarSchedule {
                         });
                         title += `${formattedTime} `;
                     }
-                    title += booking.firm_name || `Booking #${booking.id || assignee.booking_id}`;
+                    title += booking.firm_name || `Booking #${booking.id}`;
 
                     const working_Duration = 120; // minutes
-                    // Convert booking_date (UTC) to India Standard Time (IST) and use that date
-                    const datePart = booking.booking_date; // e.g. "2025-12-17T18:30:00.000000Z"
-                    const timePart = booking.booking_time; // e.g. "12:00:00" or null
+                    const datePart = booking.booking_date;
+                    const timePart = booking.booking_time;
 
-                    // Parse booking_date as UTC, then shift to IST (+05:30) to get the correct local date
+                    // Parse booking_date as UTC, then shift to IST (+05:30)
                     const IST_OFFSET_MIN = 5 * 60 + 30; // 330 minutes
                     let dateOnly;
                     const parsedBookingUtc = new Date(datePart);
@@ -241,12 +250,11 @@ class CalendarSchedule {
                         const pad = (n) => String(n).padStart(2, '0');
                         dateOnly = `${istDt.getFullYear()}-${pad(istDt.getMonth() + 1)}-${pad(istDt.getDate())}`;
                     } else {
-                        // Fallback: take the date portion if parsing failed
                         dateOnly = (datePart || '').split('T')[0];
                     }
 
                     // Default values
-                    let eventStart = dateOnly; // date-only (all-day) by default
+                    let eventStart = dateOnly;
                     let eventEnd = undefined;
                     let allDay = !timePart;
 
@@ -261,13 +269,12 @@ class CalendarSchedule {
                         const mm = parts[1] || 0;
                         const ss = parts[2] || 0;
 
-                        // Compute UTC ms that corresponds to this IST local time on dateOnly
+                        // Compute UTC ms that corresponds to this IST local time
                         const [yStr, mStr, dStr] = dateOnly.split('-');
                         const y = parseInt(yStr, 10);
                         const m = parseInt(mStr, 10);
                         const d = parseInt(dStr, 10);
 
-                        // Date.UTC gives ms for UTC time; subtract IST offset to get UTC timestamp matching the IST local time
                         const utcMsForIstLocal = Date.UTC(y, m - 1, d, hh, mm, ss) - IST_OFFSET_MIN * 60 * 1000;
                         const startDt = new Date(utcMsForIstLocal);
                         const endDt = new Date(utcMsForIstLocal + working_Duration * 60 * 1000);
@@ -277,32 +284,66 @@ class CalendarSchedule {
                         allDay = false;
                     }
 
-                    return {
-                        id: assignee.id,
-                        title,
-                        start: eventStart,
-                        end: eventEnd,
-                        allDay: allDay,
-                        classNames: [className],
-                        extendedProps: {
-                            assigneeId: assignee.id,
-                            bookingId: booking.id || assignee.booking_id,
-                            status: booking.status,
-                            paymentStatus: booking.payment_status,
-                            price: booking.price,
-                            address: booking.full_address,
-                            tourCode: booking.tour_code,
-                            bookingTime: rawTime,
-                            propertyType: booking.property_type.name + " / " + booking.property_sub_type.name,
-                            assignmentTime: assignee.time,
-                            pincode: booking.pin_code,
-                            user: booking.user,
-                            city: booking.city,
-                            state: booking.state,
-                            photographer: assignee.user
-                        }
-                    };
+                    // If booking has assignees, create an event for each assignee
+                    if (assignees.length > 0) {
+                        assignees.forEach((assignee, index) => {
+                            events.push({
+                                id: `${booking.id}-${assignee.id}-${index}`,
+                                title,
+                                start: eventStart,
+                                end: eventEnd,
+                                allDay: allDay,
+                                classNames: [className],
+                                extendedProps: {
+                                    assigneeId: assignee.id,
+                                    bookingId: booking.id,
+                                    status: booking.status,
+                                    paymentStatus: booking.payment_status,
+                                    price: booking.price,
+                                    address: booking.full_address,
+                                    tourCode: booking.tour_code,
+                                    bookingTime: rawTime,
+                                    propertyType: (booking.propertyType?.name || '') + " / " + (booking.propertySubType?.name || ''),
+                                    assignmentTime: assignee.time,
+                                    pincode: booking.pin_code,
+                                    user: booking.user,
+                                    city: booking.city,
+                                    state: booking.state,
+                                    photographer: assignee.user
+                                }
+                            });
+                        });
+                    } else {
+                        // For bookings without assignees, create one event
+                        events.push({
+                            id: `booking-${booking.id}`,
+                            title,
+                            start: eventStart,
+                            end: eventEnd,
+                            allDay: allDay,
+                            classNames: [className],
+                            extendedProps: {
+                                assigneeId: null,
+                                bookingId: booking.id,
+                                status: booking.status,
+                                paymentStatus: booking.payment_status,
+                                price: booking.price,
+                                address: booking.full_address,
+                                tourCode: booking.tour_code,
+                                bookingTime: rawTime,
+                                propertyType: (booking.propertyType?.name || '') + " / " + (booking.propertySubType?.name || ''),
+                                assignmentTime: null,
+                                pincode: booking.pin_code,
+                                user: booking.user,
+                                city: booking.city,
+                                state: booking.state,
+                                photographer: null
+                            }
+                        });
+                    }
                 });
+
+                return events;
             }
             return [];
         } catch (error) {
