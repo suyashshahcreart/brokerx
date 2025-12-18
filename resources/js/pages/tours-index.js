@@ -58,11 +58,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 orderable: true
             },
             { 
-                data: 'participants', 
-                name: 'max_participants',
-                orderable: true
-            },
-            { 
                 data: 'status', 
                 name: 'status',
                 orderable: true
@@ -72,8 +67,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 name: 'actions', 
                 orderable: false, 
                 searchable: false, 
-                className: 'text-end',
-                width: '120px'
+                className: 'text-end'
             }
         ],
         order: [[0, 'desc']],
