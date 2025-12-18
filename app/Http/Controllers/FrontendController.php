@@ -28,13 +28,12 @@ class FrontendController extends Controller
     protected CashfreeService $cashfree;
     protected SmsService $smsService;
 
-    public function __construct(CashfreeService $cashfree, SmsService $smsService)
-    {
+    public function __construct(CashfreeService $cashfree, SmsService $smsService){
         $this->cashfree = $cashfree;
         $this->smsService = $smsService;
     }
-    public function index()
-    {
+
+    public function index(){
         // Get base price for display on landing page
         $basePrice = (int) (Setting::where('name', 'base_price')->value('value') ?? 599);
 
@@ -2113,8 +2112,7 @@ class FrontendController extends Controller
     /**
      * Display the booking dashboard
      */
-    public function bookingDashboard()
-    {
+    public function bookingDashboard(){
         // Fetch authenticated user's bookings with related data
         $bookings = Booking::where('user_id', Auth::id())
             ->with(['user', 'propertyType', 'propertySubType', 'bhk', 'city', 'state'])
@@ -2136,6 +2134,73 @@ class FrontendController extends Controller
             ->toArray();
 
         return view('frontend.booking-dashboard', compact('bookings', 'types', 'bhk', 'priceSettings'));
+    }
+
+    /**
+     * Booking Dashboard V2 - Redesigned with Analytics and KPIs
+     */
+    public function bookingDashboardV2(){
+        // Fetch authenticated user's bookings with related data
+        $bookings = Booking::where('user_id', Auth::id())
+            ->with(['user', 'propertyType', 'propertySubType', 'bhk', 'city', 'state', 'assignees.user', 'histories'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+        
+        // Add attempt count and history to each booking for JavaScript
+        $bookings->each(function($booking) {
+            $booking->history = $booking->histories->map(function($h) {
+                return ['to_status' => $h->to_status];
+            })->toArray();
+        });
+        
+        // If user has no bookings, redirect to setup page to create first booking
+        if ($bookings->isEmpty()) {
+            return redirect()->route('frontend.setup');
+        }
+        
+        // Calculate Analytics & KPIs
+        $totalBookings = $bookings->count();
+        $paidBookings = $bookings->where('payment_status', 'paid')->count();
+        $pendingBookings = $bookings->where('payment_status', '!=', 'paid')->count();
+        $totalAmount = $bookings->where('payment_status', 'paid')->sum('cashfree_payment_amount') ?? $bookings->where('payment_status', 'paid')->sum('price');
+        
+        // Status breakdown
+        $statusBreakdown = [
+            'scheduled' => $bookings->whereIn('status', ['schedul_accepted', 'reschedul_accepted'])->count(),
+            'pending' => $bookings->whereIn('status', ['schedul_pending', 'reschedul_pending'])->count(),
+            'declined' => $bookings->whereIn('status', ['schedul_decline', 'reschedul_decline'])->count(),
+            'not_scheduled' => $bookings->whereNotIn('status', ['schedul_accepted', 'reschedul_accepted', 'schedul_pending', 'reschedul_pending', 'schedul_decline', 'reschedul_decline'])->where('payment_status', 'paid')->count(),
+        ];
+        
+        // Recent activity (last 5 bookings)
+        $recentBookings = $bookings->take(5);
+        
+        // Get property types and BHK for edit modal
+        $types = PropertyType::with(['subTypes:id,property_type_id,name,icon'])->get(['id', 'name', 'icon']);
+        $bhk = BHK::all();
+
+        // Get price settings for dynamic pricing
+        $priceSettings = Setting::whereIn('name', ['base_price', 'base_area', 'extra_area', 'extra_area_price'])
+            ->pluck('value', 'name')
+            ->toArray();
+        
+        // Get max attempts setting
+        $maxAttemptsSetting = Setting::where('name', 'customer_attempt')->first();
+        $maxAttempts = $maxAttemptsSetting ? (int) $maxAttemptsSetting->value : 3;
+
+        return view('frontend.booking-dashboard-v2', compact(
+            'bookings', 
+            'types', 
+            'bhk', 
+            'priceSettings',
+            'totalBookings',
+            'paidBookings',
+            'pendingBookings',
+            'totalAmount',
+            'statusBreakdown',
+            'recentBookings',
+            'maxAttempts'
+        ));
     }
 
     /**
@@ -2229,6 +2294,173 @@ class FrontendController extends Controller
             ->toArray();
 
         return view('frontend.booking-show', compact('booking', 'priceToShow', 'history', 'attemptCount', 'maxAttempts', 'statusText', 'isBlocked', 'types', 'bhk', 'priceSettings', 'declineReason', 'adminNotes'));
+    }
+
+    /**
+     * Show individual booking details page V2 - Redesigned with Analytics and Timeline
+     */
+    public function showBookingV2($id)
+    {
+        $booking = Booking::with(['user', 'propertyType', 'propertySubType', 'bhk', 'city', 'state', 'assignees.user', 'histories'])
+            ->where('id', $id)
+            ->where('user_id', Auth::id())
+            ->first();
+        
+        // If booking doesn't exist or doesn't belong to the user, redirect with error
+        if (!$booking) {
+            return redirect()->route('frontend.booking-dashboard')
+                ->with('error', 'This is not your booking. You can only view your own bookings.');
+        }
+
+        // Calculate estimated price
+        $estimatedPrice = $this->calculateEstimate($booking->area);
+        $priceToShow = $booking->price ?? $estimatedPrice;
+
+        // Get booking history with user information
+        $history = BookingHistory::where('booking_id', $booking->id)
+            ->with('changedBy')
+            ->orderBy('created_at', 'asc')
+            ->get();
+
+        // Calculate attempt count and max attempts
+        $status = $booking->status ?? 'pending';
+        $isBlocked = $status === 'reschedul_blocked';
+        $attemptCount = 0;
+        $maxAttempts = 3;
+        
+        // Get decline reason or admin notes from latest history entry
+        $declineReason = null;
+        $adminNotes = null;
+        
+        if ($history->isNotEmpty()) {
+            if (in_array($status, ['schedul_decline', 'reschedul_decline'])) {
+                // Get latest decline history entry
+                $declineHistory = $history->where('to_status', $status)->last();
+                if ($declineHistory && isset($declineHistory->metadata['reason'])) {
+                    $declineReason = $declineHistory->metadata['reason'];
+                }
+            } elseif (in_array($status, ['schedul_accepted', 'reschedul_accepted'])) {
+                // Get latest accepted history entry
+                $acceptedHistory = $history->where('to_status', $status)->last();
+                if ($acceptedHistory && isset($acceptedHistory->metadata['admin_notes'])) {
+                    $adminNotes = $acceptedHistory->metadata['admin_notes'];
+                }
+            }
+        }
+        
+        if ($isBlocked || in_array($status, ['schedul_pending', 'schedul_accepted', 'schedul_decline', 'reschedul_pending', 'reschedul_accepted', 'reschedul_decline'])) {
+            // Count accepted attempts
+            $acceptedAttempts = BookingHistory::where('booking_id', $booking->id)
+                ->whereIn('to_status', ['schedul_accepted', 'reschedul_accepted'])
+                ->count();
+            
+            // If status is pending, add 1 for the current pending attempt
+            if (in_array($status, ['schedul_pending', 'reschedul_pending'])) {
+                $attemptCount = $acceptedAttempts + 1;
+            } else {
+                // For accepted or declined, use the accepted count
+                $attemptCount = $acceptedAttempts;
+            }
+            
+            $maxAttemptsSetting = Setting::where('name', 'customer_attempt')->first();
+            $maxAttempts = $maxAttemptsSetting ? (int) $maxAttemptsSetting->value : 3;
+        }
+
+        // Format status text
+        $statusText = match($status) {
+            'schedul_pending' => 'Pending Approval',
+            'schedul_accepted' => 'Scheduled',
+            'schedul_decline' => 'Declined',
+            'reschedul_pending' => 'Reschedule Pending',
+            'reschedul_accepted' => 'Rescheduled',
+            'reschedul_decline' => 'Reschedule Declined',
+            'reschedul_blocked' => 'Blocked',
+            default => ucfirst(str_replace('_', ' ', $status))
+        };
+
+        // Get property types and BHK for edit modal
+        $types = PropertyType::with(['subTypes:id,property_type_id,name,icon'])->get(['id', 'name', 'icon']);
+        $bhk = BHK::all();
+
+        // Get price settings for dynamic pricing
+        $priceSettings = Setting::whereIn('name', ['base_price', 'base_area', 'extra_area', 'extra_area_price'])
+            ->pluck('value', 'name')
+            ->toArray();
+
+        // Calculate Analytics & Insights
+        $daysSinceCreated = $booking->created_at->diffInDays(now());
+        $daysUntilScheduled = $booking->booking_date ? now()->diffInDays(\Carbon\Carbon::parse($booking->booking_date), false) : null;
+        $isPaymentPaid = ($booking->payment_status ?? 'pending') === 'paid';
+        $isReadyForPayment = $booking->isReadyForPayment();
+        $hasCompletePropertyData = $booking->hasCompletePropertyData();
+        $hasCompleteAddressData = $booking->hasCompleteAddressData();
+        
+        // Calculate completion percentage
+        $completionFields = [
+            'property_type_id' => $booking->property_type_id,
+            'property_sub_type_id' => $booking->property_sub_type_id,
+            'area' => $booking->area,
+            'house_no' => $booking->house_no,
+            'building' => $booking->building,
+            'pin_code' => $booking->pin_code,
+            'full_address' => $booking->full_address,
+        ];
+        $completedFields = count(array_filter($completionFields));
+        $totalFields = count($completionFields);
+        $completionPercentage = $totalFields > 0 ? round(($completedFields / $totalFields) * 100) : 0;
+
+        // Get next steps suggestions
+        $nextSteps = [];
+        if (!$isPaymentPaid) {
+            if (!$isReadyForPayment) {
+                if (!$hasCompletePropertyData) {
+                    $nextSteps[] = ['icon' => 'fa-building', 'title' => 'Complete Property Details', 'description' => 'Add property type, size, and area information', 'action' => 'Edit', 'priority' => 'high'];
+                }
+                if (!$hasCompleteAddressData) {
+                    $nextSteps[] = ['icon' => 'fa-location-dot', 'title' => 'Complete Address Information', 'description' => 'Add house number, building name, pincode, and full address', 'action' => 'Edit', 'priority' => 'high'];
+                }
+            } else {
+                $nextSteps[] = ['icon' => 'fa-credit-card', 'title' => 'Make Payment', 'description' => 'Complete payment to proceed with scheduling', 'action' => 'Pay Now', 'priority' => 'high'];
+            }
+        } else {
+            if ($isBlocked) {
+                $nextSteps[] = ['icon' => 'fa-headset', 'title' => 'Contact Support', 'description' => 'Reached maximum attempts. Contact admin for assistance', 'action' => 'Contact', 'priority' => 'high'];
+            } elseif (in_array($status, ['schedul_pending', 'reschedul_pending'])) {
+                $nextSteps[] = ['icon' => 'fa-clock', 'title' => 'Wait for Approval', 'description' => 'Your schedule request is pending admin approval', 'action' => 'View Status', 'priority' => 'medium'];
+            } elseif (in_array($status, ['schedul_decline', 'reschedul_decline'])) {
+                if ($attemptCount < $maxAttempts) {
+                    $nextSteps[] = ['icon' => 'fa-calendar-plus', 'title' => 'Request Again', 'description' => 'You can request a new schedule date', 'action' => 'Schedule', 'priority' => 'high'];
+                }
+            } elseif (!in_array($status, ['schedul_accepted', 'reschedul_accepted']) || !$booking->booking_date) {
+                $nextSteps[] = ['icon' => 'fa-calendar-check', 'title' => 'Schedule Appointment', 'description' => 'Select a date for your property photography', 'action' => 'Schedule', 'priority' => 'high'];
+            } else {
+                $nextSteps[] = ['icon' => 'fa-calendar-edit', 'title' => 'Manage Schedule', 'description' => 'View or reschedule your appointment if needed', 'action' => 'View', 'priority' => 'low'];
+            }
+        }
+
+        return view('frontend.booking-show-v2', compact(
+            'booking', 
+            'priceToShow', 
+            'history', 
+            'attemptCount', 
+            'maxAttempts', 
+            'status',
+            'statusText', 
+            'isBlocked', 
+            'types', 
+            'bhk', 
+            'priceSettings', 
+            'declineReason', 
+            'adminNotes',
+            'daysSinceCreated',
+            'daysUntilScheduled',
+            'isPaymentPaid',
+            'isReadyForPayment',
+            'hasCompletePropertyData',
+            'hasCompleteAddressData',
+            'completionPercentage',
+            'nextSteps'
+        ));
     }
 
     /**

@@ -2,204 +2,13 @@
 
 @section('css')
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Syne:wght@400..800&family=Urbanist:ital,wght@0,100..900;1,100..900&display=swap"
-        rel="stylesheet">
-    <link rel="stylesheet" href="{{ asset('frontend/css/plugins.css') }}">
-    <link rel="stylesheet" href="{{ asset('frontend/css/style.css') }}">
+    {{-- New theme uses global fonts from base layout; keep icon font for existing <i class="fa ..."> usage --}}
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ asset('proppik/assets/css/setup_page.css') }}">
     <!-- Flatpickr CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     
-    <style>
-        /* SweetAlert Custom Styling */
-        .swal2-popup {
-            border-radius: 16px !important;
-            padding: 2rem !important;
-            font-family: 'Urbanist', sans-serif !important;
-        }
-        
-        .swal2-title {
-            font-size: 1.5rem !important;
-            font-weight: 600 !important;
-            color: #333 !important;
-            margin-bottom: 1rem !important;
-        }
-        
-        .swal2-content {
-            font-size: 0.95rem !important;
-            color: #666 !important;
-            line-height: 1.6 !important;
-        }
-        
-        .swal2-icon {
-            width: 4rem !important;
-            height: 4rem !important;
-            margin: 0 auto 1rem !important;
-        }
-        
-        .swal2-confirm {
-            border-radius: 8px !important;
-            padding: 0.6rem 2rem !important;
-            font-weight: 500 !important;
-        }
-        
-        .sweetalert-popup {
-            border-radius: 16px !important;
-        }
-        
-        .sweetalert-title {
-            font-size: 1.5rem !important;
-            font-weight: 600 !important;
-        }
-        
-        .sweetalert-content {
-            font-size: 0.95rem !important;
-            line-height: 1.6 !important;
-        }
-        
-        .sweetalert-confirm-btn {
-            border-radius: 8px !important;
-            padding: 0.6rem 2rem !important;
-        }
-        
-        /* Validation Styles - Matching Setup Page */
-        .error {
-            display: none;
-            color: #dc3545;
-            font-size: 0.875rem;
-            margin-top: 0.25rem;
-            font-weight: 500;
-        }
-        
-        .error.show {
-            display: block;
-        }
-        
-        .form-control.is-invalid,
-        .form-select.is-invalid,
-        textarea.form-control.is-invalid {
-            border-color: #dc3545 !important;
-            box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
-        }
-        
-        .form-control.is-valid,
-        .form-select.is-valid,
-        textarea.form-control.is-valid {
-            border-color: #28a745 !important;
-            box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25) !important;
-        }
-        
-        .form-control:focus.is-invalid,
-        .form-select:focus.is-invalid,
-        textarea.form-control:focus.is-invalid {
-            border-color: #dc3545 !important;
-            box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
-        }
-        
-        .form-control:focus.is-valid,
-        .form-select:focus.is-valid,
-        textarea.form-control:focus.is-valid {
-            border-color: #28a745 !important;
-            box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25) !important;
-        }
-        
-        /* Date Picker Form Group with Icon */
-        .date-input-group {
-            position: relative;
-            display: block;
-        }
-        
-        .date-input-group .form-control {
-            padding-right: 45px !important;
-            cursor: pointer;
-            border: 1px solid #ced4da;
-            border-radius: 0.375rem;
-            transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
-        }
-        
-        .date-input-group .form-control:hover {
-            border-color: #86b7fe;
-        }
-        
-        .date-input-group .date-icon {
-            position: absolute;
-            right: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #6c757d;
-            pointer-events: none;
-            z-index: 5;
-            font-size: 18px;
-            line-height: 1;
-            transition: color 0.15s ease-in-out;
-        }
-        
-        .date-input-group .form-control:focus {
-            border-color: #86b7fe;
-            outline: 0;
-            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
-        }
-        
-        .date-input-group .form-control:focus ~ .date-icon {
-            color: #0d6efd;
-        }
-        
-        .date-input-group .form-control.is-invalid {
-            padding-right: 45px !important;
-            border-color: #dc3545;
-        }
-        
-        .date-input-group .form-control.is-invalid ~ .date-icon {
-            color: #dc3545;
-        }
-        
-        .date-input-group .form-control.is-valid {
-            padding-right: 45px !important;
-            border-color: #28a745;
-        }
-        
-        .date-input-group .form-control.is-valid ~ .date-icon {
-            color: #28a745;
-        }
-        
-        /* Error styling for pill containers */
-        #editOwnerTypeContainer.has-error,
-        #editPropertyTypeContainer.has-error {
-            border: 2px solid #dc3545;
-            border-radius: 8px;
-            padding: 8px;
-            background-color: rgba(220, 53, 69, 0.05);
-        }
-        
-        #editOwnerTypeContainer.has-error .top-pill,
-        #editPropertyTypeContainer.has-error .top-pill {
-            border: 1px solid rgba(220, 53, 69, 0.3);
-        }
-        
-        /* Error styling for chip and pill containers */
-        #editResTypesContainer.has-error,
-        #editComTypesContainer.has-error,
-        #editOthTypesContainer.has-error,
-        .edit-res-furnish-container.has-error,
-        .edit-com-furnish-container.has-error,
-        .edit-res-size-container.has-error {
-            border: 2px solid #dc3545;
-            border-radius: 8px;
-            padding: 8px;
-            background-color: rgba(220, 53, 69, 0.05);
-        }
-        
-        #editResTypesContainer.has-error .top-pill,
-        #editComTypesContainer.has-error .top-pill,
-        #editOthTypesContainer.has-error .top-pill,
-        .edit-res-furnish-container.has-error .chip,
-        .edit-com-furnish-container.has-error .chip,
-        .edit-res-size-container.has-error .chip {
-            border: 1px solid rgba(220, 53, 69, 0.3);
-        }
-    </style>
+    
 @endsection
 
 @section('content')
@@ -222,26 +31,22 @@
             </div>
         </div>
     @endif
-    <!-- Progress scroll totop -->
-    <div class="progress-wrap cursor-pointer">
-        <svg class="progress-circle svg-content" width="100%" height="100%" viewBox="-1 -1 102 102">
-            <path d="M50,1 a49,49 0 0,1 0,98 a49,49 0 0,1 0,-98" />
-        </svg>
-    </div>
-    <!-- Cursor -->
-    <div class="cursor js-cursor"></div>
-    <!-- Social Icons -->
-    <div class="social-ico-block"> 
-        <a href="#" target="_blank" class="social-ico"><i class="fa-brands fa-instagram"></i></a> 
-        <a href="#" target="_blank" class="social-ico"><i class="fa-brands fa-x-twitter"></i></a> 
-        <a href="#" target="_blank" class="social-ico"><i class="fa-brands fa-youtube"></i></a> 
-        <a href="#" target="_blank" class="social-ico"><i class="fa-brands fa-tiktok"></i></a> 
-        <a href="#" target="_blank" class="social-ico"><i class="fa-brands fa-flickr"></i></a> 
-    </div>
+    
+    
+    <!-- Booking Dashboard Hero (New Theme style, matches policy pages) -->
+    <section class="py-5 bg-primary text-white mt-5">
+        <div class="container pt-5 pb-2">
+            <div class="row justify-content-center">
+                <div class="col-lg-8 text-center">
+                    <p class="text-uppercase fw-bold small mb-2">Dashboard</p>
+                    <h1 class="display-5 fw-bold mb-3">Booking Dashboard</h1>
+                    <p class="lead mb-0">Manage your bookings, status updates, and details in one place.</p>
+                </div>
+            </div>
+        </div>
+    </section>
 
-    @include('frontend.layouts.partials.page-header', ['title' => 'Booking Dashboard'])
-
-    <section class="page bg-light section-padding-bottom section-padding-top">
+    <section class="page bg-setup-form py-5">
         <div class="container">
             <div class="row">
                 <div class="col-md-12">
@@ -253,16 +58,18 @@
                     <div id="bookingsList" class="row g-4">
                         <!-- Add New Booking Card -->
                         <div class="col-md-6 col-lg-4">
-                            <div class="card h-100" style="border-radius:12px; border: 2px dashed #0d6efd; cursor: pointer; transition: all 0.3s ease;" onclick="switchToNewBooking()" onmouseover="this.style.backgroundColor='#f8f9fa'; this.style.borderColor='#0a58ca';" onmouseout="this.style.backgroundColor=''; this.style.borderColor='#0d6efd';">
-                                <div class="card-body d-flex flex-column align-items-center justify-content-center text-center" style="min-height: 250px;">
+                            <div class="card h-100 add-booking-card" onclick="switchToNewBooking()">
+                                <div class="card-body add-booking-card-body text-center">
                                     <div class="mb-3">
-                                        <i class="fa-solid fa-plus" style="font-size: 32px; color: #0d6efd;"></i>
+                                        <div class="add-booking-icon border">
+                                            <i class="fa-solid fa-plus text-primary"></i>
+                                        </div>
+                                    </div>
+                                    <h5 class="mb-2 add-booking-title text-primary">Add New Booking</h5>
+                                    <p class="mb-0 add-booking-subtitle text-primary">Start a fresh property booking flow.</p>
+                                </div>
                             </div>
-                                    <h5 class="mb-2" style="font-weight: 600; color: #000;">Add new booking</h5>
-                                    <p class="text-muted mb-0" style="font-size: 0.9rem;">Start a fresh property booking flow.</p>
                         </div>
-                    </div>
-                </div>
                         
                         @forelse($bookings ?? [] as $booking)
                             @php
@@ -429,118 +236,6 @@
                                         </div>
                                         
                                         
-                                        {{-- Show scheduling details based on status --}}
-                                        @if($isPaymentPaid)
-                                            @if($isBlocked)
-                                                <div class="alert alert-danger py-2 mb-2" role="alert">
-                                                    <small class="d-block mb-1"><i class="fa-solid fa-ban me-1"></i><strong>Scheduling Blocked</strong></small>
-                                                    <small class="text-muted d-block mb-2">Maximum attempts reached ({{ $attemptCount }}/{{ $maxAttempts }})</small>
-                                                    @php
-                                                        $blockedMessage = \App\Models\Setting::where('name', 'customer_attempt_note')->first();
-                                                    @endphp
-                                                    <small class="d-block">
-                                                        <i class="fa-solid fa-info-circle me-1"></i>
-                                                        {{ $blockedMessage?->value ?? 'You have reached the maximum number of schedule attempts. Please contact admin for further assistance.' }}
-                                                    </small>
-                                                </div>
-                                            @elseif(in_array($status, ['schedul_pending', 'reschedul_pending']))
-                                                <div class="mb-2">
-                                                    <small class="text-warning"><i class="fa-solid fa-clock me-1"></i><strong>Status:</strong> Awaiting Admin Approval</small>
-                                                </div>
-                                                @if($scheduledDate)
-                                                    <div class="mb-2">
-                                                        <small class="text-muted"><i class="fa-solid fa-calendar me-1"></i><strong>Requested Date:</strong> {{ $scheduledDate }}</small>
-                                                    </div>
-                                                @endif
-                                                <div class="mb-2">
-                                                    <small class="text-muted"><i class="fa-solid fa-chart-line me-1"></i>Attempt {{ $attemptCount }} of {{ $maxAttempts }}</small>
-                                                </div>
-                                            @elseif(in_array($status, ['schedul_decline', 'reschedul_decline']))
-                                                <div class="mb-2">
-                                                    <small class="text-danger"><i class="fa-solid fa-times-circle me-1"></i><strong>Status:</strong> Schedule Declined</small>
-                                                </div>
-                                                <div class="mb-2">
-                                                    <small class="text-muted"><i class="fa-solid fa-chart-line me-1"></i>Attempt {{ $attemptCount }} of {{ $maxAttempts }}</small>
-                                                </div>
-                                                @php
-                                                    // Get decline reason from latest history entry
-                                                    $declineReason = null;
-                                                    $latestHistory = \App\Models\BookingHistory::where('booking_id', $booking->id)
-                                                        ->whereIn('to_status', ['schedul_decline', 'reschedul_decline'])
-                                                        ->orderBy('created_at', 'desc')
-                                                        ->first();
-                                                    if ($latestHistory && isset($latestHistory->metadata['reason'])) {
-                                                        $declineReason = $latestHistory->metadata['reason'];
-                                                    }
-                                                @endphp
-                                                @if($declineReason)
-                                                    <div class="alert alert-danger py-2 mb-2" role="alert">
-                                                        <small class="d-block">
-                                                            <i class="fa-solid fa-exclamation-triangle me-1"></i><strong>Reason:</strong> {{ $declineReason }}
-                                                        </small>
-                                                    </div>
-                                                @endif
-                                                @if($attemptCount >= $maxAttempts)
-                                                    {{-- Show blocked message when at limit --}}
-                                                    <div class="alert alert-danger py-2 mb-2" role="alert">
-                                                        @php
-                                                            $blockedMessage = \App\Models\Setting::where('name', 'customer_attempt_note')->first();
-                                                        @endphp
-                                                        <small class="d-block">
-                                                            <i class="fa-solid fa-ban me-1"></i>
-                                                            {{ $blockedMessage?->value ?? 'You have reached the maximum number of schedule attempts. Please contact admin for further assistance.' }}
-                                                        </small>
-                                                    </div>
-                                                @else
-                                                    <div class="mb-2">
-                                                        <small class="text-warning"><i class="fa-solid fa-info-circle me-1"></i>You can request again ({{ $maxAttempts - $attemptCount }} {{ Str::plural('attempt', $maxAttempts - $attemptCount) }} left)</small>
-                                                    </div>
-                                                @endif
-                                            @elseif(in_array($status, ['schedul_accepted', 'reschedul_accepted']) && $showScheduledDate)
-                                                {{-- Info message for accepted status - waiting for photographer assignment --}}
-                                                <div class="alert alert-info py-2 mb-2" role="alert" style="border-left: 4px solid #0dcaf0; background-color: #d1ecf1;">
-                                                    <small class="d-block">
-                                                        <i class="fa-solid fa-clock me-1"></i><strong>Photographer Assignment in Progress:</strong> Your booking date has been accepted! In a short time, a photographer will be assigned and a specific time will be set for when the photographer visits your property to start your property tour photography. Please wait for the admin to assign the photographer and schedule the visit time.
-                                                    </small>
-                                                </div>
-                                                
-                                                <div class="mb-2">
-                                                    <small class="text-success"><i class="fa-solid fa-calendar-check me-1"></i><strong>Scheduled:</strong> {{ $scheduledDate }} at {{ $booking->scheduled_time ?? 'TBD' }}</small>
-                                                </div>
-                                                
-                                                {{-- Admin notes only visible to admin users (not shown to customers) --}}
-                                                @php
-                                                    $isAdmin = Auth::check() && (Auth::user()->hasRole('admin') || Auth::user()->hasRole('super_admin'));
-                                                    // Get admin notes from latest history entry
-                                                    $adminNotes = null;
-                                                    if ($isAdmin) {
-                                                        $latestHistory = \App\Models\BookingHistory::where('booking_id', $booking->id)
-                                                            ->whereIn('to_status', ['schedul_accepted', 'reschedul_accepted'])
-                                                            ->orderBy('created_at', 'desc')
-                                                            ->first();
-                                                        if ($latestHistory && isset($latestHistory->metadata['admin_notes'])) {
-                                                            $adminNotes = $latestHistory->metadata['admin_notes'];
-                                                        }
-                                                    }
-                                                @endphp
-                                                @if($adminNotes && $isAdmin)
-                                                    <div class="alert alert-secondary py-2 mb-2" role="alert" style="border-left: 4px solid #6c757d;">
-                                                        <small class="d-block">
-                                                            <i class="fa-solid fa-user-shield me-1"></i><strong>Admin Notes:</strong> {{ $adminNotes }}
-                                                        </small>
-                                                    </div>
-                                                @endif
-                                            @elseif($showScheduledDate)
-                                                <div class="mb-2">
-                                                    <small class="text-success"><i class="fa-solid fa-calendar-check me-1"></i><strong>Scheduled:</strong> {{ $scheduledDate }} at {{ $booking->scheduled_time ?? 'TBD' }}</small>
-                                                </div>
-                                            @else
-                                                <div class="mb-2">
-                                                    <small class="text-muted"><i class="fa-solid fa-calendar me-1"></i><strong>Status:</strong> Not Scheduled</small>
-                                                </div>
-                                            @endif
-                                        @endif
-                                        
                                         <div class="mb-2">
                                             <small class="text-muted"><i class="fa-solid fa-clock me-1"></i>Created: {{ $createdDate }}</small>
                                         </div>
@@ -560,7 +255,7 @@
                                         
                                         <div class="d-flex gap-2">
                                             {{-- View button - always shown --}}
-                                            <a href="{{ route('frontend.booking.show', $booking->id) }}" class="btn btn-sm btn-info flex-fill">
+                                            <a href="{{ route('frontend.booking.show', $booking->id) }}" class="btn btn-sm-r btn-primary flex-fill">
                                                 <i class="fa-solid fa-eye me-1"></i>View
                                             </a>
                                             
@@ -568,28 +263,28 @@
                                                 {{-- Payment is paid - show schedule button based on status --}}
                                                 @if($isBlocked)
                                                     {{-- Blocked - show contact admin button --}}
-                                                    <button class="btn btn-sm btn-dark flex-fill" disabled>
+                                                    <button class="btn btn-sm-r btn-dark flex-fill" disabled>
                                                         <i class="fa-solid fa-ban me-1"></i>Contact Admin
                                                     </button>
                                                 @elseif(in_array($status, ['schedul_pending', 'reschedul_pending']))
                                                     {{-- Waiting for admin approval - disabled button --}}
-                                                    <button class="btn btn-sm btn-secondary flex-fill" disabled>
+                                                    <button class="btn btn-sm-r btn-secondary flex-fill" disabled>
                                                         <i class="fa-solid fa-clock me-1"></i>Awaiting Approval
                                                     </button>
                                                 @elseif(in_array($status, ['schedul_decline', 'reschedul_decline']))
                                                     {{-- Schedule declined - allow new request if not at limit --}}
                                                     @if($attemptCount < $maxAttempts)
-                                                        <button class="btn btn-sm btn-warning flex-fill" onclick="openScheduleModal({{ $booking->id }})">
+                                                        <button class="btn btn-sm-r btn-primary flex-fill" onclick="openScheduleModal({{ $booking->id }})">
                                                             <i class="fa-solid fa-calendar-plus me-1"></i>Request Again ({{ $maxAttempts - $attemptCount }} left)
                                                         </button>
                                                     @else
-                                                        <button class="btn btn-sm btn-dark flex-fill" disabled>
+                                                        <button class="btn btn-sm-r btn-dark flex-fill" disabled>
                                                             <i class="fa-solid fa-ban me-1"></i>No Attempts Left
                                                         </button>
                                                     @endif
                                                 @elseif(in_array($status, ['schedul_accepted', 'reschedul_accepted', 'confirmed']) && $showScheduledDate)
                                                     {{-- Schedule approved - can reschedule --}}
-                                                    <button class="btn btn-sm btn-outline-primary flex-fill reschedule-btn" 
+                                                    <button class="btn btn-sm-r btn-outline-primary flex-fill reschedule-btn" 
                                                             onclick="openScheduleModal({{ $booking->id }}, this)"
                                                             data-status="{{ $status }}"
                                                             data-booking-date="{{ $booking->booking_date ? \Carbon\Carbon::parse($booking->booking_date)->format('Y-m-d') : '' }}"
@@ -599,12 +294,12 @@
                                                     </button>
                                                 @elseif(!$scheduledDate)
                                                     {{-- No schedule yet --}}
-                                                    <button class="btn btn-sm btn-primary flex-fill" onclick="openScheduleModal({{ $booking->id }})">
+                                                    <button class="btn btn-sm-r btn-primary flex-fill" onclick="openScheduleModal({{ $booking->id }})">
                                                         <i class="fa-solid fa-calendar-plus me-1"></i>Schedule
                                                     </button>
                                                 @else
                                                     {{-- Has schedule --}}
-                                                    <button class="btn btn-sm btn-outline-primary flex-fill reschedule-btn" 
+                                                    <button class="btn btn-sm-r btn-outline-primary flex-fill reschedule-btn" 
                                                             onclick="openScheduleModal({{ $booking->id }}, this)"
                                                             data-status="{{ $status }}"
                                                             data-booking-date="{{ $booking->booking_date ? \Carbon\Carbon::parse($booking->booking_date)->format('Y-m-d') : '' }}"
@@ -615,18 +310,173 @@
                                                 @endif
                                             @else
                                                 {{-- Payment not paid - show View and Edit buttons always --}}
-                                                <button class="btn btn-sm btn-warning flex-fill" onclick="openEditModal({{ $booking->id }})">
+                                                <button class="btn btn-sm-r btn-primary flex-fill" onclick="openEditModal({{ $booking->id }})">
                                                     <i class="fa-solid fa-edit me-1"></i>Edit
                                                 </button>
                                                 
                                                 {{-- Pay button - only show if property and address data are complete --}}
                                                 @if($booking->isReadyForPayment())
-                                                    <button class="btn btn-sm btn-success flex-fill" onclick="initiatePayment({{ $booking->id }})">
+                                                    <button class="btn btn-sm-r btn-primary flex-fill" onclick="initiatePayment({{ $booking->id }})">
                                                         <i class="fa-solid fa-credit-card me-1"></i>Pay
                                                     </button>
                                                 @endif
                                             @endif
                                         </div>
+
+                                        <div class="mt-2">
+
+                                            {{-- All Notifications Consolidated Here --}}
+                                            @if(!$isPaymentPaid)
+                                                {{-- Unpaid Booking Notifications --}}
+                                                @if(!$booking->isReadyForPayment())
+                                                    @php
+                                                        $hasPropertyData = $booking->hasCompletePropertyData();
+                                                        $hasAddressData = $booking->hasCompleteAddressData();
+                                                        
+                                                        if (!$hasPropertyData && !$hasAddressData) {
+                                                            $alertType = 'warning';
+                                                            $alertIcon = 'fa-exclamation-triangle';
+                                                            $alertTitle = 'Complete Your Booking';
+                                                            $alertMessage = 'Please complete both Property Details and Address Information to proceed with payment. Click "Edit" to update your booking.';
+                                                        } elseif (!$hasPropertyData) {
+                                                            $alertType = 'warning';
+                                                            $alertIcon = 'fa-exclamation-triangle';
+                                                            $alertTitle = 'Property Details Required';
+                                                            $alertMessage = 'Please complete your Property Details (Property Type, Size, Area, etc.) to proceed with payment. Click "Edit" to update your booking.';
+                                                        } elseif (!$hasAddressData) {
+                                                            $alertType = 'warning';
+                                                            $alertIcon = 'fa-exclamation-triangle';
+                                                            $alertTitle = 'Address Information Required';
+                                                            $alertMessage = 'Please complete your Address Information (House Number, Building Name, Pincode, Full Address) to proceed with payment. Click "Edit" to update your booking.';
+                                                        } else {
+                                                            $alertType = 'info';
+                                                            $alertIcon = 'fa-info-circle';
+                                                            $alertTitle = 'Ready for Payment';
+                                                            $alertMessage = 'Your booking details are complete. You can now proceed with payment.';
+                                                        }
+                                                    @endphp
+                                            
+                                                    <div class="alert alert-{{ $alertType }} py-2 my-2" role="alert" style="border-left: 4px solid {{ $alertType === 'warning' ? '#ffc107' : '#0dcaf0' }}; background-color: {{ $alertType === 'warning' ? '#fff3cd' : '#d1ecf1' }};">
+                                                        <small class="d-block">
+                                                            <i class="fa-solid {{ $alertIcon }} me-1"></i><strong>{{ $alertTitle }}:</strong> {{ $alertMessage }}
+                                                        </small>
+                                                    </div>
+                                                @endif
+                                            @else
+                                                {{-- Paid Booking Notifications --}}
+                                                @if($isBlocked)
+                                                    {{-- Scheduling Blocked --}}
+                                                    @php
+                                                        $blockedMessage = \App\Models\Setting::where('name', 'customer_attempt_note')->first();
+                                                    @endphp
+                                                    <div class="alert alert-danger mb-2" role="alert" style="border-left: 4px solid #dc3545; background-color: #f8d7da;">
+                                                        <small class="d-block mb-1"><i class="fa-solid fa-ban me-1"></i><strong>Scheduling Blocked</strong></small>
+                                                        <small class="text-muted d-block mb-2">Maximum attempts reached ({{ $attemptCount }}/{{ $maxAttempts }})</small>
+                                                        <small class="d-block">
+                                                            <i class="fa-solid fa-info-circle me-1"></i>
+                                                            {{ $blockedMessage?->value ?? 'You have reached the maximum number of schedule attempts. Please contact admin for further assistance.' }}
+                                                        </small>
+                                                    </div>
+                                                @elseif(in_array($status, ['schedul_pending', 'reschedul_pending']))
+                                                    {{-- Schedule Pending - Awaiting Admin Approval --}}
+                                                    <div class="alert alert-warning py-2 mb-2" role="alert" style="border-left: 4px solid #ffc107; background-color: #fff3cd;">
+                                                        <small class="d-block mb-1"><i class="fa-solid fa-clock me-1"></i><strong>Status:</strong> Awaiting Admin Approval</small>
+                                                        @if($scheduledDate)
+                                                            <small class="text-muted d-block mb-1"><i class="fa-solid fa-calendar me-1"></i><strong>Requested Date:</strong> {{ $scheduledDate }}</small>
+                                                        @endif
+                                                        <small class="text-muted d-block"><i class="fa-solid fa-chart-line me-1"></i>Attempt {{ $attemptCount }} of {{ $maxAttempts }}</small>
+                                                    </div>
+                                                @elseif(in_array($status, ['schedul_decline', 'reschedul_decline']))
+                                                    {{-- Schedule Declined --}}
+                                                    @php
+                                                        // Get decline reason from latest history entry
+                                                        $declineReason = null;
+                                                        $latestHistory = \App\Models\BookingHistory::where('booking_id', $booking->id)
+                                                            ->whereIn('to_status', ['schedul_decline', 'reschedul_decline'])
+                                                            ->orderBy('created_at', 'desc')
+                                                            ->first();
+                                                        if ($latestHistory && isset($latestHistory->metadata['reason'])) {
+                                                            $declineReason = $latestHistory->metadata['reason'];
+                                                        }
+                                                    @endphp
+                                                    <div class="alert alert-danger py-2 mb-2" role="alert" style="border-left: 4px solid #dc3545; background-color: #f8d7da;">
+                                                        <small class="d-block mb-1"><i class="fa-solid fa-times-circle me-1"></i><strong>Status:</strong> Schedule Declined</small>
+                                                        <small class="text-muted d-block mb-1"><i class="fa-solid fa-chart-line me-1"></i>Attempt {{ $attemptCount }} of {{ $maxAttempts }}</small>
+                                                        @if($declineReason)
+                                                            <small class="d-block mt-2">
+                                                                <i class="fa-solid fa-exclamation-triangle me-1"></i><strong>Reason:</strong> {{ $declineReason }}
+                                                            </small>
+                                                        @endif
+                                                    </div>
+                                                    @if($attemptCount >= $maxAttempts)
+                                                        {{-- Show blocked message when at limit --}}
+                                                        @php
+                                                            $blockedMessage = \App\Models\Setting::where('name', 'customer_attempt_note')->first();
+                                                        @endphp
+                                                        <div class="alert alert-danger py-2 mb-2" role="alert" style="border-left: 4px solid #dc3545; background-color: #f8d7da;">
+                                                            <small class="d-block">
+                                                                <i class="fa-solid fa-ban me-1"></i>
+                                                                {{ $blockedMessage?->value ?? 'You have reached the maximum number of schedule attempts. Please contact admin for further assistance.' }}
+                                                            </small>
+                                                        </div>
+                                                    @else
+                                                        <div class="alert alert-warning py-2 mb-2" role="alert" style="border-left: 4px solid #ffc107; background-color: #fff3cd;">
+                                                            <small class="d-block">
+                                                                <i class="fa-solid fa-info-circle me-1"></i>You can request again ({{ $maxAttempts - $attemptCount }} {{ Str::plural('attempt', $maxAttempts - $attemptCount) }} left)
+                                                            </small>
+                                                        </div>
+                                                    @endif
+                                                @elseif(in_array($status, ['schedul_accepted', 'reschedul_accepted']) && $showScheduledDate)
+                                                    {{-- Schedule Accepted - Photographer Assignment in Progress --}}
+                                                    <div class="alert alert-info py-2 mb-2" role="alert" style="border-left: 4px solid #0dcaf0; background-color: #d1ecf1;">
+                                                        <small class="d-block mb-1">
+                                                            <i class="fa-solid fa-calendar-check me-1"></i><strong>Scheduled:</strong> {{ $scheduledDate }} at {{ $booking->scheduled_time ?? 'TBD' }}
+                                                        </small>
+                                                        <small class="d-block">
+                                                            <i class="fa-solid fa-clock me-1"></i><strong>Photographer Assignment in Progress:</strong> Your booking date has been accepted! In a short time, a photographer will be assigned and a specific time will be set for when the photographer visits your property to start your property tour photography. Please wait for the admin to assign the photographer and schedule the visit time.
+                                                        </small>
+                                                    </div>
+                                                    
+                                                    {{-- Admin notes only visible to admin users (not shown to customers) --}}
+                                                    @php
+                                                        $isAdmin = Auth::check() && (Auth::user()->hasRole('admin') || Auth::user()->hasRole('super_admin'));
+                                                        // Get admin notes from latest history entry
+                                                        $adminNotes = null;
+                                                        if ($isAdmin) {
+                                                            $latestHistory = \App\Models\BookingHistory::where('booking_id', $booking->id)
+                                                                ->whereIn('to_status', ['schedul_accepted', 'reschedul_accepted'])
+                                                                ->orderBy('created_at', 'desc')
+                                                                ->first();
+                                                            if ($latestHistory && isset($latestHistory->metadata['admin_notes'])) {
+                                                                $adminNotes = $latestHistory->metadata['admin_notes'];
+                                                            }
+                                                        }
+                                                    @endphp
+                                                    @if($adminNotes && $isAdmin)
+                                                        <div class="alert alert-secondary py-2 mb-2" role="alert" style="border-left: 4px solid #6c757d; background-color: #e2e3e5;">
+                                                            <small class="d-block">
+                                                                <i class="fa-solid fa-user-shield me-1"></i><strong>Admin Notes:</strong> {{ $adminNotes }}
+                                                            </small>
+                                                        </div>
+                                                    @endif
+                                                @elseif($showScheduledDate)
+                                                    {{-- Scheduled (with date but not in accepted status) --}}
+                                                    <div class="alert alert-success py-2 mb-2" role="alert" style="border-left: 4px solid #198754; background-color: #d1e7dd;">
+                                                        <small class="d-block">
+                                                            <i class="fa-solid fa-calendar-check me-1"></i><strong>Scheduled:</strong> {{ $scheduledDate }} at {{ $booking->scheduled_time ?? 'TBD' }}
+                                                        </small>
+                                                    </div>
+                                                @else
+                                                    {{-- Not Scheduled --}}
+                                                    <div class="alert alert-info py-2 mb-2" role="alert" style="border-left: 4px solid #0dcaf0; background-color: #d1ecf1;">
+                                                        <small class="d-block">
+                                                            <i class="fa-solid fa-calendar me-1"></i><strong>Status:</strong> Not Scheduled - Please schedule your appointment
+                                                        </small>
+                                                    </div>
+                                                @endif
+                                            @endif
+                                        </div>
+
                                     </div>
                                 </div>
                             </div>
@@ -972,7 +822,7 @@
                                         <input type="number" class="form-control" id="editPaymentPrice" readonly>
                                         <small class="text-muted">Calculated based on area (sq. ft.)</small>
                                     </div>
-                                    <button type="button" class="btn btn-success w-100" id="editMakePaymentBtn" onclick="initiatePaymentFromEdit()" disabled>
+                                    <button type="button" class="btn btn-primary w-100" id="editMakePaymentBtn" onclick="initiatePaymentFromEdit()" disabled>
                                         <i class="fa-solid fa-credit-card me-2"></i>Make Payment
                                     </button>
                                     <small class="text-muted d-block text-center mt-2">Secure payment via Cashfree</small>

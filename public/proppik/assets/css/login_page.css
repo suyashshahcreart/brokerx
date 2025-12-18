@@ -1,0 +1,17 @@
+/* Login Page tweaks to match new theme (modals, links) */
+
+.pp-modal .modal-content {
+  border-radius: 12px;
+}
+
+.pp-modal .modal-title,
+.pp-modal h5 {
+  font-family: "Montagu Slab", serif;
+  font-weight: 700;
+}
+
+.pp-success-icon {
+  color: #28a745;
+}
+
+

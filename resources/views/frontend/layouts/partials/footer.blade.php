@@ -1,39 +1,57 @@
-<!-- Frontend Footer -->
-<footer class="footer-section" id="footer">
+<!-- Frontend Footer (New Theme) -->
+<footer class="footer bg-dark text-white py-5" id="footer">
     <div class="container">
-        <div class="row justify-content-center">
-            <div class="col-lg-3 col-md-12 mb-4 mb-lg-0">
-                <a href="{{ route('frontend.index') }}"><img src="{{ asset('frontend/images/logo-w.png') }}" alt=""></a>
+        <div class="row g-4 mb-4">
+            <div class="col-lg-4 col-md-6">
+                <div class="footer-column">
+                    <img src="{{ asset('proppik/assets/logo/w-logo.svg') }}" alt="PROP PIK" class="footer-logo mb-3" height="40">
+                    <p class="text-white-50 mb-3">Global Web Virtual Reality experiences that let you see spaces like never before.</p>
+                    <div class="social-links d-flex gap-3">
+                        <a href="https://www.facebook.com/proppikglobal" target="_blank" class="text-white-50 text-decoration-none">Facebook</a>
+                        <a href="https://www.instagram.com/proppikglobal" target="_blank" class="text-white-50 text-decoration-none">Instagram</a>
+                    </div>
+                </div>
             </div>
-            <div class="col-lg-3 col-md-12 mb-4 mb-lg-0">
-                <h5>Get in touch</h5>
-                <p>hello@proppik.com<br>+91 9876543210</p>
-                <h5 class="mt-4">Locations</h5>
-                <p>San Francisco — California<br>Palo Alto — Santa Clara</p>
+
+            <div class="col-lg-4 col-md-6">
+                <div class="row">
+                    <div class="col-6">
+                        <div class="footer-column">
+                            <h3 class="h6 mb-3">Quick Links</h3>
+                            <ul class="list-unstyled">
+                                <li class="mb-2"><a href="{{ route('frontend.index') }}#about" class="text-white-50 text-decoration-none">About Us</a></li>
+                                <li class="mb-2"><a href="{{ route('frontend.index') }}#why-choose-us" class="text-white-50 text-decoration-none">Why Choose Us</a></li>
+                                <li class="mb-2"><a href="{{ route('frontend.index') }}#how-it-works" class="text-white-50 text-decoration-none">How It Works</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="footer-column">
+                            <h3 class="h6 mb-3">More</h3>
+                            <ul class="list-unstyled">
+                                <li class="mb-2"><a href="{{ route('frontend.index') }}#gallery" class="text-white-50 text-decoration-none">Gallery</a></li>
+                                <li class="mb-2"><a href="{{ route('frontend.contact') }}" class="text-white-50 text-decoration-none">Contact</a></li>
+                                <li class="mb-2"><a href="{{ route('frontend.setup') }}" class="text-white-50 text-decoration-none">Book Now</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="col-lg-3 col-md-12 mb-4 mb-lg-0">
-                <h5>Quick Links</h5>
-                <ul class="footer-links">
-                    <li><a href="{{ route('frontend.terms') }}">Terms and Conditions</a></li>
-                    <li><a href="{{ route('frontend.refund-policy') }}">Refund Policy</a></li>
-                    <li><a href="{{ route('frontend.privacy-policy') }}">Privacy Policy</a></li>
-                    <li><a href="{{ route('frontend.login') }}">Login</a></li>
-                </ul>
-            </div>
-            <div class="col-lg-3 col-md-12">
-                <h5>Follow Us</h5>
-                <ul class="footer-social-link">
-                    <li><a href="#" target="_blank"><i class="fa-brands fa-instagram"></i></a></li>
-                    <li><a href="#" target="_blank"><i class="fa-brands fa-facebook"></i></a></li>
-                    <li><a href="#" target="_blank"><i class="fa-brands fa-youtube"></i></a></li>
-                    <li><a href="#" target="_blank"><i class="fa-brands fa-tiktok"></i></a></li>
-                </ul>
+
+            <div class="col-lg-4 col-md-6">
+                <div class="footer-column">
+                    <h3 class="h6 mb-3">Legal</h3>
+                    <ul class="list-unstyled">
+                        <li class="mb-2"><a href="{{ route('frontend.privacy-policy') }}" class="text-white-50 text-decoration-none">Privacy Policy</a></li>
+                        <li class="mb-2"><a href="{{ route('frontend.refund-policy') }}" class="text-white-50 text-decoration-none">Refund Policy</a></li>
+                        <li class="mb-2"><a href="{{ route('frontend.terms') }}" class="text-white-50 text-decoration-none">Terms and Conditions</a></li>
+                    </ul>
+                </div>
             </div>
         </div>
-        <div class="row justify-content-center mt-4">
-            <div class="col-md-10 text-center">
-                <p class="mb-0 copyright">© {{ date('Y') }} PROP PIK is a product of <a href="https://www.proppik.com" target="_blank">PROP PIK</a>.</p>
-            </div>
+
+        <div class="footer-bottom text-center pt-4 border-top border-secondary">
+            <p class="text-white-50 mb-0">&copy; {{ date('Y') }} PROP PIK Global. All rights reserved.</p>
         </div>
     </div>
 </footer>
