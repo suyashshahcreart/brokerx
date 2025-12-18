@@ -53,6 +53,11 @@ Route::middleware('auth')->group(function () {
     Route::put('/user/{id}', [UserController::class, 'update'])->name('user.update');
 });
 
+// Frontend Portfolio routes (authenticated users)
+Route::middleware('auth')->group(function () {
+    Route::resource('portfolios', PortfolioController::class);
+});
+
 // Optional dashboard alias (to avoid Route [dashboard] not defined errors)
 Route::middleware('auth')->get('/dashboard', function () {
     return redirect()->route('root');
@@ -170,6 +175,16 @@ Route::get('/', [FrontendController::class, 'index'])->name('frontend.index');
 Route::get('/login', [FrontendController::class, 'login'])->name('frontend.login');
 Route::get('/setup', [FrontendController::class, 'setup'])->name('frontend.setup');
 Route::post('/setup', [FrontendController::class, 'storeBooking'])->name('frontend.setup.store');
+Route::get('/contact', function () {
+    return view('frontend.contact');
+})->name('frontend.contact');
+
+Route::post('/logout', function () {
+    \Illuminate\Support\Facades\Auth::logout();
+    request()->session()->invalidate();
+    request()->session()->regenerateToken();
+    return redirect()->route('frontend.index');
+})->name('frontend.logout');
 Route::get('/privacy-policy', [FrontendController::class, 'privacyPolicy'])->name('frontend.privacy-policy');
 Route::get('/refund-policy', [FrontendController::class, 'refundPolicy'])->name('frontend.refund-policy');
 Route::get('/terms-conditions', [FrontendController::class, 'termsConditions'])->name('frontend.terms');
@@ -177,14 +192,13 @@ Route::get('/terms-conditions', [FrontendController::class, 'termsConditions'])-
 // Protected frontend routes (require authentication)
 Route::middleware('auth')->group(function () {
     Route::get('/booking-dashboard', [FrontendController::class, 'bookingDashboard'])->name('frontend.booking-dashboard');
+    Route::get('/booking-dashboard-v2', [FrontendController::class, 'bookingDashboardV2'])->name('frontend.booking-dashboard-v2');
     Route::get('/booking/{id}', [FrontendController::class, 'showBooking'])->name('frontend.booking.show');
+    Route::get('/booking-v2/{id}', [FrontendController::class, 'showBookingV2'])->name('frontend.booking.show-v2');
     Route::get('/profile', [FrontendController::class, 'profile'])->name('frontend.profile');
 });
 
-// Frontend Portfolio routes (authenticated users)
-Route::middleware('auth')->group(function () {
-    Route::resource('portfolios', PortfolioController::class);
-});
+
 
 // Step-by-step AJAX routes
 Route::post('/frontend/setup/save-property-step', [FrontendController::class, 'savePropertyStep'])->name('frontend.setup.save-property');

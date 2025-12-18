@@ -2,365 +2,28 @@
 
 @section('css')
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400..800&family=Urbanist:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ asset('frontend/css/plugins.css') }}">
-    <link rel="stylesheet" href="{{ asset('frontend/css/style.css') }}">
+    
+    <link rel="stylesheet" href="{{ asset('proppik/assets/css/setup_page.css') }}">
+    <link rel="stylesheet" href="{{ asset('proppik/assets/css/booking_show_page.css') }}">
     <!-- Flatpickr CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-    <style>
-        .booking-header {
-            background: linear-gradient(135deg, #1f395a 0%, #152742 50%, #FF8C00 100%);
-            background-size: 200% 200%;
-            color: white;
-            padding: 3rem 0;
-            border-radius: 16px;
-            margin-bottom: 2rem;
-            position: relative;
-            overflow: hidden;
-            animation: gradientShift 8s ease infinite;
-            box-shadow: 0 10px 30px rgba(31, 57, 90, 0.3);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-        
-        .booking-header::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
-            pointer-events: none;
-        }
-        
-        .booking-header:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 15px 40px rgba(31, 57, 90, 0.4);
-        }
-        
-        @keyframes gradientShift {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-        }
-        
-        .status-badge {
-            display: inline-block;
-            padding: 0.6rem 1.8rem;
-            border-radius: 50px;
-            font-weight: 600;
-            font-size: 0.875rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            transition: all 0.3s ease;
-            cursor: default;
-            position: relative;
-            overflow: hidden;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-        }
-        
-        .status-badge::before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 0;
-            height: 0;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.3);
-            transform: translate(-50%, -50%);
-            transition: width 0.6s, height 0.6s;
-        }
-        
-        .status-badge:hover::before {
-            width: 300px;
-            height: 300px;
-        }
-        
-        .status-badge:hover {
-            transform: scale(1.05);
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
-        }
-        
-        .status-pending { 
-            background: linear-gradient(135deg, #FF8C00 0%, #ffa64d 100%);
-            color: #fff;
-        }
-        .status-paid { 
-            background: linear-gradient(135deg, #28a745 0%, #34ce57 100%);
-            color: #fff;
-        }
-        .status-failed { 
-            background: linear-gradient(135deg, #dc3545 0%, #e4606d 100%);
-            color: #fff;
-        }
-        .status-confirmed { 
-            background: linear-gradient(135deg, #1f395a 0%, #2a4d6e 100%);
-            color: #fff;
-        }
-        .status-scheduled { 
-            background: linear-gradient(135deg, #6f42c1 0%, #8a5dd8 100%);
-            color: #fff;
-        }
-        .status-completed { 
-            background: linear-gradient(135deg, #20c997 0%, #3dd5a8 100%);
-            color: #fff;
-        }
-        .status-schedul_pending { 
-            background: linear-gradient(135deg, #FF8C00 0%, #ffa64d 100%);
-            color: #fff;
-        }
-        .status-reschedul_pending { 
-            background: linear-gradient(135deg, #FF8C00 0%, #ffa64d 100%);
-            color: #fff;
-        }
-        .status-schedul_decline { 
-            background: linear-gradient(135deg, #dc3545 0%, #e4606d 100%);
-            color: #fff;
-        }
-        .status-reschedul_decline { 
-            background: linear-gradient(135deg, #dc3545 0%, #e4606d 100%);
-            color: #fff;
-        }
-        .status-reschedul_blocked { 
-            background: linear-gradient(135deg, #6c757d 0%, #868e96 100%);
-            color: #fff;
-        }
-        
-        .info-card {
-            background: white;
-            border-radius: 12px;
-            padding: 1.5rem;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            height: 100%;
-        }
-        
-        .info-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 4px 20px rgba(0,0,0,0.12);
-        }
-        
-        .section-header {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 1rem;
-        }
-        .info-card .card-icon {
-            width: 56px;
-            height: 56px;
-            border-radius: 14px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.6rem;
-            flex-shrink: 0;
-        }
-        
-        .info-card.property .card-icon { background: #e3f2fd; color: #1976d2; }
-        .info-card.address .card-icon { background: #f3e5f5; color: #7b1fa2; }
-        .info-card.payment .card-icon { background: #e8f5e9; color: #388e3c; }
-        .info-card.schedule .card-icon { background: #fff3e0; color: #f57c00; }
-        .info-card.tour .card-icon { background: #e0f2f1; color: #00796b; }
-        
-        .info-label {
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: #6c757d;
-            font-weight: 600;
-            line-height: 1;
-        }
-        
-        .info-value {
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: #212529;
-            margin-bottom: 0.75rem;
-        }
-        
-        .info-detail {
-            font-size: 0.95rem;
-            color: #495057;
-            line-height: 1.6;
-        }
-        
-        .price-display {
-            font-size: 2.5rem;
-            font-weight: 700;
-            color: #28a745;
-            text-align: center;
-            padding: 1.5rem;
-            background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
-            border-radius: 12px;
-            margin: 1rem 0;
-        }
-        
-        .action-btn {
-            border-radius: 8px;
-            padding: 0.75rem 1.5rem;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .action-btn::before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 0;
-            height: 0;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.3);
-            transform: translate(-50%, -50%);
-            transition: width 0.6s, height 0.6s;
-        }
-        
-        .action-btn:hover::before {
-            width: 300px;
-            height: 300px;
-        }
-        
-        .action-btn:hover {
-            transform: translateY(-3px) scale(1.02);
-            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
-        }
-        
-        .action-btn.btn-primary {
-            background: linear-gradient(135deg, #1f395a 0%, #152742 100%);
-            border: none;
-            color: white;
-        }
-        
-        .action-btn.btn-primary:hover {
-            background: linear-gradient(135deg, #152742 0%, #1f395a 100%);
-            box-shadow: 0 8px 20px rgba(31, 57, 90, 0.4);
-        }
-        
-        .action-btn.btn-success {
-            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-            border: none;
-            color: white;
-        }
-        
-        .action-btn.btn-success:hover {
-            background: linear-gradient(135deg, #20c997 0%, #28a745 100%);
-            box-shadow: 0 8px 20px rgba(40, 167, 69, 0.4);
-        }
-        
-        .action-btn.btn-outline-primary {
-            border: 2px solid #1f395a;
-            color: #1f395a;
-            background: transparent;
-        }
-        
-        .action-btn.btn-outline-primary:hover {
-            background: #1f395a;
-            color: white;
-            border-color: #1f395a;
-        }
-        
-        .action-btn.btn-outline-success {
-            border: 2px solid #28a745;
-            color: #28a745;
-            background: transparent;
-        }
-        
-        .action-btn.btn-outline-success:hover {
-            background: #28a745;
-            color: white;
-            border-color: #28a745;
-        }
-        
-        .history-timeline {
-            position: relative;
-            padding-left: 2rem;
-        }
-        
-        .history-timeline::before {
-            content: '';
-            position: absolute;
-            left: 0.5rem;
-            top: 0;
-            bottom: 0;
-            width: 2px;
-            background: #dee2e6;
-        }
-        
-        .history-item {
-            position: relative;
-            padding-bottom: 2rem;
-        }
-        
-        .history-item::before {
-            content: '';
-            position: absolute;
-            left: -1.75rem;
-            top: 0.25rem;
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background: #667eea;
-            border: 3px solid white;
-            box-shadow: 0 0 0 2px #667eea;
-        }
-        
-        .history-item:last-child {
-            padding-bottom: 0;
-        }
-        
-        .history-date {
-            font-size: 0.75rem;
-            color: #6c757d;
-            margin-bottom: 0.25rem;
-        }
-        
-        .history-status {
-            font-weight: 600;
-            color: #212529;
-            margin-bottom: 0.25rem;
-        }
-        
-        .history-notes {
-            font-size: 0.875rem;
-            color: #6c757d;
-        }
-        
-        .back-btn {
-            background: white;
-            border: 2px solid #667eea;
-            color: #667eea;
-            border-radius: 8px;
-            padding: 0.5rem 1.5rem;
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
-        
-        .back-btn:hover {
-            background: #667eea;
-            color: white;
-            transform: translateX(-5px);
-        }
-    </style>
 @endsection
 
 @section('content')
-<section class="page-header section-padding-bottom-b section-padding-top-t page-header">
-    <div class="container">
-        <div class="row">
-            <div class="col-md-12">
-                <h1 class="wow page-title" data-splitting data-delay="100">Booking Details</h1>
+<!-- Booking Details Hero (New Theme style, matches policy pages) -->
+<section class="py-5 bg-primary text-white mt-5">
+    <div class="container pt-5 pb-2">
+        <div class="row justify-content-center">
+            <div class="col-lg-8 text-center">
+                <p class="text-uppercase fw-bold small mb-2">Booking</p>
+                <h1 class="display-5 fw-bold mb-3">Booking Details</h1>
+                <p class="lead mb-0">View your booking status, schedule, and payment information.</p>
             </div>
         </div>
     </div>
 </section>
 
-<div class="page bg-light section-padding-bottom mt-4">
+<div class="page bg-setup-form py-4">
     <div class="container">
         
 
@@ -565,9 +228,9 @@
                                     @endif
                                     
                                     @if($booking->payment_status === 'paid')
-                                        <a href="{{ route('frontend.download-receipt', $booking->id) }}" class="btn btn-outline-success action-btn">
+                                        <button type="button" class="btn btn-outline-success action-btn" onclick="downloadReceipt({{ $booking->id }})">
                                             <i class="fa-solid fa-download me-2"></i>Download Receipt
-                                        </a>
+                                        </button>
                                     @endif
                             </div>
                         </div>
@@ -1135,9 +798,9 @@
                     @endif
                     
                     @if($booking->payment_status === 'paid')
-                        <a href="{{ route('frontend.download-receipt', $booking->id) }}" class="btn btn-outline-success action-btn">
+                        <button type="button" class="btn btn-outline-success action-btn" onclick="downloadReceipt({{ $booking->id }})">
                             <i class="fa-solid fa-download me-2"></i>Download Receipt
-                        </a>
+                        </button>
                     @endif
                 </div>
             </div>
@@ -1146,9 +809,9 @@
 </div>
 
 <!-- Schedule Date Modal -->
-<div class="modal fade" id="scheduleModal" tabindex="-1" aria-hidden="true">
+<div class="modal fade pp-modal" id="scheduleModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content" style="border-radius:12px;">
+        <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Schedule Booking Date</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -1162,18 +825,18 @@
                     $adminPhone = \App\Models\Setting::where('name', 'support_phone')->value('value') ?? '+91-XXXXXXXXXX';
                 @endphp
                 @if($isBlocked)
-                    <div class="alert alert-danger py-3 mb-3" role="alert" style="border-left: 4px solid #dc3545; background-color: #f8d7da;">
+                    <div class="alert alert-danger py-3 mb-3 pp-alert pp-alert--danger" role="alert">
                         <div class="d-flex align-items-start">
-                            <i class="fa-solid fa-ban me-2 mt-1" style="color: #dc3545; font-size: 1.1rem;"></i>
+                            <i class="fa-solid fa-ban me-2 mt-1 pp-alert__icon"></i>
                             <div>
-                                <strong class="d-block mb-2" style="color: #721c24;">Maximum Attempts Reached</strong>
-                                <p class="mb-2 small" style="color: #721c24; line-height: 1.6;">
+                                <strong class="d-block mb-2">Maximum Attempts Reached</strong>
+                                <p class="mb-2 small">
                                     You have lost all your attempts ({{ $attemptCount }}/{{ $maxAttempts }}). You have now lost this booking.
                                 </p>
-                                <p class="mb-2 small" style="color: #721c24; line-height: 1.6;">
+                                <p class="mb-2 small">
                                     <strong>Please create a new booking to start the process again.</strong>
                                 </p>
-                                <p class="mb-0 small" style="color: #721c24; line-height: 1.6;">
+                                <p class="mb-0 small">
                                     If you have any doubts or queries, please contact the administration department:<br>
                                     <i class="fa-solid fa-phone me-1"></i><strong>Phone:</strong> {{ $adminPhone }}<br>
                                     <i class="fa-solid fa-envelope me-1"></i><strong>Email:</strong> {{ $adminEmail }}
@@ -1189,23 +852,23 @@
                     $oldDate = $booking->booking_date ? \Carbon\Carbon::parse($booking->booking_date)->format('F d, Y') : null;
                 @endphp
                 @if(!$isBlocked && $isReschedule && $oldDate)
-                    <div class="alert alert-warning py-3 mb-3" role="alert" style="border-left: 4px solid #ffc107; background-color: #fff3cd;">
+                    <div class="alert alert-warning py-3 mb-3 pp-alert pp-alert--warning" role="alert">
                         <div class="d-flex align-items-start">
-                            <i class="fa-solid fa-exclamation-triangle me-2 mt-1" style="color: #ffc107; font-size: 1.1rem;"></i>
+                            <i class="fa-solid fa-exclamation-triangle me-2 mt-1 pp-alert__icon"></i>
                             <div>
-                                <strong class="d-block mb-2" style="color: #856404;">Reschedule Warning</strong>
-                                <p class="mb-2 small" style="color: #856404; line-height: 1.6;">
+                                <strong class="d-block mb-2">Reschedule Warning</strong>
+                                <p class="mb-2 small">
                                     <strong>Current Accepted Date:</strong> {{ $oldDate }}
                                 </p>
-                                <p class="mb-2 small" style="color: #856404; line-height: 1.6;">
+                                <p class="mb-2 small">
                                     If you change this date, it will count as a new attempt. You have already completed <strong>{{ $attemptCount }}</strong> of <strong>{{ $maxAttempts }}</strong> attempts.
                                 </p>
                                 @if($attemptCount >= $maxAttempts - 1)
-                                    <p class="mb-0 small" style="color: #721c24; line-height: 1.6; font-weight: 600;">
+                                    <p class="mb-0 small fw-semibold">
                                         <i class="fa-solid fa-ban me-1"></i><strong>Warning:</strong> This is your last attempt! If you reschedule and this attempt reaches the maximum limit ({{ $maxAttempts }}), you will lose this booking and will need to create a new booking to start the process again.
                                     </p>
                                 @else
-                                    <p class="mb-0 small" style="color: #856404; line-height: 1.6;">
+                                    <p class="mb-0 small">
                                         <i class="fa-solid fa-info-circle me-1"></i>You have <strong>{{ $maxAttempts - $attemptCount }}</strong> attempt(s) remaining. If you reach the maximum limit ({{ $maxAttempts }}), you will lose this booking and will need to create a new booking to start the process again.
                                     </p>
                                 @endif
@@ -1217,9 +880,9 @@
                 <form id="scheduleForm">
                     <div class="mb-3">
                         <label class="form-label">Select Date <span class="text-danger">*</span></label>
-                        <div class="date-input-group" style="position: relative;">
+                        <div class="date-input-group {{ $isBlocked ? 'is-disabled' : '' }}">
                             <input type="text" class="form-control" id="scheduleDate" placeholder="Select a date" required readonly @if($isBlocked) disabled @endif>
-                            <i class="ri-calendar-line date-icon" id="scheduleDateIcon" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: #6c757d; cursor: @if($isBlocked) not-allowed @else pointer @endif; @if($isBlocked) opacity: 0.5; @endif"></i>
+                            <i class="fa-regular fa-calendar date-icon {{ $isBlocked ? 'is-disabled' : '' }}" id="scheduleDateIcon"></i>
                         </div>
                     </div>
                     <div class="mb-3">
@@ -1237,9 +900,9 @@
 </div>
 
 <!-- Edit Booking Modal -->
-<div class="modal fade" id="editBookingModal" tabindex="-1" aria-hidden="true">
+<div class="modal fade pp-modal" id="editBookingModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content" style="border-radius:12px;">
+        <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title"><i class="fa-solid fa-edit me-2"></i>Edit Booking Details</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -1249,7 +912,7 @@
                     <input type="hidden" id="editBookingId">
                     
                     <!-- Property Details Section -->
-                    <div class="card mb-3" style="border-radius:12px;">
+                    <div class="card mb-3 pp-card">
                         <div class="card-header bg-light">
                             <h6 class="mb-0"><i class="fa-solid fa-building me-2"></i>Property Details</h6>
                         </div>
@@ -1425,7 +1088,7 @@
                     </div>
 
                     <!-- Address Details Section -->
-                    <div class="card mb-3" style="border-radius:12px;">
+                    <div class="card mb-3 pp-card">
                         <div class="card-header bg-light">
                             <h6 class="mb-0"><i class="fa-solid fa-location-dot me-2"></i>Address Details</h6>
                         </div>
@@ -1467,7 +1130,7 @@
 
                     <!-- Payment Required Notice (if payment pending) -->
                     <div class="d-none">
-                        <div class="card mb-3" id="editPaymentRequiredCard" style="border-radius:12px; display:none;">
+                        <div class="card mb-3 pp-card" id="editPaymentRequiredCard" style="display:none;">
                             <div class="card-header bg-warning">
                                 <h6 class="mb-0"><i class="fa-solid fa-exclamation-triangle me-2"></i>Payment Required</h6>
                             </div>
@@ -1490,7 +1153,7 @@
                     </div>
 
                     <!-- Schedule Details Section (only if payment is done) -->
-                    <div class="card mb-3" id="editScheduleDetailsCard" style="border-radius:12px;">
+                    <div class="card mb-3 pp-card" id="editScheduleDetailsCard">
                         <div class="card-header bg-light">
                             <h6 class="mb-0"><i class="fa-solid fa-calendar me-2"></i>Schedule Details</h6>
                         </div>
@@ -1519,9 +1182,9 @@
 </div>
 
 <!-- Payment Modal -->
-<div class="modal fade" id="paymentModal" tabindex="-1" aria-hidden="true">
+<div class="modal fade pp-modal" id="paymentModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content" style="border-radius:12px;">
+        <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title"><i class="fa-solid fa-credit-card me-2"></i>Payment Gateway</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -1539,12 +1202,12 @@
 </div>
 
 <!-- Success Modal -->
-<div class="modal fade" id="successModal" tabindex="-1" aria-hidden="true">
+<div class="modal fade pp-modal" id="successModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content" style="border-radius:12px;">
+        <div class="modal-content">
             <div class="modal-body text-center p-4">
                 <div class="mb-3">
-                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="color: #28a745;">
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="pp-success-icon">
                         <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/>
                         <path d="M8 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
@@ -1556,11 +1219,27 @@
         </div>
     </div>
 </div>
+
+<!-- Receipt Download Modal (with iframe) -->
+<div class="modal fade pp-modal" id="receiptDownloadModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false" style="padding:10px !important;">
+    <div class="modal-dialog modal-fullscreen">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fa-solid fa-receipt me-2"></i>Download Receipt</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" onclick="closeReceiptModal()"></button>
+            </div>
+            <div class="modal-body p-0" style="overflow: hidden;">
+                <iframe id="receiptIframe" src="" style="width: 100%; height: 100%; border: none; min-height: 80vh;"></iframe>
+            </div>
+        </div>
+    </div>
+</div>
 @endsection
 
 @section('scripts')
     <script src="{{ asset('frontend/js/plugins/jquery-3.7.1.min.js') }}"></script>
-    <script src="{{ asset('frontend/js/plugins/bootstrap.min.js') }}"></script>
+    <!-- Bootstrap 5 bundle (includes Popper) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
@@ -3224,6 +2903,66 @@
                 }
             }
         }
+    </script>
+    
+    <!-- Download Receipt Function -->
+    <script>
+        let receiptPrintTriggered = false; // Global flag to prevent multiple print triggers
+        
+        function downloadReceipt(bookingId) {
+            // Reset the print trigger flag for new download
+            receiptPrintTriggered = false;
+            
+            // Get the receipt URL with download parameter (triggers auto-print in receipt page)
+            const receiptUrl = "{{ url('/frontend/receipt/download') }}/" + bookingId + "?download=1";
+            
+            // Get modal and iframe elements
+            const modal = document.getElementById('receiptDownloadModal');
+            const iframe = document.getElementById('receiptIframe');
+            
+            // Reset iframe completely
+            iframe.src = '';
+            iframe.onload = null; // Clear previous onload handler
+            
+            // Show modal first
+            const bsModal = new bootstrap.Modal(modal);
+            bsModal.show();
+            
+            // Set iframe source after modal is shown (ensures proper sizing)
+            setTimeout(function() {
+                iframe.src = receiptUrl;
+                
+                // Set onload handler only once
+                iframe.onload = function() {
+                    // Receipt page has its own auto-print, so we don't need to trigger from parent
+                    // The receipt page will handle printing automatically
+                    console.log('Receipt loaded in iframe - auto-print will be handled by receipt page');
+                };
+            }, 300);
+        }
+        
+        function closeReceiptModal() {
+            receiptPrintTriggered = false; // Reset flag when closing
+            const modal = document.getElementById('receiptDownloadModal');
+            const iframe = document.getElementById('receiptIframe');
+            const bsModal = bootstrap.Modal.getInstance(modal);
+            if (bsModal) {
+                bsModal.hide();
+            }
+            // Clear iframe source and onload handler when modal is closed
+            iframe.onload = null;
+            setTimeout(function() {
+                iframe.src = '';
+            }, 300);
+        }
+        
+        // Close modal and clear iframe when modal is hidden
+        document.getElementById('receiptDownloadModal')?.addEventListener('hidden.bs.modal', function() {
+            receiptPrintTriggered = false; // Reset flag
+            const iframe = document.getElementById('receiptIframe');
+            iframe.onload = null;
+            iframe.src = '';
+        });
     </script>
     
     <!-- Cashfree SDK -->

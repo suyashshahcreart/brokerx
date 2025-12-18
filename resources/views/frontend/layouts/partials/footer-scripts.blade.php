@@ -1,4 +1,9 @@
 
+<script>
+    // Base path for proppik theme assets (used by proppik/assets/js/main.js)
+    window.__PROPPIK_ASSET_BASE = @json(rtrim(asset('proppik'), '/') . '/');
+</script>
+
 @yield('script-bottom')
 {{-- Only load Vite for admin/backend views, not frontend --}}
 @php

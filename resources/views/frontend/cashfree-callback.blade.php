@@ -2,301 +2,294 @@
 
 @section('css')
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400..800&family=Urbanist:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ asset('frontend/css/plugins.css') }}">
-    <link rel="stylesheet" href="{{ asset('frontend/css/style.css') }}">
-    <style>
-        .payment-status-container {
-            max-width: 700px;
-            margin: 0 auto;
-            padding: 2rem 0;
-        }
-        .status-card {
-            background: #fff;
-            border-radius: 16px;
-            padding: 2rem;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-            margin-bottom: 1.5rem;
-        }
-        .status-header {
-            text-align: center;
-            margin-bottom: 2rem;
-        }
-        .status-icon {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 1rem;
-            font-size: 2.5rem;
-        }
-        .status-success-icon {
-            background: #d1fae5;
-            color: #10b981;
-        }
-        .status-failed-icon {
-            background: #fee2e2;
-            color: #ef4444;
-        }
-        .status-pending-icon {
-            background: #fef3c7;
-            color: #f59e0b;
-        }
-        .status-title {
-            font-size: 1.75rem;
-            font-weight: 700;
-            margin-bottom: 0.5rem;
-        }
-        .status-message {
-            color: #6b7280;
-            font-size: 1rem;
-        }
-        .status-box {
-            border-radius: 12px;
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
-        }
-        .status-success-box {
-            background: #d1fae5;
-            border: 1px solid #10b981;
-        }
-        .status-failed-box {
-            background: #fee2e2;
-            border: 1px solid #ef4444;
-        }
-        .status-pending-box {
-            background: #fef3c7;
-            border: 1px solid #f59e0b;
-        }
-        .info-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0.75rem 0;
-            border-bottom: 1px solid #e5e7eb;
-        }
-        .info-row:last-child {
-            border-bottom: none;
-        }
-        .info-label {
-            font-weight: 600;
-            color: #374151;
-            font-size: 0.95rem;
-        }
-        .info-value {
-            color: #1f2937;
-            font-size: 0.95rem;
-            text-align: right;
-            font-weight: 500;
-        }
-        .amount-value {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: #10b981;
-        }
-        .action-buttons {
-            display: flex;
-            gap: 1rem;
-            margin-top: 2rem;
-            flex-wrap: wrap;
-        }
-        .btn-action {
-            flex: 1;
-            min-width: 150px;
-            padding: 0.75rem 1.5rem;
-            border-radius: 8px;
-            font-weight: 600;
-            text-align: center;
-            text-decoration: none;
-            transition: all 0.3s ease;
-        }
-        .btn-primary-action {
-            background: var(--color-primary, #2563eb);
-            color: #fff;
-        }
-        .btn-primary-action:hover {
-            background: var(--color-primary-dark, #1d4ed8);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
-        }
-        .btn-secondary-action {
-            background: #fff;
-            color: var(--color-primary, #2563eb);
-            border: 2px solid var(--color-primary, #2563eb);
-        }
-        .btn-secondary-action:hover {
-            background: var(--color-primary, #2563eb);
-            color: #fff;
-        }
-        .details-section {
-            margin-top: 1.5rem;
-        }
-        .details-toggle {
-            cursor: pointer;
-            padding: 0.75rem;
-            background: #f9fafb;
-            border-radius: 8px;
-            margin-bottom: 1rem;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            font-weight: 600;
-            color: #374151;
-        }
-        .details-toggle:hover {
-            background: #f3f4f6;
-        }
-        .raw-response {
-            background: #1f2937;
-            color: #e5e7eb;
-            padding: 1.5rem;
-            border-radius: 8px;
-            overflow-x: auto;
-            font-size: 0.875rem;
-            font-family: 'Courier New', monospace;
-            max-height: 400px;
-            overflow-y: auto;
-        }
-        .page-header {
-            margin-bottom: 2rem;
-        }
-    </style>
+    <link rel="stylesheet" href="{{ asset('proppik/assets/css/profile_page.css') }}">
+    <link rel="stylesheet" href="{{ asset('proppik/assets/css/cashfree_callback_page.css') }}">
 @endsection
 
 @section('content')
-<section class="page-header section-padding-bottom-b section-padding-top-t page-header mb-0">
-    <div class="container">
-        <div class="row">
-            <div class="col-md-12">
-                <h1 class="wow page-title" data-splitting data-delay="100">Payment Status</h1>
+@php
+    $status = strtoupper($status ?? 'UNKNOWN');
+    $isSuccess = $status === 'PAID';
+    $isFailed = in_array($status, ['FAILED', 'EXPIRED', 'TERMINATED', 'TERMINATION_REQUESTED']);
+    $isPending = !$isSuccess && !$isFailed;
+    
+    // Determine header background color based on status
+    $headerBgClass = $isSuccess ? 'bg-success' : ($isFailed ? 'bg-danger' : 'bg-warning');
+    $headerTextClass = 'text-white';
+    
+    // Status icon and text
+    $statusIcon = $isSuccess ? 'fa-circle-check' : ($isFailed ? 'fa-circle-xmark' : 'fa-clock');
+    $statusTitle = $isSuccess ? 'Payment Successful!' : ($isFailed ? 'Payment Failed' : 'Payment Pending');
+    $statusSubtitle = $isSuccess ? 'Your payment has been processed successfully.' : ($isFailed ? 'We couldn\'t process your payment. Please try again.' : 'Your payment is being processed. Please wait...');
+@endphp
+
+<!-- Payment Status Header (New Theme Style) -->
+<section class="py-5 {{ $headerBgClass }} {{ $headerTextClass }} mt-5">
+    <div class="container pt-5 pb-3">
+        <div class="row align-items-center g-3">
+            <div class="col-lg-8">
+                <p class="text-uppercase fw-bold small mb-2 opacity-75">Payment Gateway</p>
+                <h1 class="display-5 fw-bold mb-3">
+                    <i class="fa-solid {{ $statusIcon }} me-2"></i>{{ $statusTitle }}
+                </h1>
+                <p class="lead mb-0 opacity-75">{{ $statusSubtitle }}</p>
+            </div>
+            <div class="col-lg-4 text-lg-end">
+                @if($isSuccess && !empty($details['booking_id']))
+                    <div class="d-flex flex-column align-items-lg-end">
+                        <a href="{{ route('frontend.booking.show', ['id' => $details['booking_id'], 'open_schedule' => '1']) }}" class="schedule-cta-header">
+                            <i class="fa-solid fa-calendar-plus"></i>
+                            <span>Schedule Appointment</span>
+                        </a>
+                        <p class="schedule-cta-text mb-0 mt-2 text-center text-lg-end">Book your virtual tour photoshoot date</p>
+                    </div>
+                @else
+                    <div class="d-flex flex-column gap-2 align-items-lg-end">
+                        @if(!empty($details['booking_id']))
+                            <a href="{{ route('frontend.booking.show', ['id' => $details['booking_id']]) }}" class="btn btn-light fw-semibold">
+                                <i class="fa-solid fa-eye me-2"></i>View Booking
+                            </a>
+                        @endif
+                        <a href="{{ route('frontend.booking-dashboard') }}" class="btn btn-outline-light fw-semibold">
+                            <i class="fa-solid fa-table-cells me-2"></i>My Bookings
+                        </a>
+                    </div>
+                @endif
+                @if(!empty($orderId))
+                    <div class="mt-3 small opacity-75">
+                        <i class="fa-solid fa-hashtag me-1"></i>Order: {{ $orderId }}
+                    </div>
+                @endif
             </div>
         </div>
     </div>
 </section>
 
-<div class="page bg-light">
+<div class="page bg-setup-form py-4 payment-callback-page">
     <div class="container">
-        <div class="content">
-            <div class="payment-status-container pt-0">
-                @php
-                    $status = strtoupper($status ?? 'UNKNOWN');
-                    $isSuccess = $status === 'PAID';
-                    $isFailed = in_array($status, ['FAILED', 'EXPIRED', 'TERMINATED', 'TERMINATION_REQUESTED']);
-                    $isPending = !$isSuccess && !$isFailed;
-                    
-                    $statusIconClass = $isSuccess ? 'status-success-icon' : ($isFailed ? 'status-failed-icon' : 'status-pending-icon');
-                    $statusBoxClass = $isSuccess ? 'status-success-box' : ($isFailed ? 'status-failed-box' : 'status-pending-box');
-                    $statusIcon = $isSuccess ? '✓' : ($isFailed ? '✕' : '⏳');
-                    $statusTitle = $isSuccess ? 'Payment Successful!' : ($isFailed ? 'Payment Failed' : 'Payment Pending');
-                @endphp
-
-                <div class="status-card">
-                    <div class="status-header">
-                        <div class="status-icon {{ $statusIconClass }}">
-                            {{ $statusIcon }}
-                        </div>
-                        <h2 class="status-title">{{ $statusTitle }}</h2>
-                        <p class="status-message">{{ $message ?? 'Status received from Cashfree.' }}</p>
+        <div class="row justify-content-center">
+            <div class="col-lg-10 col-xl-9">
+                
+                @if(!empty($message) && $message !== 'Status received from Cashfree.')
+                    <div class="alert alert-{{ $isSuccess ? 'success' : ($isFailed ? 'danger' : 'warning') }} alert-dismissible fade show mb-3" role="alert">
+                        <i class="fa-solid fa-{{ $isSuccess ? 'circle-check' : ($isFailed ? 'circle-exclamation' : 'clock') }} me-2"></i>
+                        <strong>{{ $isSuccess ? 'Success!' : ($isFailed ? 'Failed!' : 'Pending!') }}</strong> {{ $message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
+                @endif
 
-                    <div class="status-box {{ $statusBoxClass }}">
-                        <div class="info-row">
-                            <span class="info-label">Order ID</span>
-                            <span class="info-value">{{ $orderId ?? '-' }}</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">Payment Status</span>
-                            <span class="info-value" style="font-weight: 700; text-transform: uppercase;">{{ $status }}</span>
-                        </div>
-                    </div>
-
-                    @if(!empty($details))
-                        <div class="status-card">
-                            <h3 class="app-title mb-3">Payment Details</h3>
-                            
-                            <div class="info-row">
-                                <span class="info-label">Amount Paid</span>
-                                <span class="info-value amount-value">
-                                    ₹{{ number_format($details['amount'] ?? 0, 2) }} 
-                                    <span style="font-size: 0.875rem; font-weight: 500; color: #6b7280;">
-                                        {{ strtoupper($details['currency'] ?? 'INR') }}
-                                    </span>
+                <!-- Main Payment Status Card - Compact Design -->
+                <div class="card border-0 shadow-sm" style="border-radius: 16px; overflow: hidden;">
+                    <div class="card-body p-4">
+                        <div class="payment-content-compact">
+                            <!-- Status Icon & Title -->
+                            <div class="text-center mb-3">
+                                <div class="status-icon-large {{ $isSuccess ? 'success' : ($isFailed ? 'failed' : 'pending') }}">
+                                    <i class="fa-solid {{ $isSuccess ? 'fa-circle-check' : ($isFailed ? 'fa-circle-xmark' : 'fa-clock') }}"></i>
+                                </div>
+                                <h2 class="mb-2 section-title-compact d-none">
+                                    {{ $isSuccess ? 'Payment Successful!' : ($isFailed ? 'Payment Failed' : 'Payment Pending') }}
+                                </h2>
+                                <span class="payment-status-badge {{ $isSuccess ? 'success' : ($isFailed ? 'failed' : 'pending') }} d-none">
+                                    <i class="fa-solid {{ $isSuccess ? 'fa-check' : ($isFailed ? 'fa-times' : 'fa-clock') }}"></i>
+                                    {{ $status }}
                                 </span>
                             </div>
-                            
-                            @if(!empty($details['reference_id']))
-                            <div class="info-row">
-                                <span class="info-label">Payment Reference ID</span>
-                                <span class="info-value" style="font-family: monospace;">{{ $details['reference_id'] }}</span>
-                            </div>
+
+                            @if(!empty($details))
+                                <!-- Payment Information Card -->
+                                <div class="info-card-section">
+                                    <h5 class="section-title-compact mb-3">
+                                        <i class="fa-solid fa-receipt me-2 text-primary"></i>Payment Information
+                                    </h5>
+                                    
+                                    <!-- Amount Paid - Special styling -->
+                                    <div class="info-item info-item-amount {{ $isSuccess ? '' : ($isFailed ? 'failed-amount' : 'pending-amount') }}">
+                                        <div class="info-item-label">
+                                            <i class="fa-solid fa-indian-rupee-sign text-muted"></i>
+                                            <span>Amount Paid</span>
+                                        </div>
+                                        <div class="info-item-value info-item-amount-value">
+                                            <span class="amount-main">₹{{ number_format($details['amount'] ?? 0, 2) }}</span>
+                                            <span class="amount-currency-small">{{ strtoupper($details['currency'] ?? 'INR') }}</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="info-item">
+                                        <div class="info-item-label">
+                                            <i class="fa-solid fa-hashtag text-muted"></i>
+                                            <span>Order ID</span>
+                                        </div>
+                                        <div class="info-item-value info-item-monospace">{{ $orderId ?? '-' }}</div>
+                                    </div>
+                                    
+                                    @if(!empty($details['reference_id']))
+                                    <div class="info-item">
+                                        <div class="info-item-label">
+                                            <i class="fa-solid fa-fingerprint text-muted"></i>
+                                            <span>Reference ID</span>
+                                        </div>
+                                        <div class="info-item-value info-item-monospace">{{ $details['reference_id'] }}</div>
+                                    </div>
+                                    @endif
+                                    
+                                    @if(!empty($details['payment_method']))
+                                    <div class="info-item">
+                                        <div class="info-item-label">
+                                            <i class="fa-solid fa-credit-card text-muted"></i>
+                                            <span>Payment Method</span>
+                                        </div>
+                                        <div class="info-item-value">{{ ucfirst(str_replace('_', ' ', $details['payment_method'])) }}</div>
+                                    </div>
+                                    @endif
+                                    
+                                    @if(!empty($details['payment_at']))
+                                    <div class="info-item">
+                                        <div class="info-item-label">
+                                            <i class="fa-solid fa-calendar-check text-muted"></i>
+                                            <span>Payment Date</span>
+                                        </div>
+                                        <div class="info-item-value">{{ \Carbon\Carbon::parse($details['payment_at'])->format('d M Y, h:i A') }}</div>
+                                    </div>
+                                    @endif
+                                    
+                                    @if(!empty($details['booking_id']))
+                                    <div class="info-item">
+                                        <div class="info-item-label">
+                                            <i class="fa-solid fa-bookmark text-muted"></i>
+                                            <span>Booking ID</span>
+                                        </div>
+                                        <div class="info-item-value">#{{ $details['booking_id'] }}</div>
+                                    </div>
+                                    @endif
+                                </div>
+
+                                @if(!empty($details['raw']))
+                                <div class="info-card-section d-none">
+                                    <details>
+                                        <summary>
+                                            <span><i class="fa-solid fa-code me-2"></i>Technical Details</span>
+                                            <i class="fa-solid fa-chevron-down"></i>
+                                        </summary>
+                                        <div class="technical-details mt-2">
+                                            <pre class="mb-0">{{ json_encode($details['raw'], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) }}</pre>
+                                        </div>
+                                    </details>
+                                </div>
+                                @endif
                             @endif
-                            
-                            @if(!empty($details['payment_method']))
-                            <div class="info-row">
-                                <span class="info-label">Payment Method</span>
-                                <span class="info-value">{{ ucfirst(str_replace('_', ' ', $details['payment_method'])) }}</span>
-                            </div>
-                            @endif
-                            
-                            @if(!empty($details['payment_at']))
-                            <div class="info-row">
-                                <span class="info-label">Payment Date & Time</span>
-                                <span class="info-value">{{ \Carbon\Carbon::parse($details['payment_at'])->format('d M Y, h:i A') }}</span>
-                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="action-buttons-grid">
+                            @if($isSuccess && !empty($details['booking_id']))
+                                <button type="button" class="btn btn-success action-btn fw-semibold" onclick="downloadReceipt({{ $details['booking_id'] }})">
+                                    <i class="fa-solid fa-download"></i>
+                                    <span>Download Receipt</span>
+                                </button>
                             @endif
                             
                             @if(!empty($details['booking_id']))
-                            <div class="info-row">
-                                <span class="info-label">Booking ID</span>
-                                <span class="info-value">#{{ $details['booking_id'] }}</span>
-                            </div>
+                                <a href="{{ route('frontend.booking.show', ['id' => $details['booking_id']]) }}" class="btn btn-outline-primary action-btn fw-semibold">
+                                    <i class="fa-solid fa-eye"></i>
+                                    <span>View Booking</span>
+                                </a>
+                                
+                                <a href="{{ route('frontend.booking-dashboard') }}" class="btn btn-outline-primary action-btn fw-semibold">
+                                    <i class="fa-solid fa-table-cells"></i>
+                                    <span>My Bookings</span>
+                                </a>
                             @endif
-                        </div>
-
-                        @if(!empty($details['raw']))
-                        <div class="details-section d-none">
-                            <details>
-                                <summary class="details-toggle">
-                                    <span>Show Technical Details</span>
-                                    <span>▼</span>
-                                </summary>
-                                <div class="raw-response">
-                                    <pre>{{ json_encode($details['raw'], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) }}</pre>
-                                </div>
-                            </details>
-                        </div>
-                        @endif
-                    @endif
-
-                    <div class="action-buttons">
-                        @if($isSuccess && !empty($details['booking_id']))
-                            <a href="{{ route('frontend.download-receipt', ['booking_id' => $details['booking_id']]) }}" class="btn-action btn-primary-action" target="_blank">
-                                <i class="fa-solid fa-download me-2"></i>Download Receipt
-                            </a>
                             
-                            <a href="{{ route('frontend.booking.show', ['id' => $details['booking_id'], 'open_schedule' => '1']) }}" class="btn-action btn-primary-action">
-                                <i class="fa-solid fa-calendar-plus me-2"></i>Schedule Appointment
+                            <a href="{{ route('frontend.index') }}" class="btn btn-outline-secondary action-btn fw-semibold">
+                                <i class="fa-solid fa-home"></i>
+                                <span>Go to Home</span>
                             </a>
-                        @endif
-                        
-                        @if(!empty($details['booking_id']))
-                            <a href="{{ route('frontend.booking-dashboard') }}" class="btn-action btn-primary-action">
-                                <i class="fa-solid fa-list me-2"></i>View My Bookings
-                            </a>
-                        @endif
-                        
-                        <a href="{{ route('frontend.index') }}" class="btn-action btn-secondary-action">
-                            <i class="fa-solid fa-home me-2"></i>Go to Home
-                        </a>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Receipt Download Modal (with iframe) -->
+<div class="modal fade pp-modal" id="receiptDownloadModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false" style="padding:10px !important;">
+    <div class="modal-dialog modal-fullscreen">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fa-solid fa-receipt me-2"></i>Download Receipt</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" onclick="closeReceiptModal()"></button>
+            </div>
+            <div class="modal-body p-0" style="overflow: hidden;">
+                <iframe id="receiptIframe" src="" style="width: 100%; height: 100%; border: none; min-height: 80vh;"></iframe>
+            </div>
+        </div>
+    </div>
+</div>
 @endsection
 
+@section('scripts')
+    <!-- Bootstrap 5 JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+    
+    <!-- Download Receipt Function -->
+    <script>
+        let receiptPrintTriggered = false; // Global flag to prevent multiple print triggers
+        
+        function downloadReceipt(bookingId) {
+            // Reset the print trigger flag for new download
+            receiptPrintTriggered = false;
+            
+            // Get the receipt URL with download parameter (triggers auto-print in receipt page)
+            const receiptUrl = "{{ url('/frontend/receipt/download') }}/" + bookingId + "?download=1";
+            
+            // Get modal and iframe elements
+            const modal = document.getElementById('receiptDownloadModal');
+            const iframe = document.getElementById('receiptIframe');
+            
+            // Reset iframe completely
+            iframe.src = '';
+            iframe.onload = null; // Clear previous onload handler
+            
+            // Show modal first
+            const bsModal = new bootstrap.Modal(modal);
+            bsModal.show();
+            
+            // Set iframe source after modal is shown (ensures proper sizing)
+            setTimeout(function() {
+                iframe.src = receiptUrl;
+                
+                // Set onload handler only once
+                iframe.onload = function() {
+                    // Receipt page has its own auto-print, so we don't need to trigger from parent
+                    // The receipt page will handle printing automatically
+                    console.log('Receipt loaded in iframe - auto-print will be handled by receipt page');
+                };
+            }, 300);
+        }
+        
+        function closeReceiptModal() {
+            receiptPrintTriggered = false; // Reset flag when closing
+            const modal = document.getElementById('receiptDownloadModal');
+            const iframe = document.getElementById('receiptIframe');
+            const bsModal = bootstrap.Modal.getInstance(modal);
+            if (bsModal) {
+                bsModal.hide();
+            }
+            // Clear iframe source and onload handler when modal is closed
+            iframe.onload = null;
+            setTimeout(function() {
+                iframe.src = '';
+            }, 300);
+        }
+        
+        // Close modal and clear iframe when modal is hidden
+        document.getElementById('receiptDownloadModal')?.addEventListener('hidden.bs.modal', function() {
+            receiptPrintTriggered = false; // Reset flag
+            const iframe = document.getElementById('receiptIframe');
+            iframe.onload = null;
+            iframe.src = '';
+        });
+    </script>
+@endsection

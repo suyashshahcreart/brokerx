@@ -33,189 +33,21 @@
 @section('css')
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="app-url" content="{{ config('app.url') }}">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400..800&family=Urbanist:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ asset('frontend/css/plugins.css') }}">
-    <link rel="stylesheet" href="{{ asset('frontend/css/style.css') }}">
-    <style>
-        .form-readonly {
-            position: relative;
-        }
-        .form-readonly .top-pill,
-        .form-readonly .chip,
-        .form-readonly textarea,
-        .form-readonly input {
-            pointer-events: none;
-        }
-        .form-readonly .top-pill,
-        .form-readonly .chip {
-            opacity: 0.6;
-        }
-        
-        /* SweetAlert Custom Styling */
-        .swal2-popup {
-            border-radius: 16px !important;
-            padding: 2rem !important;
-            font-family: 'Urbanist', sans-serif !important;
-        }
-        
-        .swal2-title {
-            font-size: 1.5rem !important;
-            font-weight: 600 !important;
-            color: #1a1a1a !important;
-            margin-bottom: 1rem !important;
-        }
-        
-        .swal2-content {
-            font-size: 0.95rem !important;
-            color: #555 !important;
-            line-height: 1.6 !important;
-        }
-        
-        .swal2-icon.swal2-error {
-            border-color: #dc3545 !important;
-            color: #dc3545 !important;
-            margin: 1.5rem auto 1rem !important;
-        }
-        
-        .swal2-icon.swal2-error [class^=swal2-x-line] {
-            background-color: #dc3545 !important;
-        }
-        
-        .swal2-icon.swal2-warning {
-            border-color: #ffc107 !important;
-            color: #ffc107 !important;
-        }
-        
-        .swal2-icon.swal2-info {
-            border-color: #0dcaf0 !important;
-            color: #0dcaf0 !important;
-        }
-        
-        .swal2-confirm {
-            border-radius: 8px !important;
-            padding: 0.6rem 2rem !important;
-            font-weight: 600 !important;
-            font-size: 0.95rem !important;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
-            transition: all 0.3s ease !important;
-        }
-        
-        .swal2-confirm:hover {
-            transform: translateY(-1px) !important;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
-        }
-        
-        .swal2-html-container {
-            text-align: left !important;
-            padding: 0.5rem 0 !important;
-            margin: 1rem 0 !important;
-        }
-        
-        .swal2-html-container ul {
-            list-style: none !important;
-            padding-left: 0 !important;
-            margin: 0 !important;
-        }
-        
-        .swal2-html-container li,
-        .swal2-html-container div {
-            padding: 0.4rem 0 !important;
-            color: #333 !important;
-            font-size: 0.95rem !important;
-            line-height: 1.8 !important;
-        }
-        
-        .swal2-html-container div {
-            padding-left: 0.5rem !important;
-        }
-        
-        /* Form Validation Error Styling */
-        .error {
-            display: none;
-            color: #dc3545;
-            font-size: 0.875rem;
-            margin-top: 0.25rem;
-            font-weight: 500;
-        }
-        
-        .error.show {
-            display: block;
-        }
-        
-        .form-control.is-invalid,
-        .form-select.is-invalid,
-        textarea.form-control.is-invalid {
-            border-color: #dc3545 !important;
-            box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
-        }
-        
-        .form-control.is-valid,
-        .form-select.is-valid,
-        textarea.form-control.is-valid {
-            border-color: #28a745 !important;
-            box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25) !important;
-        }
-        
-        .form-control:focus.is-invalid,
-        .form-select:focus.is-invalid,
-        textarea.form-control:focus.is-invalid {
-            border-color: #dc3545 !important;
-            box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
-        }
-        
-        .form-control:focus.is-valid,
-        .form-select:focus.is-valid,
-        textarea.form-control:focus.is-valid {
-            border-color: #28a745 !important;
-            box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25) !important;
-        }
-        
-        /* Error styling for pill containers */
-        #ownerTypeContainer.has-error,
-        #propertyTypeContainer.has-error {
-            border: 2px solid #dc3545;
-            border-radius: 8px;
-            padding: 8px;
-            background-color: rgba(220, 53, 69, 0.05);
-        }
-        
-        #ownerTypeContainer.has-error .top-pill,
-        #propertyTypeContainer.has-error .top-pill {
-            border: 1px solid rgba(220, 53, 69, 0.3);
-        }
-        
-        /* Error styling for chip and pill containers */
-        #resTypeContainer.has-error,
-        #comTypeContainer.has-error,
-        #resFurnishContainer.has-error,
-        #comFurnishContainer.has-error,
-        #resSizeContainer.has-error,
-        #othLookingContainer.has-error {
-            border: 2px solid #dc3545;
-            border-radius: 8px;
-            padding: 8px;
-            background-color: rgba(220, 53, 69, 0.05);
-        }
-        
-        #resTypeContainer.has-error .top-pill,
-        #comTypeContainer.has-error .top-pill,
-        #resFurnishContainer.has-error .chip,
-        #comFurnishContainer.has-error .chip,
-        #resSizeContainer.has-error .chip,
-        #othLookingContainer.has-error .top-pill {
-            border: 1px solid rgba(220, 53, 69, 0.3);
-        }
-    </style>
+    {{-- New theme uses global fonts from base layout; keep icon font for existing <i class="fa ..."> usage --}}
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ asset('proppik/assets/css/setup_page.css') }}">
+
 @endsection
 
 @section('content')
- <section class="page-header section-padding-bottom-b section-padding-top-t page-header">
-        <div class="container">
-            <div class="row">
-                <div class="col-md-12">
-                    <h1 class="wow page-title" data-splitting data-delay="100"> Setup Your Virtual Tour</h1>
+    
+    <section class="py-5 bg-primary text-white mt-5">
+        <div class="container pt-5 pb-2">
+            <div class="row justify-content-center">
+                <div class="col-lg-8 text-center">
+                    <p class="text-uppercase fw-bold small mb-2">Setup</p>
+                    <h1 class="display-5 fw-bold mb-3">Setup Your Virtual Tour</h1>
+                    <p class="lead mb-0">Share your details and property info to schedule your PROP PIK virtual tour.</p>
                 </div>
             </div>
         </div>
@@ -228,7 +60,7 @@
         </div>
     </div>
 
-    <div class="page bg-light section-padding-bottom section-padding-top">
+    <div class="page bg-setup-form py-5">
         <div class="panel container">
             <!-- TOP PROGRESS -->
             <div class="prog-wrap">
@@ -643,35 +475,177 @@
         </div>
     </div>
 
-    <!-- Testimonials -->
-    <section id="testimonials" data-scroll-index="5" class="testimonials">
-        <div class="background bg-img bg-fixed section-padding section-padding-top section-padding-bottom" data-overlay-dark="5" data-background="{{ asset('frontend/images/demo.jpg') }}">
+    <!-- Testimonials Section (New Theme - matches Home page) -->
+    <section id="testimonials" class="testimonials-section py-5">
             <div class="container">
-                <div class="row align-items-center">
-                    <div class="col-md-5 mb-30">
-                        <h4 class="wow" data-splitting>Let's create a virtual tour of your property together.</h4>
-                        <div class="btn-wrap mt-30 text-left wow fadeInUp" data-wow-delay=".6s">
-                            <div class="btn-link"><a class="white" href="mailto:hello@proppik.com">hello@proppik.com</a><span class="btn-block color3 animation-bounce"></span></div>
+            <div class="row align-items-start">
+                <!-- Left Side: Static Content (40%) -->
+                <div class="col-lg-5 mb-5 mb-lg-0">
+                    <div class="about-text-content">
+                        <div class="about-headline d-flex align-items-center gap-3 mb-4">
+                            <div class="about-headline-line"></div>
+                            <span class="about-headline-text small text-uppercase fw-bold">PROP PIK Testimonials</span>
+                        </div>
+                        <h2 class="about-main-title mb-4">
+                            <span>What Our</span>
+                            <span class="about-title-highlight">Clients Say</span>
+                        </h2>
+                        <p class="about-description mb-4">
+                            See what our clients have to say about their experience with PROP PIK. We transcend expectations, creating bespoke virtual tour solutions for visionaries.
+                        </p>
+                    </div>
+
+                    <!-- Statistics & Visual Element -->
+                    <div class="testimonials-stats-box mt-5">
+                        <div class="row g-4">
+                            <div class="col-6">
+                                <div class="stat-item text-center">
+                                    <div class="stat-number">500+</div>
+                                    <div class="stat-label">Happy Clients</div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="stat-item text-center">
+                                    <div class="stat-number">98%</div>
+                                    <div class="stat-label">Satisfaction Rate</div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="stat-item text-center">
+                                    <div class="stat-number">1000+</div>
+                                    <div class="stat-label">Virtual Tours</div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="stat-item text-center">
+                                    <div class="stat-number">4.9★</div>
+                                    <div class="stat-label">Average Rating</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <div class="col-md-5 offset-md-2">
-                        <div class="testimonials-box">
-                            <h5>What Are Clients Saying?</h5>
-                            <div class="owl-carousel owl-theme">
-                                <div class="item">
-                                    <p>PROP PIK is a great way to showcase your property. It's easy to use and looks great.</p>
-                                    <span class="quote"><img src="{{ asset('frontend/images/quot.png') }}" alt="" loading="lazy"></span>
-                                    <div class="info">
-                                        <div class="author-img"> <img src="{{ asset('frontend/images/team/1.jpg') }}" alt="" loading="lazy"></div>
-                                        <div class="cont"><h6>Emily Brown</h6> <span>Customer</span></div>
+                </div>
+
+                <!-- Right Side: Scrolling Testimonials (60%) -->
+                <div class="col-lg-7">
+                    <div class="testimonials-scrolling-viewport">
+                        <div class="row g-4">
+                            <!-- Left Scrolling Column (Scrolls UP) -->
+                            <div class="col-md-6 testimonials-scrolling-column testimonials-scroll-up d-none d-md-block">
+                                <div class="testimonials-scroll-content">
+                                    <div class="testimonial-card-scroll mb-4">
+                                        <svg class="testimonial-quote-icon-scroll mb-3" width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.996 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.432.917-3.995 3.638-3.995 5.849h3.983v10h-9.983z" />
+                                        </svg>
+                                        <p class="testimonial-text-scroll mb-4">PROP PIK has been responsive and professional throughout the entire virtual tour creation process. They supported us with our real estate listings and we are excited to see where it can take our business!</p>
+                                        <div class="d-flex align-items-center gap-3 pt-3 border-top">
+                                            <img src="{{ asset('proppik/assets/images/testimonial.png') }}" alt="Rajesh Kumar" class="testimonial-avatar-scroll rounded-circle" width="50" height="50">
+                                            <div>
+                                                <h4 class="h6 mb-0 fw-bold">Rajesh Kumar</h4>
+                                                <p class="small text-muted mb-0">Real Estate Agent</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="testimonial-card-scroll mb-4">
+                                        <svg class="testimonial-quote-icon-scroll mb-3" width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.996 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.432.917-3.995 3.638-3.995 5.849h3.983v10h-9.983z" />
+                                        </svg>
+                                        <p class="testimonial-text-scroll mb-4">I've been working with PROP PIK for a while now, and they're an absolute gem. Their platform is incredibly creative and technically sound. The virtual tours we create are stunning!</p>
+                                        <div class="d-flex align-items-center gap-3 pt-3 border-top">
+                                            <img src="{{ asset('proppik/assets/images/testimonial.png') }}" alt="Priya Mehta" class="testimonial-avatar-scroll rounded-circle" width="50" height="50">
+                                            <div>
+                                                <h4 class="h6 mb-0 fw-bold">Priya Mehta</h4>
+                                                <p class="small text-muted mb-0">Architect, Design Studio</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="testimonial-card-scroll mb-4">
+                                        <svg class="testimonial-quote-icon-scroll mb-3" width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.996 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.432.917-3.995 3.638-3.995 5.849h3.983v10h-9.983z" />
+                                        </svg>
+                                        <p class="testimonial-text-scroll mb-4">Highly talented platform with extensive features that has vastly improved our property showcases this year. We have opted for the monthly subscription and would recommend to any real estate company.</p>
+                                        <div class="d-flex align-items-center gap-3 pt-3 border-top">
+                                            <img src="{{ asset('proppik/assets/images/testimonial.png') }}" alt="Anjali Sharma" class="testimonial-avatar-scroll rounded-circle" width="50" height="50">
+                                            <div>
+                                                <h4 class="h6 mb-0 fw-bold">Anjali Sharma</h4>
+                                                <p class="small text-muted mb-0">CEO, Property Solutions</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Duplicate set for seamless loop -->
+                                    <div class="testimonial-card-scroll mb-4">
+                                        <svg class="testimonial-quote-icon-scroll mb-3" width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.996 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.432.917-3.995 3.638-3.995 5.849h3.983v10h-9.983z" />
+                                        </svg>
+                                        <p class="testimonial-text-scroll mb-4">PROP PIK has been responsive and professional throughout the entire virtual tour creation process. They supported us with our real estate listings and we are excited to see where it can take our business!</p>
+                                        <div class="d-flex align-items-center gap-3 pt-3 border-top">
+                                            <img src="{{ asset('proppik/assets/images/testimonial.png') }}" alt="Rajesh Kumar" class="testimonial-avatar-scroll rounded-circle" width="50" height="50">
+                                            <div>
+                                                <h4 class="h6 mb-0 fw-bold">Rajesh Kumar</h4>
+                                                <p class="small text-muted mb-0">Real Estate Agent</p>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
-                                <div class="item">
-                                    <p>PROP PIK is a great way to showcase your property. It's easy to use and looks great.</p>
-                                    <span class="quote"><img src="{{ asset('frontend/images/quot.png') }}" alt="" loading="lazy"></span>
-                                    <div class="info">
-                                        <div class="author-img"> <img src="{{ asset('frontend/images/team/2.jpg') }}" alt="" loading="lazy"></div>
-                                        <div class="cont"><h6>Jason White</h6> <span>Customer</span></div>
+                            </div>
+
+                            <!-- Right Scrolling Column (Scrolls DOWN) -->
+                            <div class="col-md-6 testimonials-scrolling-column testimonials-scroll-down">
+                                <div class="testimonials-scroll-content">
+                                    <div class="testimonial-card-scroll mb-4">
+                                        <svg class="testimonial-quote-icon-scroll mb-3" width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.996 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.432.917-3.995 3.638-3.995 5.849h3.983v10h-9.983z" />
+                                        </svg>
+                                        <p class="testimonial-text-scroll mb-4">Partnering with PROP PIK has reduced our marketing costs by 40%, boosted property viewings and client engagement, and helped us open doors to new markets!</p>
+                                        <div class="d-flex align-items-center gap-3 pt-3 border-top">
+                                            <img src="{{ asset('proppik/assets/images/testimonial.png') }}" alt="Rohit Patel" class="testimonial-avatar-scroll rounded-circle" width="50" height="50">
+                                            <div>
+                                                <h4 class="h6 mb-0 fw-bold">Rohit Patel</h4>
+                                                <p class="small text-muted mb-0">CEO, Luxury Homes</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="testimonial-card-scroll mb-4">
+                                        <svg class="testimonial-quote-icon-scroll mb-3" width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.996 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.432.917-3.995 3.638-3.995 5.849h3.983v10h-9.983z" />
+                                        </svg>
+                                        <p class="testimonial-text-scroll mb-4">Love the personal account relationship we have and we are made to feel like the best customer. The enthusiasm, cheerfulness, and speed of the team is awesome and the communication is always incredible!</p>
+                                        <div class="d-flex align-items-center gap-3 pt-3 border-top">
+                                            <img src="{{ asset('proppik/assets/images/testimonial.png') }}" alt="Kavita Singh" class="testimonial-avatar-scroll rounded-circle" width="50" height="50">
+                                            <div>
+                                                <h4 class="h6 mb-0 fw-bold">Kavita Singh</h4>
+                                                <p class="small text-muted mb-0">Head of Marketing, Hotel Group</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="testimonial-card-scroll mb-4">
+                                        <svg class="testimonial-quote-icon-scroll mb-3" width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.996 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.432.917-3.995 3.638-3.995 5.849h3.983v10h-9.983z" />
+                                        </svg>
+                                        <p class="testimonial-text-scroll mb-4">It's so refreshing to have a platform that breaks the stereotypical approach and works with their clients in a collaborative way. PROP PIK truly understands our needs.</p>
+                                        <div class="d-flex align-items-center gap-3 pt-3 border-top">
+                                            <img src="{{ asset('proppik/assets/images/testimonial.png') }}" alt="Vikram Desai" class="testimonial-avatar-scroll rounded-circle" width="50" height="50">
+                                            <div>
+                                                <h4 class="h6 mb-0 fw-bold">Vikram Desai</h4>
+                                                <p class="small text-muted mb-0">Creative Director, Art Gallery</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Duplicate set for seamless loop -->
+                                    <div class="testimonial-card-scroll mb-4">
+                                        <svg class="testimonial-quote-icon-scroll mb-3" width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.996 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.432.917-3.995 3.638-3.995 5.849h3.983v10h-9.983z" />
+                                        </svg>
+                                        <p class="testimonial-text-scroll mb-4">Partnering with PROP PIK has reduced our marketing costs by 40%, boosted property viewings and client engagement, and helped us open doors to new markets!</p>
+                                        <div class="d-flex align-items-center gap-3 pt-3 border-top">
+                                            <img src="{{ asset('proppik/assets/images/testimonial.png') }}" alt="Rohit Patel" class="testimonial-avatar-scroll rounded-circle" width="50" height="50">
+                                            <div>
+                                                <h4 class="h6 mb-0 fw-bold">Rohit Patel</h4>
+                                                <p class="small text-muted mb-0">CEO, Luxury Homes</p>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -682,45 +656,7 @@
         </div>
     </section>
 
-    <!-- Scrolling -->
-    <div class="scrolling scrolling-ticker">
-        <div class="wrapper">
-            <div class="content">
-                <span><img src="{{ asset('frontend/images/asterisk-icon.svg') }}" alt="" loading="lazy">Capture</span>
-                <span><img src="{{ asset('frontend/images/asterisk-icon.svg') }}" alt="" loading="lazy">Create</span>
-                <span><img src="{{ asset('frontend/images/asterisk-icon.svg') }}" alt="" loading="lazy">Showcase</span>
-                <span><img src="{{ asset('frontend/images/asterisk-icon.svg') }}" alt="" loading="lazy">Explore</span>
-                <span><img src="{{ asset('frontend/images/asterisk-icon.svg') }}" alt="" loading="lazy">Scan</span>
-                <span><img src="{{ asset('frontend/images/asterisk-icon.svg') }}" alt="" loading="lazy">Stitch</span>
-                <span><img src="{{ asset('frontend/images/asterisk-icon.svg') }}" alt="" loading="lazy">Publish</span>
-                <span><img src="{{ asset('frontend/images/asterisk-icon.svg') }}" alt="" loading="lazy">View</span>
-                <span><img src="{{ asset('frontend/images/asterisk-icon.svg') }}" alt="" loading="lazy">Experience</span>
-                <span><img src="{{ asset('frontend/images/asterisk-icon.svg') }}" alt="" loading="lazy">Transform</span>
-                <span><img src="{{ asset('frontend/images/asterisk-icon.svg') }}" alt="" loading="lazy">Present</span>
-                <span><img src="{{ asset('frontend/images/asterisk-icon.svg') }}" alt="" loading="lazy">Share</span>
-                <span><img src="{{ asset('frontend/images/asterisk-icon.svg') }}" alt="" loading="lazy">Visualize</span>
-                <span><img src="{{ asset('frontend/images/asterisk-icon.svg') }}" alt="" loading="lazy">Engage</span>
-                <span><img src="{{ asset('frontend/images/asterisk-icon.svg') }}" alt="" loading="lazy">Impress</span>
-            </div>
-            <div class="content">
-                <span><img src="{{ asset('frontend/images/asterisk-icon.svg') }}" alt="" loading="lazy">Capture</span>
-                <span><img src="{{ asset('frontend/images/asterisk-icon.svg') }}" alt="" loading="lazy">Create</span>
-                <span><img src="{{ asset('frontend/images/asterisk-icon.svg') }}" alt="" loading="lazy">Showcase</span>
-                <span><img src="{{ asset('frontend/images/asterisk-icon.svg') }}" alt="" loading="lazy">Explore</span>
-                <span><img src="{{ asset('frontend/images/asterisk-icon.svg') }}" alt="" loading="lazy">Scan</span>
-                <span><img src="{{ asset('frontend/images/asterisk-icon.svg') }}" alt="" loading="lazy">Stitch</span>
-                <span><img src="{{ asset('frontend/images/asterisk-icon.svg') }}" alt="" loading="lazy">Publish</span>
-                <span><img src="{{ asset('frontend/images/asterisk-icon.svg') }}" alt="" loading="lazy">View</span>
-                <span><img src="{{ asset('frontend/images/asterisk-icon.svg') }}" alt="" loading="lazy">Experience</span>
-                <span><img src="{{ asset('frontend/images/asterisk-icon.svg') }}" alt="" loading="lazy">Transform</span>
-                <span><img src="{{ asset('frontend/images/asterisk-icon.svg') }}" alt="" loading="lazy">Present</span>
-                <span><img src="{{ asset('frontend/images/asterisk-icon.svg') }}" alt="" loading="lazy">Share</span>
-                <span><img src="{{ asset('frontend/images/asterisk-icon.svg') }}" alt="" loading="lazy">Visualize</span>
-                <span><img src="{{ asset('frontend/images/asterisk-icon.svg') }}" alt="" loading="lazy">Engage</span>
-                <span><img src="{{ asset('frontend/images/asterisk-icon.svg') }}" alt="" loading="lazy">Impress</span>
-            </div>
-        </div>
-    </div>
+   
 @endsection
 
 @section('script-bottom')

@@ -1,80 +1,89 @@
 @extends('frontend.layouts.base', ['title' => 'Terms and Conditions - PROP PIK'])
 
 @section('css')
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400..800&family=Urbanist:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ asset('frontend/css/plugins.css') }}">
-    <link rel="stylesheet" href="{{ asset('frontend/css/style.css') }}">
+    {{-- Uses global new-theme CSS from base layout --}}
 @endsection
 
 @section('content')
-    <!-- Progress scroll totop -->
-    <div class="progress-wrap cursor-pointer">
-        <svg class="progress-circle svg-content" width="100%" height="100%" viewBox="-1 -1 102 102">
-            <path d="M50,1 a49,49 0 0,1 0,98 a49,49 0 0,1 0,-98" />
-        </svg>
-    </div>
-    <!-- Cursor -->
-    <div class="cursor js-cursor"></div>
-    <!-- Social Icons -->
-    <div class="social-ico-block"> 
-        <a href="#" target="_blank" class="social-ico"><i class="fa-brands fa-instagram"></i></a> 
-        <a href="#" target="_blank" class="social-ico"><i class="fa-brands fa-x-twitter"></i></a> 
-        <a href="#" target="_blank" class="social-ico"><i class="fa-brands fa-youtube"></i></a> 
-        <a href="#" target="_blank" class="social-ico"><i class="fa-brands fa-tiktok"></i></a> 
-        <a href="#" target="_blank" class="social-ico"><i class="fa-brands fa-flickr"></i></a> 
-    </div>
-    
-    @include('frontend.layouts.partials.page-header', ['title' => 'Terms and Conditions'])
-    
-    <section class="page bg-light section-padding-bottom section-padding-top">
+    <!-- Terms Hero (New Theme) -->
+    <section class="py-5 bg-primary text-white mt-5">
+        <div class="container pt-5 pb-2">
+            <div class="row justify-content-center">
+                <div class="col-lg-8 text-center">
+                    <p class="text-uppercase fw-bold small mb-2">Policy</p>
+                    <h1 class="display-5 fw-bold mb-3">Terms &amp; Conditions</h1>
+                    <p class="lead mb-0">Terms for using PROP PIK’s global virtual tour services.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Terms & Conditions (New Theme) -->
+    <section id="terms" class="py-5">
         <div class="container">
-            <div class="row">
-                <div class="col-md-12">
-                    <div class="terms-content">
-                        <h3>1. Acceptance of Terms</h3>
-                        <p>By accessing and using PROP PIK services, you accept and agree to be bound by the terms and provision of this agreement. If you do not agree to abide by the above, please do not use this service.</p>
+            <div class="row justify-content-center">
+                <div class="col-lg-10">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body p-4 p-md-5">
+                            <h2 class="h3 mb-4">PROP PIK Global - Terms &amp; Conditions</h2>
+                            <p class="text-muted">Effective date: January 1, 2025</p>
 
-                        <h3>2. Use License</h3>
-                        <p>Permission is granted to temporarily access the materials on PROP PIK's website for personal, non-commercial transitory viewing only. This is the grant of a license, not a transfer of title, and under this license you may not:</p>
-                        <ul>
-                            <li>Modify or copy the materials</li>
-                            <li>Use the materials for any commercial purpose or for any public display</li>
-                            <li>Attempt to reverse engineer any software contained on PROP PIK's website</li>
-                            <li>Remove any copyright or other proprietary notations from the materials</li>
-                        </ul>
+                            <h3 class="h5 mt-4">1. Acceptance of Terms</h3>
+                            <p>By accessing or using PROP PIK products, websites, virtual tour services, or related offerings (“Services”), you agree to these Terms &amp; Conditions and our Privacy Policy. If you are using the Services on behalf of an organization, you represent that you have authority to bind that organization.</p>
 
-                        <h3>3. Virtual Tour Services</h3>
-                        <p>PROP PIK provides virtual tour creation and hosting services. By using our services, you agree to:</p>
-                        <ul>
-                            <li>Provide accurate information about your property</li>
-                            <li>Grant PROP PIK permission to create and host virtual tours of your property</li>
-                            <li>Use the virtual tours in accordance with applicable laws and regulations</li>
-                        </ul>
+                            <h3 class="h5 mt-4">2. Services</h3>
+                            <p>PROP PIK provides virtual tour creation, hosting, and related digital experiences for real estate, hospitality, retail, commercial, and other spaces. Service scope, deliverables, and timelines are defined in individual proposals, statements of work, or order forms.</p>
 
-                        <h3>4. User Account</h3>
-                        <p>You are responsible for maintaining the confidentiality of your account credentials. You agree to accept responsibility for all activities that occur under your account.</p>
+                            <h3 class="h5 mt-4">3. Accounts &amp; Access</h3>
+                            <p>You are responsible for maintaining the confidentiality of account credentials and for all activities under your account. Notify PROP PIK immediately of any unauthorized use or security incident.</p>
 
-                        <h3>5. Payment Terms</h3>
-                        <p>Payment for services must be made in accordance with the pricing plan selected. All fees are non-refundable unless otherwise stated. PROP PIK reserves the right to change pricing with 30 days notice.</p>
+                            <h3 class="h5 mt-4">4. Payments &amp; Refunds</h3>
+                            <ul class="mb-3">
+                                <li>Fees are due as specified in the applicable order, invoice, or subscription plan.</li>
+                                <li>Taxes, payment gateway fees, and currency conversion charges (if any) are borne by the customer.</li>
+                                <li>Refunds, if applicable, follow the Refund Policy linked in the footer.</li>
+                            </ul>
 
-                        <h3>6. Intellectual Property</h3>
-                        <p>All content, features, and functionality of the PROP PIK service, including but not limited to text, graphics, logos, and software, are the exclusive property of PROP PIK and are protected by copyright, trademark, and other laws.</p>
+                            <h3 class="h5 mt-4">5. Customer Content &amp; Licenses</h3>
+                            <p>You grant PROP PIK a non-exclusive, worldwide, royalty-free license to host, display, and process content you provide solely to deliver the Services. You represent you have rights to all submitted content and that it does not infringe third-party rights.</p>
 
-                        <h3>7. Limitation of Liability</h3>
-                        <p>In no event shall PROP PIK or its suppliers be liable for any damages (including, without limitation, damages for loss of data or profit, or due to business interruption) arising out of the use or inability to use the materials on PROP PIK's website.</p>
+                            <h3 class="h5 mt-4">6. Acceptable Use</h3>
+                            <ul class="mb-3">
+                                <li>No unlawful, harmful, or fraudulent use.</li>
+                                <li>No infringement of intellectual property or privacy rights.</li>
+                                <li>No uploading of malicious code or attempting to disrupt or gain unauthorized access to the Services.</li>
+                            </ul>
 
-                        <h3>8. Privacy Policy</h3>
-                        <p>Your use of PROP PIK is also governed by our Privacy Policy. Please review our Privacy Policy to understand our practices regarding the collection and use of your information.</p>
+                            <h3 class="h5 mt-4">7. Intellectual Property</h3>
+                            <p>All PROP PIK technology, software, designs, and trademarks remain the property of PROP PIK or its licensors. These Terms do not transfer any ownership rights to you.</p>
 
-                        <h3>9. Modifications</h3>
-                        <p>PROP PIK may revise these terms of service at any time without notice. By using this website you are agreeing to be bound by the then current version of these terms of service.</p>
+                            <h3 class="h5 mt-4">8. Data &amp; Privacy</h3>
+                            <p>Personal data is handled according to our <a href="{{ route('frontend.privacy-policy') }}">Privacy Policy</a>. By using the Services, you consent to data processing as described there.</p>
 
-                        <h3>10. Contact Information</h3>
-                        <p>If you have any questions about these Terms and Conditions, please contact us at hello@proppik.com or +91 9876543210.</p>
+                            <h3 class="h5 mt-4">9. Third-Party Services</h3>
+                            <p>The Services may integrate third-party platforms (e.g., hosting, analytics, payment gateways). PROP PIK is not responsible for third-party terms or availability.</p>
 
-                        <p class="mt-4"><strong>Last Updated:</strong> January 2025</p>
+                            <h3 class="h5 mt-4">10. Disclaimers</h3>
+                            <p>The Services are provided “as is” and “as available.” PROP PIK disclaims all warranties, express or implied, including fitness for a particular purpose and non-infringement.</p>
+
+                            <h3 class="h5 mt-4">11. Limitation of Liability</h3>
+                            <p>To the maximum extent permitted by law, PROP PIK is not liable for indirect, incidental, consequential, or punitive damages, or any loss of profits or data. PROP PIK’s total liability for any claim is limited to the amount paid by you for the Services giving rise to the claim in the 3 months preceding the event.</p>
+
+                            <h3 class="h5 mt-4">12. Indemnity</h3>
+                            <p>You agree to indemnify and hold harmless PROP PIK, its affiliates, and personnel from claims arising from your use of the Services, violation of these Terms, or infringement of rights of any third party.</p>
+
+                            <h3 class="h5 mt-4">13. Suspension &amp; Termination</h3>
+                            <p>PROP PIK may suspend or terminate access for violations of these Terms, non-payment, legal requirements, or security risks. Upon termination, your right to use the Services ceases; provisions that by nature should survive will survive (including payment obligations, IP, warranties, and liability clauses).</p>
+
+                            <h3 class="h5 mt-4">14. Governing Law &amp; Disputes</h3>
+                            <p>These Terms are governed by the laws of India. Courts in Ahmedabad, Gujarat shall have exclusive jurisdiction, unless otherwise required by applicable law.</p>
+
+                            <h3 class="h5 mt-4">15. Changes to Terms</h3>
+                            <p>We may update these Terms periodically. Material changes will be posted on this page with an updated effective date. Continued use of the Services after changes means you accept the revised Terms.</p>
+
+                            <h3 class="h5 mt-4">16. Contact</h3>
+                            <p>For questions about these Terms, contact us at <a href="mailto:contact@proppik.com">contact@proppik.com</a>.</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -82,12 +91,6 @@
     </section>
 @endsection
 
-@section('scripts')
-    <script src="{{ asset('frontend/js/plugins/jquery-3.7.1.min.js') }}"></script>
-    <script src="{{ asset('frontend/js/plugins/jquery-migrate-3.5.0.min.js') }}"></script>
-    <script src="{{ asset('frontend/js/plugins/popper.min.js') }}"></script>
-    <script src="{{ asset('frontend/js/plugins/bootstrap.min.js') }}"></script>
-    <script src="{{ asset('frontend/js/plugins/smooth-scroll.min.js') }}"></script>
-    <script src="{{ asset('frontend/js/plugins/wow.js') }}"></script>
-    <script src="{{ asset('frontend/js/custom.js') }}"></script>
+@section('script-bottom')
+    {{-- No page-specific scripts required --}}
 @endsection

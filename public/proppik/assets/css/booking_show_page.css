@@ -1,0 +1,372 @@
+/* Booking Show Page Styles (extracted from resources/views/frontend/booking-show.blade.php inline styles) */
+
+/* Modal styling to match new theme */
+.pp-modal .modal-content {
+  border-radius: 12px;
+}
+
+.pp-modal .modal-title {
+  font-family: "Montagu Slab", serif;
+  font-weight: 700;
+}
+
+.pp-modal .modal-header {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.pp-modal .modal-footer {
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.pp-card {
+  border-radius: 12px;
+}
+
+.pp-success-icon {
+  color: #28a745;
+}
+
+/* Alerts inside modals */
+.pp-alert {
+  border-left: 4px solid transparent;
+}
+
+.pp-alert__icon {
+  font-size: 1.1rem;
+}
+
+.pp-alert--danger { border-left-color: #dc3545; }
+.pp-alert--warning { border-left-color: #ffc107; }
+
+/* Schedule date input icon */
+.date-input-group { position: relative; }
+.date-icon {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #6c757d;
+  cursor: pointer;
+}
+.date-input-group.is-disabled .date-icon,
+.date-icon.is-disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.booking-header {
+  background: linear-gradient(135deg, #1f395a 0%, #152742 50%, #FF8C00 100%);
+  background-size: 200% 200%;
+  color: white;
+  padding: 3rem 0;
+  border-radius: 16px;
+  margin-bottom: 2rem;
+  position: relative;
+  overflow: hidden;
+  animation: gradientShift 8s ease infinite;
+  box-shadow: 0 10px 30px rgba(31, 57, 90, 0.3);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.booking-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+  pointer-events: none;
+}
+
+.booking-header:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 15px 40px rgba(31, 57, 90, 0.4);
+}
+
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 0.6rem 1.8rem;
+  border-radius: 50px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: all 0.3s ease;
+  cursor: default;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.status-badge::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.status-badge:hover::before {
+  width: 300px;
+  height: 300px;
+}
+
+.status-badge:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+.status-pending,
+.status-schedul_pending,
+.status-reschedul_pending {
+  background: linear-gradient(135deg, #FF8C00 0%, #ffa64d 100%);
+  color: #fff;
+}
+
+.status-paid { background: linear-gradient(135deg, #28a745 0%, #34ce57 100%); color: #fff; }
+.status-failed,
+.status-schedul_decline,
+.status-reschedul_decline { background: linear-gradient(135deg, #dc3545 0%, #e4606d 100%); color: #fff; }
+
+.status-confirmed { background: linear-gradient(135deg, #1f395a 0%, #2a4d6e 100%); color: #fff; }
+.status-scheduled { background: linear-gradient(135deg, #6f42c1 0%, #8a5dd8 100%); color: #fff; }
+.status-completed { background: linear-gradient(135deg, #20c997 0%, #3dd5a8 100%); color: #fff; }
+.status-reschedul_blocked { background: linear-gradient(135deg, #6c757d 0%, #868e96 100%); color: #fff; }
+
+.info-card {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  height: 100%;
+}
+
+.info-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 1rem;
+}
+
+.info-card .card-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+  flex-shrink: 0;
+}
+
+.info-card.property .card-icon { background: #e3f2fd; color: #1976d2; }
+.info-card.address .card-icon { background: #f3e5f5; color: #7b1fa2; }
+.info-card.payment .card-icon { background: #e8f5e9; color: #388e3c; }
+.info-card.schedule .card-icon { background: #fff3e0; color: #f57c00; }
+.info-card.tour .card-icon { background: #e0f2f1; color: #00796b; }
+
+.info-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #6c757d;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.info-value {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #212529;
+  margin-bottom: 0.75rem;
+}
+
+.info-detail {
+  font-size: 0.95rem;
+  color: #495057;
+  line-height: 1.6;
+}
+
+.price-display {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #28a745;
+  text-align: center;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+  border-radius: 12px;
+  margin: 1rem 0;
+}
+
+.action-btn {
+  border-radius: 8px;
+  padding: 0.75rem 1.5rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.action-btn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.action-btn:hover::before {
+  width: 300px;
+  height: 300px;
+}
+
+.action-btn:hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+}
+
+.action-btn.btn-primary {
+  background: linear-gradient(135deg, #1f395a 0%, #152742 100%);
+  border: none;
+  color: white;
+}
+
+.action-btn.btn-primary:hover {
+  background: linear-gradient(135deg, #152742 0%, #1f395a 100%);
+  box-shadow: 0 8px 20px rgba(31, 57, 90, 0.4);
+}
+
+.action-btn.btn-success {
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+  border: none;
+  color: white;
+}
+
+.action-btn.btn-success:hover {
+  background: linear-gradient(135deg, #20c997 0%, #28a745 100%);
+  box-shadow: 0 8px 20px rgba(40, 167, 69, 0.4);
+}
+
+.action-btn.btn-outline-primary {
+  border: 2px solid #1f395a;
+  color: #1f395a;
+  background: transparent;
+}
+
+.action-btn.btn-outline-primary:hover {
+  background: #1f395a;
+  color: white;
+  border-color: #1f395a;
+}
+
+.action-btn.btn-outline-success {
+  border: 2px solid #28a745;
+  color: #28a745;
+  background: transparent;
+}
+
+.action-btn.btn-outline-success:hover {
+  background: #28a745;
+  color: white;
+  border-color: #28a745;
+}
+
+.history-timeline { position: relative; padding-left: 2rem; }
+.history-timeline::before {
+  content: '';
+  position: absolute;
+  left: 0.5rem;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #dee2e6;
+}
+
+.history-item { position: relative; padding-bottom: 2rem; }
+.history-item::before {
+  content: '';
+  position: absolute;
+  left: -1.75rem;
+  top: 0.25rem;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--color-primary, #000080);
+  border: 3px solid white;
+  box-shadow: 0 0 0 2px var(--color-primary, #000080);
+}
+
+.history-item:last-child { padding-bottom: 0; }
+.history-date { font-size: 0.75rem; color: #6c757d; margin-bottom: 0.25rem; }
+.history-status { font-weight: 600; color: #212529; margin-bottom: 0.25rem; }
+.history-notes { font-size: 0.875rem; color: #6c757d; }
+
+.back-btn {
+  background: white;
+  border: 2px solid var(--color-primary, #000080);
+  color: var(--color-primary, #000080);
+  border-radius: 8px;
+  padding: 0.5rem 1.5rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.back-btn:hover {
+  background: var(--color-primary, #000080);
+  color: white;
+  transform: translateX(-5px);
+}
+
+/* Match new theme typography inside booking header */
+.booking-header h2 { font-family: "Montagu Slab", serif; }
+
+/* Receipt Download Modal */
+#receiptDownloadModal .modal-fullscreen {
+  width: 100vw;
+  max-width: 100%;
+  height: 100%;
+  margin: 0;
+}
+
+#receiptDownloadModal .modal-fullscreen .modal-content {
+  height: 100vh;
+  border: 0;
+  border-radius: 0;
+}
+
+#receiptDownloadModal .modal-body {
+  padding: 0;
+  height: calc(100vh - 56px); /* Subtract header height */
+}
+
+#receiptDownloadModal iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: block;
+}
+
+

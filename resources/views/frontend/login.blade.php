@@ -3,26 +3,27 @@
 @section('css')
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="app-url" content="{{ config('app.url') }}">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400..800&family=Urbanist:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ asset('frontend/css/plugins.css') }}">
-    <link rel="stylesheet" href="{{ asset('frontend/css/style.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ asset('proppik/assets/css/setup_page.css') }}">
+    <link rel="stylesheet" href="{{ asset('proppik/assets/css/login_page.css') }}">
 @endsection
 
 @section('body_attribute') class="setup-flow" @endsection
 
 @section('content')
-    <section class="page-header section-padding-bottom-b section-padding-top-t page-header">
-        <div class="container">
-            <div class="row">
-                <div class="col-md-12">
-                    <h1 class="wow page-title" data-splitting data-delay="100"> Dashboard Login</h1>
+    <!-- Login Hero (New Theme style, matches policy pages) -->
+    <section class="py-5 bg-primary text-white mt-5">
+        <div class="container pt-5 pb-2">
+            <div class="row justify-content-center">
+                <div class="col-lg-8 text-center">
+                    <p class="text-uppercase fw-bold small mb-2">Account</p>
+                    <h1 class="display-5 fw-bold mb-3">Dashboard Login</h1>
+                    <p class="lead mb-0">Login securely using OTP verification.</p>
                 </div>
             </div>
         </div>
     </section>
-    <div class="page bg-light section-padding-bottom section-padding-top">
+    <div class="page bg-setup-form py-4">
         <div class="panel container">
             <div class="content">
                 <div class="login-container">
@@ -65,7 +66,7 @@
                             </div>
                         
                         <div class="text-center mt-3">
-                            <p class="muted-small mb-0">Don't have an account? <a href="{{ route('frontend.setup') }}" style="color: var(--color-primary); text-decoration: none; font-weight: 600;">Get Started</a></p>
+                            <p class="muted-small mb-0">Don't have an account? <a href="{{ route('frontend.setup') }}" class="text-primary fw-semibold text-decoration-none">Get Started</a></p>
                         </div>
                     </form>
                 </div>
@@ -74,12 +75,12 @@
     </div>
 
     <!-- Success Modal -->
-    <div class="modal fade" id="loginSuccessModal" tabindex="-1" aria-hidden="true">
+    <div class="modal fade pp-modal" id="loginSuccessModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content" style="border-radius:12px;">
+            <div class="modal-content">
                 <div class="modal-body text-center p-4">
                     <div class="mb-3">
-                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="color: #28a745;">
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="pp-success-icon">
                             <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/>
                             <path d="M8 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
