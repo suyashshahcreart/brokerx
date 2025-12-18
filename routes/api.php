@@ -43,8 +43,9 @@ Route::middleware(['web', 'auth'])->group(function () {
     Route::get('/bookings', [BookingApiController::class, 'index'])->name('api.bookings.index');
     Route::get('/bookings/by-date-range', [BookingApiController::class, 'getByDateRange'])->name('api.bookings.by-date-range');
 
-    // Booking assignee slots for photographers
+    // Booking assignee slots for photographers 
     Route::get('/booking-assignees/slots', [BookingAssigneController::class, 'slots'])->name('api.booking-assignees.slots');
+    Route::get('/booking-assignees/all-bookings', [BookingAssigneController::class, 'getAllBookings'])->name('api.booking-assignees.all-bookings');
     Route::get('/bookings/{id}', [BookingApiController::class, 'show'])->name('api.bookings.show');
     Route::get('/bookings/{id}/json', [BookingApiController::class, 'getJson'])->name('api.bookings.get-json');
     Route::post('/bookings/{id}/json', [BookingApiController::class, 'setJson'])->name('api.bookings.set-json');
