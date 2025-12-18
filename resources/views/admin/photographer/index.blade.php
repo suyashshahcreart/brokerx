@@ -1,7 +1,29 @@
 @extends('admin.layouts.vertical', ['title' => 'Bookings Assigner Calender', 'subTitle' => 'Manage Booking Assigner Schedules'])
+@section('css')
+    <style>
+        #Booking-list {
+            padding: 10px;
+            width: 100%;
+            height: 44rem;
+            overflow: auto;
+            border: 1px solid #ddd;
+            background: #fff;
+            border-radius: 4px;
+        }
 
+        .booking-box {
+            cursor: pointer;
+            font-size: 14px;
+            margin: 10px 0;
+            padding: 8px 10px;
+            color: #ffffff;
+            border-radius: 4px;
+        }
+    </style>
+@endsection
 @section('content')
     <div class="row">
+        <!-- top navigation and title -->
         <div class="col-12">
             <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
                 <div>
@@ -30,33 +52,8 @@
             <div class="card">
                 <div class="card-body">
                     <div class="row">
-                        <div class="d-none col-xl-0">
-                            <div class="d-grid">
-                                <button type="button" class="btn btn-primary" id="btn-new-event">
-                                    <i class="ri-add-line fs-18 me-2"></i> Add New Schedule
-                                </button>
-                            </div>
-                            <div id="external-events">
-                                <br>
-                                <p class="text-muted">Drag and drop your event or click in the calendar</p>
-                                <div class="external-event bg-soft-primary text-primary" data-class="bg-primary">
-                                    <i class="ri-circle-fill me-2 vertical-middle"></i>Team Building Retreat Meeting
-                                </div>
-                                <div class="external-event bg-soft-info text-info" data-class="bg-info">
-                                    <i class="ri-circle-fill me-2 vertical-middle"></i>Product Launch Strategy Meeting
-                                </div>
-                                <div class="external-event bg-soft-success text-success" data-class="bg-success">
-                                    <i class="ri-circle-fill me-2 vertical-middle"></i>Monthly Sales Review
-                                </div>
-                                <div class="external-event bg-soft-danger text-danger" data-class="bg-danger">
-                                    <i class="ri-circle-fill me-2 vertical-middle"></i>Team Lunch Celebration
-                                </div>
-                                <div class="external-event bg-soft-warning text-warning" data-class="bg-warning">
-                                    <i class="ri-circle-fill me-2 vertical-middle"></i>Marketing Campaign Kickoff
-                                </div>
-                            </div>
-                        </div> <!-- end col-->
-                        <div class="col-xl-12">
+                        <!-- Filter by Photographer: -->
+                        <div class="col-12">
                             @if(auth()->check() && auth()->user()->hasRole('admin'))
                                 <div class="mt-2 mb-3">
                                     <div class="row g-2">
@@ -90,7 +87,63 @@
                                     </div>
                                 </div>
                             @endif
-
+                        </div>
+                        <!-- Assigne Booking list only for admin -->
+                        @if (auth()->check() && auth()->user()->hasRole('admin'))
+                            <div class="col-xl-3">
+                                <div class="text-start">
+                                    <h3 class="mb-0">Booking Assignment List</h3>
+                                    <p>Assigne Booking to a Photographer Directly from List</p>
+                                </div>
+                                <div id="Booking-list">
+                                    <p class="text-muted">Select and Booking to assigne Photographer</p>
+                                    <!-- List of Booking || bg colors -> bg-soft-* = primary ,info, success,danger, warning -->
+                                    @foreach ($bookings as $booking)
+                                        @php
+                                            $status = strtolower($booking->status ?? '');
+                                            // Map booking status → Bootstrap color
+                                            $statusColors = [
+                                                // Requested mappings
+                                                'schedul_assign' => ['soft' => 'primary', 'solid' => 'primary'],
+                                                'reschedul_assign' => ['soft' => 'primary', 'solid' => 'primary'],
+                                                'schedul_accepted' => ['soft' => 'warning', 'solid' => 'warning'],
+                                                'reschedul_accepted' => ['soft' => 'warning', 'solid' => 'warning'],
+                                                'schedul_inprogress' => ['soft' => 'info', 'solid' => 'info'],
+                                                'schedul_completed' => ['soft' => 'success', 'solid' => 'success'],
+                                                // Common booking statuses from migrations
+                                                'scheduled' => ['soft' => 'primary', 'solid' => 'primary'],
+                                                'pending' => ['soft' => 'secondary', 'solid' => 'secondary'],
+                                                'confirmed' => ['soft' => 'primary', 'solid' => 'primary'],
+                                                'cancelled' => ['soft' => 'danger', 'solid' => 'danger'],
+                                                'completed' => ['soft' => 'success', 'solid' => 'success'],
+                                            ];
+                                            $bg = $statusColors[$status]['soft'] ?? 'secondary';
+                                        @endphp
+                                        <div class="booking-box bg-soft-{{ $bg }} text-{{ $bg }}"
+                                            data-class="bg-{{ $bg }}">
+                                            <i class="ri-circle-fill me-2 vertical-middle"></i>
+                                            #{{ $booking->id }}
+                                            <span class="ms-1">| {{ $booking->user->firstname }} {{ $booking->user->lastname }}</span>
+                                            <span class="ms-1">| {{ $booking->full_address }}</span>
+                                            @if (!empty($booking->status))
+                                                <span class="badge bg-{{ $bg }} ms-2">{{ $booking->status_label ?? ucfirst(str_replace('_',' ', $booking->status)) }}</span>
+                                            @endif
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div> <!-- end col-->
+                            <div class="col-xl-9">
+                                <!-- calendar for Admin -->
+                                <div class="mt-4 mt-lg-0">
+                                    <div id="calendar" data-booking-api="{{ route('api.bookings.by-date-range') }}"
+                                        data-check-in-route="{{ url('admin/booking-assignees') }}/:id/check-in"
+                                        data-check-out-route="{{ url('admin/booking-assignees') }}/:id/check-out"
+                                        data-booking-show-route="{{ url('admin/bookings') }}/:id"></div>
+                                </div>
+                            </div> <!-- end col -->
+                        @endif
+                        <!-- calender for Photographer -->
+                        <div class="col-xl-12">
                             <div class="mt-4 mt-lg-0">
                                 <div id="calendar" data-booking-api="{{ route('api.bookings.by-date-range') }}"
                                     data-check-in-route="{{ url('admin/booking-assignees') }}/:id/check-in"
@@ -102,7 +155,7 @@
                 </div> <!-- end card body-->
             </div> <!-- end card -->
 
-            <!-- Add New Event MODAL -->
+            <!-- Check-in and Check-Out MODAL -->
             <div class="modal fade" id="event-modal" tabindex="-1">
                 <div class="modal-dialog">
                     <div class="modal-content">
@@ -193,5 +246,5 @@
 @endsection
 
 @section('scripts')
-    @vite(['resources/js/pages/photographer-index.js'])
+    @vite(['resources/js/pages/photographer-index.js', 'resources/js/pages/booking-assign-calender.js'])
 @endsection

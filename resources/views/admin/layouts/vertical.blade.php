@@ -4,6 +4,7 @@
 <head>
     @include('admin.layouts.partials/title-meta', ['title' => $title])
     @include('admin.layouts.partials/head-css')
+    @yield('css')
 </head>
 
 <body>
