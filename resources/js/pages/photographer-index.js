@@ -3,13 +3,11 @@ Template Name: Lahomes - Real Estate Admin Dashboard Template
 Author: Techzaa
 File: schedule js
 */
-import { Draggable } from '@fullcalendar/interaction';
 import { Calendar } from '@fullcalendar/core';
 import dayGridPlugin from '@fullcalendar/daygrid'
 import timeGridPlugin from '@fullcalendar/timegrid'
 import listPlugin from '@fullcalendar/list'
 import { Modal } from 'bootstrap'
-import { end } from '@popperjs/core';
 
 // ---------------------------
 // Utilities & helpers
@@ -165,6 +163,7 @@ class CalendarSchedule {
         this.checkOutRouteTpl = this.calendar?.getAttribute('data-check-out-route') || '';
         this.bookingShowRouteTpl = this.calendar?.getAttribute('data-booking-show-route') || '';
     }
+
     // Event Clck {{ BOOKING SELECT AND mODEL OPEN }}
     onEventClick(info) {
         // Fetch bookings from API
@@ -190,9 +189,9 @@ class CalendarSchedule {
             });
         }
 
+        // For photographers, also show inline card but do NOT return early
         if (!this.isAdmin) {
             this.updatePhotographerDetails(props, formattedTime);
-            return;
         }
         // Fill modal details
         const user = props.user || {};
@@ -234,6 +233,37 @@ class CalendarSchedule {
         if (viewBookingLink && this.bookingShowRouteTpl) {
             viewBookingLink.href = this.bookingShowRouteTpl.replace(':id', String(props.bookingId));
             viewBookingLink.style.display = 'inline-block';
+        }
+
+        // Toggle Check-In / Check-Out for photographers (and admins if desired)
+        const status = (props.status || '').toLowerCase();
+        const assigneeId = props.assigneeId;
+        if ((checkInLink || checkOutLink || completedLink) && assigneeId) {
+            // Build target URLs from templates
+            const canBuildCheckIn = !!this.checkInRouteTpl;
+            const canBuildCheckOut = !!this.checkOutRouteTpl;
+
+            // Show appropriate action based on booking status
+            if (status === 'schedul_inprogress') {
+                if (checkOutLink && canBuildCheckOut) {
+                    checkOutLink.href = this.checkOutRouteTpl.replace(':id', String(assigneeId));
+                    checkOutLink.style.display = 'inline-block';
+                }
+            } else if (
+                status === 'schedul_assign' ||
+                status === 'reschedul_assign' ||
+                status === 'schedul_accepted' ||
+                status === 'reschedul_accepted'
+            ) {
+                if (checkInLink && canBuildCheckIn) {
+                    checkInLink.href = this.checkInRouteTpl.replace(':id', String(assigneeId));
+                    checkInLink.style.display = 'inline-block';
+                }
+            } else if (status === 'schedul_completed') {
+                if (completedLink) {
+                    completedLink.style.display = 'inline-block';
+                }
+            }
         }
 
         // Add/Update Assign button for admins when status accepted
@@ -293,6 +323,7 @@ class CalendarSchedule {
         this.modal.show();
         this.calendarObj.unselect();
     }
+
     // Fetch bookings from API
     async fetchBookings(fromDate, toDate) {
         try {
@@ -324,18 +355,23 @@ class CalendarSchedule {
 
                     // Determine event color based on booking status
                     let className = '';
-                    let status = (booking.status || '').toLowerCase();
+                    let status = booking.status.toLowerCase();
 
                     switch (status) {
                         case 'schedul_assign':
                             className = 'bg-primary'; // Assigned → primary
                             break;
                         case 'reschedul_assign':
-                            className = 'bg-success'; // Assigned → success
+                            className = 'bg-primary'; // Assigned → success
                             break;
                         case 'schedul_accepted':
+                            className = 'bg-secondary'; // Accepted → warning
+                            break;
+                        case 'schedul_decline':
+                            className = 'bg-danger'; // Accepted → warning
+                            break;
                         case 'reschedul_accepted':
-                            className = 'bg-warning'; // Accepted → warning
+                            className = 'bg-secondary'; // Accepted → warning
                             break;
                         case 'schedul_inprogress':
                             className = 'bg-info'; // In-progress → info
@@ -347,12 +383,11 @@ class CalendarSchedule {
                             className = 'bg-danger';
                             break;
                         case 'schedul_pending':
-                            className = 'bg-secondary';
+                            className = 'bg-warning';
                             break;
                         default:
                             className = 'bg-secondary'; // fallback for unknown statuses
                     }
-
                     // Prefer booking_time
                     const rawTime = booking.booking_time;
                     let title = '';

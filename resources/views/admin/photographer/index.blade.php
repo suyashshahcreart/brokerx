@@ -98,20 +98,23 @@
                                 </div>
                                 <div id="Booking-list">
                                     <p class="text-muted">Select and Booking to assigne Photographer</p>
-                                    <div class="external-event bg-soft-primary text-primary" data-class="bg-primary">
-                                        <i class="ri-circle-fill me-2 vertical-middle"></i>Team Building Retreat Meeting
+                                    <div class="external-event bg-primary" data-class="bg-primary">
+                                        <i class="ri-circle-fill me-2 vertical-middle"></i>Schedule assigned
                                     </div>
-                                    <div class="external-event bg-soft-info text-info" data-class="bg-info">
-                                        <i class="ri-circle-fill me-2 vertical-middle"></i>Product Launch Strategy Meeting
+                                    <div class="external-event bg-secondary" data-class="bg-secondary">
+                                        <i class="ri-circle-fill me-2 vertical-middle"></i>Schedule accpted
                                     </div>
-                                    <div class="external-event bg-soft-success text-success" data-class="bg-success">
-                                        <i class="ri-circle-fill me-2 vertical-middle"></i>Monthly Sales Review
+                                    <div class="external-event bg-info" data-class="bg-info">
+                                        <i class="ri-circle-fill me-2 vertical-middle"></i>schedule inprogress
                                     </div>
-                                    <div class="external-event bg-soft-danger text-danger" data-class="bg-danger">
-                                        <i class="ri-circle-fill me-2 vertical-middle"></i>Team Lunch Celebration
+                                    <div class="external-event bg-success" data-class="bg-success">
+                                        <i class="ri-circle-fill me-2 vertical-middle"></i>Schedule completed
                                     </div>
-                                    <div class="external-event bg-soft-warning text-warning" data-class="bg-warning">
-                                        <i class="ri-circle-fill me-2 vertical-middle"></i>Marketing Campaign Kickoff
+                                    <div class="external-event bg-danger" data-class="bg-danger">
+                                        <i class="ri-circle-fill me-2 vertical-middle"></i>schedule cancelled | Declined
+                                    </div>
+                                    <div class="external-event bg-warning" data-class="bg-warning">
+                                        <i class="ri-circle-fill me-2 vertical-middle"></i>Schedule Pending
                                     </div>
                                 </div>
                             </div> <!-- end col-->
