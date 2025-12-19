@@ -121,7 +121,8 @@
                             <div class="col-xl-9">
                                 <!-- calendar for Admin -->
                                 <div class="mt-4 mt-lg-0">
-                                    <div id="calendar" data-booking-api="{{ route('api.booking-assignees.all-bookings') }}" data-is-admin="{{ auth()->check() && auth()->user()->hasRole('admin') ? '1' : '0' }}"
+                                    <div id="calendar" data-booking-api="{{ route('api.booking-assignees.all-bookings') }}"
+                                        data-is-admin="{{ auth()->check() && auth()->user()->hasRole('admin') ? '1' : '0' }}"
                                         data-check-in-route="{{ url('admin/booking-assignees') }}/:id/check-in"
                                         data-check-out-route="{{ url('admin/booking-assignees') }}/:id/check-out"
                                         data-booking-show-route="{{ url('admin/bookings') }}/:id"></div>
@@ -131,7 +132,8 @@
                         <!-- calender for Photographer -->
                         <div class="col-xl-12">
                             <div class="mt-4 mt-lg-0">
-                                <div id="calendar" data-booking-api="{{ route('api.booking-assignees.all-bookings') }}" data-is-admin="{{ auth()->check() && auth()->user()->hasRole('admin') ? '1' : '0' }}"
+                                <div id="calendar" data-booking-api="{{ route('api.booking-assignees.all-bookings') }}"
+                                    data-is-admin="{{ auth()->check() && auth()->user()->hasRole('admin') ? '1' : '0' }}"
                                     data-check-in-route="{{ url('admin/booking-assignees') }}/:id/check-in"
                                     data-check-out-route="{{ url('admin/booking-assignees') }}/:id/check-out"
                                     data-booking-show-route="{{ url('admin/bookings') }}/:id"></div>
@@ -239,11 +241,60 @@
                                                     <th>Scheduled Time</th>
                                                     <td id="modal-schedule-time">—</td>
                                                 </tr>
+                                                <tr>
+                                                    <th>Assigned Photographer</th>
+                                                    <td id="modal-photographer-name">—</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Photographer Mobile</th>
+                                                    <td id="modal-photographer-mobile">—</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Assigned Time</th>
+                                                    <td id="modal-assigned-time">—</td>
+                                                </tr>
                                             </tbody>
                                         </table>
                                     </div>
-                                    <div class="col-12 mt-2" id="modal-action-buttons">
-                                        <div class="d-flex flex-wrap gap-2" id="modal-buttons-container">
+                                    <!-- MODULE 1: Accept/Decline (for schedule_pending) -->
+                                    <div class="col-12 mt-2" id="modal-accept-decline-module" style="display: none;">
+                                        <div class="alert alert-warning mb-2">
+                                            <small><strong>Action Required:</strong> Please accept or decline this booking
+                                                request.</small>
+                                        </div>
+                                        <div class="d-flex flex-wrap gap-2" id="modal-accept-decline-buttons">
+                                            <form id="modal-accept-form" style="display:inline;" method="POST">
+                                                @csrf
+                                                <input type="hidden" id="modal-accept-booking-id" name="booking_id"
+                                                    value="">
+                                                <button type="submit" class="btn btn-success btn-sm">
+                                                    <i class="ri-check-line me-1"></i> Accept Schedule
+                                                </button>
+                                            </form>
+                                            <form id="modal-decline-form" style="display:inline;" method="POST">
+                                                @csrf
+                                                <input type="hidden" id="modal-decline-booking-id" name="booking_id"
+                                                    value="">
+                                                <button type="submit" class="btn btn-danger btn-sm">
+                                                    <i class="ri-close-line me-1"></i> Decline Schedule
+                                                </button>
+                                            </form>
+                                            <a id="modal-view-booking-link-pending" href="#" class="btn btn-info btn-sm">
+                                                <i class="ri-eye-line me-1"></i> View Full Details
+                                            </a>
+                                        </div>
+                                    </div>
+
+                                    <!-- MODULE 2: Assign Photographer (for schedule_accepted) -->
+                                    <div class="col-12 mt-2" id="modal-assign-photographer-module" style="display: none;">
+                                        <div id="modal-buttons-container" class="d-flex flex-wrap gap-2">
+                                            <!-- Assign button will be injected here by JS -->
+                                        </div>
+                                    </div>
+
+                                    <!-- MODULE 3: Check-in/Check-out (for schedule_assigned) -->
+                                    <div class="col-12 mt-2" id="modal-checkin-checkout-module" style="display: none;">
+                                        <div class="d-flex flex-wrap gap-2" id="modal-action-buttons">
                                             <a id="modal-check-in-link" href="#" class="btn btn-primary"
                                                 style="display: none;">
                                                 <i class="ri-box-arrow-in-right-line me-1"></i> Go to Check-In
@@ -252,13 +303,13 @@
                                                 style="display: none;">
                                                 <i class="ri-box-arrow-out-left-line me-1"></i> Go to Check-Out
                                             </a>
-                                            <a id="modal-view-booking-link" href="#" class="btn btn-info"
-                                                style="display: none;">
-                                                <i class="ri-eye-line me-1"></i> View Booking Details
-                                            </a>
                                             <a id="modal-completed-link" href="#" class="btn btn-success"
                                                 style="display: none;" disabled>
                                                 <i class="ri-checkbox-circle-line me-1"></i> Completed
+                                            </a>
+                                            <a id="modal-view-booking-link" href="#" class="btn btn-info"
+                                                style="display: none;">
+                                                <i class="ri-eye-line me-1"></i> View Booking Details
                                             </a>
                                         </div>
                                     </div>
@@ -275,7 +326,10 @@
             </div> <!-- end modal-->
             <!-- Assignment Modal (same logic as booking assigne module) -->
             <div class="modal fade" id="assignBookingModal" tabindex="-1" aria-labelledby="assignBookingModalLabel"
-                aria-hidden="true" data-photographer-from="{{ \App\Models\Setting::where('name','photographer_available_from')->value('value') ?? '08:00' }}" data-photographer-to="{{ \App\Models\Setting::where('name','photographer_available_to')->value('value') ?? '21:00' }}" data-photographer-duration="{{ \App\Models\Setting::where('name','photographer_working_duration')->value('value') ?? '60' }}">
+                aria-hidden="true"
+                data-photographer-from="{{ \App\Models\Setting::where('name', 'photographer_available_from')->value('value') ?? '08:00' }}"
+                data-photographer-to="{{ \App\Models\Setting::where('name', 'photographer_available_to')->value('value') ?? '21:00' }}"
+                data-photographer-duration="{{ \App\Models\Setting::where('name', 'photographer_working_duration')->value('value') ?? '60' }}">
                 <div class="modal-dialog modal-dialog-centered">
                     <div class="modal-content">
                         <div class="modal-header">
@@ -296,20 +350,34 @@
                                             <p id="modalCustomer" class="mb-1">-</p>
                                         </div>
                                         <div class="col-md-6">
-                                            <strong>Pin Code:</strong>
-                                            <p id="modalPincode" class="mb-1">-</p>
+                                            <strong>Customer Mobile:</strong>
+                                            <p id="modalCustomerMobile" class="mb-1">-</p>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <strong>Property Type:</strong>
+                                            <p id="modalPropertyType" class="mb-1">-</p>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <strong>Scheduled Date:</strong>
+                                            <p id="modalScheduledDate" class="mb-1">-</p>
                                         </div>
                                         <div class="col-md-12">
                                             <strong>Address:</strong>
                                             <p id="modalAddress" class="mb-1">-</p>
                                         </div>
-                                        <div class="col-md-6">
-                                            <strong>City:</strong>
-                                            <p id="modalCity" class="mb-0">-</p>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <strong>State:</strong>
-                                            <p id="modalState" class="mb-0">-</p>
+                                        <div class="row">
+                                            <div class="col-md-4">
+                                                <strong>City:</strong>
+                                                <p id="modalCity" class="mb-0">-</p>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <strong>State:</strong>
+                                                <p id="modalState" class="mb-0">-</p>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <strong>Pin Code:</strong>
+                                                <p id="modalPincode" class="mb-0">-</p>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -324,7 +392,8 @@
                                         @if($hasPhotographers)
                                             @foreach ($photographers as $photographer)
                                                 @if(is_object($photographer))
-                                                    <option value="{{ $photographer->id }}">{{ $photographer->firstname }} {{ $photographer->lastname }}</option>
+                                                    <option value="{{ $photographer->id }}">{{ $photographer->firstname }}
+                                                        {{ $photographer->lastname }}</option>
                                                 @endif
                                             @endforeach
                                         @else
@@ -345,7 +414,8 @@
                                         <select id="assignTime" name="time" class="form-select" disabled required>
                                             <option value="">Select a time</option>
                                         </select>
-                                        <div id="assignTimeHelper" class="form-text text-muted small">Select a photographer first to see available slots.</div>
+                                        <div id="assignTimeHelper" class="form-text text-muted small">Select a photographer
+                                            first to see available slots.</div>
                                     </div>
                                 </div>
                             </div>

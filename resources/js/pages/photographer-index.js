@@ -207,6 +207,9 @@ class CalendarSchedule {
         const pincodeEl = document.getElementById('modal-booking-pincode');
         const schedDateEl = document.getElementById('modal-schedule-date');
         const schedTimeEl = document.getElementById('modal-schedule-time');
+        const photographerNameEl = document.getElementById('modal-photographer-name');
+        const photographerMobileEl = document.getElementById('modal-photographer-mobile');
+        const assignedTimeEl = document.getElementById('modal-assigned-time');
 
         if (bookingIdEl) bookingIdEl.textContent = String(props.bookingId || '—');
         if (customerEl) customerEl.textContent = `${user.firstname || ''} ${user.lastname || ''}`.trim() || '—';
@@ -217,77 +220,126 @@ class CalendarSchedule {
         if (schedDateEl) schedDateEl.textContent = formatDateOnly(this.selectedEvent.startStr || props.dateOnly || '');
         if (schedTimeEl) schedTimeEl.textContent = formattedTime;
 
-        // Action buttons
+        // Photographer & assignment info (for admins visibility)
+        const ph = props.photographer || null;
+        if (photographerNameEl) photographerNameEl.textContent = ph ? `${ph.firstname || ''} ${ph.lastname || ''}`.trim() || '-' : '-';
+        if (photographerMobileEl) photographerMobileEl.textContent = ph?.mobile || '-';
+        if (assignedTimeEl) assignedTimeEl.textContent = props.assignmentTime || props.bookingTime || '-';
+
+        // Determine which module to show based on status
+        const status = (props.status || '').toLowerCase();
+        const assigneeId = props.assigneeId;
+        const bookingId = props.bookingId;
+
+        // Hide all modules first
+        const pendingModule = document.getElementById('modal-accept-decline-module');
+        const assignModule = document.getElementById('modal-assign-photographer-module');
+        const checkinModule = document.getElementById('modal-checkin-checkout-module');
+
+        if (pendingModule) pendingModule.style.display = 'none';
+        if (assignModule) assignModule.style.display = 'none';
+        if (checkinModule) checkinModule.style.display = 'none';
+
+        // Clear existing buttons
         const btnContainer = document.getElementById('modal-buttons-container');
+        if (btnContainer) {
+            const prevAssign = document.getElementById('modal-assign-btn');
+            if (prevAssign && prevAssign.parentElement === btnContainer) {
+                btnContainer.removeChild(prevAssign);
+            }
+        }
+
+        // Show MODULE based on status (only for ADMIN)
+        if (this.isAdmin) {
+            if (status === 'schedul_pending' || status === 'pending') {
+                // MODULE 1: Accept/Decline
+                if (pendingModule) {
+                    pendingModule.style.display = 'block';
+                    const acceptForm = document.getElementById('modal-accept-form');
+                    const declineForm = document.getElementById('modal-decline-form');
+                    const viewPendingLink = document.getElementById('modal-view-booking-link-pending');
+                    
+                    if (acceptForm) {
+                        acceptForm.action = `/admin/bookings/${bookingId}/status/approve-schedule`;
+                        const acceptBookingId = document.getElementById('modal-accept-booking-id');
+                        if (acceptBookingId) acceptBookingId.value = bookingId;
+                    }
+                    if (declineForm) {
+                        declineForm.action = `/admin/bookings/${bookingId}/status/decline-schedule`;
+                        const declineBookingId = document.getElementById('modal-decline-booking-id');
+                        if (declineBookingId) declineBookingId.value = bookingId;
+                    }
+                    if (viewPendingLink && this.bookingShowRouteTpl) {
+                        viewPendingLink.href = this.bookingShowRouteTpl.replace(':id', String(bookingId));
+                    }
+                }
+            } else if (status === 'schedul_accepted' || status === 'reschedul_accepted') {
+                // MODULE 2: Assign Photographer - Open directly
+                this.openAssignModal(props);
+                return; // Skip showing event-modal, go straight to assign modal
+            } else if (status === 'schedul_assign' || status === 'reschedul_assign' || status === 'schedul_inprogress' || status === 'schedul_completed') {
+                // Admin should NOT see check-in/out buttons, but can see details and view link
+                if (checkinModule) {
+                    checkinModule.style.display = 'block';
+                    this.setupCheckInCheckOutButtons(props, assigneeId, /*forceHideActionsForAdmin=*/true);
+                }
+            }
+        } else {
+            // PHOTOGRAPHER VIEW: Only show Check-in/Check-out module if schedule_assigned
+            if (status === 'schedul_assign' || status === 'reschedul_assign' || status === 'schedul_inprogress' || status === 'schedul_completed') {
+                if (checkinModule) {
+                    checkinModule.style.display = 'block';
+                    this.setupCheckInCheckOutButtons(props, assigneeId);
+                }
+            }
+        }
+
+        this.modal.show();
+    }
+
+    // Setup Check-In / Check-Out buttons (reusable logic)
+    setupCheckInCheckOutButtons(props, assigneeId, forceHideActionsForAdmin = false) {
         const checkInLink = document.getElementById('modal-check-in-link');
         const checkOutLink = document.getElementById('modal-check-out-link');
         const viewBookingLink = document.getElementById('modal-view-booking-link');
         const completedLink = document.getElementById('modal-completed-link');
+        const status = (props.status || '').toLowerCase();
 
         // Hide all by default
         if (checkInLink) checkInLink.style.display = 'none';
         if (checkOutLink) checkOutLink.style.display = 'none';
         if (completedLink) completedLink.style.display = 'none';
+        if (viewBookingLink) viewBookingLink.style.display = 'none';
 
-        // View booking always available
+        // Show appropriate action based on booking status
+        if (assigneeId) {
+            const canBuildCheckIn = !!this.checkInRouteTpl;
+            const canBuildCheckOut = !!this.checkOutRouteTpl;
+
+            if (!this.isAdmin || !forceHideActionsForAdmin) {
+                if (status === 'schedul_inprogress') {
+                    if (checkOutLink && canBuildCheckOut) {
+                        checkOutLink.href = this.checkOutRouteTpl.replace(':id', String(assigneeId));
+                        checkOutLink.style.display = 'inline-block';
+                    }
+                } else if (status === 'schedul_assign' || status === 'reschedul_assign') {
+                    if (checkInLink && canBuildCheckIn) {
+                        checkInLink.href = this.checkInRouteTpl.replace(':id', String(assigneeId));
+                        checkInLink.style.display = 'inline-block';
+                    }
+                } else if (status === 'schedul_completed') {
+                    if (completedLink) {
+                        completedLink.style.display = 'inline-block';
+                    }
+                }
+            }
+        }
+
+        // View booking link
         if (viewBookingLink && this.bookingShowRouteTpl) {
             viewBookingLink.href = this.bookingShowRouteTpl.replace(':id', String(props.bookingId));
             viewBookingLink.style.display = 'inline-block';
         }
-
-        // Toggle Check-In / Check-Out for photographers (and admins if desired)
-        const status = (props.status || '').toLowerCase();
-        const assigneeId = props.assigneeId;
-        if ((checkInLink || checkOutLink || completedLink) && assigneeId) {
-            // Build target URLs from templates
-            const canBuildCheckIn = !!this.checkInRouteTpl;
-            const canBuildCheckOut = !!this.checkOutRouteTpl;
-
-            // Show appropriate action based on booking status
-            if (status === 'schedul_inprogress') {
-                if (checkOutLink && canBuildCheckOut) {
-                    checkOutLink.href = this.checkOutRouteTpl.replace(':id', String(assigneeId));
-                    checkOutLink.style.display = 'inline-block';
-                }
-            } else if (
-                status === 'schedul_assign' ||
-                status === 'reschedul_assign' ||
-                status === 'schedul_accepted' ||
-                status === 'reschedul_accepted'
-            ) {
-                if (checkInLink && canBuildCheckIn) {
-                    checkInLink.href = this.checkInRouteTpl.replace(':id', String(assigneeId));
-                    checkInLink.style.display = 'inline-block';
-                }
-            } else if (status === 'schedul_completed') {
-                if (completedLink) {
-                    completedLink.style.display = 'inline-block';
-                }
-            }
-        }
-
-        // Add/Update Assign button for admins when status accepted
-        if (btnContainer) {
-            // remove previous injected assign button if any
-            const prevAssign = document.getElementById('modal-assign-btn');
-            if (prevAssign && prevAssign.parentElement === btnContainer) {
-                btnContainer.removeChild(prevAssign);
-            }
-
-            const status = (props.status || '').toLowerCase();
-            const canAssign = this.isAdmin && (status === 'schedul_accepted' || status === 'reschedul_accepted');
-            if (canAssign) {
-                const assignBtn = document.createElement('button');
-                assignBtn.id = 'modal-assign-btn';
-                assignBtn.type = 'button';
-                assignBtn.className = 'btn btn-primary';
-                assignBtn.innerHTML = '<i class="ri-user-add-line me-1"></i> Assign Photographer';
-                assignBtn.addEventListener('click', () => this.openAssignModal(props));
-                btnContainer.appendChild(assignBtn);
-            }
-        }
-
-        this.modal.show();
     }
 
     // For photographers: show booking basics in the inline card
@@ -535,6 +587,9 @@ class CalendarSchedule {
 
         // Visible booking details
         const customerEl = document.getElementById('modalCustomer');
+        const customerMobileEl = document.getElementById('modalCustomerMobile');
+        const propertyTypeEl = document.getElementById('modalPropertyType');
+        const scheduledDateEl = document.getElementById('modalScheduledDate');
         const pinEl = document.getElementById('modalPincode');
         const addrEl = document.getElementById('modalAddress');
         const cityEl = document.getElementById('modalCity');
@@ -542,6 +597,9 @@ class CalendarSchedule {
         const dateEl = document.getElementById('modalDate');
 
         if (customerEl) customerEl.textContent = `${props?.user?.firstname || ''} ${props?.user?.lastname || ''}`.trim() || '-';
+        if (customerMobileEl) customerMobileEl.textContent = props?.user?.mobile || '-';
+        if (propertyTypeEl) propertyTypeEl.textContent = props.propertyType || '-';
+        if (scheduledDateEl) scheduledDateEl.textContent = formatDateOnly(dateStr || props.dateOnly || '');
         if (pinEl) pinEl.textContent = props.pincode || '-';
         if (addrEl) addrEl.textContent = props.address || '-';
         if (cityEl) cityEl.textContent = props?.city?.name || '-';
@@ -599,6 +657,75 @@ class CalendarSchedule {
         selectEl.innerHTML = options.join('');
     }
 
+    // Setup accept/decline form handlers
+    setupAcceptDeclineForms() {
+        const acceptForm = document.getElementById('modal-accept-form');
+        const declineForm = document.getElementById('modal-decline-form');
+
+        if (acceptForm) {
+            acceptForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const url = acceptForm.action;
+                if (url) {
+                    // Submit with fetch for AJAX
+                    fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({})
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success || response.ok) {
+                            this.modal.hide();
+                            this.calendarObj.refetchEvents();
+                            alert('Schedule accepted successfully');
+                        } else {
+                            alert('Error: ' + (data.message || 'Failed to accept schedule'));
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Failed to accept schedule');
+                    });
+                }
+            });
+        }
+
+        if (declineForm) {
+            declineForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const url = declineForm.action;
+                if (url) {
+                    fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({})
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success || response.ok) {
+                            this.modal.hide();
+                            this.calendarObj.refetchEvents();
+                            alert('Schedule declined successfully');
+                        } else {
+                            alert('Error: ' + (data.message || 'Failed to decline schedule'));
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Failed to decline schedule');
+                    });
+                }
+            });
+        }
+    }
+
     init() {
         /*  Initialize the calendar  */
         const today = new Date();
@@ -651,6 +778,9 @@ class CalendarSchedule {
         });
 
         self.calendarObj.render();
+
+        // Setup accept/decline form handlers
+        self.setupAcceptDeclineForms();
 
         // Attach filter change listeners to refetch events when selection changes
         const fp = document.getElementById('filterPhotographer');
