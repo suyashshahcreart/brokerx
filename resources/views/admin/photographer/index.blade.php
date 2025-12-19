@@ -402,6 +402,28 @@
                                     </select>
                                 </div>
 
+                                <!-- Slot Mode Selection -->
+                                <div class="mb-3">
+                                    <label class="form-label">Slot Selection Mode</label>
+                                    <div class="d-flex gap-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="slotMode" id="slotModeAvailable" value="available" checked>
+                                            <label class="form-check-label" for="slotModeAvailable">
+                                                Available Slots Only
+                                            </label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="slotMode" id="slotModeAny" value="any">
+                                            <label class="form-check-label" for="slotModeAny">
+                                                Pick Any Time
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <small class="text-muted">
+                                        Choose "Available Slots Only" to see only free slots, or "Pick Any Time" to ignore existing assignments.
+                                    </small>
+                                </div>
+
                                 <!-- Assignment Details Section -->
                                 <div class="row">
                                     <div class="col-md-6">

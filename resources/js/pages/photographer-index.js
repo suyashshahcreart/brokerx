@@ -606,55 +606,216 @@ class CalendarSchedule {
         if (stateEl) stateEl.textContent = props?.state?.name || '-';
         if (dateEl) dateEl.value = (dateStr || '').split('T')[0] || '';
 
-        // Reset selects
+        // Reset selects and slot mode
         const photographerSel = document.getElementById('assignPhotographer');
         const timeSel = document.getElementById('assignTime');
         const timeHelper = document.getElementById('assignTimeHelper');
+        const slotModeAvailable = document.getElementById('slotModeAvailable');
+        const slotModeAny = document.getElementById('slotModeAny');
+        
         if (photographerSel) photographerSel.value = '';
         if (timeSel) {
             timeSel.innerHTML = '<option value="">Select a time</option>';
             timeSel.disabled = true;
+            timeSel.value = '';
         }
-        if (timeHelper) timeHelper.textContent = 'Select a photographer first to see available slots.';
+        if (timeHelper) timeHelper.textContent = 'Select a photographer first to see available slots from the API, or choose "Pick any" to ignore conflicts.';
+        
+        // Reset slot mode to "Available Slots Only"
+        if (slotModeAvailable) slotModeAvailable.checked = true;
+        if (slotModeAny) slotModeAny.checked = false;
 
-        // When photographer changes, populate available slots
+        // When photographer or slot mode changes, load slots
         if (photographerSel) {
-            photographerSel.onchange = () => {
-                if (!timeSel) return;
-                this.populateTimeSlots(timeSel);
-                timeSel.disabled = false;
-            };
+            photographerSel.onchange = () => this.loadSlotsForPhotographer(photographerSel, timeSel, timeHelper, dateEl, modalEl);
+        }
+        if (slotModeAvailable) {
+            slotModeAvailable.onchange = () => this.loadSlotsForPhotographer(photographerSel, timeSel, timeHelper, dateEl, modalEl);
+        }
+        if (slotModeAny) {
+            slotModeAny.onchange = () => this.loadSlotsForPhotographer(photographerSel, timeSel, timeHelper, dateEl, modalEl);
         }
 
         this.assignModal.show();
     }
 
-    // Populate time slots using settings from the modal's data attributes
-    populateTimeSlots(selectEl) {
-        const modalEl = document.getElementById('assignBookingModal');
-        if (!modalEl || !selectEl) return;
+    // Load slots for photographer based on selected mode (Available or Any)
+    loadSlotsForPhotographer(photographerSel, timeSel, timeHelper, dateEl, modalEl) {
+        if (!photographerSel || !timeSel || !timeHelper || !dateEl || !modalEl) return;
 
-        const from = modalEl.getAttribute('data-photographer-from') || '08:00';
-        const to = modalEl.getAttribute('data-photographer-to') || '21:00';
-        const durationMin = parseInt(modalEl.getAttribute('data-photographer-duration') || '60', 10);
+        // Read photographer availability settings
+        const availableFrom = modalEl.getAttribute('data-photographer-from') || '08:00';
+        const availableTo = modalEl.getAttribute('data-photographer-to') || '21:00';
+        const workingDuration = parseInt(modalEl.getAttribute('data-photographer-duration') || '60', 10);
+        const slotStep = 15; // minutes between options
 
-        const [fromH, fromM] = from.split(':').map(Number);
-        const [toH, toM] = to.split(':').map(Number);
+        // Helper functions
+        const toMinutes = (t) => {
+            const parts = (t || '').split(':');
+            if (parts.length < 2) return null;
+            return parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
+        };
 
-        const cur = new Date();
-        cur.setHours(fromH, fromM, 0, 0);
-        const end = new Date();
-        end.setHours(toH, toM, 0, 0);
+        const formatHM = (m) => {
+            const h = Math.floor(m / 60).toString().padStart(2, '0');
+            const mm = (m % 60).toString().padStart(2, '0');
+            return `${h}:${mm}`;
+        };
 
-        const options = ['<option value="">Select a time</option>'];
-        while (cur < end) {
-            const hh = String(cur.getHours()).padStart(2, '0');
-            const mm = String(cur.getMinutes()).padStart(2, '0');
-            const label = cur.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            options.push(`<option value="${hh}:${mm}">${label}</option>`);
-            cur.setMinutes(cur.getMinutes() + durationMin);
+        // Display in 12-hour format with AM/PM for user-friendly labels
+        const formatDisplay = (m) => {
+            const hours = Math.floor(m / 60);
+            const minutes = m % 60;
+            const period = hours >= 12 ? 'PM' : 'AM';
+            let h12 = hours % 12;
+            if (h12 === 0) h12 = 12;
+            return `${h12}:${minutes.toString().padStart(2, '0')} ${period}`;
+        };
+
+        const fromM = toMinutes(availableFrom);
+        const toM = toMinutes(availableTo);
+
+        const setHelper = (msg) => { if (timeHelper) timeHelper.textContent = msg; };
+        const resetSelect = () => {
+            timeSel.disabled = true;
+            timeSel.innerHTML = '<option value="">Select a time</option>';
+            timeSel.value = '';
+        };
+
+        // Get slot mode
+        const slotModeAny = document.getElementById('slotModeAny');
+        const getSlotMode = () => (slotModeAny?.checked ? 'any' : 'available');
+
+        // Build all possible slots
+        const buildAllSlots = () => {
+            timeSel.innerHTML = '<option value="">Select a time</option>';
+            if (toM < fromM) return;
+            for (let t = fromM; t <= toM; t += slotStep) {
+                const candidateEnd = t + workingDuration;
+                if (candidateEnd > toM) continue;
+                const opt = document.createElement('option');
+                opt.value = formatHM(t);
+                opt.textContent = formatDisplay(t);
+                timeSel.appendChild(opt);
+            }
+            if (timeSel.options.length > 1) {
+                timeSel.disabled = false;
+                timeSel.value = timeSel.options[1].value;
+            } else {
+                timeSel.disabled = true;
+            }
+        };
+
+        // Check if photographer is selected
+        if (!photographerSel.value) {
+            resetSelect();
+            setHelper('Select a photographer first to see available slots from the API, or choose "Pick any" to ignore conflicts.');
+            return;
         }
-        selectEl.innerHTML = options.join('');
+
+        // Check if time range is valid
+        if (toM < fromM) {
+            resetSelect();
+            setHelper('No available slots for photographers. Please update settings.');
+            return;
+        }
+
+        // Get booking date
+        const dateVal = dateEl.value;
+        if (!dateVal) {
+            resetSelect();
+            setHelper('Please select a booking date first.');
+            return;
+        }
+
+        // Mode: pick any (ignore existing assignments)
+        if (getSlotMode() === 'any') {
+            buildAllSlots();
+            setHelper(`Pick any slot between ${formatDisplay(fromM)} — ${formatDisplay(toM)} (every ${slotStep} min)`);
+            return;
+        }
+
+        // Mode: available (default) -> fetch and filter
+        setHelper('Loading photographer slots...');
+        timeSel.disabled = true;
+        timeSel.innerHTML = '<option value="">Loading...</option>';
+
+        fetch(`/api/booking-assignees/slots?date=${encodeURIComponent(dateVal)}&user_id=${encodeURIComponent(photographerSel.value)}`, {
+            method: 'GET',
+            credentials: 'same-origin',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                if (response.status === 403) {
+                    return response.json().then(err => {
+                        throw new Error(err?.message || 'Access denied');
+                    });
+                }
+                return response.json().then(err => Promise.reject(err));
+            }
+            return response.json();
+        })
+        .then(json => {
+            if (!json || json.success === false) {
+                setHelper(json?.message || 'Failed to load slots');
+                resetSelect();
+                return;
+            }
+
+            const occupiedIntervals = [];
+
+            (json.data || []).forEach(s => {
+                if (!s.time) return;
+                const parts = s.time.split(':');
+                if (parts.length < 2) return;
+                const start = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
+                const end = start + workingDuration;
+                occupiedIntervals.push({ start, end });
+            });
+
+            timeSel.innerHTML = '<option value="">Select a time</option>';
+            for (let t = fromM; t <= toM; t += slotStep) {
+                const candidateStart = t;
+                const candidateEnd = t + workingDuration;
+                if (candidateEnd > toM) continue;
+
+                let overlaps = false;
+                for (const occ of occupiedIntervals) {
+                    if (candidateStart < occ.end && candidateEnd > occ.start) {
+                        overlaps = true;
+                        break;
+                    }
+                }
+
+                if (overlaps) continue;
+
+                const opt = document.createElement('option');
+                opt.value = formatHM(t);
+                opt.textContent = formatDisplay(t);
+                timeSel.appendChild(opt);
+            }
+
+            if (timeSel.options.length <= 1) {
+                resetSelect();
+                setHelper('No available slots on this date for selected photographer.');
+            } else {
+                timeSel.disabled = false;
+                if (!timeSel.value && timeSel.options.length > 1) {
+                    timeSel.value = timeSel.options[1].value;
+                }
+                timeSel.focus();
+                setHelper(`Available slots: ${formatDisplay(fromM)} — ${formatDisplay(toM)} (every ${slotStep} min)`);
+            }
+        })
+        .catch(err => {
+            console.error('Error loading slots:', err);
+            setHelper(err?.message || 'Failed to load slots.');
+            resetSelect();
+        });
     }
 
     // Setup accept/decline form handlers
@@ -681,14 +842,28 @@ class CalendarSchedule {
                         if (data.success || response.ok) {
                             this.modal.hide();
                             this.calendarObj.refetchEvents();
-                            alert('Schedule accepted successfully');
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Success!',
+                                text: 'Schedule accepted successfully',
+                                timer: 2000,
+                                showConfirmButton: false
+                            });
                         } else {
-                            alert('Error: ' + (data.message || 'Failed to accept schedule'));
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: data.message || 'Failed to accept schedule'
+                            });
                         }
                     })
                     .catch(error => {
                         console.error('Error:', error);
-                        alert('Failed to accept schedule');
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Failed to accept schedule'
+                        });
                     });
                 }
             });
@@ -712,14 +887,28 @@ class CalendarSchedule {
                         if (data.success || response.ok) {
                             this.modal.hide();
                             this.calendarObj.refetchEvents();
-                            alert('Schedule declined successfully');
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Success!',
+                                text: 'Schedule declined successfully',
+                                timer: 2000,
+                                showConfirmButton: false
+                            });
                         } else {
-                            alert('Error: ' + (data.message || 'Failed to decline schedule'));
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: data.message || 'Failed to decline schedule'
+                            });
                         }
                     })
                     .catch(error => {
                         console.error('Error:', error);
-                        alert('Failed to decline schedule');
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Failed to decline schedule'
+                        });
                     });
                 }
             });
