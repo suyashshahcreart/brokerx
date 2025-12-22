@@ -7,7 +7,8 @@ import { Calendar } from '@fullcalendar/core';
 import dayGridPlugin from '@fullcalendar/daygrid'
 import timeGridPlugin from '@fullcalendar/timegrid'
 import listPlugin from '@fullcalendar/list'
-import { Modal } from 'bootstrap'
+import { Modal } from 'bootstrap';
+import Swal from 'sweetalert2';
 
 // ---------------------------
 // Utilities & helpers
@@ -162,6 +163,9 @@ class CalendarSchedule {
         this.checkInRouteTpl = this.calendar?.getAttribute('data-check-in-route') || '';
         this.checkOutRouteTpl = this.calendar?.getAttribute('data-check-out-route') || '';
         this.bookingShowRouteTpl = this.calendar?.getAttribute('data-booking-show-route') || '';
+        // Accept/Decline routes from Blade (with :id placeholder)
+        this.acceptRouteTpl = (window.PENDING_SCHEDULE_ACCEPT_URL || '').replace('%3Aid', ':id');
+        this.declineRouteTpl = (window.PENDING_SCHEDULE_DECLINE_URL || '').replace('%3Aid', ':id');
     }
 
     // Event Clck {{ BOOKING SELECT AND mODEL OPEN }}
@@ -255,20 +259,11 @@ class CalendarSchedule {
                 // MODULE 1: Accept/Decline
                 if (pendingModule) {
                     pendingModule.style.display = 'block';
-                    const acceptForm = document.getElementById('modal-accept-form');
-                    const declineForm = document.getElementById('modal-decline-form');
+                    const acceptDeclineButtons = document.getElementById('modal-accept-decline-buttons');
                     const viewPendingLink = document.getElementById('modal-view-booking-link-pending');
-                    
-                    if (acceptForm) {
-                        acceptForm.action = `/admin/bookings/${bookingId}/status/approve-schedule`;
-                        const acceptBookingId = document.getElementById('modal-accept-booking-id');
-                        if (acceptBookingId) acceptBookingId.value = bookingId;
-                    }
-                    if (declineForm) {
-                        declineForm.action = `/admin/bookings/${bookingId}/status/decline-schedule`;
-                        const declineBookingId = document.getElementById('modal-decline-booking-id');
-                        if (declineBookingId) declineBookingId.value = bookingId;
-                    }
+
+                    // Show action buttons
+                    if (acceptDeclineButtons) acceptDeclineButtons.style.display = 'flex';
                     if (viewPendingLink && this.bookingShowRouteTpl) {
                         viewPendingLink.href = this.bookingShowRouteTpl.replace(':id', String(bookingId));
                     }
@@ -612,7 +607,7 @@ class CalendarSchedule {
         const timeHelper = document.getElementById('assignTimeHelper');
         const slotModeAvailable = document.getElementById('slotModeAvailable');
         const slotModeAny = document.getElementById('slotModeAny');
-        
+
         if (photographerSel) photographerSel.value = '';
         if (timeSel) {
             timeSel.innerHTML = '<option value="">Select a time</option>';
@@ -620,7 +615,7 @@ class CalendarSchedule {
             timeSel.value = '';
         }
         if (timeHelper) timeHelper.textContent = 'Select a photographer first to see available slots from the API, or choose "Pick any" to ignore conflicts.';
-        
+
         // Reset slot mode to "Available Slots Only"
         if (slotModeAvailable) slotModeAvailable.checked = true;
         if (slotModeAny) slotModeAny.checked = false;
@@ -748,171 +743,195 @@ class CalendarSchedule {
                 'Accept': 'application/json'
             }
         })
-        .then(response => {
-            if (!response.ok) {
-                if (response.status === 403) {
-                    return response.json().then(err => {
-                        throw new Error(err?.message || 'Access denied');
-                    });
-                }
-                return response.json().then(err => Promise.reject(err));
-            }
-            return response.json();
-        })
-        .then(json => {
-            if (!json || json.success === false) {
-                setHelper(json?.message || 'Failed to load slots');
-                resetSelect();
-                return;
-            }
-
-            const occupiedIntervals = [];
-
-            (json.data || []).forEach(s => {
-                if (!s.time) return;
-                const parts = s.time.split(':');
-                if (parts.length < 2) return;
-                const start = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
-                const end = start + workingDuration;
-                occupiedIntervals.push({ start, end });
-            });
-
-            timeSel.innerHTML = '<option value="">Select a time</option>';
-            for (let t = fromM; t <= toM; t += slotStep) {
-                const candidateStart = t;
-                const candidateEnd = t + workingDuration;
-                if (candidateEnd > toM) continue;
-
-                let overlaps = false;
-                for (const occ of occupiedIntervals) {
-                    if (candidateStart < occ.end && candidateEnd > occ.start) {
-                        overlaps = true;
-                        break;
+            .then(response => {
+                if (!response.ok) {
+                    if (response.status === 403) {
+                        return response.json().then(err => {
+                            throw new Error(err?.message || 'Access denied');
+                        });
                     }
+                    return response.json().then(err => Promise.reject(err));
+                }
+                return response.json();
+            })
+            .then(json => {
+                if (!json || json.success === false) {
+                    setHelper(json?.message || 'Failed to load slots');
+                    resetSelect();
+                    return;
                 }
 
-                if (overlaps) continue;
+                const occupiedIntervals = [];
 
-                const opt = document.createElement('option');
-                opt.value = formatHM(t);
-                opt.textContent = formatDisplay(t);
-                timeSel.appendChild(opt);
-            }
+                (json.data || []).forEach(s => {
+                    if (!s.time) return;
+                    const parts = s.time.split(':');
+                    if (parts.length < 2) return;
+                    const start = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
+                    const end = start + workingDuration;
+                    occupiedIntervals.push({ start, end });
+                });
 
-            if (timeSel.options.length <= 1) {
+                timeSel.innerHTML = '<option value="">Select a time</option>';
+                for (let t = fromM; t <= toM; t += slotStep) {
+                    const candidateStart = t;
+                    const candidateEnd = t + workingDuration;
+                    if (candidateEnd > toM) continue;
+
+                    let overlaps = false;
+                    for (const occ of occupiedIntervals) {
+                        if (candidateStart < occ.end && candidateEnd > occ.start) {
+                            overlaps = true;
+                            break;
+                        }
+                    }
+
+                    if (overlaps) continue;
+
+                    const opt = document.createElement('option');
+                    opt.value = formatHM(t);
+                    opt.textContent = formatDisplay(t);
+                    timeSel.appendChild(opt);
+                }
+
+                if (timeSel.options.length <= 1) {
+                    resetSelect();
+                    setHelper('No available slots on this date for selected photographer.');
+                } else {
+                    timeSel.disabled = false;
+                    if (!timeSel.value && timeSel.options.length > 1) {
+                        timeSel.value = timeSel.options[1].value;
+                    }
+                    timeSel.focus();
+                    setHelper(`Available slots: ${formatDisplay(fromM)} — ${formatDisplay(toM)} (every ${slotStep} min)`);
+                }
+            })
+            .catch(err => {
+                console.error('Error loading slots:', err);
+                setHelper(err?.message || 'Failed to load slots.');
                 resetSelect();
-                setHelper('No available slots on this date for selected photographer.');
-            } else {
-                timeSel.disabled = false;
-                if (!timeSel.value && timeSel.options.length > 1) {
-                    timeSel.value = timeSel.options[1].value;
-                }
-                timeSel.focus();
-                setHelper(`Available slots: ${formatDisplay(fromM)} — ${formatDisplay(toM)} (every ${slotStep} min)`);
-            }
-        })
-        .catch(err => {
-            console.error('Error loading slots:', err);
-            setHelper(err?.message || 'Failed to load slots.');
-            resetSelect();
-        });
+            });
     }
 
     // Setup accept/decline form handlers
     setupAcceptDeclineForms() {
-        const acceptForm = document.getElementById('modal-accept-form');
-        const declineForm = document.getElementById('modal-decline-form');
+        const self = this;
+        const acceptButton = document.getElementById('modal-accept-btn');
+        const declineButton = document.getElementById('modal-decline-btn');
+        const adminNotesField = document.getElementById('modal-accept-notes');
+        const modal = this.modal;
 
-        if (acceptForm) {
-            acceptForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                const url = acceptForm.action;
-                if (url) {
-                    // Submit with fetch for AJAX
-                    fetch(url, {
-                        method: 'POST',
-                        headers: {
-                            'X-Requested-With': 'XMLHttpRequest',
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({})
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success || response.ok) {
-                            this.modal.hide();
-                            this.calendarObj.refetchEvents();
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'Success!',
-                                text: 'Schedule accepted successfully',
-                                timer: 2000,
-                                showConfirmButton: false
-                            });
-                        } else {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Error',
-                                text: data.message || 'Failed to accept schedule'
-                            });
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: 'Failed to accept schedule'
-                        });
-                    });
-                }
-            });
+        // Helper to get booking id from modal
+        function getBookingId() {
+            const el = document.getElementById('modal-booking-id');
+            return el ? el.textContent.trim() : '';
         }
 
-        if (declineForm) {
-            declineForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                const url = declineForm.action;
-                if (url) {
-                    fetch(url, {
-                        method: 'POST',
-                        headers: {
-                            'X-Requested-With': 'XMLHttpRequest',
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({})
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success || response.ok) {
-                            this.modal.hide();
-                            this.calendarObj.refetchEvents();
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'Success!',
-                                text: 'Schedule declined successfully',
-                                timer: 2000,
-                                showConfirmButton: false
-                            });
-                        } else {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Error',
-                                text: data.message || 'Failed to decline schedule'
-                            });
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
+        // Accept booking
+        acceptButton?.addEventListener('click', function (e) {
+            const bookingId = getBookingId();
+            const notes = adminNotesField?.value || '';
+            if (!bookingId) {
+                Swal.fire({ icon: 'error', title: 'Error', text: 'Booking ID not found' });
+                return;
+            }
+            acceptButton.disabled = true;
+            acceptButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Processing...';
+            // Use route from Blade
+            let url = self.acceptRouteTpl ? self.acceptRouteTpl.replace(':id', bookingId) : `/admin/pending-schedules/${bookingId}/accept`;
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                },
+                body: JSON.stringify({ notes })
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(err => Promise.reject(err));
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        modal.hide();
+                        self.calendarObj.refetchEvents();
                         Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: 'Failed to decline schedule'
+                            icon: 'success',
+                            title: 'Success!',
+                            text: data.message || 'Schedule accepted successfully',
+                            timer: 2000,
+                            showConfirmButton: false
                         });
-                    });
+                    } else {
+                        Swal.fire({ icon: 'error', title: 'Error', text: data.message || 'Failed to accept schedule' });
+                    }
+                })
+                .catch(error => {
+                    Swal.fire({ icon: 'error', title: 'Error', text: error.message || 'Failed to accept schedule' });
+                })
+                .finally(() => {
+                    acceptButton.disabled = false;
+                    acceptButton.innerHTML = '<i class="ri-check-line me-1"></i> Accept Schedule';
+                });
+        });
+
+        // Decline booking
+        declineButton?.addEventListener('click', function (e) {
+            const bookingId = getBookingId();
+            const notes = adminNotesField?.value || '';
+            if (!bookingId) {
+                Swal.fire({ icon: 'error', title: 'Error', text: 'Booking ID not found' });
+                return;
+            }
+            if (!notes.trim()) {
+                Swal.fire({ icon: 'warning', title: 'Required', text: 'Please provide admin notes for declining.' });
+                return;
+            }
+            declineButton.disabled = true;
+            declineButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Processing...';
+            // Use route from Blade
+            let url = self.declineRouteTpl ? self.declineRouteTpl.replace(':id', bookingId) : `/admin/pending-schedules/${bookingId}/decline`;
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                },
+                body: JSON.stringify({ reason: notes })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => Promise.reject(err));
                 }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    modal.hide();
+                    self.calendarObj.refetchEvents();
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Declined',
+                        text: data.message || 'Schedule declined successfully',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                } else {
+                    Swal.fire({ icon: 'error', title: 'Error', text: data.message || 'Failed to decline schedule' });
+                }
+            })
+            .catch(error => {
+                Swal.fire({ icon: 'error', title: 'Error', text: error.message || 'Failed to decline schedule' });
+            })
+            .finally(() => {
+                declineButton.disabled = false;
+                declineButton.innerHTML = '<i class="ri-close-line me-1"></i> Decline Schedule';
             });
-        }
+        });
     }
 
     init() {

@@ -52,7 +52,7 @@
             <div class="card">
                 <div class="card-body">
                     <div class="row">
-                        <!-- Filter by Photographer: -->
+                        <!-- Filter => Photographer,status -->
                         <div class="col-12">
                             @if(auth()->check() && auth()->user()->hasRole('admin'))
                                 <div class="mt-2 mb-3">
@@ -89,7 +89,7 @@
                             @endif
                         </div>
 
-                        <!-- Assigne Booking list only for admin -->
+                        <!-- CALENDER MAIN Assigne Booking list only for admin -->
                         @if (auth()->check() && auth()->user()->hasRole('admin'))
                             <div class="col-xl-3">
                                 <div class="text-start">
@@ -129,7 +129,7 @@
                                 </div>
                             </div> <!-- end col -->
                         @endif
-                        <!-- calender for Photographer -->
+                        <!-- CALENDER MAIN: calender for Photographer -->
                         <div class="col-xl-12">
                             <div class="mt-4 mt-lg-0">
                                 <div id="calendar" data-booking-api="{{ route('api.booking-assignees.all-bookings') }}"
@@ -206,6 +206,7 @@
                                             <strong>Selected Booking Details</strong>
                                         </div>
                                     </div>
+                                    <!-- DETAILS TABLE OF BOOKING , PHOTOGRAPHER  -->
                                     <div class="col-12">
                                         <table class="table table-sm mb-0">
                                             <tbody>
@@ -262,23 +263,21 @@
                                             <small><strong>Action Required:</strong> Please accept or decline this booking
                                                 request.</small>
                                         </div>
-                                        <div class="d-flex flex-wrap gap-2" id="modal-accept-decline-buttons">
-                                            <form id="modal-accept-form" style="display:inline;" method="POST">
-                                                @csrf
-                                                <input type="hidden" id="modal-accept-booking-id" name="booking_id"
-                                                    value="">
-                                                <button type="submit" class="btn btn-success btn-sm">
-                                                    <i class="ri-check-line me-1"></i> Accept Schedule
-                                                </button>
-                                            </form>
-                                            <form id="modal-decline-form" style="display:inline;" method="POST">
-                                                @csrf
-                                                <input type="hidden" id="modal-decline-booking-id" name="booking_id"
-                                                    value="">
-                                                <button type="submit" class="btn btn-danger btn-sm">
-                                                    <i class="ri-close-line me-1"></i> Decline Schedule
-                                                </button>
-                                            </form>
+                                        <div class="my-1">
+                                            <label for="modal-accept-notes" class="form-label">Admin Notes (Optional)</label>
+                                            <textarea id="modal-accept-notes" name="notes" class="form-control form-control-sm" 
+                                                rows="2" maxlength="500" placeholder="Add any notes for the photographer..."></textarea>
+                                            <small class="text-muted">Max 500 characters</small>
+                                        </div>
+                                        
+                                        <!-- Action Buttons (only show if both forms are hidden) -->
+                                        <div class="d-flex flex-wrap gap-2" id="modal-accept-decline-buttons" style="display: flex;">
+                                            <button type="button" class="btn btn-success btn-sm" id="modal-accept-btn">
+                                                <i class="ri-check-line me-1"></i> Accept Schedule
+                                            </button>
+                                            <button type="button" class="btn btn-danger btn-sm" id="modal-decline-btn">
+                                                <i class="ri-close-line me-1"></i> Decline Schedule
+                                            </button>
                                             <a id="modal-view-booking-link-pending" href="#" class="btn btn-info btn-sm">
                                                 <i class="ri-eye-line me-1"></i> View Full Details
                                             </a>
@@ -324,6 +323,7 @@
                     </div> <!-- end modal-content-->
                 </div> <!-- end modal dialog-->
             </div> <!-- end modal-->
+            
             <!-- Assignment Modal (same logic as booking assigne module) -->
             <div class="modal fade" id="assignBookingModal" tabindex="-1" aria-labelledby="assignBookingModalLabel"
                 aria-hidden="true"
@@ -451,9 +451,11 @@
             </div>
         </div> <!-- end col -->
     </div> <!-- end row -->
-
 @endsection
-
 @section('scripts')
+    <script>
+        window.PENDING_SCHEDULE_ACCEPT_URL = @json(route('admin.pending-schedules.accept', ['booking' => ':id']));
+        window.PENDING_SCHEDULE_DECLINE_URL = @json(route('admin.pending-schedules.decline', ['booking' => ':id']));
+    </script>
     @vite(['resources/js/pages/photographer-index.js',])
 @endsection

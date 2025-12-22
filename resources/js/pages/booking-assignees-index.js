@@ -9,7 +9,6 @@ if (typeof window.$ === 'undefined') {
 }
 
 import 'datatables.net-bs5';
-
 import Swal from 'sweetalert2';
 import 'bootstrap/js/dist/dropdown';
 const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
