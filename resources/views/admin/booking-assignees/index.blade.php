@@ -176,7 +176,17 @@
                                 <select id="assignTime" name="time" class="form-select" disabled required>
                                     <option value="">Select a time</option>
                                 </select>
-                                <div id="assignTimeHelper" class="form-text text-muted small">Select a photographer first to see available 15-minute slots.</div>
+                                <div class="mt-2">
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="slotMode" id="slotModeAvailable" value="available" checked>
+                                        <label class="form-check-label" for="slotModeAvailable">Available slots (default)</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="slotMode" id="slotModeAny" value="any">
+                                        <label class="form-check-label" for="slotModeAny">Pick any</label>
+                                    </div>
+                                </div>
+                                <div id="assignTimeHelper" class="form-text text-muted small">Select a photographer first to see available slots from the API, or choose "Pick any" to ignore conflicts.</div>
                             </div> 
                         </div>
                     </div>

@@ -9,7 +9,6 @@ if (typeof window.$ === 'undefined') {
 }
 
 import 'datatables.net-bs5';
-
 import Swal from 'sweetalert2';
 import 'bootstrap/js/dist/dropdown';
 const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
@@ -408,67 +407,72 @@ function bindAssignButtons() {
             const toM = toMinutes(availableTo);
             const slotStep = 15; // minutes between options
 
-            // Update helper text and disable select until photographer is chosen
             const helper = document.getElementById('assignTimeHelper');
-            if (helper) {
-                helper.textContent = 'Select a photographer first to see available 15-minute slots.';
-            }
-            assignTimeEl.disabled = true;
-            // Clear existing options
-            assignTimeEl.innerHTML = '<option value="">Select a time</option>';
+            const slotModeAvailable = document.getElementById('slotModeAvailable');
+            const slotModeAny = document.getElementById('slotModeAny');
 
-            function populateTimeOptions() {
+            const setHelper = (msg) => { if (helper) helper.textContent = msg; };
+            const resetSelect = () => { assignTimeEl.disabled = true; assignTimeEl.innerHTML = '<option value="">Select a time</option>'; assignTimeEl.value = ''; };
+
+            setHelper('Select a photographer first to see available slots from the API, or choose "Pick any" to ignore conflicts.');
+            resetSelect();
+            if (slotModeAvailable) slotModeAvailable.checked = true;
+            if (slotModeAny) slotModeAny.checked = false;
+
+            const getSlotMode = () => (slotModeAny?.checked ? 'any' : 'available');
+
+            function buildAllSlots() {
                 assignTimeEl.innerHTML = '<option value="">Select a time</option>';
                 if (toM < fromM) return;
                 for (let t = fromM; t <= toM; t += slotStep) {
+                    const candidateEnd = t + (workingDuration || 60);
+                    if (candidateEnd > toM) continue;
                     const opt = document.createElement('option');
                     opt.value = formatHM(t);
                     opt.textContent = formatDisplay(t);
                     assignTimeEl.appendChild(opt);
                 }
-                // Ensure final availableTo is present
-                const lastVal = formatHM(toM);
-                if (![...assignTimeEl.options].some(o => o.value === lastVal)) {
-                    const opt = document.createElement('option');
-                    opt.value = lastVal;
-                    opt.textContent = formatDisplay(toM);
-                    assignTimeEl.appendChild(opt);
+                if (assignTimeEl.options.length > 1) {
+                    assignTimeEl.disabled = false;
+                    assignTimeEl.value = assignTimeEl.options[1].value;
+                } else {
+                    assignTimeEl.disabled = true;
                 }
             }
 
-            // Enable/disable and populate select based on photographer selection
-            assignPhotographerEl.onchange = function () {
-                if (!this.value) {
-                    assignTimeEl.disabled = true;
-                    assignTimeEl.value = '';
-                    assignTimeEl.innerHTML = '<option value="">Select a time</option>';
-                    if (helper) helper.textContent = 'Select a photographer first to see available 15-minute slots.';
+            function loadSlots() {
+                if (!assignPhotographerEl.value) {
+                    resetSelect();
+                    setHelper('Select a photographer first to see available slots from the API, or choose "Pick any" to ignore conflicts.');
                     return;
                 }
 
                 if (toM < fromM) {
-                    assignTimeEl.disabled = true;
-                    assignTimeEl.innerHTML = '<option value="">Select a time</option>';
-                    if (helper) helper.textContent = 'No available slots for photographers. Please update settings.';
+                    resetSelect();
+                    setHelper('No available slots for photographers. Please update settings.');
                     return;
                 }
 
-                // Ensure booking date is set
                 const dateVal = document.getElementById('modalDate').value;
                 if (!dateVal) {
-                    assignTimeEl.disabled = true;
-                    assignTimeEl.innerHTML = '<option value="">Select a time</option>';
-                    if (helper) helper.textContent = 'Please select a booking date first.';
+                    resetSelect();
+                    setHelper('Please select a booking date first.');
                     return;
                 }
 
-                // Show loading state
-                if (helper) helper.textContent = 'Loading photographer slots...';
+                // Mode: pick any (ignore existing assignments)
+                if (getSlotMode() === 'any') {
+                    buildAllSlots();
+                    setHelper(`Pick any slot between ${formatDisplay(fromM)} — ${formatDisplay(toM)} (every ${slotStep} min)`);
+                    return;
+                }
+
+                // Mode: available (default) -> fetch and filter
+                setHelper('Loading photographer slots...');
                 assignTimeEl.disabled = true;
                 assignTimeEl.innerHTML = '<option value="">Loading...</option>';
 
-                // Call API to get existing assignments for this photographer on the date
-                fetch(`/api/booking-assignees/slots?date=${encodeURIComponent(dateVal)}&user_id=${encodeURIComponent(this.value)}`, {
+                fetch(`/api/booking-assignees/slots?date=${encodeURIComponent(dateVal)}&user_id=${encodeURIComponent(assignPhotographerEl.value)}`, {
                     method: 'GET',
                     credentials: 'same-origin',
                     headers: {
@@ -479,9 +483,8 @@ function bindAssignButtons() {
                 .then(response => {
                     if (!response.ok) {
                         if (response.status === 403) {
-                            if (helper) helper.textContent = 'Forbidden to view slots for selected user.';
-                            assignTimeEl.disabled = true;
-                            assignTimeEl.innerHTML = '<option value="">Select a time</option>';
+                            setHelper('Forbidden to view slots for selected user.');
+                            resetSelect();
                             return Promise.reject({ message: 'Forbidden' });
                         }
                         return response.json().then(err => Promise.reject(err));
@@ -490,15 +493,12 @@ function bindAssignButtons() {
                 })
                 .then(json => {
                     if (!json || json.success === false) {
-                        if (helper) helper.textContent = json?.message || 'Failed to load slots';
-                        assignTimeEl.disabled = true;
-                        assignTimeEl.innerHTML = '<option value="">Select a time</option>';
+                        setHelper(json?.message || 'Failed to load slots');
+                        resetSelect();
                         return;
                     }
 
-                    // Build occupied intervals based on returned assignments and working duration
                     const duration = workingDuration || 60; // minutes
-                    const step = slotStep;
                     const occupiedIntervals = [];
 
                     (json.data || []).forEach(s => {
@@ -510,16 +510,12 @@ function bindAssignButtons() {
                         occupiedIntervals.push({ start, end });
                     });
 
-                    // Rebuild available options excluding those that would overlap occupied intervals
                     assignTimeEl.innerHTML = '<option value="">Select a time</option>';
                     for (let t = fromM; t <= toM; t += slotStep) {
                         const candidateStart = t;
                         const candidateEnd = t + duration;
-
-                        // Ensure the candidate assignment fits within photographer availability
                         if (candidateEnd > toM) continue;
 
-                        // Check overlap with any occupied interval
                         let overlaps = false;
                         for (const occ of occupiedIntervals) {
                             if (candidateStart < occ.end && candidateEnd > occ.start) {
@@ -537,25 +533,27 @@ function bindAssignButtons() {
                     }
 
                     if (assignTimeEl.options.length <= 1) {
-                        assignTimeEl.disabled = true;
-                        if (helper) helper.textContent = 'No available slots on this date for selected photographer.';
+                        resetSelect();
+                        setHelper('No available slots on this date for selected photographer.');
                     } else {
                         assignTimeEl.disabled = false;
-                        // Select first available slot
                         if (!assignTimeEl.value && assignTimeEl.options.length > 1) {
                             assignTimeEl.value = assignTimeEl.options[1].value;
                         }
                         assignTimeEl.focus();
-                        if (helper) helper.textContent = `Available slots: ${formatDisplay(fromM)} — ${formatDisplay(toM)} (every ${slotStep} min)`;
+                        setHelper(`Available slots: ${formatDisplay(fromM)} — ${formatDisplay(toM)} (every ${slotStep} min)`);
                     }
                 })
                 .catch(err => {
                     console.error('Error loading slots:', err);
-                    if (helper) helper.textContent = err?.message || 'Failed to load slots.';
-                    assignTimeEl.disabled = true;
-                    assignTimeEl.innerHTML = '<option value="">Select a time</option>';
+                    setHelper(err?.message || 'Failed to load slots.');
+                    resetSelect();
                 });
-            };
+            }
+
+            assignPhotographerEl.onchange = loadSlots;
+            if (slotModeAvailable) slotModeAvailable.onchange = loadSlots;
+            if (slotModeAny) slotModeAny.onchange = loadSlots;
 
             const form = document.getElementById('assignBookingForm');
             form.setAttribute('data-booking-id', bookingId);
