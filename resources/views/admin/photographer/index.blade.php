@@ -92,12 +92,8 @@
                         <!-- CALENDER MAIN Assigne Booking list only for admin -->
                         @if (auth()->check() && auth()->user()->hasRole('admin'))
                             <div class="col-xl-3">
-                                <div class="text-start">
-                                    <h3 class="mb-0">Booking Assignment List</h3>
-                                    <p>Assigne Booking to a Photographer Directly from List</p>
-                                </div>
                                 <div id="Booking-list">
-                                    <p class="text-muted">Select and Booking to assigne Photographer</p>
+                                    <p class="fw-bold">Status Color Details</p>
                                     <div class="external-event bg-primary" data-class="bg-primary">
                                         <i class="ri-circle-fill me-2 vertical-middle"></i>Schedule assigned
                                     </div>
