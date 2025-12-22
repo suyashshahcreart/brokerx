@@ -11,12 +11,12 @@
                             <li class="breadcrumb-item"><a href="{{ route('root') }}">Home</a></li>
                             <li class="breadcrumb-item" aria-current="page"><a href="{{ route('admin.tour-manager.index') }}">Tour Management</a></li>
                             <li class="breadcrumb-item active" aria-current="page">Edit</li>
-                            <li class="breadcrumb-item active" aria-current="page">{{ $tour->id }}</li>
+                            <li class="breadcrumb-item active" aria-current="page">{{ $booking->id }}</li>
                         </ol>
                     </nav>
                     <h3 class="mb-0">Tour Management</h3>
                 </div>
-                <a href="{{ route('admin.tour-manager.index', $tour->booking_id) }}" class="btn btn-secondary">
+                <a href="{{ route('admin.tour-manager.show', $booking) }}" class="btn btn-secondary">
                         <i class="ri-arrow-left-line me-1"></i> Back to Booking
                 </a>
             </div>
@@ -25,7 +25,7 @@
     <div class="row">
         <!-- Main Content -->
         <div class="col-lg-8">
-            <form action="{{ route('admin.tour-manager.update', $tour) }}" method="POST" enctype="multipart/form-data" id="tour-edit-form">
+            <form action="{{ route('admin.tour-manager.update', $booking) }}" method="POST" enctype="multipart/form-data" id="tour-edit-form">
                 @csrf
                 @method('PUT')
                 
@@ -35,14 +35,72 @@
                         <h4 class="card-title mb-0">Upload Tour Files</h4>
                     </div>
                     <div class="card-body">
+                        <!-- Tour Information Display -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <div class="mb-2">
+                                    <label class="form-label fw-bold text-muted small">Tour Slug</label>
+                                    <p class="mb-0 fw-semibold">{{ $tour->slug ?? 'N/A' }}</p>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-2">
+                                    <label class="form-label fw-bold text-muted small">Tour Location</label>
+                                    <p class="mb-0 fw-semibold">
+                                        @if($tour->location === 'creart_qr')
+                                            creart_qr (http://creart.in/qr/)
+                                        @elseif($tour->location)
+                                            {{ $tour->location }} (https://{{ $tour->location }}.proppik.com)
+                                        @else
+                                            N/A
+                                        @endif
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Upload Paths Information -->
+                        @if($tour->slug && $tour->location)
+                        @php
+                            // Get S3 base URL
+                            $s3BaseUrl = config('filesystems.disks.s3.url') ?: 
+                                ('https://' . config('filesystems.disks.s3.bucket') . '.s3.' . 
+                                 config('filesystems.disks.s3.region') . '.amazonaws.com');
+                            $s3FullPath = rtrim($s3BaseUrl, '/') . '/tours/' . ($booking->tour_code ?? 'N/A') . '/';
+                            $s3RelativePath = 'tours/' . ($booking->tour_code ?? 'N/A') . '/';
+                        @endphp
+                        <div class="alert alert-info mb-3">
+                            <h6 class="alert-heading mb-2"><i class="ri-information-line me-1"></i> Upload Paths</h6>
+                            <div class="mb-2">
+                                <strong>S3 Upload Path:</strong>
+                                <code class="d-block mt-1 small">{{ $s3RelativePath }}</code>
+                                <small class="text-muted">All tour assets (images, assets, gallery, tiles, etc.) will be uploaded to this S3 path.</small>
+                                <div class="mt-1">
+                                    <strong>Full S3 URL:</strong>
+                                    <code class="d-block mt-1 small text-break">{{ $s3FullPath }}</code>
+                                </div>
+                            </div>
+                            <div class="mb-0">
+                                <strong>FTP Upload Path:</strong>
+                                @if($tour->location === 'creart_qr')
+                                    <code class="d-block mt-1 small">qr/{{ $tour->slug }}/index.php</code>
+                                    <small class="text-muted">The converted index.php file will be uploaded to: <strong>http://creart.in/qr/{{ $tour->slug }}/index.php</strong></small>
+                                @else
+                                    <code class="d-block mt-1 small">{{ $tour->slug }}/index.php</code>
+                                    <small class="text-muted">The converted index.php file will be uploaded to: <strong>https://{{ $tour->location }}.proppik.com/{{ $tour->slug }}/index.php</strong></small>
+                                @endif
+                            </div>
+                        </div>
+                        @endif
+
                         <div class="mb-3">
-                            <label class="form-label">Upload Files <span class="text-danger">*</span></label>
+                            <label class="form-label">Upload ZIP File <span class="text-danger">*</span></label>
                             <div class="dropzone" id="tour-dropzone">
                                 <div class="dz-message needsclick">
                                     <i class="ri-upload-cloud-2-line fs-1 text-muted"></i>
                                     <h4>Drop tour ZIP file here or click to select</h4>
-                                    <span class="text-muted">Upload a ZIP file containing tour assets (images, assets, gallery, tiles, index.html, data.json)</span>
-                                    <span class="text-muted d-block mt-1"><small>Max 500MB per file | Required: index.html + JSON file + folders (images, assets, gallery, tiles)</small></span>
+                                    <span class="text-muted">Upload a single ZIP file containing tour assets (images, assets, gallery, tiles, index.html, data.json)</span>
+                                    <span class="text-muted d-block mt-1"><small>Max 500MB | Single file only | Required: index.html + JSON file + folders (images, assets, gallery, tiles)</small></span>
                                 </div>
                             </div>
                             <div id="file-count-display" class="mt-2 text-muted" style="display: none;">
@@ -70,67 +128,12 @@
                             </div>
                         </div>
                         @endif
-                    </div>
-                </div>
 
-                <!-- Basic Details Card -->
-                <div class="card">
-                    <div class="card-header">
-                        <h4 class="card-title mb-0">Tour Details</h4>
-                    </div>
-                    <div class="card-body">
-                        <div class="mb-3">
-                            <label for="title" class="form-label">Title <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control @error('title') is-invalid @enderror" 
-                                   id="title" name="title" value="{{ old('title', $tour->title) }}" required>
-                            @error('title')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="description" class="form-label">Description</label>
-                            <textarea class="form-control @error('description') is-invalid @enderror" 
-                                      id="description" name="description" rows="4">{{ old('description', $tour->description) }}</textarea>
-                            @error('description')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="status" class="form-label">Status <span class="text-danger">*</span></label>
-                                    <select class="form-select @error('status') is-invalid @enderror" 
-                                            id="status" name="status" required>
-                                        @foreach($statuses as $statusOption)
-                                            <option value="{{ $statusOption }}" {{ old('status', $tour->status) == $statusOption ? 'selected' : '' }}>
-                                                {{ ucfirst($statusOption) }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                    @error('status')
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="location" class="form-label">Location</label>
-                                    <input type="text" class="form-control @error('location') is-invalid @enderror" 
-                                           id="location" name="location" value="{{ old('location', $tour->location) }}">
-                                    @error('location')
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="d-grid gap-2">
+                        <div class="d-grid gap-2 mt-3">
                             <button type="submit" class="btn btn-primary btn-lg">
-                                <i class="ri-save-line me-1"></i> Update Tour
+                                <i class="ri-upload-cloud-2-line me-1"></i> Upload Tour Files
                             </button>
-                            <a href="{{ route('admin.tour-manager.show', $tour->booking_id) }}" class="btn btn-secondary">
+                            <a href="{{ route('admin.tour-manager.show', $booking) }}" class="btn btn-secondary">
                                 <i class="ri-close-line me-1"></i> Cancel
                             </a>
                         </div>
@@ -141,6 +144,116 @@
 
         <!-- Sidebar -->
         <div class="col-lg-4">
+
+            <!-- QR Code Information -->
+            @if($booking && $booking->qr)
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="card-title mb-0">QR Code</h4>
+                    </div>
+                    <div class="card-body text-center">
+                        <div class="mb-3">
+                            @if($booking->qr->image)
+                                <img src="{{ asset('storage/' . $booking->qr->image) }}" alt="QR Code" class="img-fluid"
+                                    style="max-width: 250px;">
+                            @elseif($booking->qr->qr_link)
+                                <div class="qr-code-container">
+                                    {!! $booking->qr->qr_code_image !!}
+                                </div>
+                            @elseif($booking->qr->code)
+                                @php
+                                    // Generate QR code from code if qr_link doesn't exist
+                                    $qrUrl = 'https://qr.proppik.com/' . $booking->qr->code;
+                                    $qrCodeSvg = \SimpleSoftwareIO\QrCode\Facades\QrCode::size(300)
+                                        ->format('svg')
+                                        ->generate($qrUrl);
+                                @endphp
+                                <div class="qr-code-container">
+                                    {!! $qrCodeSvg !!}
+                                </div>
+                            @else
+                                <div class="alert alert-info">
+                                    <i class="ri-qr-code-line fs-3"></i>
+                                    <p class="mb-0 mt-2">QR Code not generated yet</p>
+                                </div>
+                            @endif
+                        </div>
+                        <div class="row text-start">
+                            <div class="col-6 mb-2">
+                                <label class="form-label fw-bold text-muted small">QR Name</label>
+                                <p class="fw-semibold mb-0">{{ $booking->qr->name ?? 'N/A' }}</p>
+                            </div>
+                            <div class="col-6 mb-2">
+                                <label class="form-label fw-bold text-muted small">QR Code</label>
+                                <p class="mb-0 font-monospace">{{ $booking->qr->code }}</p>
+                            </div>
+                            @if($booking->qr->qr_link)
+                                <div class="col-6 mb-2">
+                                    <label class="form-label fw-bold text-muted small">QR Link</label>
+                                    <p class="mb-0">
+                                        <a href="{{ $booking->qr->qr_link }}" target="_blank" class="text-truncate d-block"
+                                            style="max-width: 100%;">
+                                            {{ Str::limit($booking->qr->qr_link, 40) }}
+                                            <i class="ri-external-link-line ms-1"></i>
+                                        </a>
+                                    </p>
+                                </div>
+                            @endif
+                            <div class="col-6 mb-2">
+                                <label class="form-label fw-bold text-muted small">Created</label>
+                                <p class="mb-0">{{ $booking->qr->created_at->format('d M Y, h:i A') }}</p>
+                            </div>
+                        </div>
+                        @if($booking->qr->image)
+                            <div class="col-6 mt-3">
+                                <a href="{{ asset('storage/' . $booking->qr->image) }}" download class="btn btn-primary btn-sm">
+                                    <i class="ri-download-line me-1"></i> Download QR
+                                </a>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+                @else
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="card-title mb-0">QR Code</h4>
+                    </div>
+                    <div class="card-body text-center">
+                        <div class="alert alert-info">
+                            <i class="ri-qr-code-line fs-3"></i>
+                            <p class="mb-0 mt-2">QR Code not generated yet</p>
+
+                        </div>
+                        @php
+                             // Try to find and assign an available QR code
+                             $availableQr = \App\Models\QR::whereNull('booking_id')->first();
+                         @endphp
+                         @if($availableQr)
+                             <div class="row text-start">
+                                 <div class="col-6 mb-2">
+                                     <label class="form-label fw-bold text-muted small">Auto Assigned QR Code</label>
+                                     <h3><small class="badge bg-primary font-monospace">{{ $availableQr->code }}</small></h3>
+                                     
+                                 </div>
+                                 <div class="col-12 mb-2">
+                                     <div class="alert alert-warning mb-0">
+                                         <i class="ri-qr-code-line me-1"></i>
+                                         <small><strong><big> #{{ $availableQr->code }} </big></strong>  QR code will be automatically assigned to this booking when you upload and save the tour here.</small>
+                                     </div>
+                                 </div>
+                             </div>
+                         @else
+                             <div class="alert alert-info">
+                                 <i class="ri-qr-code-line fs-3"></i>
+                                 <p class="mb-0 mt-2">No available QR codes. Please generate a new QR code first.</p>
+                             </div>
+                         @endif
+                    </div>
+                </div>
+            @endif<!-- QR Code -->
+
+                        
+
             <!-- Booking Info -->
             <div class="card">
                 <div class="card-header">
@@ -149,29 +262,29 @@
                 <div class="card-body">
                     <div class="mb-3">
                         <label class="text-muted small">Booking ID</label>
-                        <p class="mb-0 fw-semibold">#{{ $tour->booking_id }}</p>
+                        <p class="mb-0 fw-semibold">#{{ $booking->id }}</p>
                     </div>
-                    @if($tour->booking)
+                    @if($booking)
                         <div class="mb-3">
                             <label class="text-muted small">Customer</label>
-                            <p class="mb-0 fw-semibold">{{ $tour->booking->user?->firstname }} {{ $tour->booking->user?->lastname }}</p>
-                            <small class="text-muted">{{ $tour->booking->user?->email }}</small>
+                            <p class="mb-0 fw-semibold">{{ $booking->user?->firstname }} {{ $booking->user?->lastname }}</p>
+                            <small class="text-muted">{{ $booking->user?->email }}</small>
                         </div>
                         <div class="mb-3">
                             <label class="text-muted small">Property Type</label>
-                            <p class="mb-0">{{ $tour->booking->propertyType?->name ?? 'N/A' }}</p>
+                            <p class="mb-0">{{ $booking->propertyType?->name ?? 'N/A' }}</p>
                         </div>
                         <div class="mb-3">
                             <label class="text-muted small">Location</label>
-                            <p class="mb-0">{{ $tour->booking->city?->name ?? 'N/A' }}</p>
+                            <p class="mb-0">{{ $booking->city?->name ?? 'N/A' }}</p>
                         </div>
                         <div class="mb-3">
                             <label class="text-muted small">Booking Date</label>
-                            <p class="mb-0">{{ $tour->booking->booking_date ? \Carbon\Carbon::parse($tour->booking->booking_date)->format('d M Y') : 'N/A' }}</p>
+                            <p class="mb-0">{{ $booking->booking_date ? \Carbon\Carbon::parse($booking->booking_date)->format('d M Y') : 'N/A' }}</p>
                         </div>
                         <div class="mb-3">
                             <label class="text-muted small">Price</label>
-                            <p class="mb-0 fw-semibold">₹{{ number_format($tour->booking->price, 2) }}</p>
+                            <p class="mb-0 fw-semibold">₹{{ number_format($booking->price, 2) }}</p>
                         </div>
                     @endif
                 </div>
@@ -217,6 +330,8 @@
                     @endif
                 </div>
             </div>
+
+            
         </div>
     </div>
 </div>

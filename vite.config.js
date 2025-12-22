@@ -22,6 +22,8 @@ export default defineConfig({
                 'node_modules/quill/dist/quill.bubble.css',
                 'node_modules/swiper/swiper-bundle.min.css',
 
+                
+
                 // js
                 'resources/js/app.js',
                 'resources/js/config.js',
@@ -36,18 +38,25 @@ export default defineConfig({
                 'resources/js/pages/customer-detail.js',
                 'resources/js/pages/app-chat.js',
                 'resources/js/pages/app-blog-create.js',
-                'resources/js/pages/app-blog-create.js',
                 'resources/js/pages/app-calendar.js',
                 'resources/js/pages/coming-soon.js',
                 'resources/js/pages/widgets.js',
                 'resources/js/pages/bookings-edit.js',
                 'resources/js/pages/bookings-form.js',
                 'resources/js/pages/booking-index.js',
+                'resources/js/pages/booking-assignees-index.js',
                 'resources/js/pages/setting-index.js',
                 'resources/js/pages/qr-index.js',
+                'resources/js/pages/photographer-visit-jobs-index.js',
+                'resources/js/pages/photo-checkin-visit.js',
+                'resources/js/pages/photographer-visits-index.js',
                 'resources/js/pages/tours-index.js',
+                'resources/js/pages/photographer-index.js',
                 'resources/js/pages/tour-manager.js',
                 'resources/js/pages/tour-manager-edit.js',
+
+
+
                 'resources/js/components/maps-google.js',
                 'resources/js/components/maps-vector.js',
                 'resources/js/components/maps-canada.js',

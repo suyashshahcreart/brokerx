@@ -11,16 +11,16 @@ if (document.getElementById('tour-dropzone') && !document.getElementById('tour-d
             url: "#", // Dummy URL since we'll submit via form
             paramName: "files",
             maxFilesize: 500, // MB (increased for zip files)
-            maxFiles: 10, // Maximum 10 files
-            acceptedFiles: ".zip,image/*,.pdf,.doc,.docx",
+            maxFiles: 1, // Only single file allowed
+            acceptedFiles: ".zip,application/zip,application/x-zip-compressed,application/x-zip", // Only ZIP files
             addRemoveLinks: true,
             clickable: true,
             autoProcessQueue: false, // Don't upload automatically
-            uploadMultiple: true,
+            uploadMultiple: false, // Single file only
             dictDefaultMessage: "Drop tour ZIP file here or click to select",
             dictFileTooBig: "File is too big ({{filesize}}MB). Max filesize: {{maxFilesize}}MB.",
-            dictInvalidFileType: "You can't upload files of this type. Upload a ZIP file containing tour assets, or images/PDF/DOC.",
-            dictMaxFilesExceeded: "You can't upload more than {{maxFiles}} files.",
+            dictInvalidFileType: "Only ZIP files are allowed. Please upload a ZIP file containing tour assets.",
+            dictMaxFilesExceeded: "Only one ZIP file is allowed. Please remove the existing file first.",
             dictRemoveFile: "Remove file",
             init: function () {
                 const dropzone = this;
@@ -44,24 +44,20 @@ if (document.getElementById('tour-dropzone') && !document.getElementById('tour-d
                         return;
                     }
                     
-                    // Validate file type
-                    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/bmp', 'image/webp',
-                                       'application/pdf', 'application/msword', 
-                                       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                                       'application/zip', 'application/x-zip-compressed', 'application/x-zip', 'application/octet-stream'];
-                    
+                    // Validate file type - Only ZIP files allowed
+                    const validZipTypes = ['application/zip', 'application/x-zip-compressed', 'application/x-zip', 'application/octet-stream'];
                     const isZipFile = file.name.toLowerCase().endsWith('.zip');
                     
-                    if (!validTypes.includes(file.type) && !isZipFile) {
+                    if (!validZipTypes.includes(file.type) && !isZipFile) {
                         dropzone.removeFile(file);
                         if (typeof Swal !== 'undefined') {
                             Swal.fire({
                                 icon: 'error',
                                 title: 'Invalid File Type',
-                                text: `${file.name} is not an allowed file type. Only images, PDF, DOC, DOCX, and ZIP files are allowed.`
+                                text: `${file.name} is not a ZIP file. Only ZIP files are allowed.`
                             });
                         } else {
-                            alert(`File ${file.name} is not allowed. Only images, PDF, DOC, DOCX, and ZIP files are accepted.`);
+                            alert(`File ${file.name} is not a ZIP file. Only ZIP files are allowed.`);
                         }
                         return;
                     }

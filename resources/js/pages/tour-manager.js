@@ -16,7 +16,7 @@ $(document).ready(function() {
             { data: 'booking_info', name: 'id' },
             { data: 'customer', name: 'user.firstname' },
             { data: 'location', name: 'city.name' },
-            { data: 'booking_date', name: 'booking_date' },
+            // { data: 'booking_date', name: 'booking_date' },
             { data: 'status', name: 'status' },
             { data: 'payment_status', name: 'payment_status' },
             { data: 'price', name: 'price' },
@@ -52,7 +52,13 @@ $(document).ready(function() {
     $(document).on('click', '.schedule-tour-btn', function() {
         let bookingId = $(this).data('id');
         $('#booking-id').val(bookingId);
-        $('#scheduleTourModal').modal('show');
+        
+        // Use Bootstrap 5 modal API
+        const modalElement = document.getElementById('scheduleTourModal');
+        if (modalElement) {
+            const modal = new bootstrap.Modal(modalElement);
+            modal.show();
+        }
     });
 
     // Handle schedule tour form submission
@@ -69,7 +75,14 @@ $(document).ready(function() {
             contentType: false,
             success: function(response) {
                 if (response.success) {
-                    $('#scheduleTourModal').modal('hide');
+                    // Use Bootstrap 5 modal API to hide
+                    const modalElement = document.getElementById('scheduleTourModal');
+                    if (modalElement) {
+                        const modal = bootstrap.Modal.getInstance(modalElement);
+                        if (modal) {
+                            modal.hide();
+                        }
+                    }
                     $('#schedule-tour-form')[0].reset();
                     table.draw();
                     

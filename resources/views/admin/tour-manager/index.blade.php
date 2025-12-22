@@ -74,7 +74,7 @@
                                         <th>Booking</th>
                                         <th>Customer</th>
                                         <th>Location</th>
-                                        <th>Booking Date</th>
+                                        {{-- <th>Booking Date</th> --}}
                                         <th>Status</th>
                                         <th>Payment</th>
                                         <th>Price</th>

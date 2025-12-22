@@ -20,7 +20,7 @@
                         <a href="{{ route('admin.tour-manager.index') }}" class="btn btn-secondary">
                             <i class="ri-arrow-left-line me-1"></i> Back to Booking
                         </a>
-                        <a href="{{ route('admin.tour-manager.edit', $booking->tours) }}" class="btn btn-secondary">
+                        <a href="{{ route('admin.tour-manager.edit', $booking) }}" class="btn btn-secondary">
                             <i class="ri-edit-line me-1"></i> Edit
                         </a>
                     </div>
