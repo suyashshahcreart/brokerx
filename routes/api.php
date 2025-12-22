@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\HolidayController;
 use App\Http\Controllers\Api\BookingApiController;
 use App\Http\Controllers\Admin\ajax\BookingAssigneController;
+use App\Http\Controllers\Admin\Api\TourManagerController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -21,6 +22,8 @@ use App\Http\Controllers\Admin\ajax\BookingAssigneController;
 Route::middleware('auth')->get('/user', function (Request $request) {
     return $request->user();
 });
+
+Route::post('/tour-manager/login', [TourManagerController::class, 'login']);
 
 // Public Settings API routes (no auth required for frontend setup page)
 Route::get('/settings/{name}', [SettingController::class, 'apiGet'])->name('api.settings.get.public');
