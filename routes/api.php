@@ -19,17 +19,28 @@ use App\Http\Controllers\Admin\Api\TourManagerController;
 |
 */
 
+// Rest API's
+// Tour Manager APIs
+Route::post('/tour-manager/login', [TourManagerController::class, 'login']);
+
+Route::get('/tour-manager/customers', [TourManagerController::class, 'getCustomers']);
+Route::get('/tour-manager/tours-by-customer', [TourManagerController::class, 'getToursByCustomer']);
+
+// Route::middleware('auth')->group(function () {
+// });
+
+
+
+// Laravel authenticated user route
 Route::middleware('auth')->get('/user', function (Request $request) {
     return $request->user();
 });
 
-Route::post('/tour-manager/login', [TourManagerController::class, 'login']);
-
-// Public Settings API routes (no auth required for frontend setup page)
-Route::get('/settings/{name}', [SettingController::class, 'apiGet'])->name('api.settings.get.public');
-
 // Protected Settings API routes - using web auth for same-origin requests
 Route::middleware(['web', 'auth'])->group(function () {
+    // Public Settings API routes (no auth required for frontend setup page)
+    Route::get('/settings/{name}', [SettingController::class, 'apiGet'])->name('api.settings.get.public');
+
     Route::post('/settings/update', [SettingController::class, 'apiUpdate'])->name('api.settings.update');
     // Note: GET /settings/{name} is public (defined above) - no auth required
     // Holidays API

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin\Api;
 
 
+use App\Models\Tour;
 use App\Models\User;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
@@ -19,6 +20,7 @@ class TourManagerController extends Controller
             'email' => 'required|email',
             'password' => 'required|string',
         ]);
+        
         $user = User::where('email', $data['email'])->first();
         if (!$user || !Hash::check($data['password'], $user->password)) {
             return response()->json([
@@ -44,6 +46,36 @@ class TourManagerController extends Controller
                 'role' => $user->role,
                 'token' => $token,
             ]
+        ]);
+    }
+
+    /**
+     * Get all users with role 'customer'
+     */
+    public function getCustomers(Request $request)
+    {
+        $customers = User::role('customer')->get(['id', 'firstname','lastname','email','mobile']);
+        return response()->json([
+            'success' => true,
+            'customers' => $customers
+        ]);
+    }
+
+    /**
+     * Get all tours for a given customer (user_id) via bookings
+     */
+    public function getToursByCustomer(Request $request)
+    {
+        $data = $request->validate([
+            'user_id' => 'required|integer|exists:users,id',
+        ]);
+        // Get bookings for this user
+        $bookingIds = \App\Models\Booking::where('user_id', $data['user_id'])->pluck('id');
+        // Get tours for these bookings
+        $tours = Tour::whereIn('booking_id', $bookingIds)->get();
+        return response()->json([
+            'success' => true,
+            'tours' => $tours
         ]);
     }
 }
