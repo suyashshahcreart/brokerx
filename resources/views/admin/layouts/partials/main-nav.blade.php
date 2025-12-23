@@ -122,6 +122,16 @@
                     </li>
                @endcan
 
+               <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('admin.tour-manager.*') ? 'active' : '' }}"
+                         href="{{ route('admin.tour-manager.index') }}">
+                         <span class="nav-icon">
+                              <i class="ri-calendar-schedule-line"></i>
+                         </span>
+                         <span class="nav-text">Tour Manager</span>
+                    </a>
+               </li>
+
 
                {{-- @can('portfolio_view') --}}
                <li class="nav-item">

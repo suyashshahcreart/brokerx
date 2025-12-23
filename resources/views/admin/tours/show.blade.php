@@ -202,6 +202,55 @@
         </div>
         @endif
 
+        <!-- Company Section -->
+        <div class="card panel-card border-info border-top mb-3">
+            <div class="card-header">
+                <h4 class="card-title mb-0">Company Section</h4>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Sidebar Logo</label><br>
+                        <div class="mb-3">
+                            <label class="form-label">Sidebar Logo</label>
+                            <div>
+                                @if($tour->custom_logo_sidebar)
+                                    <img src="{{ Storage::disk('s3')->url($tour->custom_logo_sidebar) }}" alt="Sidebar Logo" style="max-width: 150px; max-height: 80px; border:1px solid #ddd; background:#fff; padding:2px;">
+                                @else
+                                    <span class="text-muted">No sidebar logo uploaded.</span>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Footer Logo</label><br>
+                        <div class="mb-3">
+                            <label class="form-label">Footer Logo</label>
+                            <div>
+                                @if($tour->custom_logo_footer)
+                                    <img src="{{ Storage::disk('s3')->url($tour->custom_logo_footer) }}" alt="Footer Logo" style="max-width: 150px; max-height: 80px; border:1px solid #ddd; background:#fff; padding:2px;">
+                                @else
+                                    <span class="text-muted">No footer logo uploaded.</span>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <dl class="row mb-0">
+                    <dt class="col-sm-3">Company Name</dt>
+                    <dd class="col-sm-9">{{ $tour->custom_name ?? '-' }}</dd>
+                    <dt class="col-sm-3">Company Email</dt>
+                    <dd class="col-sm-9">{{ $tour->custom_email ?? '-' }}</dd>
+                    <dt class="col-sm-3">Company Mobile</dt>
+                    <dd class="col-sm-9">{{ $tour->custom_mobile ?? '-' }}</dd>
+                    <dt class="col-sm-3">Company Type</dt>
+                    <dd class="col-sm-9">{{ $tour->custom_type ?? '-' }}</dd>
+                    <dt class="col-sm-3">Company Description</dt>
+                    <dd class="col-sm-9">{{ $tour->custom_description ?? '-' }}</dd>
+                </dl>
+            </div>
+        </div>
+
         <!-- Custom Code -->
         @if($tour->header_code || $tour->footer_code)
         <div class="card panel-card border-danger border-top mb-3">

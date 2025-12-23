@@ -54,7 +54,6 @@
                                     <th>Price</th>
                                     <th>Duration</th>
                                     <th>Tour Dates</th>
-                                    <th>Max Participants</th>
                                     <th>Status</th>
                                     <th class="text-end">Actions</th>
                                 </tr>
