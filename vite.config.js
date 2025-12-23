@@ -4,7 +4,7 @@ import {
 import laravel from 'laravel-vite-plugin';
 
 export default defineConfig({
-    base: '/',
+    base: '/brokerx/',
     plugins: [
         laravel({
             input: [
@@ -44,6 +44,15 @@ export default defineConfig({
                 'resources/js/pages/bookings-form.js',
                 'resources/js/pages/booking-index.js',
                 'resources/js/pages/booking-assignees-index.js',
+                'resources/js/pages/setting-index.js',
+                'resources/js/pages/qr-index.js',
+                'resources/js/pages/photographer-visit-jobs-index.js',
+                'resources/js/pages/photo-checkin-visit.js',
+                'resources/js/pages/photographer-visits-index.js',
+                'resources/js/pages/tours-index.js',
+                'resources/js/pages/photographer-index.js',
+                'resources/js/pages/tour-manager.js',
+                'resources/js/pages/tour-manager-edit.js',
                 'resources/js/pages/tours-edit-page.js',
                 'resources/js/pages/setting-index.js',
                 'resources/js/pages/qr-index.js',
