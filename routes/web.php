@@ -25,6 +25,7 @@ use App\Http\Controllers\Admin\TourController;
 use App\Http\Controllers\FrontendController;
 use App\Http\Controllers\PortfolioController;
 use App\Http\Controllers\BrokerX\BrokerXController;
+use App\Http\Controllers\QR\QRManageController;
 
 /*
 |--------------------------------------------------------------------------
@@ -36,6 +37,56 @@ use App\Http\Controllers\BrokerX\BrokerXController;
 | be assigned to the "web" middleware group. Make something great!
 |
 */
+
+// Check domain and route accordingly
+$domain = request()->getHost();
+
+// Routes for qr.proppik.com domain
+if (in_array($domain, ['qr.proppik.com', 'www.qr.proppik.com'])) {
+    // Welcome page
+    Route::get('/', [QRManageController::class, 'index'])->name('qr.welcome');
+    
+    // QR Analytics routes
+    Route::get('/analytics', [QRManageController::class, 'analytics'])->name('qr.analytics');
+    
+    // Screen resolution and GPS tracking endpoint (AJAX)
+    Route::post('/track-screen', function(\Illuminate\Http\Request $request) {
+        try {
+            if ($request->has('screen_resolution')) {
+                $request->session()->put('qr_screen_resolution', $request->input('screen_resolution'));
+            }
+            if ($request->has('gps_latitude') && $request->has('gps_longitude')) {
+                $gpsLat = $request->input('gps_latitude');
+                $gpsLng = $request->input('gps_longitude');
+                
+                // Validate GPS coordinates
+                if (is_numeric($gpsLat) && is_numeric($gpsLng)) {
+                    $request->session()->put('qr_gps_latitude', (float)$gpsLat);
+                    $request->session()->put('qr_gps_longitude', (float)$gpsLng);
+                }
+            }
+            return response()->json(['success' => true]);
+        } catch (\Exception $e) {
+            \Log::error('QR track-screen error: ' . $e->getMessage(), [
+                'exception' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    })->name('qr.track-screen');
+    
+    // AJAX endpoint to track visit after GPS coordinates are captured
+    Route::post('/track-visit', [QRManageController::class, 'trackVisitAjax'])->name('qr.track-visit');
+    
+    // Dynamic tour_code route - must be last to catch any parameter
+    // Example: /1234Aber
+    Route::get('/{tour_code}', [QRManageController::class, 'showByTourCode'])
+        ->where('tour_code', '[A-Za-z0-9]+')
+        ->name('qr.tour-code');
+    
+    // Stop here - don't load other routes for qr.proppik.com
+    return;
+}
 
 // auth routes
 require __DIR__ . '/auth.php';

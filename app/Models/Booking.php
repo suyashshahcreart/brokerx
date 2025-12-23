@@ -17,6 +17,14 @@ class Booking extends Model
     }
 
     /**
+     * Get all QR analytics records for this booking
+     */
+    public function qrAnalytics()
+    {
+        return $this->hasMany(\App\Models\QRAnalytics::class, 'booking_id');
+    }
+
+    /**
      * Get the booking history entries
      */
     public function histories()
