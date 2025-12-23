@@ -4,11 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-<<<<<<< HEAD
-    "content-hash": "085f5a513617060e2aa8aa8e370512a2",
-=======
-    "content-hash": "e705c19c5bee70394baf70d92ee736e1",
->>>>>>> 82e1d99cf10e65117225905b2a935c00d2813e20
+    "content-hash": "9279b6c8121418065c215f0727c7b777",
     "packages": [
         {
             "name": "aws/aws-crt-php",
@@ -2356,7 +2352,6 @@
         },
         {
             "name": "league/flysystem-aws-s3-v3",
-<<<<<<< HEAD
             "version": "3.0.0",
             "source": {
                 "type": "git",
@@ -2372,23 +2367,6 @@
             "require": {
                 "aws/aws-sdk-php": "^3.132.4",
                 "league/flysystem": "^2.0.0 || ^3.0.0",
-=======
-            "version": "3.30.1",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/thephpleague/flysystem-aws-s3-v3.git",
-                "reference": "d286e896083bed3190574b8b088b557b59eb66f5"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/thephpleague/flysystem-aws-s3-v3/zipball/d286e896083bed3190574b8b088b557b59eb66f5",
-                "reference": "d286e896083bed3190574b8b088b557b59eb66f5",
-                "shasum": ""
-            },
-            "require": {
-                "aws/aws-sdk-php": "^3.295.10",
-                "league/flysystem": "^3.10.0",
->>>>>>> 82e1d99cf10e65117225905b2a935c00d2813e20
                 "league/mime-type-detection": "^1.0.0",
                 "php": "^8.0.2"
             },
@@ -2423,7 +2401,6 @@
                 "storage"
             ],
             "support": {
-<<<<<<< HEAD
                 "issues": "https://github.com/thephpleague/flysystem-aws-s3-v3/issues",
                 "source": "https://github.com/thephpleague/flysystem-aws-s3-v3/tree/3.0.0"
             },
@@ -2478,11 +2455,6 @@
                 "source": "https://github.com/thephpleague/flysystem-ftp/tree/3.29.0"
             },
             "time": "2024-06-12T09:46:12+00:00"
-=======
-                "source": "https://github.com/thephpleague/flysystem-aws-s3-v3/tree/3.30.1"
-            },
-            "time": "2025-10-20T15:27:33+00:00"
->>>>>>> 82e1d99cf10e65117225905b2a935c00d2813e20
         },
         {
             "name": "league/flysystem-local",
@@ -5379,7 +5351,6 @@
         },
         {
             "name": "symfony/filesystem",
-<<<<<<< HEAD
             "version": "v7.4.0",
             "source": {
                 "type": "git",
@@ -5394,31 +5365,11 @@
             },
             "require": {
                 "php": ">=8.2",
-=======
-            "version": "v8.0.1",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/symfony/filesystem.git",
-                "reference": "d937d400b980523dc9ee946bb69972b5e619058d"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/symfony/filesystem/zipball/d937d400b980523dc9ee946bb69972b5e619058d",
-                "reference": "d937d400b980523dc9ee946bb69972b5e619058d",
-                "shasum": ""
-            },
-            "require": {
-                "php": ">=8.4",
->>>>>>> 82e1d99cf10e65117225905b2a935c00d2813e20
                 "symfony/polyfill-ctype": "~1.8",
                 "symfony/polyfill-mbstring": "~1.8"
             },
             "require-dev": {
-<<<<<<< HEAD
                 "symfony/process": "^6.4|^7.0|^8.0"
-=======
-                "symfony/process": "^7.4|^8.0"
->>>>>>> 82e1d99cf10e65117225905b2a935c00d2813e20
             },
             "type": "library",
             "autoload": {
@@ -5446,11 +5397,7 @@
             "description": "Provides basic utilities for the filesystem",
             "homepage": "https://symfony.com",
             "support": {
-<<<<<<< HEAD
                 "source": "https://github.com/symfony/filesystem/tree/v7.4.0"
-=======
-                "source": "https://github.com/symfony/filesystem/tree/v8.0.1"
->>>>>>> 82e1d99cf10e65117225905b2a935c00d2813e20
             },
             "funding": [
                 {
@@ -5470,11 +5417,7 @@
                     "type": "tidelift"
                 }
             ],
-<<<<<<< HEAD
             "time": "2025-11-27T13:27:24+00:00"
-=======
-            "time": "2025-12-01T09:13:36+00:00"
->>>>>>> 82e1d99cf10e65117225905b2a935c00d2813e20
         },
         {
             "name": "symfony/finder",
@@ -9939,5 +9882,5 @@
         "php": "^8.2"
     },
     "platform-dev": {},
-    "plugin-api-version": "2.6.0"
+    "plugin-api-version": "2.9.0"
 }
