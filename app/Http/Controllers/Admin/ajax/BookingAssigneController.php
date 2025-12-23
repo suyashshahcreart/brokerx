@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers\Admin\ajax;
 
 use App\Http\Controllers\Controller;
 use App\Models\BookingAssignee;
@@ -37,14 +37,14 @@ class BookingAssigneController extends Controller
         if ($auth->hasRole('admin')) {
             // Admin: Get ALL bookings in date range
             $query = Booking::with([
-                'user:id,firstname,lastname,email',
+                'user:id,firstname,lastname,email,mobile',
                 'propertyType:id,name',
                 'propertySubType:id,name',
                 'bhk:id,name',
                 'city:id,name',
                 'state:id,name',
                 'assignees' => function($q) {
-                    $q->with('user:id,firstname,lastname,email');
+                    $q->with('user:id,firstname,lastname,email,mobile');
                 }
             ]);
 

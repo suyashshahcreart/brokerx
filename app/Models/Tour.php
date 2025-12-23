@@ -51,6 +51,14 @@ class Tour extends Model
         'structured_data',
         'header_code',
         'footer_code',
+        // New fields added by migration
+        'custom_logo_sidebar',
+        'custom_logo_footer',
+        'custom_name',
+        'custom_email',
+        'custom_mobile',
+        'custom_type',
+        'custom_description',
     ];
 
     /**
