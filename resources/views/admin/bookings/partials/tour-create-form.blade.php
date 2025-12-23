@@ -56,6 +56,7 @@
                             <option value="htl" @selected(old('location') == 'htl')>htl (htl.proppik.com)</option>
                             <option value="re" @selected(old('location') == 're')>re (re.proppik.com)</option>
                             <option value="rs" @selected(old('location') == 'rs')>rs (rs.proppik.com)</option>
+                            <option value="tours" @selected(old('location') == 'tours')>tours (tour.proppik.in)</option>
                             <option value="creart_qr" @selected(old('location') == 'creart_qr')>creart_qr (creart.in/qr/)</option>
                         </select>
                         @error('location')<div class="text-danger">{{ $message }}</div>@enderror

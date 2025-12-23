@@ -1,3 +1,78 @@
+// Function to update upload paths based on slug and location
+function updateUploadPaths() {
+    const slugInput = document.getElementById('tour_slug');
+    const locationSelect = document.getElementById('tour_location');
+    const ftpFullUrlText = document.getElementById('ftp-full-url-text');
+    
+    if (!slugInput || !locationSelect || !ftpFullUrlText) {
+        return; // Elements not found, skip silently
+    }
+    
+    const slug = slugInput.value.trim();
+    const location = locationSelect.value;
+    
+    // Update FTP Full URL based on location and slug
+    if (location === 'creart_qr') {
+        if (slug) {
+            ftpFullUrlText.textContent = `http://creart.in/qr/${slug}/index.php`;
+        } else {
+            ftpFullUrlText.textContent = 'N/A';
+        }
+    } else if (location === 'tours' && slug) {
+        ftpFullUrlText.textContent = `https://tour.proppik.in/${slug}/index.php`;
+    } else if (location && slug) {
+        ftpFullUrlText.textContent = `https://${location}.proppik.com/${slug}/index.php`;
+    } else {
+        ftpFullUrlText.textContent = 'N/A';
+    }
+}
+
+// Setup dynamic path updates - ensure it runs after DOM is ready
+(function setupPathUpdates() {
+    function attachEventListeners() {
+        const slugInput = document.getElementById('tour_slug');
+        const locationSelect = document.getElementById('tour_location');
+        
+        if (!slugInput || !locationSelect) {
+            // Elements not ready yet, try again
+            setTimeout(attachEventListeners, 100);
+            return;
+        }
+        
+        // Attach event listeners to slug input
+        if (slugInput) {
+            // Remove any existing listeners by using a wrapper function
+            slugInput.oninput = updateUploadPaths;
+            slugInput.onkeyup = updateUploadPaths;
+            slugInput.onchange = updateUploadPaths;
+            slugInput.onpaste = function() {
+                setTimeout(updateUploadPaths, 10);
+            };
+        }
+        
+        // Attach event listeners to location select
+        if (locationSelect) {
+            locationSelect.onchange = updateUploadPaths;
+            locationSelect.oninput = updateUploadPaths;
+        }
+        
+        // Initial update
+        updateUploadPaths();
+    }
+    
+    // Try to attach listeners when DOM is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', attachEventListeners);
+    } else {
+        // DOM already loaded, try immediately
+        attachEventListeners();
+    }
+    
+    // Also try after a delay to catch late-loading elements
+    setTimeout(attachEventListeners, 200);
+    setTimeout(attachEventListeners, 500);
+})();
+
 // Wait for DOM and ensure script runs only once
 if (document.getElementById('tour-dropzone') && !document.getElementById('tour-dropzone').dropzone) {
     

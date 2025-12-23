@@ -35,6 +35,112 @@ class UploadTourAssetsToS3 implements ShouldQueue
     }
 
     /**
+     * Get proper MIME type based on file extension
+     * 
+     * @param string $filePath File path or filename
+     * @return string MIME type
+     */
+    private function getMimeType($filePath)
+    {
+        $extension = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
+        
+        // Comprehensive MIME type mapping
+        $mimeTypes = [
+            // Images
+            'jpg' => 'image/jpeg',
+            'jpeg' => 'image/jpeg',
+            'png' => 'image/png',
+            'gif' => 'image/gif',
+            'svg' => 'image/svg+xml',
+            'webp' => 'image/webp',
+            'bmp' => 'image/bmp',
+            'ico' => 'image/x-icon',
+            'tiff' => 'image/tiff',
+            'tif' => 'image/tiff',
+            
+            // JavaScript
+            'js' => 'application/javascript',
+            'mjs' => 'application/javascript',
+            
+            // CSS
+            'css' => 'text/css',
+            
+            // HTML
+            'html' => 'text/html',
+            'htm' => 'text/html',
+            
+            // JSON
+            'json' => 'application/json',
+            'jsonld' => 'application/ld+json',
+            
+            // Text
+            'txt' => 'text/plain',
+            'md' => 'text/markdown',
+            
+            // Fonts
+            'woff' => 'font/woff',
+            'woff2' => 'font/woff2',
+            'ttf' => 'font/ttf',
+            'otf' => 'font/otf',
+            'eot' => 'application/vnd.ms-fontobject',
+            
+            // Video
+            'mp4' => 'video/mp4',
+            'webm' => 'video/webm',
+            'ogg' => 'video/ogg',
+            'mov' => 'video/quicktime',
+            'avi' => 'video/x-msvideo',
+            
+            // Audio
+            'mp3' => 'audio/mpeg',
+            'wav' => 'audio/wav',
+            'ogg' => 'audio/ogg',
+            'm4a' => 'audio/mp4',
+            
+            // Archives
+            'zip' => 'application/zip',
+            'rar' => 'application/x-rar-compressed',
+            '7z' => 'application/x-7z-compressed',
+            'tar' => 'application/x-tar',
+            'gz' => 'application/gzip',
+            
+            // Documents
+            'pdf' => 'application/pdf',
+            'doc' => 'application/msword',
+            'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'xls' => 'application/vnd.ms-excel',
+            'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'ppt' => 'application/vnd.ms-powerpoint',
+            'pptx' => 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+            
+            // XML
+            'xml' => 'application/xml',
+            'rss' => 'application/rss+xml',
+            
+            // Other
+            'php' => 'application/x-httpd-php',
+            'sh' => 'application/x-sh',
+            'exe' => 'application/x-msdownload',
+        ];
+        
+        // Return mapped MIME type or try mime_content_type as fallback
+        if (isset($mimeTypes[$extension])) {
+            return $mimeTypes[$extension];
+        }
+        
+        // Fallback to mime_content_type if file exists
+        if (file_exists($filePath)) {
+            $detected = mime_content_type($filePath);
+            if ($detected && $detected !== 'application/octet-stream') {
+                return $detected;
+            }
+        }
+        
+        // Default fallback
+        return 'application/octet-stream';
+    }
+
+    /**
      * Execute the job.
      */
     public function handle(): void
@@ -107,7 +213,8 @@ class UploadTourAssetsToS3 implements ShouldQueue
                             throw new \Exception("Failed to read file content");
                         }
                         
-                        $mimeType = mime_content_type($fileData['local']) ?: 'application/octet-stream';
+                        // Get proper MIME type based on file extension
+                        $mimeType = $this->getMimeType($fileData['local']);
                         
                         // Upload to S3
                         $uploaded = $s3Disk->put(

@@ -39,28 +39,41 @@
                         <div class="row mb-3">
                             <div class="col-md-6">
                                 <div class="mb-2">
-                                    <label class="form-label fw-bold text-muted small">Tour Slug</label>
-                                    <p class="mb-0 fw-semibold">{{ $tour->slug ?? 'N/A' }}</p>
+                                    <label class="form-label fw-bold">Tour Slug <span class="text-danger">*</span></label>
+                                    <input type="text" 
+                                           name="slug" 
+                                           id="tour_slug" 
+                                           class="form-control" 
+                                           value="{{ old('slug', $tour->slug ?? '') }}" 
+                                           required
+                                           placeholder="tour-slug-name">
+                                    @error('slug')
+                                        <div class="text-danger small">{{ $message }}</div>
+                                    @enderror
+                                    <small class="text-muted">URL-friendly identifier for the tour</small>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-2">
-                                    <label class="form-label fw-bold text-muted small">Tour Location</label>
-                                    <p class="mb-0 fw-semibold">
-                                        @if($tour->location === 'creart_qr')
-                                            creart_qr (http://creart.in/qr/)
-                                        @elseif($tour->location)
-                                            {{ $tour->location }} (https://{{ $tour->location }}.proppik.com)
-                                        @else
-                                            N/A
-                                        @endif
-                                    </p>
+                                    <label class="form-label fw-bold">Tour Location <span class="text-danger">*</span></label>
+                                    <select name="location" id="tour_location" class="form-select" required>
+                                        <option value="">Select Location</option>
+                                        <option value="industry" @selected(old('location', $tour->location) == 'industry')>industry (industry.proppik.com)</option>
+                                        <option value="htl" @selected(old('location', $tour->location) == 'htl')>htl (htl.proppik.com)</option>
+                                        <option value="re" @selected(old('location', $tour->location) == 're')>re (re.proppik.com)</option>
+                                        <option value="rs" @selected(old('location', $tour->location) == 'rs')>rs (rs.proppik.com)</option>
+                                        <option value="tours" @selected(old('location', $tour->location) == 'tours')>tours (tour.proppik.in)</option>
+                                        <option value="creart_qr" @selected(old('location', $tour->location) == 'creart_qr')>creart_qr (creart.in/qr/)</option>
+                                    </select>
+                                    @error('location')
+                                        <div class="text-danger small">{{ $message }}</div>
+                                    @enderror
+                                    <small class="text-muted">FTP server location for index.php upload</small>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Upload Paths Information -->
-                        @if($tour->slug && $tour->location)
                         @php
                             // Get S3 base URL
                             $s3BaseUrl = config('filesystems.disks.s3.url') ?: 
@@ -69,29 +82,39 @@
                             $s3FullPath = rtrim($s3BaseUrl, '/') . '/tours/' . ($booking->tour_code ?? 'N/A') . '/';
                             $s3RelativePath = 'tours/' . ($booking->tour_code ?? 'N/A') . '/';
                         @endphp
-                        <div class="alert alert-info mb-3">
+                        <div class="alert alert-info mb-3" id="upload-paths-info">
                             <h6 class="alert-heading mb-2"><i class="ri-information-line me-1"></i> Upload Paths</h6>
-                            <div class="mb-2">
-                                <strong>S3 Upload Path:</strong>
-                                <code class="d-block mt-1 small">{{ $s3RelativePath }}</code>
-                                <small class="text-muted">All tour assets (images, assets, gallery, tiles, etc.) will be uploaded to this S3 path.</small>
-                                <div class="mt-1">
-                                    <strong>Full S3 URL:</strong>
-                                    <code class="d-block mt-1 small text-break">{{ $s3FullPath }}</code>
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <strong>Full S3 UPLOAD URL ( qr code based generated )</strong>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary copy-btn" data-copy-target="s3-full-path" title="Copy S3 URL">
+                                        <i class="ri-file-copy-line me-1"></i> Copy
+                                    </button>
                                 </div>
+                                <code class="d-block mt-1 small text-break p-2 bg-light rounded" id="s3-full-path">{{ $s3FullPath }}</code>
                             </div>
+                           
                             <div class="mb-0">
-                                <strong>FTP Upload Path:</strong>
-                                @if($tour->location === 'creart_qr')
-                                    <code class="d-block mt-1 small">qr/{{ $tour->slug }}/index.php</code>
-                                    <small class="text-muted">The converted index.php file will be uploaded to: <strong>http://creart.in/qr/{{ $tour->slug }}/index.php</strong></small>
-                                @else
-                                    <code class="d-block mt-1 small">{{ $tour->slug }}/index.php</code>
-                                    <small class="text-muted">The converted index.php file will be uploaded to: <strong>https://{{ $tour->location }}.proppik.com/{{ $tour->slug }}/index.php</strong></small>
-                                @endif
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <strong>FTP Full URL ( Tour Slug And Location Based Generated ) :</strong>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary copy-btn" data-copy-target="ftp-full-url-text" title="Copy FTP URL">
+                                        <i class="ri-file-copy-line me-1"></i> Copy
+                                    </button>
+                                </div>
+                                <code class="d-block mt-1 small text-break p-2 bg-light rounded" id="ftp-full-url-text">
+                                    @if($tour->location === 'creart_qr')
+                                        http://creart.in/qr/{{ $tour->slug ?? 'N/A' }}/index.php
+                                    @elseif($tour->location === 'tours' && $tour->slug)
+                                        https://tour.proppik.in/{{ $tour->slug }}/index.php
+                                    @elseif($tour->location && $tour->slug)
+                                        https://{{ $tour->location }}.proppik.com/{{ $tour->slug }}/index.php
+                                    @else
+                                        N/A
+                                    @endif
+                                </code>
+                                <small class="text-muted d-block mt-1">The converted index.php file will be uploaded to this FTP URL.</small>
                             </div>
                         </div>
-                        @endif
 
                         <div class="mb-3">
                             <label class="form-label">Upload ZIP File <span class="text-danger">*</span></label>
@@ -187,9 +210,17 @@
                                 <label class="form-label fw-bold text-muted small">QR Code</label>
                                 <p class="mb-0 font-monospace">{{ $booking->qr->code }}</p>
                             </div>
+                            <div class="col-6 mb-2">
+                                <label class="form-label fw-bold text-muted small">QR Link</label>
+                                <p class="mb-0">
+                                    <a href="https://qr.proppik.com/{{ $booking->qr->code }}" target="_blank" class="text-break">
+                                        <code>https://qr.proppik.com/{{ $booking->qr->code }}</code>
+                                    </a>
+                                </p>
+                            </div>
                             @if($booking->qr->qr_link)
                                 <div class="col-6 mb-2">
-                                    <label class="form-label fw-bold text-muted small">QR Link</label>
+                                    <label class="form-label fw-bold text-muted small">QR Link Redirect Link</label>
                                     <p class="mb-0">
                                         <a href="{{ $booking->qr->qr_link }}" target="_blank" class="text-truncate d-block"
                                             style="max-width: 100%;">
@@ -198,7 +229,9 @@
                                         </a>
                                     </p>
                                 </div>
+                                
                             @endif
+                            
                             <div class="col-6 mb-2">
                                 <label class="form-label fw-bold text-muted small">Created</label>
                                 <p class="mb-0">{{ $booking->qr->created_at->format('d M Y, h:i A') }}</p>
@@ -367,4 +400,191 @@
 @endsection
 @section('scripts')
 @vite(['resources/js/pages/tour-manager-edit.js'])
+
+<script>
+// Inline script to ensure real-time path updates work
+(function() {
+    function updatePaths() {
+        const slugInput = document.getElementById('tour_slug');
+        const locationSelect = document.getElementById('tour_location');
+        const ftpFullUrlText = document.getElementById('ftp-full-url-text');
+        
+        if (!slugInput || !locationSelect || !ftpFullUrlText) {
+            return;
+        }
+        
+        const slug = slugInput.value.trim();
+        const location = locationSelect.value;
+        
+        // Update FTP Full URL based on location and slug
+        if (location === 'creart_qr') {
+            if (slug) {
+                ftpFullUrlText.textContent = 'http://creart.in/qr/' + slug + '/index.php';
+            } else {
+                ftpFullUrlText.textContent = 'N/A';
+            }
+        } else if (location === 'tours' && slug) {
+            ftpFullUrlText.textContent = 'https://tour.proppik.in/' + slug + '/index.php';
+        } else if (location && slug) {
+            ftpFullUrlText.textContent = 'https://' + location + '.proppik.com/' + slug + '/index.php';
+        } else {
+            ftpFullUrlText.textContent = 'N/A';
+        }
+    }
+    
+    function initPathUpdates() {
+        const slugInput = document.getElementById('tour_slug');
+        const locationSelect = document.getElementById('tour_location');
+        
+        if (slugInput && locationSelect) {
+            // Use oninput for real-time updates as user types
+            slugInput.addEventListener('input', updatePaths);
+            slugInput.addEventListener('keyup', updatePaths);
+            slugInput.addEventListener('change', updatePaths);
+            slugInput.addEventListener('paste', function() {
+                setTimeout(updatePaths, 10);
+            });
+            
+            locationSelect.addEventListener('change', updatePaths);
+            locationSelect.addEventListener('input', updatePaths);
+            
+            // Initial update
+            updatePaths();
+        } else {
+            // Retry if elements not ready
+            setTimeout(initPathUpdates, 100);
+        }
+    }
+    
+    // Initialize when DOM is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initPathUpdates);
+    } else {
+        initPathUpdates();
+    }
+    
+    // Also try after a delay to catch any late-loading elements
+    setTimeout(initPathUpdates, 200);
+})();
+
+// Copy to clipboard functionality
+(function() {
+    // Store original HTML for each button
+    const buttonOriginals = new Map();
+    
+    function initCopyButtons() {
+        const copyButtons = document.querySelectorAll('.copy-btn');
+        
+        // Store original HTML for each button
+        copyButtons.forEach(function(button) {
+            if (!buttonOriginals.has(button)) {
+                buttonOriginals.set(button, button.innerHTML);
+            }
+        });
+        
+        copyButtons.forEach(function(button) {
+            // Remove any existing listeners by cloning
+            const newButton = button.cloneNode(true);
+            button.parentNode.replaceChild(newButton, button);
+            
+            // Get fresh reference
+            const freshButton = document.querySelector('[data-copy-target="' + newButton.getAttribute('data-copy-target') + '"]');
+            
+            freshButton.addEventListener('click', function() {
+                const targetId = this.getAttribute('data-copy-target');
+                const targetElement = document.getElementById(targetId);
+                
+                if (!targetElement) {
+                    return;
+                }
+                
+                // Get text content (remove HTML tags if any)
+                let textToCopy = targetElement.textContent || targetElement.innerText;
+                textToCopy = textToCopy.trim();
+                
+                // Get original HTML for this button
+                const originalHTML = buttonOriginals.get(freshButton) || '<i class="ri-file-copy-line me-1"></i> Copy';
+                
+                // Clear any existing timeout
+                if (freshButton._copyTimeout) {
+                    clearTimeout(freshButton._copyTimeout);
+                }
+                
+                // Try modern clipboard API first
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(textToCopy).then(function() {
+                        // Show success feedback
+                        freshButton.innerHTML = '<i class="ri-check-line me-1"></i> Copied!';
+                        freshButton.classList.remove('btn-outline-secondary');
+                        freshButton.classList.add('btn-success');
+                        
+                        // Reset after 2 seconds
+                        freshButton._copyTimeout = setTimeout(function() {
+                            freshButton.innerHTML = originalHTML;
+                            freshButton.classList.remove('btn-success');
+                            freshButton.classList.add('btn-outline-secondary');
+                            freshButton._copyTimeout = null;
+                        }, 2000);
+                    }).catch(function(err) {
+                        console.error('Failed to copy:', err);
+                        // Fallback to old method
+                        fallbackCopy(textToCopy, freshButton, originalHTML);
+                    });
+                } else {
+                    // Fallback for older browsers
+                    fallbackCopy(textToCopy, freshButton, originalHTML);
+                }
+            });
+        });
+    }
+    
+    function fallbackCopy(text, button, originalHTML) {
+        // Create temporary textarea
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        textarea.setSelectionRange(0, 99999); // For mobile devices
+        
+        try {
+            const successful = document.execCommand('copy');
+            if (successful) {
+                // Clear any existing timeout
+                if (button._copyTimeout) {
+                    clearTimeout(button._copyTimeout);
+                }
+                
+                button.innerHTML = '<i class="ri-check-line me-1"></i> Copied!';
+                button.classList.remove('btn-outline-secondary');
+                button.classList.add('btn-success');
+                
+                // Reset after 2 seconds
+                button._copyTimeout = setTimeout(function() {
+                    button.innerHTML = originalHTML;
+                    button.classList.remove('btn-success');
+                    button.classList.add('btn-outline-secondary');
+                    button._copyTimeout = null;
+                }, 1000);
+            }
+        } catch (err) {
+            console.error('Fallback copy failed:', err);
+            alert('Failed to copy. Please copy manually: ' + text);
+        }
+        
+        document.body.removeChild(textarea);
+    }
+    
+    // Initialize copy buttons when DOM is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initCopyButtons);
+    } else {
+        initCopyButtons();
+    }
+    
+    // Also try after a delay
+    setTimeout(initCopyButtons, 200);
+})();
+</script>
 @endsection

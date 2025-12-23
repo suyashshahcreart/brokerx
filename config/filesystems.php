@@ -130,6 +130,31 @@ return [
             'throw' => false,
         ],
 
+        'ftp_tours' => [
+            // tours uses SFTP (port 22)
+            'driver' => 'sftp',
+            'host' => preg_replace('#^s?ftps?://#', '', env('FTP_TOURS_HOST', '13.204.231.57')),
+            'username' => env('FTP_TOURS_USERNAME', 'tourftp'),
+            'password' => env('FTP_TOURS_PASSWORD', 'Tour@@42##'),
+            'port' => (int) env('FTP_TOURS_PORT', 22),
+            'root' => env('FTP_TOURS_ROOT', '/public_html'),
+            'timeout' => (int) env('FTP_TOURS_TIMEOUT', 30),
+            'visibility' => 'public',
+            'permissions' => [
+                // Flysystem SFTP expects visibility-based perms
+                'file' => [
+                    'public' => 0777,
+                    'private' => 0777,
+                ],
+                'dir' => [
+                    'public' => 0777,
+                    'private' => 0777,
+                ],
+            ],
+            'host_fingerprint' => env('FTP_TOURS_FINGERPRINT', null),
+            'throw' => false,
+        ],
+
     ],
 
     /*
