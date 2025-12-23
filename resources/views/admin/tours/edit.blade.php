@@ -315,7 +315,11 @@
                                 <label class="form-label" for="custom_logo_sidebar">Sidebar Logo</label>
                                 <input type="file" name="custom_logo_sidebar" id="custom_logo_sidebar" class="form-control" accept="image/*" onchange="previewImage(event, 'sidebar_logo_preview')">
                                 <div class="mt-2">
-                                    <img id="sidebar_logo_preview" src="{{ $tour->custom_logo_sidebar ? asset($tour->custom_logo_sidebar) : '' }}" alt="Sidebar Logo" style="max-width: 150px; max-height: 80px; border:1px solid #ddd; background:#fff; padding:2px;{{ $tour->custom_logo_sidebar ? '' : 'display:none;' }}">
+                                    @if($tour->custom_logo_sidebar)
+                                        <img id="sidebar_logo_preview" src="{{ Storage::disk('s3')->url($tour->custom_logo_sidebar) }}" alt="Sidebar Logo" style="max-width: 150px; max-height: 80px; border:1px solid #ddd; background:#fff; padding:2px;">
+                                    @else
+                                        <img id="sidebar_logo_preview" src="" alt="Sidebar Logo" style="max-width: 150px; max-height: 80px; border:1px solid #ddd; background:#fff; padding:2px; display:none;">
+                                    @endif
                                 </div>
                                 @error('custom_logo_sidebar')<div class="text-danger">{{ $message }}</div>@enderror
                             </div>
@@ -325,7 +329,11 @@
                                 <label class="form-label" for="custom_logo_footer">Footer Logo</label>
                                 <input type="file" name="custom_logo_footer" id="custom_logo_footer" class="form-control" accept="image/*" onchange="previewImage(event, 'footer_logo_preview')">
                                 <div class="mt-2">
-                                    <img id="footer_logo_preview" src="{{ $tour->custom_logo_footer ? asset($tour->custom_logo_footer) : '' }}" alt="Footer Logo" style="max-width: 150px; max-height: 80px; border:1px solid #ddd; background:#fff; padding:2px;{{ $tour->custom_logo_footer ? '' : 'display:none;' }}">
+                                    @if($tour->custom_logo_footer)
+                                        <img id="footer_logo_preview" src="{{ Storage::disk('s3')->url($tour->custom_logo_footer) }}" alt="Footer Logo" style="max-width: 150px; max-height: 80px; border:1px solid #ddd; background:#fff; padding:2px;">
+                                    @else
+                                        <img id="footer_logo_preview" src="" alt="Footer Logo" style="max-width: 150px; max-height: 80px; border:1px solid #ddd; background:#fff; padding:2px; display:none;">
+                                    @endif
                                 </div>
                                 @error('custom_logo_footer')<div class="text-danger">{{ $message }}</div>@enderror
                             </div>
