@@ -6,7 +6,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\HolidayController;
 use App\Http\Controllers\Api\BookingApiController;
-use App\Http\Controllers\Api\BookingAssigneController;
+use App\Http\Controllers\Admin\ajax\BookingAssigneController;
+use App\Http\Controllers\Admin\Api\TourManagerController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -18,15 +19,28 @@ use App\Http\Controllers\Api\BookingAssigneController;
 |
 */
 
+// Rest API's
+// Tour Manager APIs
+Route::post('/tour-manager/login', [TourManagerController::class, 'login']);
+
+Route::get('/tour-manager/customers', [TourManagerController::class, 'getCustomers']);
+Route::get('/tour-manager/tours-by-customer', [TourManagerController::class, 'getToursByCustomer']);
+
+// Route::middleware('auth')->group(function () {
+// });
+
+
+
+// Laravel authenticated user route
 Route::middleware('auth')->get('/user', function (Request $request) {
     return $request->user();
 });
 
-// Public Settings API routes (no auth required for frontend setup page)
-Route::get('/settings/{name}', [SettingController::class, 'apiGet'])->name('api.settings.get.public');
-
 // Protected Settings API routes - using web auth for same-origin requests
 Route::middleware(['web', 'auth'])->group(function () {
+    // Public Settings API routes (no auth required for frontend setup page)
+    Route::get('/settings/{name}', [SettingController::class, 'apiGet'])->name('api.settings.get.public');
+
     Route::post('/settings/update', [SettingController::class, 'apiUpdate'])->name('api.settings.update');
     // Note: GET /settings/{name} is public (defined above) - no auth required
     // Holidays API
@@ -43,8 +57,9 @@ Route::middleware(['web', 'auth'])->group(function () {
     Route::get('/bookings', [BookingApiController::class, 'index'])->name('api.bookings.index');
     Route::get('/bookings/by-date-range', [BookingApiController::class, 'getByDateRange'])->name('api.bookings.by-date-range');
 
-    // Booking assignee slots for photographers
+    // Booking assignee slots for photographers 
     Route::get('/booking-assignees/slots', [BookingAssigneController::class, 'slots'])->name('api.booking-assignees.slots');
+    Route::get('/booking-assignees/all-bookings', [BookingAssigneController::class, 'getAllBookings'])->name('api.booking-assignees.all-bookings');
     Route::get('/bookings/{id}', [BookingApiController::class, 'show'])->name('api.bookings.show');
     Route::get('/bookings/{id}/json', [BookingApiController::class, 'getJson'])->name('api.bookings.get-json');
     Route::post('/bookings/{id}/json', [BookingApiController::class, 'setJson'])->name('api.bookings.set-json');
