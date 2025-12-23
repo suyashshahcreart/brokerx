@@ -412,16 +412,16 @@ class CalendarSchedule {
                             className = 'bg-primary'; // Assigned → success
                             break;
                         case 'schedul_accepted':
-                            className = 'bg-secondary'; // Accepted → warning
+                            className = 'bg-info'; // Accepted → warning
                             break;
                         case 'schedul_decline':
                             className = 'bg-danger'; // Accepted → warning
                             break;
                         case 'reschedul_accepted':
-                            className = 'bg-secondary'; // Accepted → warning
+                            className = 'bg-info'; // Accepted → warning
                             break;
                         case 'schedul_inprogress':
-                            className = 'bg-info'; // In-progress → info
+                            className = 'bg-secondary'; // In-progress → info
                             break;
                         case 'schedul_completed':
                             className = 'bg-success'; // Completed → success
