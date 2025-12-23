@@ -44,6 +44,7 @@ export default defineConfig({
                 'resources/js/pages/bookings-form.js',
                 'resources/js/pages/booking-index.js',
                 'resources/js/pages/booking-assignees-index.js',
+                'resources/js/pages/tours-edit-page.js',
                 'resources/js/pages/setting-index.js',
                 'resources/js/pages/qr-index.js',
                 'resources/js/pages/tours-index.js',

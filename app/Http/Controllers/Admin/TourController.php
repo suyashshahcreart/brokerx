@@ -7,6 +7,7 @@ use App\Models\Tour;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Spatie\Activitylog\Models\Activity;
+use Yajra\DataTables\DataTables;
 
 class TourController extends Controller
 {
@@ -26,7 +27,7 @@ class TourController extends Controller
         if ($request->ajax()) {
             $query = Tour::query();
             
-            return \Yajra\DataTables\Facades\DataTables::of($query)
+            return DataTables::of($query)
                 ->addColumn('title', fn(Tour $tour) => $tour->title)
                 ->addColumn('location', fn(Tour $tour) => $tour->location ?? '-')
                 ->addColumn('price', fn(Tour $tour) => $tour->formatted_price)
@@ -111,7 +112,7 @@ class TourController extends Controller
             'status' => ['required', 'in:draft,published,archived'],
             'revision' => ['nullable', 'string', 'max:255'],
             'final_json' => ['nullable', 'json'],
-            
+
             // SEO Fields
             'meta_title' => ['nullable', 'string', 'max:255'],
             'meta_description' => ['nullable', 'string'],
@@ -128,6 +129,15 @@ class TourController extends Controller
             'structured_data' => ['nullable', 'json'],
             'header_code' => ['nullable', 'string'],
             'footer_code' => ['nullable', 'string'],
+
+            // Custom fields
+            'custom_logo_sidebar' => ['nullable', 'string', 'max:255'],
+            'custom_logo_footer' => ['nullable', 'string', 'max:255'],
+            'custom_name' => ['nullable', 'string', 'max:255'],
+            'custom_email' => ['nullable', 'string', 'max:255'],
+            'custom_mobile' => ['nullable', 'string', 'max:255'],
+            'custom_type' => ['nullable', 'string', 'max:255'],
+            'custom_description' => ['nullable', 'string'],
         ]);
 
         // Auto-generate slug if not provided
@@ -143,8 +153,43 @@ class TourController extends Controller
             }
         }
 
-        $tour = Tour::create($validated);
 
+        // Temporarily remove logo fields for file upload
+        $logoSidebarFile = $request->file('custom_logo_sidebar');
+        $logoFooterFile = $request->file('custom_logo_footer');
+        unset($validated['custom_logo_sidebar'], $validated['custom_logo_footer']);
+
+        $tour = Tour::create($validated);
+            try {
+
+        $updateData = [];
+            if ($logoSidebarFile) {
+                $sidebarFilename = 'logo_sidebar_' . time() . '_' . Str::random(8) . '.' . $logoSidebarFile->getClientOriginalExtension();
+                $sidebarPath = 'tours_logo/' . $tour->id . '/' . $sidebarFilename;
+                $sidebarContent = file_get_contents($logoSidebarFile->getRealPath());
+                $sidebarMime = $logoSidebarFile->getMimeType();
+                $uploaded = \Storage::disk('s3')->put($sidebarPath, $sidebarContent, ['ContentType' => $sidebarMime]);
+                if ($uploaded) {
+                    $updateData['custom_logo_sidebar'] = $sidebarPath;
+                }
+            }
+            if ($logoFooterFile) {
+                $footerFilename = 'logo_footer_' . time() . '_' . Str::random(8) . '.' . $logoFooterFile->getClientOriginalExtension();
+                $footerPath = 'tours_logo/' . $tour->id . '/' . $footerFilename;
+                $footerContent = file_get_contents($logoFooterFile->getRealPath());
+                $footerMime = $logoFooterFile->getMimeType();
+                $uploaded = \Storage::disk('s3')->put($footerPath, $footerContent, ['ContentType' => $footerMime]);
+                if ($uploaded) {
+                    $updateData['custom_logo_footer'] = $footerPath;
+                }
+            }
+        if (!empty($updateData)) {
+            $tour->update($updateData);
+        }
+
+            } catch (\Exception $e) {
+                return back()->withInput()->withErrors(['general' => 'An error occurred while saving the tour: ' . $e->getMessage()]);
+            }
         activity('tours')
             ->performedOn($tour)
             ->causedBy($request->user())
@@ -203,7 +248,7 @@ class TourController extends Controller
             'status' => ['required', 'in:draft,published,archived'],
             'revision' => ['nullable', 'string', 'max:255'],
             'final_json' => ['nullable', 'json'],
-            
+
             // SEO Fields
             'meta_title' => ['nullable', 'string', 'max:255'],
             'meta_description' => ['nullable', 'string'],
@@ -220,6 +265,15 @@ class TourController extends Controller
             'structured_data' => ['nullable', 'json'],
             'header_code' => ['nullable', 'string'],
             'footer_code' => ['nullable', 'string'],
+
+            // Custom fields
+            'custom_logo_sidebar' => ['nullable', 'string', 'max:255'],
+            'custom_logo_footer' => ['nullable', 'string', 'max:255'],
+            'custom_name' => ['nullable', 'string', 'max:255'],
+            'custom_email' => ['nullable', 'string', 'max:255'],
+            'custom_mobile' => ['nullable', 'string', 'max:255'],
+            'custom_type' => ['nullable', 'string', 'max:255'],
+            'custom_description' => ['nullable', 'string'],
         ]);
 
         // Auto-generate slug if not provided
@@ -235,9 +289,44 @@ class TourController extends Controller
             }
         }
 
+
+        // Temporarily remove logo fields for file upload
+        $logoSidebarFile = $request->file('custom_logo_sidebar');
+        $logoFooterFile = $request->file('custom_logo_footer');
+        unset($validated['custom_logo_sidebar'], $validated['custom_logo_footer']);
+
         $oldData = $tour->toArray();
+            try {
         $tour->update($validated);
 
+        $updateData = [];
+            if ($logoSidebarFile) {
+                $sidebarFilename = 'logo_sidebar_' . time() . '_' . Str::random(8) . '.' . $logoSidebarFile->getClientOriginalExtension();
+                $sidebarPath = 'tours_logo/' . $tour->id . '/' . $sidebarFilename;
+                $sidebarContent = file_get_contents($logoSidebarFile->getRealPath());
+                $sidebarMime = $logoSidebarFile->getMimeType();
+                $uploaded = \Storage::disk('s3')->put($sidebarPath, $sidebarContent, ['ContentType' => $sidebarMime]);
+                if ($uploaded) {
+                    $updateData['custom_logo_sidebar'] = $sidebarPath;
+                }
+            }
+            if ($logoFooterFile) {
+                $footerFilename = 'logo_footer_' . time() . '_' . Str::random(8) . '.' . $logoFooterFile->getClientOriginalExtension();
+                $footerPath = 'tours_logo/' . $tour->id . '/' . $footerFilename;
+                $footerContent = file_get_contents($logoFooterFile->getRealPath());
+                $footerMime = $logoFooterFile->getMimeType();
+                $uploaded = \Storage::disk('s3')->put($footerPath, $footerContent, ['ContentType' => $footerMime]);
+                if ($uploaded) {
+                    $updateData['custom_logo_footer'] = $footerPath;
+                }
+            }
+        if (!empty($updateData)) {
+            $tour->update($updateData);
+        }
+
+            } catch (\Exception $e) {
+                return back()->withInput()->withErrors(['general' => 'An error occurred while updating the tour: ' . $e->getMessage()]);
+            }
         activity('tours')
             ->performedOn($tour)
             ->causedBy($request->user())
