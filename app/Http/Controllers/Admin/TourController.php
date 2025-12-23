@@ -7,6 +7,7 @@ use App\Models\Tour;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Spatie\Activitylog\Models\Activity;
+use Storage;
 use Yajra\DataTables\DataTables;
 
 class TourController extends Controller
@@ -26,14 +27,15 @@ class TourController extends Controller
     {
         if ($request->ajax()) {
             $query = Tour::query();
-            
+
             return DataTables::of($query)
                 ->addColumn('title', fn(Tour $tour) => $tour->title)
                 ->addColumn('location', fn(Tour $tour) => $tour->location ?? '-')
                 ->addColumn('price', fn(Tour $tour) => $tour->formatted_price)
                 ->addColumn('duration', fn(Tour $tour) => $tour->duration_text)
                 ->addColumn('dates', function (Tour $tour) {
-                    if (!$tour->start_date) return '-';
+                    if (!$tour->start_date)
+                        return '-';
                     $start = $tour->start_date->format('d M Y');
                     $end = $tour->end_date ? $tour->end_date->format('d M Y') : '-';
                     return $start . '<div class="text-muted small">to ' . $end . '</div>';
@@ -54,28 +56,28 @@ class TourController extends Controller
                     $delete = route('admin.tours.destroy', $tour);
                     $csrf = csrf_field();
                     $method = method_field('DELETE');
-                    
+
                     $actions = '<a href="' . $view . '" class="btn btn-light btn-sm border" title="View"><i class="ri-eye-line"></i></a>';
-                    
+
                     if (auth()->user()->can('tour_edit')) {
                         $actions .= ' <a href="' . $edit . '" class="btn btn-soft-primary btn-sm" title="Edit"><i class="ri-edit-line"></i></a>';
                     }
-                    
+
                     if (auth()->user()->can('tour_delete')) {
                         $actions .= ' <form action="' . $delete . '" method="POST" class="d-inline">' . $csrf . $method .
                             '<button type="submit" class="btn btn-soft-danger btn-sm" onclick="return confirm(\'Delete this tour?\')"><i class="ri-delete-bin-line"></i></button></form>';
                     }
-                    
+
                     return $actions;
                 })
                 ->rawColumns(['dates', 'status', 'actions'])
                 ->toJson();
         }
-        
+
         $canCreate = $request->user()->can('tour_create');
         $canEdit = $request->user()->can('tour_edit');
         $canDelete = $request->user()->can('tour_delete');
-        
+
         return view('admin.tours.index', compact('canCreate', 'canEdit', 'canDelete'));
     }
 
@@ -86,7 +88,7 @@ class TourController extends Controller
     {
         $statuses = ['draft', 'published', 'archived'];
         $structuredDataTypes = ['Article', 'Place', 'Event', 'Product', 'TouristAttraction'];
-        
+
         return view('admin.tours.create', compact('statuses', 'structuredDataTypes'));
     }
 
@@ -143,7 +145,7 @@ class TourController extends Controller
         // Auto-generate slug if not provided
         if (empty($validated['slug'])) {
             $validated['slug'] = Str::slug($validated['title']);
-            
+
             // Ensure uniqueness
             $originalSlug = $validated['slug'];
             $counter = 1;
@@ -160,9 +162,9 @@ class TourController extends Controller
         unset($validated['custom_logo_sidebar'], $validated['custom_logo_footer']);
 
         $tour = Tour::create($validated);
-            try {
+        try {
 
-        $updateData = [];
+            $updateData = [];
             if ($logoSidebarFile) {
                 $sidebarFilename = 'logo_sidebar_' . time() . '_' . Str::random(8) . '.' . $logoSidebarFile->getClientOriginalExtension();
                 $sidebarPath = 'tours_logo/' . $tour->id . '/' . $sidebarFilename;
@@ -183,13 +185,13 @@ class TourController extends Controller
                     $updateData['custom_logo_footer'] = $footerPath;
                 }
             }
-        if (!empty($updateData)) {
-            $tour->update($updateData);
-        }
-
-            } catch (\Exception $e) {
-                return back()->withInput()->withErrors(['general' => 'An error occurred while saving the tour: ' . $e->getMessage()]);
+            if (!empty($updateData)) {
+                $tour->update($updateData);
             }
+
+        } catch (\Exception $e) {
+            return back()->withInput()->withErrors(['general' => 'An error occurred while saving the tour: ' . $e->getMessage()]);
+        }
         activity('tours')
             ->performedOn($tour)
             ->causedBy($request->user())
@@ -222,7 +224,6 @@ class TourController extends Controller
     {
         $statuses = ['draft', 'published', 'archived'];
         $structuredDataTypes = ['Article', 'Place', 'Event', 'Product', 'TouristAttraction'];
-        
         return view('admin.tours.edit', compact('tour', 'statuses', 'structuredDataTypes'));
     }
 
@@ -267,8 +268,8 @@ class TourController extends Controller
             'footer_code' => ['nullable', 'string'],
 
             // Custom fields
-            'custom_logo_sidebar' => ['nullable', 'string', 'max:255'],
-            'custom_logo_footer' => ['nullable', 'string', 'max:255'],
+            'custom_logo_sidebar' => ['nullable'],
+            'custom_logo_footer' => ['nullable'],
             'custom_name' => ['nullable', 'string', 'max:255'],
             'custom_email' => ['nullable', 'string', 'max:255'],
             'custom_mobile' => ['nullable', 'string', 'max:255'],
@@ -279,7 +280,7 @@ class TourController extends Controller
         // Auto-generate slug if not provided
         if (empty($validated['slug'])) {
             $validated['slug'] = Str::slug($validated['title']);
-            
+
             // Ensure uniqueness
             $originalSlug = $validated['slug'];
             $counter = 1;
@@ -296,16 +297,16 @@ class TourController extends Controller
         unset($validated['custom_logo_sidebar'], $validated['custom_logo_footer']);
 
         $oldData = $tour->toArray();
-            try {
-        $tour->update($validated);
+        try {
+            $tour->update($validated);
 
-        $updateData = [];
+            $updateData = [];
             if ($logoSidebarFile) {
                 $sidebarFilename = 'logo_sidebar_' . time() . '_' . Str::random(8) . '.' . $logoSidebarFile->getClientOriginalExtension();
                 $sidebarPath = 'tours_logo/' . $tour->id . '/' . $sidebarFilename;
                 $sidebarContent = file_get_contents($logoSidebarFile->getRealPath());
                 $sidebarMime = $logoSidebarFile->getMimeType();
-                $uploaded = \Storage::disk('s3')->put($sidebarPath, $sidebarContent, ['ContentType' => $sidebarMime]);
+                $uploaded = Storage::disk('s3')->put($sidebarPath, $sidebarContent, ['ContentType' => $sidebarMime]);
                 if ($uploaded) {
                     $updateData['custom_logo_sidebar'] = $sidebarPath;
                 }
@@ -315,18 +316,18 @@ class TourController extends Controller
                 $footerPath = 'tours_logo/' . $tour->id . '/' . $footerFilename;
                 $footerContent = file_get_contents($logoFooterFile->getRealPath());
                 $footerMime = $logoFooterFile->getMimeType();
-                $uploaded = \Storage::disk('s3')->put($footerPath, $footerContent, ['ContentType' => $footerMime]);
+                $uploaded = Storage::disk('s3')->put($footerPath, $footerContent, ['ContentType' => $footerMime]);
                 if ($uploaded) {
                     $updateData['custom_logo_footer'] = $footerPath;
                 }
             }
-        if (!empty($updateData)) {
-            $tour->update($updateData);
-        }
-
-            } catch (\Exception $e) {
-                return back()->withInput()->withErrors(['general' => 'An error occurred while updating the tour: ' . $e->getMessage()]);
+            if (!empty($updateData)) {
+                $tour->update($updateData);
             }
+
+        } catch (\Exception $e) {
+            return back()->withInput()->withErrors(['general' => 'An error occurred while updating the tour: ' . $e->getMessage()]);
+        }
         activity('tours')
             ->performedOn($tour)
             ->causedBy($request->user())
@@ -351,7 +352,7 @@ class TourController extends Controller
     public function destroy(Tour $tour)
     {
         $tourData = $tour->toArray();
-        
+
         activity('tours')
             ->performedOn($tour)
             ->causedBy(auth()->user())

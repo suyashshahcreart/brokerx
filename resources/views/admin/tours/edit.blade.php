@@ -19,7 +19,7 @@
             </div>
         </div>
 
-        <form method="POST" action="{{ route('admin.tours.update', $tour) }}" class="needs-validation" novalidate>
+        <form method="POST" action="{{ route('admin.tours.update', $tour) }}" enctype="multipart/form-data" class="needs-validation" novalidate>
                         @if($errors->has('general'))
                             <div class="alert alert-danger">{{ $errors->first('general') }}</div>
                         @endif
@@ -210,7 +210,7 @@
             </div>
 
             <!-- Open Graph / Social Media -->
-            <div class="card panel-card border-info border-top mb-3" data-panel-card>
+            <div class="d-none card panel-card border-info border-top mb-3" data-panel-card>
                 <div class="card-header d-flex justify-content-between align-items-start flex-wrap gap-2">
                     <div>
                         <h4 class="card-title mb-1">Open Graph / Social Media</h4>
@@ -300,7 +300,6 @@
                 </div>
             </div>
 
-            <!-- Custom Code -->
             <!-- Company Section -->
             <div class="card panel-card border-info border-top mb-3" data-panel-card>
                 <div class="card-header d-flex justify-content-between align-items-start flex-wrap gap-2">
