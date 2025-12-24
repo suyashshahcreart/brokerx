@@ -9,7 +9,7 @@
         "barryvdh/laravel-dompdf": "^3.1",
         "endroid/qr-code": "^5.0",
         "laravel/framework": "^11.9",
-        "laravel/sanctum": "^4.2",
+        "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.9",
         "league/flysystem-aws-s3-v3": "^3.30",
         "simplesoftwareio/simple-qrcode": "^4.2",

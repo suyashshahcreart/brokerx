@@ -22,13 +22,10 @@ use App\Http\Controllers\Admin\Api\TourManagerController;
 // Rest API's
 // Tour Manager APIs
 Route::post('/tour-manager/login', [TourManagerController::class, 'login']);
-
-Route::get('/tour-manager/customers', [TourManagerController::class, 'getCustomers']);
-Route::get('/tour-manager/tours-by-customer', [TourManagerController::class, 'getToursByCustomer']);
-
-// Route::middleware('auth')->group(function () {
-// });
-
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/tour-manager/customers', [TourManagerController::class, 'getCustomers']);
+    Route::get('/tour-manager/tours-by-customer', [TourManagerController::class, 'getToursByCustomer']);
+});
 
 
 // Laravel authenticated user route
