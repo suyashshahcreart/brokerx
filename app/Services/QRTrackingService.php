@@ -56,8 +56,11 @@ class QRTrackingService
             // Collect user data (pass GPS coordinates)
             $userData = $this->collectUserData($request, $gpsLat, $gpsLng);
             
-            // Get geolocation data - prefer GPS coordinates from browser if available
-            $geoData = $this->getGeolocationData($userData['user_ip'], $request);
+            // Get geolocation data - always get IP-based data as fallback
+            $geoDataResult = $this->getGeolocationData($userData['user_ip'], $request);
+            $geoData = $geoDataResult['data'] ?? [];
+            $apiResponse = $geoDataResult['api_response'] ?? null;
+            $apiService = $geoDataResult['service'] ?? null;
             
             // If we have GPS coordinates, use reverse geocoding to get accurate address details
             $reverseGeoData = [];
@@ -85,31 +88,49 @@ class QRTrackingService
                 Log::info("QR Tracking: No GPS coordinates, using IP-based geolocation", [
                     'hasGPS' => $hasGPS,
                     'gpsLat' => $gpsLat,
-                    'gpsLng' => $gpsLng
+                    'gpsLng' => $gpsLng,
+                    'api_service' => $apiService
                 ]);
             }
             
             // If no GPS, check if permission was denied or GPS unavailable
-            // If GPS is not available (denied, timeout, etc.), don't use IP-based location (save null instead)
+            // Use IP-based location data when GPS is not available
             $permissionDenied = $request->input('permission_denied', false);
             $gpsUnavailable = $request->input('gps_unavailable', false);
+            $locationAction = $request->input('location_action'); // 'allow', 'block', or 'close'
             
-            // If no GPS, always save null location data (don't use IP-based to avoid wrong data)
+            // If no GPS, use IP-based geolocation data
             if (!$hasGPS) {
-                // GPS not available - don't save wrong IP-based location
-                // Save null instead to indicate no accurate location data available
-                $latitude = null;
-                $longitude = null;
-                $geoData['country'] = null;
-                $geoData['city'] = null;
-                $geoData['region'] = null;
-                $geoData['full_address'] = null;
-                $geoData['pincode'] = null;
-                Log::info("QR Tracking: No GPS available - saving null location data instead of IP-based", [
-                    'permission_denied' => $permissionDenied,
-                    'gps_unavailable' => $gpsUnavailable,
-                    'hasGPS' => $hasGPS
-                ]);
+                // GPS not available - use IP-based location data
+                if (!empty($geoData) && isset($geoData['latitude']) && isset($geoData['longitude'])) {
+                    // Use IP-based coordinates
+                    $latitude = $geoData['latitude'];
+                    $longitude = $geoData['longitude'];
+                    Log::info("QR Tracking: Using IP-based geolocation data", [
+                        'permission_denied' => $permissionDenied,
+                        'gps_unavailable' => $gpsUnavailable,
+                        'hasGPS' => $hasGPS,
+                        'location_action' => $locationAction,
+                        'api_service' => $apiService,
+                        'latitude' => $latitude,
+                        'longitude' => $longitude
+                    ]);
+                } else {
+                    // No IP-based data available either
+                    $latitude = null;
+                    $longitude = null;
+                    $geoData['country'] = null;
+                    $geoData['city'] = null;
+                    $geoData['region'] = null;
+                    $geoData['full_address'] = null;
+                    $geoData['pincode'] = null;
+                    Log::info("QR Tracking: No GPS and no IP-based data available", [
+                        'permission_denied' => $permissionDenied,
+                        'gps_unavailable' => $gpsUnavailable,
+                        'hasGPS' => $hasGPS,
+                        'location_action' => $locationAction
+                    ]);
+                }
             }
             
             // Calculate load time
@@ -141,7 +162,7 @@ class QRTrackingService
                 'latitude' => $latitude,
                 'longitude' => $longitude,
                 'timezone' => $geoData['timezone'] ?? null,
-                'location_source' => $hasGPS ? 'GPS' : 'UNAVAILABLE',
+                'location_source' => $hasGPS ? 'GPS' : ($apiService ? 'IP-' . strtoupper($apiService) : 'UNAVAILABLE'),
                 'referrer' => $userData['referrer'],
                 'utm_source' => $userData['utm_source'],
                 'utm_medium' => $userData['utm_medium'],
@@ -154,17 +175,32 @@ class QRTrackingService
                 'tracking_status' => $booking ? 'success' : ($tour_code ? 'invalid_tour_code' : 'success'),
                 'error_message' => $tour_code && !$booking ? 'Tour code not found' : null,
                 'load_time' => $loadTime,
-                'metadata' => $this->collectMetadata($request),
+                'metadata' => $this->collectMetadata($request, $apiResponse, $apiService),
             ]);
             
             return $tracking;
             
         } catch (\Exception $e) {
-            // Log error but don't break the page
+            // Log error with full details
             Log::error('QR Tracking Error: ' . $e->getMessage(), [
                 'tour_code' => $tour_code,
                 'page_type' => $page_type,
-                'exception' => $e
+                'exception' => $e,
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return null;
+        } catch (\Throwable $e) {
+            // Catch any other throwable errors
+            Log::error('QR Tracking Throwable Error: ' . $e->getMessage(), [
+                'tour_code' => $tour_code,
+                'page_type' => $page_type,
+                'exception' => $e,
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
             ]);
             
             return null;
@@ -312,11 +348,13 @@ class QRTrackingService
     private function getGeolocationData(string $ip, Request $request): array
     {
         $data = [];
+        $apiResponse = null;
+        $apiService = null;
         
         // Skip for localhost and private IPs
         if (in_array($ip, ['127.0.0.1', '::1', '0.0.0.0']) || 
             filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false) {
-            return $data;
+            return ['data' => $data, 'api_response' => null, 'service' => null];
         }
         
         // Try multiple services in order of preference for better accuracy
@@ -342,13 +380,16 @@ class QRTrackingService
                     $geoData = json_decode($response, true);
                     if ($geoData && !isset($geoData['error'])) {
                         return [
-                            'country' => $geoData['country_name'] ?? $geoData['country'] ?? '',
-                            'city' => $geoData['city'] ?? '',
-                            'region' => $geoData['region'] ?? $geoData['region_name'] ?? '',
-                            'latitude' => isset($geoData['latitude']) ? (float)$geoData['latitude'] : null,
-                            'longitude' => isset($geoData['longitude']) ? (float)$geoData['longitude'] : null,
-                            'timezone' => $geoData['timezone'] ?? '',
-                            'accuracy' => 'ipapi'
+                            'data' => [
+                                'country' => $geoData['country_name'] ?? $geoData['country'] ?? '',
+                                'city' => $geoData['city'] ?? '',
+                                'region' => $geoData['region'] ?? $geoData['region_name'] ?? '',
+                                'latitude' => isset($geoData['latitude']) ? (float)$geoData['latitude'] : null,
+                                'longitude' => isset($geoData['longitude']) ? (float)$geoData['longitude'] : null,
+                                'timezone' => $geoData['timezone'] ?? '',
+                                'accuracy' => 'ipapi'
+                            ],
+                            'raw_response' => $geoData
                         ];
                     }
                 }
@@ -385,13 +426,16 @@ class QRTrackingService
                         }
                         
                         return [
-                            'country' => $geoData['country'] ?? '',
-                            'city' => $geoData['city'] ?? '',
-                            'region' => $geoData['region'] ?? '',
-                            'latitude' => $lat,
-                            'longitude' => $lng,
-                            'timezone' => $geoData['timezone'] ?? '',
-                            'accuracy' => 'ipinfo'
+                            'data' => [
+                                'country' => $geoData['country'] ?? '',
+                                'city' => $geoData['city'] ?? '',
+                                'region' => $geoData['region'] ?? '',
+                                'latitude' => $lat,
+                                'longitude' => $lng,
+                                'timezone' => $geoData['timezone'] ?? '',
+                                'accuracy' => 'ipinfo'
+                            ],
+                            'raw_response' => $geoData
                         ];
                     }
                 }
@@ -413,13 +457,16 @@ class QRTrackingService
                     $geoData = json_decode($response, true);
                     if ($geoData && isset($geoData['status']) && $geoData['status'] === 'success') {
                         return [
-                            'country' => $geoData['country'] ?? '',
-                            'city' => $geoData['city'] ?? '',
-                            'region' => $geoData['regionName'] ?? '',
-                            'latitude' => isset($geoData['lat']) ? (float)$geoData['lat'] : null,
-                            'longitude' => isset($geoData['lon']) ? (float)$geoData['lon'] : null,
-                            'timezone' => $geoData['timezone'] ?? '',
-                            'accuracy' => 'ip-api'
+                            'data' => [
+                                'country' => $geoData['country'] ?? '',
+                                'city' => $geoData['city'] ?? '',
+                                'region' => $geoData['regionName'] ?? '',
+                                'latitude' => isset($geoData['lat']) ? (float)$geoData['lat'] : null,
+                                'longitude' => isset($geoData['lon']) ? (float)$geoData['lon'] : null,
+                                'timezone' => $geoData['timezone'] ?? '',
+                                'accuracy' => 'ip-api'
+                            ],
+                            'raw_response' => $geoData
                         ];
                     }
                 }
@@ -431,12 +478,14 @@ class QRTrackingService
         foreach ($services as $serviceName => $serviceFunction) {
             try {
                 $result = $serviceFunction($ip);
-                if ($result && isset($result['latitude']) && isset($result['longitude']) && 
-                    $result['latitude'] !== null && $result['longitude'] !== null) {
-                    $data = $result;
+                if ($result && isset($result['data']['latitude']) && isset($result['data']['longitude']) && 
+                    $result['data']['latitude'] !== null && $result['data']['longitude'] !== null) {
+                    $data = $result['data'];
+                    $apiResponse = $result['raw_response'];
+                    $apiService = $serviceName;
                     Log::info("QR Geolocation: Used {$serviceName} for IP {$ip}", [
-                        'latitude' => $result['latitude'],
-                        'longitude' => $result['longitude']
+                        'latitude' => $result['data']['latitude'],
+                        'longitude' => $result['data']['longitude']
                     ]);
                     break; // Use first successful result
                 }
@@ -451,7 +500,7 @@ class QRTrackingService
             Log::warning("QR Geolocation: All services failed for IP {$ip}");
         }
         
-        return $data;
+        return ['data' => $data, 'api_response' => $apiResponse, 'service' => $apiService];
     }
     
     /**
@@ -507,9 +556,9 @@ class QRTrackingService
     /**
      * Collect additional metadata
      */
-    private function collectMetadata(Request $request): array
+    private function collectMetadata(Request $request, $apiResponse = null, $apiService = null): array
     {
-        return [
+        $metadata = [
             'http_method' => $request->method(),
             'request_uri' => $request->getRequestUri(),
             'query_string' => $request->getQueryString(),
@@ -517,6 +566,19 @@ class QRTrackingService
             'accept_encoding' => $request->header('Accept-Encoding'),
             'accept' => $request->header('Accept'),
         ];
+        
+        // Add location action if provided (allow, block, close)
+        if ($request->has('location_action')) {
+            $metadata['location_action'] = $request->input('location_action');
+        }
+        
+        // Add full API response if available
+        if ($apiResponse !== null) {
+            $metadata['ip_geolocation_api_response'] = $apiResponse;
+            $metadata['ip_geolocation_api_service'] = $apiService;
+        }
+        
+        return $metadata;
     }
 }
 

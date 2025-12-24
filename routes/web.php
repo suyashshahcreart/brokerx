@@ -78,6 +78,9 @@ if (in_array($domain, ['qr.proppik.com', 'www.qr.proppik.com'])) {
     // AJAX endpoint to track visit after GPS coordinates are captured
     Route::post('/track-visit', [QRManageController::class, 'trackVisitAjax'])->name('qr.track-visit');
     
+    // Save tour notification (phone number)
+    Route::post('/save-notification', [QRManageController::class, 'saveNotification'])->name('qr.save-notification');
+    
     // Dynamic tour_code route - must be last to catch any parameter
     // Example: /1234Aber
     Route::get('/{tour_code}', [QRManageController::class, 'showByTourCode'])

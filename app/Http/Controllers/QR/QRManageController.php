@@ -60,9 +60,16 @@ class QRManageController extends Controller
         $booking = Booking::where('tour_code', $tour_code)->first();
         
         if ($booking) {
-            // Tour code found - show booking details or tour
-            // Note: Tracking will happen via AJAX after GPS coordinates are captured
-            return view('qr.tour-found', compact('booking', 'tour_code'));
+            // Check if booking status is 'tour_live'
+            if ($booking->status === 'tour_live') {
+                // Tour is live - show tour found page
+                // Note: Tracking will happen via AJAX after GPS coordinates are captured
+                return view('qr.tour-found', compact('booking', 'tour_code'));
+            } else {
+                // Tour code found but status is not 'tour_live' - show coming soon page
+                // Note: Tracking will happen via AJAX after GPS coordinates are captured
+                return view('qr.tour-coming-soon', compact('booking', 'tour_code'));
+            }
         } else {
             // Tour code not found - show not found page
             return view('qr.tour-not-found', compact('tour_code'));
@@ -90,16 +97,32 @@ class QRManageController extends Controller
             }
             
             // Track the visit with GPS coordinates
-            $tracking = $this->trackingService->trackVisit($request, $tour_code, $page_type);
-            
-            if (!$tracking) {
-                \Log::error('QR Tracking: Failed to create tracking record', [
+            try {
+                $tracking = $this->trackingService->trackVisit($request, $tour_code, $page_type);
+                
+                if (!$tracking) {
+                    \Log::error('QR Tracking: Failed to create tracking record - trackVisit returned null', [
+                        'tour_code' => $tour_code,
+                        'page_type' => $page_type,
+                        'request_data' => $request->all()
+                    ]);
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Failed to create tracking record. Please check server logs for details.'
+                    ], 500);
+                }
+            } catch (\Exception $e) {
+                \Log::error('QR Tracking: Exception in trackVisitAjax', [
                     'tour_code' => $tour_code,
-                    'page_type' => $page_type
+                    'page_type' => $page_type,
+                    'exception' => $e->getMessage(),
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine(),
+                    'trace' => $e->getTraceAsString()
                 ]);
                 return response()->json([
                     'success' => false,
-                    'message' => 'Failed to create tracking record'
+                    'message' => 'Tracking error: ' . $e->getMessage()
                 ], 500);
             }
             
@@ -124,6 +147,83 @@ class QRManageController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Tracking error: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+    
+    /**
+     * Save tour notification (phone number)
+     */
+    public function saveNotification(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'tour_code' => 'required|string|max:255',
+                'phone_number' => 'required|string|regex:/^[0-9]{10}$/',
+            ]);
+            
+            // Clean phone number (remove any non-digit characters)
+            $phoneNumber = preg_replace('/\D/', '', $validated['phone_number']);
+            
+            // Validate phone number is exactly 10 digits
+            if (strlen($phoneNumber) !== 10) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Phone number must be exactly 10 digits.'
+                ], 422);
+            }
+            
+            // Find booking by tour_code
+            $booking = Booking::where('tour_code', $validated['tour_code'])->first();
+            
+            // Check if notification already exists for this phone and tour_code
+            $existingNotification = \App\Models\TourNotification::where('tour_code', $validated['tour_code'])
+                ->where('phone_number', $phoneNumber)
+                ->first();
+            
+            if ($existingNotification) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'You are already registered for notifications!',
+                    'already_exists' => true
+                ]);
+            }
+            
+            // Create notification
+            $notification = \App\Models\TourNotification::create([
+                'tour_code' => $validated['tour_code'],
+                'booking_id' => $booking ? $booking->id : null,
+                'phone_number' => $phoneNumber,
+                'status' => 'pending',
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'metadata' => [
+                    'source' => 'tour_coming_soon_page',
+                    'submitted_at' => now()->toDateTimeString(),
+                ],
+            ]);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Notification saved successfully!',
+                'notification_id' => $notification->id
+            ]);
+            
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed: ' . implode(', ', $e->errors()['phone_number'] ?? ['Invalid phone number format.'])
+            ], 422);
+        } catch (\Exception $e) {
+            \Log::error('Tour Notification Save Error: ' . $e->getMessage(), [
+                'exception' => $e,
+                'trace' => $e->getTraceAsString(),
+                'request_data' => $request->all()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to save notification. Please try again later.'
             ], 500);
         }
     }

@@ -7,6 +7,8 @@
     
     let locationRequested = false;
     let locationDenied = false;
+    let pendingLocationAlert = null; // Store location data for alert after backend response
+    let locationRequestStartTime = null; // Track when location request started
     
     // Create location permission modal
     function createLocationModal() {
@@ -123,6 +125,8 @@
     window.requestLocationAgain = function() {
         // Don't close modal yet - wait for permission to be granted
         console.log('🔄 Requesting location permission again...');
+        console.log('📍 Location permission popup triggered - waiting for user action...');
+        locationRequestStartTime = Date.now(); // Track when request started
         
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
@@ -134,8 +138,17 @@
                     
                     const lat = position.coords.latitude;
                     const lng = position.coords.longitude;
+                    const accuracy = position.coords.accuracy || 'N/A';
                     
                     console.log('📍 GPS Coordinates captured:', lat, lng);
+                    
+                    // Store location data for alert - will show after backend response with full address details
+                    pendingLocationAlert = {
+                        latitude: lat,
+                        longitude: lng,
+                        accuracy: accuracy,
+                        timestamp: new Date(position.timestamp).toLocaleString()
+                    };
                     
                     // Send GPS coordinates to session
                     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || 
@@ -165,30 +178,107 @@
                         const tourCode = getTourCodeFromUrl();
                         const pageType = getPageType();
                         
-                        const trackingData = {
-                            screen_resolution: screenResolution,
-                            gps_latitude: lat,
-                            gps_longitude: lng
+                        const currentOrigin = window.location.origin;
+                        const trackVisitUrl = currentOrigin + '/track-visit';
+                        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || 
+                                         document.querySelector('input[name="_token"]')?.value ||
+                                         window.csrfToken;
+                        
+                        // Helper functions for getting tour code and page type
+                        const getTourCodeFromUrl = function() {
+                            const path = window.location.pathname;
+                            const match = path.match(/\/([A-Za-z0-9]+)$/);
+                            return match ? match[1] : null;
                         };
                         
-                        // Send tracking data with GPS
-                        sendTrackingData(trackingData);
+                        const getPageType = function() {
+                            const path = window.location.pathname;
+                            if (path === '/' || path === '') return 'welcome';
+                            if (path.includes('/analytics')) return 'analytics';
+                            if (getTourCodeFromUrl()) return 'tour_code';
+                            return 'welcome';
+                        };
+                        
+                        // Send tracking data with GPS and handle response for alert
+                        return fetch(trackVisitUrl, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': csrfToken || '',
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'Accept': 'application/json'
+                            },
+                            credentials: 'same-origin',
+                            body: JSON.stringify({
+                                tour_code: getTourCodeFromUrl(),
+                                page_type: getPageType(),
+                                gps_latitude: lat,
+                                gps_longitude: lng,
+                                screen_resolution: screenResolution
+                            })
+                        });
+                    }).then(response => {
+                        if (response && response.ok) {
+                            return response.json().then(result => {
+                                // Clear pending alert (no popup shown, but tracking continues)
+                                if (pendingLocationAlert) {
+                                    pendingLocationAlert = null;
+                                }
+                                return result;
+                            });
+                        }
+                        return null;
                     }).catch(error => {
                         console.error('❌ Failed to store GPS coordinates:', error);
-                        // Still try to send tracking data
-                        const screenResolution = window.screen.width + 'x' + window.screen.height;
-                        const trackingData = {
-                            screen_resolution: screenResolution,
-                            gps_latitude: lat,
-                            gps_longitude: lng
-                        };
-                        sendTrackingData(trackingData);
+                        // Clear pending alert (no popup shown, but tracking continues)
+                        if (pendingLocationAlert) {
+                            pendingLocationAlert = null;
+                        }
                     });
                 },
                 function(error) {
                     // Permission still denied - keep modal open and try again
                     console.warn('⚠️ Location permission still denied:', error.message);
                     console.warn('⚠️ Modal will remain open - please allow location access');
+                    
+                    // Calculate how long the request took
+                    const requestDuration = locationRequestStartTime ? Date.now() - locationRequestStartTime : 0;
+                    locationRequestStartTime = null; // Reset
+                    
+                    let actionType = 'close';
+                    let actionMessage = 'You closed the location permission popup - No location access granted.';
+                    
+                    if (error.code === error.PERMISSION_DENIED) {
+                        // Check if it was a quick close (X button) or actual Block click
+                        if (requestDuration < 2000) {
+                            // Quick response = user closed popup (X button)
+                            actionType = 'close';
+                            actionMessage = 'You closed the location permission popup - No location access granted.';
+                            console.warn('⚠️ Location permission denied quickly - user closed popup (X button)');
+                            // No alert popup shown
+                        } else {
+                            // Slower response = user clicked Block button
+                            actionType = 'block';
+                            actionMessage = 'You clicked "Block" - Location access was denied.';
+                            console.warn('⚠️ Location permission denied - user clicked Block button');
+                            // No alert popup shown
+                        }
+                    } else if (error.code === error.TIMEOUT) {
+                        // User closed the popup or it timed out
+                        actionType = 'close';
+                        actionMessage = 'You closed the location permission popup - No location access granted.';
+                        // No alert popup shown
+                    } else if (error.code === error.POSITION_UNAVAILABLE) {
+                        // User closed the popup or location unavailable
+                        actionType = 'close';
+                        actionMessage = 'You closed the location permission popup - No location access granted.';
+                        // No alert popup shown
+                    } else {
+                        // Other errors - likely user closed popup
+                        actionType = 'close';
+                        actionMessage = 'You closed the location permission popup - No location access granted.';
+                        // No alert popup shown
+                    }
                     
                     // Keep modal open - don't close it
                     // Show a message in the modal
@@ -236,17 +326,30 @@
         
         // Try to get GPS coordinates from browser (more accurate than IP-based)
         if (navigator.geolocation) {
+            console.log('📍 Location permission popup triggered - waiting for user action...');
+            locationRequestStartTime = Date.now(); // Track when request started
+            
             navigator.geolocation.getCurrentPosition(
                 function(position) {
-                    // GPS coordinates available - use these for accurate location
+                    // GPS coordinates available - user clicked "Allow"
                     const lat = parseFloat(position.coords.latitude);
                     const lng = parseFloat(position.coords.longitude);
+                    const accuracy = position.coords.accuracy || 'N/A';
                     
                     trackingData.gps_latitude = lat;
                     trackingData.gps_longitude = lng;
                     
-                    console.log('GPS Coordinates captured:', lat, lng);
-                    console.log('GPS Accuracy:', position.coords.accuracy, 'meters');
+                    console.log('✅ GPS Coordinates captured:', lat, lng);
+                    console.log('GPS Accuracy:', accuracy, 'meters');
+                    
+                    // Store location data for alert - will show after backend response with full address details
+                    pendingLocationAlert = {
+                        latitude: lat,
+                        longitude: lng,
+                        accuracy: accuracy,
+                        timestamp: new Date(position.timestamp).toLocaleString()
+                    };
+                    
                     sendTrackingData(trackingData);
                     locationRequested = true;
                 },
@@ -255,24 +358,64 @@
                     console.warn('⚠️ Location error:', error.code, error.message);
                     locationRequested = true;
                     
+                    // Calculate how long the request took
+                    const requestDuration = locationRequestStartTime ? Date.now() - locationRequestStartTime : 0;
+                    locationRequestStartTime = null; // Reset
+                    
+                    let actionType = 'close';
+                    let actionMessage = 'You closed the location permission popup - No location access granted.';
+                    
                     if (error.code === error.PERMISSION_DENIED) {
-                        locationDenied = true;
-                        console.warn('⚠️ Location permission denied - showing modal');
-                        // Show modal immediately - DO NOT send tracking data with wrong location
-                        setTimeout(() => {
-                            showLocationModal();
-                        }, 500);
-                        // DO NOT send tracking data when permission is denied - wait for user to allow
-                        return; // Exit early, don't send tracking data
+                        // Check if it was a quick close (X button) or actual Block click
+                        // If error happened very quickly (< 2 seconds), user likely closed the popup
+                        // If it took longer, user likely clicked Block button
+                        if (requestDuration < 2000) {
+                            // Quick response = user closed popup (X button)
+                            actionType = 'close';
+                            actionMessage = 'You closed the location permission popup - No location access granted.';
+                            console.warn('⚠️ Location permission denied quickly - user closed popup (X button)');
+                        } else {
+                            // Slower response = user clicked Block button
+                            locationDenied = true;
+                            actionType = 'block';
+                            actionMessage = 'You clicked "Block" - Location access was denied.';
+                            console.warn('⚠️ Location permission denied - user clicked Block button');
+                            // Show modal immediately (no alert popup)
+                            setTimeout(() => {
+                                showLocationModal();
+                            }, 500);
+                        }
+                    } else if (error.code === error.TIMEOUT) {
+                        // User closed the popup or it timed out
+                        actionType = 'close';
+                        actionMessage = 'You closed the location permission popup - No location access granted.';
+                        console.warn('⚠️ Location timeout - user closed popup');
+                    } else if (error.code === error.POSITION_UNAVAILABLE) {
+                        // User closed the popup or location unavailable
+                        actionType = 'close';
+                        actionMessage = 'You closed the location permission popup - No location access granted.';
+                        console.warn('⚠️ Location unavailable - user closed popup');
+                    } else {
+                        // Other errors - likely user closed popup
+                        actionType = 'close';
+                        actionMessage = 'You closed the location permission popup - No location access granted.';
+                        console.warn('⚠️ Location error - user likely closed popup');
                     }
                     
-                    // For other errors (timeout, position unavailable, etc.)
-                    // DO NOT send tracking data with wrong IP-based location
-                    // Mark as permission denied equivalent - save null location data
-                    console.warn('⚠️ Location error (timeout/unavailable) - NOT sending tracking to avoid wrong IP-based data');
-                    locationDenied = true; // Treat timeout as denied to save null data
-                    // Don't send tracking data - wait for user to allow GPS or save null
-                    return; // Exit early, don't send tracking data
+                    // No alert popup shown - tracking continues silently
+                    
+                    // Always send tracking data even when permission denied/closed
+                    // Mark as permission denied/closed - save null location data but track the action
+                    locationDenied = true;
+                    console.log('📊 Sending tracking data for action:', actionType);
+                    
+                    // Add action type to tracking data
+                    trackingData.location_action = actionType; // 'block' or 'close'
+                    trackingData.permission_denied = true;
+                    trackingData.gps_unavailable = true;
+                    
+                    // Send tracking data with action information
+                    sendTrackingData(trackingData);
                 },
                 {
                     enableHighAccuracy: true,
@@ -287,11 +430,8 @@
         }
         
         function sendTrackingData(data) {
-            // If permission was denied and no GPS, don't send tracking data
-            if (locationDenied && !data.gps_latitude && !data.gps_longitude) {
-                console.warn('⚠️ Skipping tracking - permission denied and no GPS data');
-                return; // Don't send tracking data with wrong IP-based location
-            }
+            // Always send tracking data - track all actions (allow, block, close)
+            // Even if permission denied/closed, we still want to track the visit
             
             // Get CSRF token from multiple sources
             let csrfToken = window.csrfToken || 
@@ -391,7 +531,8 @@
                             gps_longitude: data.gps_longitude ? parseFloat(data.gps_longitude) : null,
                             screen_resolution: data.screen_resolution,
                             permission_denied: locationDenied && !data.gps_latitude && !data.gps_longitude ? true : false,
-                            gps_unavailable: !data.gps_latitude && !data.gps_longitude ? true : false
+                            gps_unavailable: !data.gps_latitude && !data.gps_longitude ? true : false,
+                            location_action: data.location_action || null // 'allow', 'block', or 'close'
                         })
                     });
                 } else {
@@ -419,7 +560,8 @@
                             gps_longitude: data.gps_longitude ? parseFloat(data.gps_longitude) : null,
                             screen_resolution: data.screen_resolution,
                             permission_denied: locationDenied && !data.gps_latitude && !data.gps_longitude ? true : false,
-                            gps_unavailable: !data.gps_latitude && !data.gps_longitude ? true : false
+                            gps_unavailable: !data.gps_latitude && !data.gps_longitude ? true : false,
+                            location_action: data.location_action || null // 'allow', 'block', or 'close'
                         })
                     });
                 }
@@ -449,6 +591,12 @@
                 }
             }).then(result => {
                 console.log('📊 Final tracking result:', result);
+                
+                // Clear pending alert (no popup shown, but tracking continues)
+                if (pendingLocationAlert) {
+                    pendingLocationAlert = null;
+                }
+                
                 if (result && result.success) {
                     console.log('✅ Tracking completed successfully!');
                     console.log('📍 Location data:', {
@@ -459,20 +607,14 @@
                         lat: result.latitude,
                         lng: result.longitude
                     });
-                    // Display geolocation data - ALWAYS show if we have any location data
+                    // Location data tracking completed (no UI display - for debugging only)
                     if (result.latitude || result.longitude || result.city || result.country) {
-                        console.log('🎨 Displaying geolocation data...');
-                        displayGeolocationData(result);
+                        console.log('✅ Location data tracked successfully (UI display removed)');
                     } else {
-                        console.warn('⚠️ No location data in tracking result to display');
+                        console.warn('⚠️ No location data in tracking result');
                     }
                 } else {
                     console.error('❌ Tracking failed - result:', result);
-                    // Even if tracking fails, try to display what we have
-                    if (result && (result.latitude || result.city || result.country)) {
-                        console.log('🎨 Displaying partial location data...');
-                        displayGeolocationData(result);
-                    }
                 }
             }).catch(function(error) {
                 console.error('❌ Tracking error:', error);
@@ -498,73 +640,8 @@
             return 'welcome';
         }
         
-        function displayGeolocationData(data) {
-            // Create or update geolocation display section
-            let geoDisplay = document.getElementById('qr-geolocation-display');
-            if (!geoDisplay) {
-                geoDisplay = document.createElement('div');
-                geoDisplay.id = 'qr-geolocation-display';
-                geoDisplay.className = 'location-info';
-                geoDisplay.style.cssText = 'margin-top: 24px; padding: 20px; background: linear-gradient(135deg, rgba(30, 64, 175, 0.15) 0%, rgba(6, 182, 212, 0.12) 50%, rgba(30, 64, 175, 0.1) 100%); border-radius: 16px; border: 1px solid rgba(255,255,255,0.2); backdrop-filter: blur(10px);';
-                
-                // Find a good place to insert it (after booking info or at end of card)
-                const card = document.querySelector('.card');
-                const bookingInfo = document.querySelector('.booking-info');
-                if (card) {
-                    if (bookingInfo) {
-                        // Insert after booking info
-                        bookingInfo.parentNode.insertBefore(geoDisplay, bookingInfo.nextSibling);
-                    } else {
-                        // Insert at end of card
-                        card.appendChild(geoDisplay);
-                    }
-                }
-            }
-            
-            const lat = data.latitude ? parseFloat(data.latitude).toFixed(8) : 'N/A';
-            const lng = data.longitude ? parseFloat(data.longitude).toFixed(8) : 'N/A';
-            const sourceBadge = data.location_source === 'GPS' ? 
-                '<span style="background: rgba(22, 163, 74, 0.3); color: #a8ffd0; padding: 4px 8px; border-radius: 6px; font-size: 0.85rem; font-weight: 600;">GPS</span>' :
-                '<span style="background: rgba(251, 191, 36, 0.3); color: #fde047; padding: 4px 8px; border-radius: 6px; font-size: 0.85rem; font-weight: 600;">IP</span>';
-            
-            geoDisplay.innerHTML = `
-                <h4 style="margin: 0 0 16px; font-size: 1.3rem; color: #fff; text-shadow: 0 0 10px rgba(255,255,255,0.3); display: flex; align-items: center; gap: 8px;">
-                    <span>📍</span> Your Location ${sourceBadge}
-                </h4>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; text-align: left;">
-                    <div>
-                        <strong style="color: #e0f2fe; display: block; margin-bottom: 4px; font-size: 0.9rem;">Country:</strong>
-                        <div style="color: #f0f9ff; font-size: 1rem; font-weight: 500;">${data.country || 'N/A'}</div>
-                    </div>
-                    <div>
-                        <strong style="color: #e0f2fe; display: block; margin-bottom: 4px; font-size: 0.9rem;">State:</strong>
-                        <div style="color: #f0f9ff; font-size: 1rem; font-weight: 500;">${data.region || 'N/A'}</div>
-                    </div>
-                    <div>
-                        <strong style="color: #e0f2fe; display: block; margin-bottom: 4px; font-size: 0.9rem;">City:</strong>
-                        <div style="color: #f0f9ff; font-size: 1rem; font-weight: 500;">${data.city || 'N/A'}</div>
-                    </div>
-                    ${data.pincode ? `
-                    <div>
-                        <strong style="color: #e0f2fe; display: block; margin-bottom: 4px; font-size: 0.9rem;">PIN Code:</strong>
-                        <div style="color: #f0f9ff; font-size: 1rem; font-weight: 500;">${data.pincode}</div>
-                    </div>
-                    ` : ''}
-                    <div style="grid-column: 1 / -1;">
-                        <strong style="color: #e0f2fe; display: block; margin-bottom: 4px; font-size: 0.9rem;">Coordinates:</strong>
-                        <div style="color: #f0f9ff; font-size: 0.95rem; font-family: monospace; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 6px;">
-                            Lat: ${lat}<br>Lng: ${lng}
-                        </div>
-                    </div>
-                    ${data.full_address ? `
-                    <div style="grid-column: 1 / -1;">
-                        <strong style="color: #e0f2fe; display: block; margin-bottom: 4px; font-size: 0.9rem;">Full Address:</strong>
-                        <div style="color: #f0f9ff; font-size: 0.9rem; line-height: 1.5;">${data.full_address}</div>
-                    </div>
-                    ` : ''}
-                </div>
-            `;
-        }
+        // displayGeolocationData function removed - UI display disabled for production
+        // Tracking data is still saved to database, but visual display is removed
     }
     
     // Initialize when DOM is ready
