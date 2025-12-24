@@ -1091,7 +1091,7 @@
             }
             
             .logo-svg {
-                height: 40px;
+                height: 60px;
                 max-width: 180px;
             }
             
@@ -1255,7 +1255,7 @@
             }
             
             .logo-svg {
-                height: 40px;
+                height: 60px;
             }
             
             .tagline {

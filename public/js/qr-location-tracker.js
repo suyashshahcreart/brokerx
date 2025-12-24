@@ -613,6 +613,21 @@
                     } else {
                         console.warn('⚠️ No location data in tracking result');
                     }
+                    
+                    // Check if redirect URL is available and redirect to tour
+                    const redirectUrl = window.tourRedirectUrl || 
+                                      (document.querySelector('[data-redirect-url]') && 
+                                       document.querySelector('[data-redirect-url]').getAttribute('data-redirect-url'));
+                    
+                    if (redirectUrl && redirectUrl.trim() !== '' && redirectUrl !== 'N/A') {
+                        console.log('🔄 Redirecting to tour:', redirectUrl);
+                        // Small delay to ensure tracking is fully saved
+                        setTimeout(function() {
+                            window.location.href = redirectUrl;
+                        }, 500);
+                    } else {
+                        console.log('ℹ️ No redirect URL available, staying on current page');
+                    }
                 } else {
                     console.error('❌ Tracking failed - result:', result);
                 }

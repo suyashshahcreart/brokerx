@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\QR;
 use App\Models\Booking;
+use App\Models\Tour;
 use App\Services\QRTrackingService;
 
 class QRManageController extends Controller
@@ -60,15 +61,30 @@ class QRManageController extends Controller
         $booking = Booking::where('tour_code', $tour_code)->first();
         
         if ($booking) {
+            // Get the tour associated with this booking
+            $tour = $booking->tours()->first();
+            
+            // Build redirect URL based on tour location and slug (same logic as edit.blade.php)
+            $redirectUrl = null;
+            if ($tour) {
+                if ($tour->location === 'creart_qr' && $tour->slug) {
+                    $redirectUrl = 'http://creart.in/qr/' . $tour->slug . '/index.php';
+                } elseif ($tour->location === 'tours' && $tour->slug) {
+                    $redirectUrl = 'https://tour.proppik.in/' . $tour->slug . '/index.php';
+                } elseif ($tour->location && $tour->slug) {
+                    $redirectUrl = 'https://' . $tour->location . '.proppik.com/' . $tour->slug . '/index.php';
+                }
+            }
+            
             // Check if booking status is 'tour_live'
             if ($booking->status === 'tour_live') {
                 // Tour is live - show tour found page
                 // Note: Tracking will happen via AJAX after GPS coordinates are captured
-                return view('qr.tour-found', compact('booking', 'tour_code'));
+                return view('qr.tour-found', compact('booking', 'tour_code', 'tour', 'redirectUrl'));
             } else {
                 // Tour code found but status is not 'tour_live' - show coming soon page
                 // Note: Tracking will happen via AJAX after GPS coordinates are captured
-                return view('qr.tour-coming-soon', compact('booking', 'tour_code'));
+                return view('qr.tour-coming-soon', compact('booking', 'tour_code', 'tour', 'redirectUrl'));
             }
         } else {
             // Tour code not found - show not found page
