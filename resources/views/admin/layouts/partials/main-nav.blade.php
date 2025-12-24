@@ -158,7 +158,6 @@
 
                @canany(['user_view', 'role_view', 'permission_view', 'activity_view', 'media_view'])
                     <li class="menu-title">System</li>
-
                     @can('user_view')
                          <li class="nav-item">
                               <a class="nav-link {{ request()->routeIs('admin.users.*') ? 'active' : '' }}"
@@ -196,7 +195,7 @@
                     @endcan
 
                     @can('activity_view')
-                         <li class="nav-item d-none">
+                         <li class="nav-item">
                               <a class="nav-link {{ request()->routeIs('admin.activity.*') ? 'active' : '' }}"
                                    href="{{ route('admin.activity.index') }}">
                                    <span class="nav-icon">
