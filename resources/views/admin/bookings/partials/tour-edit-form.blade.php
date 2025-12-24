@@ -40,7 +40,15 @@
                 <div class="col-lg-4">
                     <div class="mb-3">
                         <label class="form-label" for="tour_location">Location</label>
-                        <input type="text" name="location" id="tour_location" class="form-control" value="{{ old('location', $tour->location) }}">
+                        <select name="location" id="tour_location" class="form-select">
+                            <option value="">Select Location</option>
+                            <option value="industry" @selected(old('location', $tour->location) == 'industry')>industry (industry.proppik.com)</option>
+                            <option value="htl" @selected(old('location', $tour->location) == 'htl')>htl (htl.proppik.com)</option>
+                            <option value="re" @selected(old('location', $tour->location) == 're')>re (re.proppik.com)</option>
+                            <option value="rs" @selected(old('location', $tour->location) == 'rs')>rs (rs.proppik.com)</option>
+                            <option value="tours" @selected(old('location', $tour->location) == 'tours')>tours (tour.proppik.in)</option>
+                            <option value="creart_qr" @selected(old('location', $tour->location) == 'creart_qr')>creart_qr (creart.in/qr/)</option>
+                        </select>
                         @error('location')<div class="text-danger">{{ $message }}</div>@enderror
                     </div>
                 </div>

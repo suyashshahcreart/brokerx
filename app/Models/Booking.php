@@ -17,6 +17,14 @@ class Booking extends Model
     }
 
     /**
+     * Get all QR analytics records for this booking
+     */
+    public function qrAnalytics()
+    {
+        return $this->hasMany(\App\Models\QRAnalytics::class, 'booking_id');
+    }
+
+    /**
      * Get the booking history entries
      */
     public function histories()
@@ -48,6 +56,7 @@ class Booking extends Model
         'gst_no',
         'tour_final_link',
         'tour_code',
+        'base_url',
         'area',
         'price',
         'house_no',
@@ -133,6 +142,7 @@ class Booking extends Model
         return $this->belongsTo(User::class, 'deleted_by');
     }
 
+
     public function assignees()
     {
         return $this->hasMany(BookingAssignee::class);
@@ -144,6 +154,10 @@ class Booking extends Model
     public function photographerVisitJob()
     {
         return $this->hasOne(PhotographerVisitJob::class);
+    }
+    public function tours()
+    {
+        return $this->hasMany(Tour::class);
     }
 
     /**

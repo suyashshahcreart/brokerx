@@ -11,7 +11,10 @@
         "laravel/framework": "^11.9",
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.9",
-        "league/flysystem-aws-s3-v3": "^3.30",
+        "league/flysystem-aws-s3-v3": "3.0",
+        "league/flysystem-ftp": "^3.29",
+        "league/flysystem-sftp-v3": "^3.0",
+        "phpseclib/phpseclib": "^3.0",
         "simplesoftwareio/simple-qrcode": "^4.2",
         "spatie/laravel-activitylog": "^4.10",
         "spatie/laravel-permission": "^6.23",
@@ -66,7 +69,8 @@
         "allow-plugins": {
             "pestphp/pest-plugin": true,
             "php-http/discovery": true
-        }
+        },
+        "platform-check": false
     },
     "minimum-stability": "stable",
     "prefer-stable": true

@@ -22,9 +22,13 @@ use App\Http\Controllers\Admin\PortfolioController as AdminPortfolioController;
 use App\Http\Controllers\Admin\PhotographerVisitController;
 use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\TourController;
+use App\Http\Controllers\Admin\TourManagerController;
+use App\Http\Controllers\Admin\TourNotificationController;
+use App\Http\Controllers\Admin\QRAnalyticsController;
 use App\Http\Controllers\FrontendController;
 use App\Http\Controllers\PortfolioController;
 use App\Http\Controllers\BrokerX\BrokerXController;
+use App\Http\Controllers\QR\QRManageController;
 
 /*
 |--------------------------------------------------------------------------
@@ -36,6 +40,59 @@ use App\Http\Controllers\BrokerX\BrokerXController;
 | be assigned to the "web" middleware group. Make something great!
 |
 */
+
+// Check domain and route accordingly
+$domain = request()->getHost();
+
+// Routes for qr.proppik.com domain
+if (in_array($domain, ['qr.proppik.com', 'www.qr.proppik.com'])) {
+    // Welcome page
+    Route::get('/', [QRManageController::class, 'index'])->name('qr.welcome');
+    
+    // QR Analytics routes
+    Route::get('/analytics', [QRManageController::class, 'analytics'])->name('qr.analytics');
+    
+    // Screen resolution and GPS tracking endpoint (AJAX)
+    Route::post('/track-screen', function(\Illuminate\Http\Request $request) {
+        try {
+            if ($request->has('screen_resolution')) {
+                $request->session()->put('qr_screen_resolution', $request->input('screen_resolution'));
+            }
+            if ($request->has('gps_latitude') && $request->has('gps_longitude')) {
+                $gpsLat = $request->input('gps_latitude');
+                $gpsLng = $request->input('gps_longitude');
+                
+                // Validate GPS coordinates
+                if (is_numeric($gpsLat) && is_numeric($gpsLng)) {
+                    $request->session()->put('qr_gps_latitude', (float)$gpsLat);
+                    $request->session()->put('qr_gps_longitude', (float)$gpsLng);
+                }
+            }
+            return response()->json(['success' => true]);
+        } catch (\Exception $e) {
+            \Log::error('QR track-screen error: ' . $e->getMessage(), [
+                'exception' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    })->name('qr.track-screen');
+    
+    // AJAX endpoint to track visit after GPS coordinates are captured
+    Route::post('/track-visit', [QRManageController::class, 'trackVisitAjax'])->name('qr.track-visit');
+    
+    // Save tour notification (phone number)
+    Route::post('/save-notification', [QRManageController::class, 'saveNotification'])->name('qr.save-notification');
+    
+    // Dynamic tour_code route - must be last to catch any parameter
+    // Example: /1234Aber
+    Route::get('/{tour_code}', [QRManageController::class, 'showByTourCode'])
+        ->where('tour_code', '[A-Za-z0-9]+')
+        ->name('qr.tour-code');
+    
+    // Stop here - don't load other routes for qr.proppik.com
+    return;
+}
 
 // auth routes
 require __DIR__ . '/auth.php';
@@ -146,7 +203,24 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'middleware' => ['web', 'au
     Route::post('tours/{tour}/update-ajax', [TourController::class, 'updateAjax'])->name('admin.tours.update-ajax');
     Route::post('tours/create-ajax', [TourController::class, 'createAjax'])->name('admin.tours.create-ajax');
     Route::post('tours/{tour}/unlink-ajax', [TourController::class, 'unlinkAjax'])->name('admin.tours.unlink-ajax');
-    // Settings
+
+    
+    // Tour Manager routes
+    Route::get('tour-manager', [TourManagerController::class, 'index'])->name('tour-manager.index');
+    Route::get('tour-manager/{booking}', [TourManagerController::class, 'show'])->name('tour-manager.show');
+    Route::get('tour-manager/{booking}/edit', [TourManagerController::class, 'edit'])->name('tour-manager.edit');
+    Route::put('tour-manager/{booking}', [TourManagerController::class, 'update'])->name('tour-manager.update');
+    Route::post('tour-manager/upload-file', [TourManagerController::class, 'uploadFile'])->name('tour-manager.upload-file');
+    Route::post('tour-manager/schedule-tour', [TourManagerController::class, 'scheduleTour'])->name('tour-manager.schedule-tour');
+    
+    // Tour Notifications routes
+    Route::get('tour-notifications', [TourNotificationController::class, 'index'])->name('tour-notifications.index');
+    Route::get('tour-notifications/{id}', [TourNotificationController::class, 'show'])->name('tour-notifications.show');
+    
+    // QR Analytics routes
+    Route::get('qr-analytics', [QRAnalyticsController::class, 'index'])->name('qr-analytics.index');
+    Route::get('qr-analytics/{id}', [QRAnalyticsController::class, 'show'])->name('qr-analytics.show');
+    
     Route::resource('settings', SettingController::class);
     Route::get('activity', [ActivityLogController::class, 'index'])->name('activity.index');
     // QR Code Management

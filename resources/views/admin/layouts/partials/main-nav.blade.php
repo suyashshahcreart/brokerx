@@ -122,6 +122,26 @@
                     </li>
                @endcan
 
+               <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('admin.tour-manager.*') ? 'active' : '' }}"
+                         href="{{ route('admin.tour-manager.index') }}">
+                         <span class="nav-icon">
+                              <i class="ri-calendar-schedule-line"></i>
+                         </span>
+                         <span class="nav-text">Tour Manager</span>
+                    </a>
+               </li>
+
+               <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('admin.tour-notifications.*') ? 'active' : '' }}"
+                         href="{{ route('admin.tour-notifications.index') }}">
+                         <span class="nav-icon">
+                              <i class="ri-notification-line"></i>
+                         </span>
+                         <span class="nav-text">Notify Tour</span>
+                    </a>
+               </li>
+
 
                {{-- @can('portfolio_view') --}}
                <li class="nav-item">
@@ -202,7 +222,7 @@
 
                     @can('qr_view')
                          <li class="nav-item">
-                              <a class="nav-link {{ request()->routeIs('admin.qr.*') ? 'active' : '' }}"
+                              <a class="nav-link {{ request()->routeIs('admin.qr.*') && !request()->routeIs('admin.qr-analytics.*') ? 'active' : '' }}"
                                    href="{{ route('admin.qr.index') }}">
                                    <span class="nav-icon">
                                         <i class="ri-qr-code-line"></i>
@@ -211,6 +231,16 @@
                               </a>
                          </li>
                     @endcan
+
+                    <li class="nav-item">
+                         <a class="nav-link {{ request()->routeIs('admin.qr-analytics.*') ? 'active' : '' }}"
+                              href="{{ route('admin.qr-analytics.index') }}">
+                              <span class="nav-icon">
+                                   <i class="ri-bar-chart-line"></i>
+                              </span>
+                              <span class="nav-text">QR Activity</span>
+                         </a>
+                    </li>
 
 
                     @can('setting_view')
