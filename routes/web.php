@@ -23,6 +23,8 @@ use App\Http\Controllers\Admin\PhotographerVisitController;
 use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\TourController;
 use App\Http\Controllers\Admin\TourManagerController;
+use App\Http\Controllers\Admin\TourNotificationController;
+use App\Http\Controllers\Admin\QRAnalyticsController;
 use App\Http\Controllers\FrontendController;
 use App\Http\Controllers\PortfolioController;
 use App\Http\Controllers\BrokerX\BrokerXController;
@@ -210,6 +212,14 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'middleware' => ['web', 'au
     Route::put('tour-manager/{booking}', [TourManagerController::class, 'update'])->name('tour-manager.update');
     Route::post('tour-manager/upload-file', [TourManagerController::class, 'uploadFile'])->name('tour-manager.upload-file');
     Route::post('tour-manager/schedule-tour', [TourManagerController::class, 'scheduleTour'])->name('tour-manager.schedule-tour');
+    
+    // Tour Notifications routes
+    Route::get('tour-notifications', [TourNotificationController::class, 'index'])->name('tour-notifications.index');
+    Route::get('tour-notifications/{id}', [TourNotificationController::class, 'show'])->name('tour-notifications.show');
+    
+    // QR Analytics routes
+    Route::get('qr-analytics', [QRAnalyticsController::class, 'index'])->name('qr-analytics.index');
+    Route::get('qr-analytics/{id}', [QRAnalyticsController::class, 'show'])->name('qr-analytics.show');
     
     Route::resource('settings', SettingController::class);
     Route::get('activity', [ActivityLogController::class, 'index'])->name('activity.index');
