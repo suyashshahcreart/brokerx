@@ -34,6 +34,8 @@ class Tour extends Model
         'max_participants',
         'status',
         'final_json',
+        'working_json',
+        'working_json_last_update_user',
         'revision',
         // SEO Meta Fields
         'meta_title',
@@ -83,6 +85,7 @@ class Tour extends Model
             'price' => 'decimal:2',
             'structured_data' => 'array',
             'final_json' => 'array',
+            'working_json' => 'array',
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
             'deleted_at' => 'datetime',
