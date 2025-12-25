@@ -1418,7 +1418,7 @@
                                 <div class="action-buttons">
                                     <div class="row g-2 align-items-stretch">
                                         <div class="col-12 col-sm-6 d-flex">
-                                            <a href="https://dev.proppik.com" class="btn w-100 btn-primary d-flex align-items-center justify-content-center" target="_blank" rel="noopener">
+                                            <a href="https://proppik.com/" class="btn w-100 btn-primary d-flex align-items-center justify-content-center" target="_blank" rel="noopener">
                                                 <span>🏠</span>
                                                 <span>Visit PROP PIK</span>
                                             </a>
@@ -1443,8 +1443,8 @@
                             <div class="sidebar-contact-card">
                                 <h4>🌐 Visit Our Website</h4>
                                 <p>
-                                    <a href="https://dev.proppik.com" target="_blank" rel="noopener">
-                                        dev.proppik.com
+                                    <a href="https://proppik.com/" target="_blank" rel="noopener">
+                                        proppik.com
                                     </a>
                                 </p>
                                 <p class="sidebar-contact-description">

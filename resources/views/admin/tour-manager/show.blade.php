@@ -37,6 +37,51 @@
                     </div>
                     <div class="card-body">
                         <div class="row">
+                            <div class="col-md-12">
+                                <!-- Upload Paths Information -->
+                                @if($tour)
+                                @php
+                                        // Get S3 base URL
+                                        $s3BaseUrl = config('filesystems.disks.s3.url') ?: 
+                                            ('https://' . config('filesystems.disks.s3.bucket') . '.s3.' . 
+                                            config('filesystems.disks.s3.region') . '.amazonaws.com');
+                                        $s3FullPath = rtrim($s3BaseUrl, '/') . '/tours/' . ($booking->tour_code ?? 'N/A') . '/';
+                                    @endphp
+                                    <div class="alert alert-info mb-3" id="upload-paths-info">
+                                        <h6 class="alert-heading mb-2"><i class="ri-information-line me-1"></i> Upload Paths</h6>
+                                        <div class="mb-3">
+                                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                                <strong>Full S3 UPLOAD URL ( qr code based generated )</strong>
+                                                <button type="button" class="btn btn-sm btn-outline-secondary copy-btn" data-copy-target="s3-full-path" title="Copy S3 URL">
+                                                    <i class="ri-file-copy-line me-1"></i> Copy
+                                                </button>
+                                            </div>
+                                            <code class="d-block mt-1 small text-break p-2 bg-light rounded" id="s3-full-path">{{ $s3FullPath }}</code>
+                                        </div>
+                                        
+                                        <div class="mb-0">
+                                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                                <strong>FTP Full URL ( Tour Slug And Location Based Generated ) :</strong>
+                                                <button type="button" class="btn btn-sm btn-outline-secondary copy-btn" data-copy-target="ftp-full-url-text" title="Copy FTP URL">
+                                                    <i class="ri-file-copy-line me-1"></i> Copy
+                                                </button>
+                                            </div>
+                                            <code class="d-block mt-1 small text-break p-2 bg-light rounded" id="ftp-full-url-text">
+                                                @if($tour->location === 'creart_qr')
+                                                    http://creart.in/qr/{{ $tour->slug ?? 'N/A' }}/index.php
+                                                @elseif($tour->location === 'tours' && $tour->slug)
+                                                    https://tour.proppik.in/{{ $tour->slug }}/index.php
+                                                @elseif($tour->location && $tour->slug)
+                                                    https://{{ $tour->location }}.proppik.com/{{ $tour->slug }}/index.php
+                                                @else
+                                                    N/A
+                                                @endif
+                                            </code>
+                                            <small class="text-muted d-block mt-1">The converted index.php file will be uploaded to this FTP URL.</small>
+                                        </div>
+                                    </div>
+                                @endif
+                            </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label text-muted">Status</label>
@@ -152,8 +197,10 @@
             </div>
 
             <div class="col-lg-4">
+                
+
                 <!-- QR Code Information -->
-                @if($booking->qr)
+                @if($booking && $booking->qr)
                     <div class="card">
                         <div class="card-header">
                             <h4 class="card-title mb-0">QR Code</h4>
@@ -166,6 +213,17 @@
                                 @elseif($booking->qr->qr_link)
                                     <div class="qr-code-container">
                                         {!! $booking->qr->qr_code_image !!}
+                                    </div>
+                                @elseif($booking->qr->code)
+                                    @php
+                                        // Generate QR code from code if qr_link doesn't exist
+                                        $qrUrl = 'https://qr.proppik.com/' . $booking->qr->code;
+                                        $qrCodeSvg = \SimpleSoftwareIO\QrCode\Facades\QrCode::size(250)
+                                            ->format('svg')
+                                            ->generate($qrUrl);
+                                    @endphp
+                                    <div class="qr-code-container">
+                                        {!! $qrCodeSvg !!}
                                     </div>
                                 @else
                                     <div class="alert alert-info">
@@ -183,9 +241,17 @@
                                     <label class="form-label fw-bold text-muted small">QR Code</label>
                                     <p class="mb-0 font-monospace">{{ $booking->qr->code }}</p>
                                 </div>
+                                <div class="col-6 mb-2">
+                                    <label class="form-label fw-bold text-muted small">QR Link</label>
+                                    <p class="mb-0">
+                                        <a href="https://qr.proppik.com/{{ $booking->qr->code }}" target="_blank" class="text-break">
+                                            <code>https://qr.proppik.com/{{ $booking->qr->code }}</code>
+                                        </a>
+                                    </p>
+                                </div>
                                 @if($booking->qr->qr_link)
                                     <div class="col-6 mb-2">
-                                        <label class="form-label fw-bold text-muted small">QR Link</label>
+                                        <label class="form-label fw-bold text-muted small">QR Link Redirect Link</label>
                                         <p class="mb-0">
                                             <a href="{{ $booking->qr->qr_link }}" target="_blank" class="text-truncate d-block"
                                                 style="max-width: 100%;">
@@ -195,6 +261,7 @@
                                         </p>
                                     </div>
                                 @endif
+                                
                                 <div class="col-6 mb-2">
                                     <label class="form-label fw-bold text-muted small">Created</label>
                                     <p class="mb-0">{{ $booking->qr->created_at->format('d M Y, h:i A') }}</p>
@@ -207,6 +274,41 @@
                                     </a>
                                 </div>
                             @endif
+                        </div>
+                    </div>
+                @else
+                    <div class="card">
+                        <div class="card-header">
+                            <h4 class="card-title mb-0">QR Code</h4>
+                        </div>
+                        <div class="card-body text-center">
+                            <div class="alert alert-info">
+                                <i class="ri-qr-code-line fs-3"></i>
+                                <p class="mb-0 mt-2">QR Code not generated yet</p>
+                            </div>
+                            @php
+                                 // Try to find and assign an available QR code
+                                 $availableQr = \App\Models\QR::whereNull('booking_id')->first();
+                             @endphp
+                             @if($availableQr)
+                                 <div class="row text-start">
+                                     <div class="col-6 mb-2">
+                                         <label class="form-label fw-bold text-muted small">Auto Assigned QR Code</label>
+                                         <h3><small class="badge bg-primary font-monospace">{{ $availableQr->code }}</small></h3>
+                                     </div>
+                                     <div class="col-12 mb-2">
+                                         <div class="alert alert-warning mb-0">
+                                             <i class="ri-qr-code-line me-1"></i>
+                                             <small><strong><big> #{{ $availableQr->code }} </big></strong>  QR code will be automatically assigned to this booking when you upload and save the tour here.</small>
+                                         </div>
+                                     </div>
+                                 </div>
+                             @else
+                                 <div class="alert alert-info">
+                                     <i class="ri-qr-code-line fs-3"></i>
+                                     <p class="mb-0 mt-2">No available QR codes. Please generate a new QR code first.</p>
+                                 </div>
+                             @endif
                         </div>
                     </div>
                 @endif
@@ -278,4 +380,128 @@
             </div>
         </div>
     </div>
+@endsection
+
+@section('scripts')
+<script>
+// Copy to clipboard functionality
+(function() {
+    // Store original HTML for each button
+    const buttonOriginals = new Map();
+    
+    function initCopyButtons() {
+        const copyButtons = document.querySelectorAll('.copy-btn');
+        
+        // Store original HTML for each button
+        copyButtons.forEach(function(button) {
+            if (!buttonOriginals.has(button)) {
+                buttonOriginals.set(button, button.innerHTML);
+            }
+        });
+        
+        copyButtons.forEach(function(button) {
+            // Remove any existing listeners by cloning
+            const newButton = button.cloneNode(true);
+            button.parentNode.replaceChild(newButton, button);
+            
+            // Get fresh reference
+            const freshButton = document.querySelector('[data-copy-target="' + newButton.getAttribute('data-copy-target') + '"]');
+            
+            freshButton.addEventListener('click', function() {
+                const targetId = this.getAttribute('data-copy-target');
+                const targetElement = document.getElementById(targetId);
+                
+                if (!targetElement) {
+                    return;
+                }
+                
+                // Get text content (remove HTML tags if any)
+                let textToCopy = targetElement.textContent || targetElement.innerText;
+                textToCopy = textToCopy.trim();
+                
+                // Get original HTML for this button
+                const originalHTML = buttonOriginals.get(freshButton) || '<i class="ri-file-copy-line me-1"></i> Copy';
+                
+                // Clear any existing timeout
+                if (freshButton._copyTimeout) {
+                    clearTimeout(freshButton._copyTimeout);
+                }
+                
+                // Try modern clipboard API first
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(textToCopy).then(function() {
+                        // Show success feedback
+                        freshButton.innerHTML = '<i class="ri-check-line me-1"></i> Copied!';
+                        freshButton.classList.remove('btn-outline-secondary');
+                        freshButton.classList.add('btn-success');
+                        
+                        // Reset after 2 seconds
+                        freshButton._copyTimeout = setTimeout(function() {
+                            freshButton.innerHTML = originalHTML;
+                            freshButton.classList.remove('btn-success');
+                            freshButton.classList.add('btn-outline-secondary');
+                            freshButton._copyTimeout = null;
+                        }, 2000);
+                    }).catch(function(err) {
+                        console.error('Failed to copy:', err);
+                        // Fallback to old method
+                        fallbackCopy(textToCopy, freshButton, originalHTML);
+                    });
+                } else {
+                    // Fallback for older browsers
+                    fallbackCopy(textToCopy, freshButton, originalHTML);
+                }
+            });
+        });
+    }
+    
+    function fallbackCopy(text, button, originalHTML) {
+        // Create temporary textarea
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        textarea.setSelectionRange(0, 99999); // For mobile devices
+        
+        try {
+            const successful = document.execCommand('copy');
+            if (successful) {
+                // Clear any existing timeout
+                if (button._copyTimeout) {
+                    clearTimeout(button._copyTimeout);
+                }
+                
+                button.innerHTML = '<i class="ri-check-line me-1"></i> Copied!';
+                button.classList.remove('btn-outline-secondary');
+                button.classList.add('btn-success');
+                
+                // Reset after 2 seconds
+                button._copyTimeout = setTimeout(function() {
+                    button.innerHTML = originalHTML;
+                    button.classList.remove('btn-success');
+                    button.classList.add('btn-outline-secondary');
+                    button._copyTimeout = null;
+                }, 2000);
+            }
+        } catch (err) {
+            console.error('Fallback copy failed:', err);
+            alert('Failed to copy. Please copy manually: ' + text);
+        }
+        
+        document.body.removeChild(textarea);
+    }
+    
+    // Initialize copy buttons when DOM is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initCopyButtons);
+    } else {
+        initCopyButtons();
+    }
+    
+    // Also try after a delay
+    setTimeout(initCopyButtons, 200);
+})();
+</script>
 @endsection

@@ -672,9 +672,9 @@
                                 <div class="action-buttons">
                                     <div class="row g-2 align-items-stretch">
                                         <div class="col-12 col-sm-6 d-flex">
-                                            <a href="{{ route('qr.analytics') }}" class="btn w-100 btn-primary d-flex align-items-center justify-content-center">
-                                                <span>📊</span>
-                                                <span>View Analytics</span>
+                                            <a href="https://www.proppik.com/blog/" class="btn w-100 btn-primary d-flex align-items-center justify-content-center">
+                                                <span>🧑‍🤝‍🧑</span>
+                                                <span>View Tour</span>
                                             </a>
                                         </div>
                                         <div class="col-12 col-sm-6 d-flex">

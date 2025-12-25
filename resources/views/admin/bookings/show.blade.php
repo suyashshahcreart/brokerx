@@ -1606,7 +1606,7 @@
 
         if (result.isConfirmed) {
             try {
-                const response = await fetch(`${baseUrl}/admin/bookings/${bookingId}/update-ajax`, {
+                const response = await fetch(`${baseUrl}/admin/bookings/${bookingId}/change-status`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -1680,7 +1680,7 @@
 
         if (result.isConfirmed) {
             try {
-                const response = await fetch(`${baseUrl}/admin/bookings/${bookingId}/update-ajax`, {
+                const response = await fetch(`${baseUrl}/admin/bookings/${bookingId}/change-status`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

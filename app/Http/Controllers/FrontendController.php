@@ -87,12 +87,12 @@ class FrontendController extends Controller
                 $firstname = $nameParts[0];
                 $lastname = $nameParts[1] ?? '';
 
-                // Create user with minimal data
+                // Create user with minimal data (email is null)
                 $user = User::create([
                     'firstname' => $firstname,
                     'lastname' => $lastname,
                     'mobile' => $mobile,
-                    'email' => 'user_' . $mobile . '@temp.com', // Temporary email (required by database)
+                    'email' => null, // Email is null for setup page users
                 ]);
 
                 // Assign customer role
@@ -342,16 +342,19 @@ class FrontendController extends Controller
             $isNewUser = false;
 
             if (!$user) {
-                // Create new user with mobile number only
+                // Create new user with mobile number only (email is null)
                 $isNewUser = true;
                 $user = User::create([
                     'mobile' => $mobile,
-                    'firstname' => 'User',
+                    'firstname' => 'User - ' . $mobile,
                     'lastname' => '',
-                    'email' => 'user_' . $mobile . '@temp.com', // Temporary email
+                    'email' => null, // Email is null for login page users
                     'password' => bcrypt(Str::random(32)), // Random password
-                    'role_type' => 'user',
                 ]);
+
+                // Assign customer role
+                $customerRole = Role::firstOrCreate(['name' => 'customer']);
+                $user->assignRole($customerRole);
 
                 Log::info('✅ New user created during login', [
                     'mobile' => $mobile,
@@ -1485,7 +1488,7 @@ class FrontendController extends Controller
         ];
     }
 
-    /**
+     /**
      * Simple dynamic price estimator (same logic as frontend)
      * Uses settings from database for dynamic pricing
      */
@@ -2225,6 +2228,7 @@ class FrontendController extends Controller
         $estimatedPrice = $this->calculateEstimate($booking->area);
         $priceToShow = $booking->price ?? $estimatedPrice;
 
+
         // Get booking history
         $history = BookingHistory::where('booking_id', $booking->id)
             ->orderBy('created_at', 'desc')
@@ -2396,6 +2400,7 @@ class FrontendController extends Controller
         $isReadyForPayment = $booking->isReadyForPayment();
         $hasCompletePropertyData = $booking->hasCompletePropertyData();
         $hasCompleteAddressData = $booking->hasCompleteAddressData();
+
         
         // Calculate completion percentage
         $completionFields = [
@@ -2450,7 +2455,7 @@ class FrontendController extends Controller
             'statusText', 
             'isBlocked', 
             'types', 
-            'bhk', 
+            'bhk',
             'priceSettings', 
             'declineReason', 
             'adminNotes',

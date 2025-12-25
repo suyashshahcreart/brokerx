@@ -102,6 +102,11 @@
                     $currentPropertySubTypeId = $booking->property_sub_type_id;
                     $currentBhkId = $booking->bhk_id;
                     $currentFurnitureType = $booking->furniture_type;
+                    // Normalize furniture type: handle both "Semi Furnished" (space) and "Semi-Furnished" (hyphen)
+                    $normalizedFurnitureType = $currentFurnitureType;
+                    if ($currentFurnitureType == 'Semi Furnished') {
+                        $normalizedFurnitureType = 'Semi-Furnished';
+                    }
                 @endphp
 
 
@@ -136,9 +141,9 @@
                             <div class="mb-1">
                                 <div class="section-title mb-0">Furnish Type <span class="text-danger">*</span></div>
                                 <div class="d-flex flex-wrap gap" id="resFurnishContainer">
-                                    <div class="chip {{ $currentPropertyType == 'Residential' && $currentFurnitureType == 'Furnished' ? 'active' : '' }}" data-group="resFurnish" data-value="Furnished" onclick="selectChip(this)"><i class="ri-sofa-line"></i> Fully Furnished</div>
-                                    <div class="chip {{ $currentPropertyType == 'Residential' && $currentFurnitureType == 'Semi-Furnished' ? 'active' : '' }}" data-group="resFurnish" data-value="Semi-Furnished" onclick="selectChip(this)"><i class="ri-lightbulb-line"></i> Semi Furnished</div>
-                                    <div class="chip {{ $currentPropertyType == 'Residential' && $currentFurnitureType == 'Unfurnished' ? 'active' : '' }}" data-group="resFurnish" data-value="Unfurnished" onclick="selectChip(this)"><i class="ri-door-line"></i> Unfurnished</div>
+                                    <div class="chip {{ $currentPropertyType == 'Residential' && $normalizedFurnitureType == 'Furnished' ? 'active' : '' }}" data-group="resFurnish" data-value="Furnished" onclick="selectChip(this)"><i class="ri-sofa-line"></i> Fully Furnished</div>
+                                    <div class="chip {{ $currentPropertyType == 'Residential' && ($normalizedFurnitureType == 'Semi-Furnished' || $currentFurnitureType == 'Semi Furnished') ? 'active' : '' }}" data-group="resFurnish" data-value="Semi-Furnished" onclick="selectChip(this)"><i class="ri-lightbulb-line"></i> Semi Furnished</div>
+                                    <div class="chip {{ $currentPropertyType == 'Residential' && $normalizedFurnitureType == 'Unfurnished' ? 'active' : '' }}" data-group="resFurnish" data-value="Unfurnished" onclick="selectChip(this)"><i class="ri-door-line"></i> Unfurnished</div>
                                 </div>
                                 <div id="err-resFurnish" class="error">Furnish Type is required.</div>
                             </div>
@@ -195,13 +200,13 @@
                             <div class="mb-1">
                                 <div class="section-title mb-0">Furnish Type <span class="text-danger">*</span></div>
                                 <div class="d-flex flex-wrap gap" id="comFurnishContainer">
-                                    <div class="chip {{ $currentPropertyType == 'Commercial' && $currentFurnitureType == 'Furnished' ? 'active' : '' }}" data-group="comFurnish" data-value="Furnished" onclick="selectChip(this)">
+                                    <div class="chip {{ $currentPropertyType == 'Commercial' && $normalizedFurnitureType == 'Furnished' ? 'active' : '' }}" data-group="comFurnish" data-value="Furnished" onclick="selectChip(this)">
                                         <i class="ri-sofa-line me-1"></i> Fully Furnished
                                     </div>
-                                    <div class="chip {{ $currentPropertyType == 'Commercial' && $currentFurnitureType == 'Semi-Furnished' ? 'active' : '' }}" data-group="comFurnish" data-value="Semi-Furnished" onclick="selectChip(this)">
+                                    <div class="chip {{ $currentPropertyType == 'Commercial' && ($normalizedFurnitureType == 'Semi-Furnished' || $currentFurnitureType == 'Semi Furnished') ? 'active' : '' }}" data-group="comFurnish" data-value="Semi-Furnished" onclick="selectChip(this)">
                                         <i class="ri-lightbulb-line me-1"></i> Semi Furnished
                                     </div>
-                                    <div class="chip {{ $currentPropertyType == 'Commercial' && $currentFurnitureType == 'Unfurnished' ? 'active' : '' }}" data-group="comFurnish" data-value="Unfurnished" onclick="selectChip(this)">
+                                    <div class="chip {{ $currentPropertyType == 'Commercial' && $normalizedFurnitureType == 'Unfurnished' ? 'active' : '' }}" data-group="comFurnish" data-value="Unfurnished" onclick="selectChip(this)">
                                         <i class="ri-door-line me-1"></i> Unfurnished
                                     </div>
                                 </div>

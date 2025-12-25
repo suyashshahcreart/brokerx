@@ -18,10 +18,8 @@ use Illuminate\Http\Request;
 use Spatie\Activitylog\Models\Activity;
 use Yajra\DataTables\DataTables;
 
-class BookingController extends Controller
-{
-    public function __construct()
-    {
+class BookingController extends Controller{
+    public function __construct(){
         $this->middleware('permission:booking_view')->only(['index', 'show']);
         $this->middleware('permission:booking_create')->only(['create', 'store']);
         $this->middleware('permission:booking_edit')->only(['edit', 'update']);
@@ -29,8 +27,7 @@ class BookingController extends Controller
     }
 
     //  calender view for assignments | ADMIN
-    public function AssignementCalender()
-    {
+    public function AssignementCalender(){
         // Provide photographer list and schedule-related statuses to the view
         $photographers = User::whereHas('roles', function($q){
             $q->where('name', 'photographer');
@@ -44,8 +41,8 @@ class BookingController extends Controller
             'statuses' => $statuses
         ]);
     }
-    public function index(Request $request)
-    {
+
+    public function index(Request $request){
         if ($request->ajax()) {
             $query = Booking::with(['user', 'propertyType', 'propertySubType', 'bhk', 'city', 'state', 'assignees']);
 
@@ -133,8 +130,7 @@ class BookingController extends Controller
     /**
      * API: Return bookings with filters (for modal, returns JSON)
      */
-    public function apiList(Request $request)
-    {
+    public function apiList(Request $request){
         $query = Booking::query()
             ->with(['user', 'propertyType', 'propertySubType'])
             ->whereDoesntHave('qr');
@@ -189,8 +185,7 @@ class BookingController extends Controller
     /**
      * API: Get booking details by ID (for QR modal)
      */
-    public function getBookingDetails(Request $request)
-    {
+    public function getBookingDetails(Request $request){
         $request->validate([
             'booking_id' => 'required|exists:bookings,id',
         ]);
@@ -216,8 +211,8 @@ class BookingController extends Controller
 
         return response()->json(['booking' => $bookingData]);
     }
-    public function create()
-    {
+
+    public function create(){
         $users = User::orderBy('firstname')->get();
         $propertyTypes = PropertyType::orderBy('name')->get();
         $propertySubTypes = PropertySubType::orderBy('name')->get();
@@ -240,13 +235,12 @@ class BookingController extends Controller
         ));
     }
 
-    public function store(Request $request)
-    {
+    public function store(Request $request){
         $validated = $request->validate([
             'user_id' => ['required', 'exists:users,id'],
             'property_type_id' => ['required', 'exists:property_types,id'],
             'property_sub_type_id' => ['required', 'exists:property_sub_types,id'],
-            'bhk_id' => ['nullable', 'exists:bhks,id'],
+            'bhk_id' => ['nullable', 'exists:b_h_k_s,id'],
             'city_id' => ['nullable', 'exists:cities,id'],
             'state_id' => ['nullable', 'exists:states,id'],
             'furniture_type' => ['nullable', 'string', 'max:255'],
@@ -326,8 +320,7 @@ class BookingController extends Controller
         return redirect()->route('admin.bookings.index')->with('success', 'Booking, tour, and photographer job created successfully.');
     }
 
-    public function show(Booking $booking)
-    {
+    public function show(Booking $booking){
         $booking->load(['user', 'propertyType', 'propertySubType', 'bhk', 'city', 'state', 'creator', 'assignees.user']);
         
         // Get photographers for assignment modal
@@ -338,8 +331,7 @@ class BookingController extends Controller
         return view('admin.bookings.show', compact('booking', 'photographers'));
     }
 
-    public function edit(Booking $booking)
-    {
+    public function edit(Booking $booking){
         $users = User::orderBy('firstname')->get();
         $propertyTypes = PropertyType::orderBy('name')->get();
         $propertySubTypes = PropertySubType::orderBy('name')->get();
@@ -352,6 +344,8 @@ class BookingController extends Controller
 
         // Load tour if linked
         $tour = Tour::where('booking_id', $booking->id)->first();
+
+        // dd($booking);
 
         return view('admin.bookings.edit', compact(
             'booking',
@@ -367,13 +361,12 @@ class BookingController extends Controller
         ));
     }
 
-    public function update(Request $request, Booking $booking)
-    {
+    public function update(Request $request, Booking $booking){
         $validated = $request->validate([
             'user_id' => ['required', 'exists:users,id'],
             'property_type_id' => ['required', 'exists:property_types,id'],
             'property_sub_type_id' => ['required', 'exists:property_sub_types,id'],
-            'bhk_id' => ['nullable', 'exists:bhks,id'],
+            'bhk_id' => ['nullable', 'exists:b_h_k_s,id'],
             'city_id' => ['nullable', 'exists:cities,id'],
             'state_id' => ['nullable', 'exists:states,id'],
             'furniture_type' => ['nullable', 'string', 'max:255'],
@@ -387,8 +380,8 @@ class BookingController extends Controller
             'full_address' => ['nullable', 'string'],
             'pin_code' => ['nullable', 'string', 'max:20'],
             'booking_date' => ['nullable', 'date'],
-            'payment_status' => ['required', 'in:pending,paid,failed,refunded'],
-            'status' => ['required', 'in:pending,confirmed,cancelled,completed'],
+            'payment_status' => ['nullable', 'in:pending,paid,failed,refunded'],
+            'status' => ['nullable'],
         ]);
 
         $validated['updated_by'] = $request->user()->id ?? null;
@@ -419,8 +412,7 @@ class BookingController extends Controller
         return redirect()->route('admin.bookings.index')->with('success', 'Booking updated successfully.');
     }
 
-    public function destroy(Booking $booking)
-    {
+    public function destroy(Booking $booking){
         $before = $booking->toArray();
         $bookingId = $booking->id;
         $bookingType = get_class($booking);
@@ -442,8 +434,7 @@ class BookingController extends Controller
         return redirect()->route('admin.bookings.index')->with('success', 'Booking deleted successfully.');
     }
 
-    public function reschedule(Request $request, Booking $booking)
-    {
+    public function reschedule(Request $request, Booking $booking){
         $request->validate([
             'schedule_date' => ['required', 'date'],
         ]);
@@ -602,22 +593,37 @@ class BookingController extends Controller
 
         $qr = \App\Models\QR::findOrFail($request->qr_id);
         $booking = Booking::findOrFail($request->booking_id);
+        
+        $oldBookingId = $qr->booking_id;
 
-        // Only allow assignment if QR is not already assigned and booking is not already assigned
-        if ($qr->booking_id) {
-            return response()->json(['success' => false, 'message' => 'QR already assigned to a booking.'], 422);
-        }
-        if ($booking->qr) {
-            return response()->json(['success' => false, 'message' => 'Booking already assigned to a QR.'], 422);
+        // Check if booking is already assigned to another QR
+        if ($booking->qr && $booking->qr->id !== $qr->id) {
+            return response()->json(['success' => false, 'message' => 'Booking already assigned to another QR code.'], 422);
         }
 
+        // If QR is already assigned to a different booking, clear the old booking's tour_code
+        if ($oldBookingId && $oldBookingId != $booking->id) {
+            $oldBooking = Booking::find($oldBookingId);
+            if ($oldBooking && $oldBooking->tour_code === $qr->code) {
+                $oldBooking->tour_code = null;
+                $oldBooking->save();
+            }
+        }
+
+        // Assign booking to QR
         $qr->booking_id = $booking->id;
         $qr->save();
 
+        // Update booking's tour_code with QR code
         $booking->tour_code = $qr->code;
         $booking->save();
 
-        return response()->json(['success' => true, 'message' => 'Booking assigned to QR successfully.']);
+        return response()->json([
+            'success' => true, 
+            'message' => 'Booking assigned to QR successfully.',
+            'qr' => $qr->fresh(),
+            'booking' => $booking->fresh()
+        ]);
     }
 
     /**
@@ -625,15 +631,81 @@ class BookingController extends Controller
      */
     public function updateAjax(Request $request, Booking $booking)
     {
+        // Check if this is a status-only or payment_status-only update
+        if ($request->has('status') && !$request->has('user_id')) {
+            // Status-only update - use changeStatus method
+            $request->validate([
+                'status' => ['required', 'in:' . implode(',', Booking::getAvailableStatuses())],
+                'notes' => ['nullable', 'string', 'max:500'],
+            ]);
+
+            $booking->changeStatus(
+                $request->status,
+                auth()->id(),
+                $request->notes ?? 'Status updated via AJAX'
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Booking status updated successfully',
+                'booking' => $booking->fresh(),
+                'latest_history' => $booking->latestHistory,
+            ]);
+        }
+
+        // Check if this is a payment_status-only update
+        if ($request->has('payment_status') && !$request->has('user_id')) {
+            $request->validate([
+                'payment_status' => ['required', 'in:unpaid,pending,paid,failed,refunded'],
+                'notes' => ['nullable', 'string', 'max:500'],
+            ]);
+
+            $oldPaymentStatus = $booking->payment_status;
+            $booking->payment_status = $request->payment_status;
+            $booking->save();
+
+            // Create booking history entry for payment status change
+            BookingHistory::create([
+                'booking_id' => $booking->id,
+                'from_status' => $booking->status,
+                'to_status' => $booking->status, // Status doesn't change
+                'changed_by' => auth()->id(),
+                'notes' => $request->notes ?? "Payment status changed from {$oldPaymentStatus} to {$request->payment_status}",
+                'metadata' => [
+                    'payment_status_change' => true,
+                    'old_payment_status' => $oldPaymentStatus,
+                    'new_payment_status' => $request->payment_status,
+                ],
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+            ]);
+
+            activity('bookings')
+                ->performedOn($booking)
+                ->causedBy($request->user())
+                ->withProperties([
+                    'old_payment_status' => $oldPaymentStatus,
+                    'new_payment_status' => $request->payment_status,
+                ])
+                ->log('Payment status updated via AJAX');
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Payment status updated successfully',
+                'booking' => $booking->fresh(),
+            ]);
+        }
+
+        // Full update - requires all fields
         $validated = $request->validate([
             'user_id' => ['required', 'exists:users,id'],
             'property_type_id' => ['required', 'exists:property_types,id'],
             'property_sub_type_id' => ['required', 'exists:property_sub_types,id'],
             'area' => ['required', 'numeric', 'min:0'],
             'price' => ['required', 'numeric', 'min:0'],
-            'payment_status' => ['required', 'in:pending,paid,failed,refunded'],
-            'status' => ['required', 'in:pending,confirmed,cancelled,completed'],
-            'bhk_id' => ['nullable', 'exists:bhks,id'],
+            'payment_status' => ['required', 'in:unpaid,pending,paid,failed,refunded'],
+            'status' => ['required', 'in:' . implode(',', Booking::getAvailableStatuses())],
+            'bhk_id' => ['nullable', 'exists:b_h_k_s,id'],
             'city_id' => ['nullable', 'exists:cities,id'],
             'state_id' => ['nullable', 'exists:states,id'],
             'furniture_type' => ['nullable', 'string'],

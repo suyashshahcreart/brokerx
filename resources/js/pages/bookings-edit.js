@@ -679,6 +679,44 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // ========================
+    // INITIALIZE FURNISH TYPE SELECTION ON PAGE LOAD
+    // ========================
+    // Get furniture type from booking old values (set by blade template)
+    const furnitureType = window.bookingOldValues?.furniture_type;
+    
+    if (furnitureType) {
+        // Normalize furniture type: handle both "Semi Furnished" (space) and "Semi-Furnished" (hyphen)
+        let normalizedFurnitureType = furnitureType;
+        if (furnitureType === 'Semi Furnished') {
+            normalizedFurnitureType = 'Semi-Furnished';
+        }
+        
+        // Wait a bit for tabs to be properly initialized
+        setTimeout(() => {
+            // Determine which container to use based on active property tab
+            let furnishContainer = null;
+            if (state.activePropertyTab === 'res') {
+                furnishContainer = el('resFurnishContainer');
+            } else if (state.activePropertyTab === 'com') {
+                furnishContainer = el('comFurnishContainer');
+            }
+            
+            if (furnishContainer) {
+                // Find the chip with matching data-value (use normalized value)
+                const matchingChip = furnishContainer.querySelector(`[data-value="${normalizedFurnitureType}"]`);
+                if (matchingChip) {
+                    // Remove active from all chips in this container
+                    furnishContainer.querySelectorAll('.chip').forEach(chip => {
+                        chip.classList.remove('active');
+                    });
+                    // Add active to the matching chip
+                    matchingChip.classList.add('active');
+                }
+            }
+        }, 100);
+    }
+
+    // ========================
     // AREA INPUT - AUTO CALCULATE PRICE & VALIDATION
     // ========================
     const areaInput = el('area');

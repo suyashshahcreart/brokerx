@@ -88,14 +88,18 @@
                             <div class="info-label">Owner Type</div>
                             <div class="info-value">{{ $booking->owner_type ?? '-' }}</div>
                         </div>
+                        @if($booking->firm_name)
                         <div class="col-md-4">
                             <div class="info-label">Company Name</div>
-                            <div class="info-value">{{ $booking->firm_name ?? '-' }}</div>
+                            <div class="info-value">{{ $booking->firm_name }}</div>
                         </div>
+                        @endif
+                        @if($booking->gst_no)
                         <div class="col-md-4">
                             <div class="info-label">GST No</div>
-                            <div class="info-value">{{ $booking->gst_no ?? '-' }}</div>
+                            <div class="info-value">{{ $booking->gst_no }}</div>
                         </div>
+                        @endif
                     </div>
 
                     @php
@@ -181,8 +185,12 @@
                         </div>
                     </div>
 
-                    <div class="info-label">Full Address</div>
-                    <div class="info-detail">{{ $booking->full_address ?? '-' }}</div>
+                    <div class="row g-3 mb-2">
+                        <div class="col-12">
+                            <div class="info-label">Full Address</div>
+                            <div class="info-value">{{ $booking->full_address ?? '-' }}</div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
