@@ -512,10 +512,26 @@ class BookingAssigneeController extends Controller
             // Update booking status to shedul_inproccess (as requested)
             $booking = $bookingAssignee->booking;
             if ($booking) {
-                $booking->update([
-                    'status' => 'schedul_inprogress',
-                    'updated_by' => auth()->id(),
-                ]);
+                    $oldStatus = $booking->status;
+                    $booking->update([
+                        'status' => 'schedul_inprogress',
+                        'updated_by' => auth()->id(),
+                    ]);
+                    // Save booking history for check-in
+                    BookingHistory::create([
+                        'booking_id' => $booking->id,
+                        'from_status' => $oldStatus,
+                        'to_status' => 'schedul_inprogress',
+                        'changed_by' => auth()->id(),
+                        'notes' => 'Photographer checked in to booking assignee.',
+                        'metadata' => [
+                            'booking_assignees_id' => $bookingAssignee->id,
+                            'photographer_id' => auth()->id(),
+                            'check_in_metadata' => $checkInMetadata,
+                        ],
+                        'ip_address' => $request->ip(),
+                        'user_agent' => $request->userAgent(),
+                    ]);
             }
 
             activity('booking_assignees')
@@ -663,10 +679,26 @@ class BookingAssigneeController extends Controller
             // Update booking status to shedule_complete
             $booking = $bookingAssignee->booking;
             if ($booking) {
-                $booking->update([
-                    'status' => 'schedul_completed',
-                    'updated_by' => auth()->id(),
-                ]);
+                    $oldStatus = $booking->status;
+                    $booking->update([
+                        'status' => 'schedul_completed',
+                        'updated_by' => auth()->id(),
+                    ]);
+                    // Save booking history for check-out
+                    BookingHistory::create([
+                        'booking_id' => $booking->id,
+                        'from_status' => $oldStatus,
+                        'to_status' => 'schedul_completed',
+                        'changed_by' => auth()->id(),
+                        'notes' => 'Photographer checked out from booking assignee.',
+                        'metadata' => [
+                            'booking_assignees_id' => $bookingAssignee->id,
+                            'photographer_id' => auth()->id(),
+                            'check_out_metadata' => $checkOutMetadata,
+                        ],
+                        'ip_address' => $request->ip(),
+                        'user_agent' => $request->userAgent(),
+                    ]);
             }
 
             activity('booking_assignees')

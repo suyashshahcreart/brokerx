@@ -46,6 +46,12 @@ class BookingStatusController extends Controller
             ]
         );
 
+        activity('bookings')
+            ->performedOn($booking)
+            ->causedBy(auth()->user())
+            ->withProperties(['event' => 'schedul_accepted', 'notes' => $request->notes, 'scheduled_date' => $request->scheduled_date])
+            ->log('Schedule approved');
+
         return response()->json([
             'success' => true,
             'message' => 'Schedule approved successfully',
@@ -63,7 +69,7 @@ class BookingStatusController extends Controller
         ]);
 
         $requestedDate = $booking->booking_date?->format('Y-m-d');
-        
+
         // Clear booking date when declined
         $booking->booking_date = null;
         $booking->booking_notes = null;
@@ -80,6 +86,12 @@ class BookingStatusController extends Controller
                 'scheduled_date_requested' => $requestedDate
             ]
         );
+
+        activity('bookings')
+            ->performedOn($booking)
+            ->causedBy(auth()->user())
+            ->withProperties(['event' => 'schedul_decline', 'reason' => $request->reason])
+            ->log('Schedule declined');
 
         return response()->json([
             'success' => true,
@@ -150,6 +162,12 @@ class BookingStatusController extends Controller
             ]
         );
 
+        activity('bookings')
+            ->performedOn($booking)
+            ->causedBy(auth()->user())
+            ->withProperties(['event' => 'reschedul_pending', 'reason' => $request->reason, 'requested_date' => $request->new_date])
+            ->log('Reschedule requested');
+
         return response()->json([
             'success' => true,
             'message' => 'Reschedule request submitted successfully',
@@ -190,6 +208,12 @@ class BookingStatusController extends Controller
             ]
         );
 
+        activity('bookings')
+            ->performedOn($booking)
+            ->causedBy(auth()->user())
+            ->withProperties(['event' => 'reschedul_accepted', 'notes' => $request->notes, 'new_scheduled_date' => $request->scheduled_date])
+            ->log('Reschedule approved');
+
         return response()->json([
             'success' => true,
             'message' => 'Reschedule approved successfully',
@@ -214,7 +238,7 @@ class BookingStatusController extends Controller
         ]);
 
         $requestedDate = $booking->booking_date?->format('Y-m-d');
-        
+
         // Clear booking date when reschedule is declined
         $booking->booking_date = null;
         $booking->booking_notes = null;
@@ -231,6 +255,12 @@ class BookingStatusController extends Controller
                 'scheduled_date_requested' => $requestedDate
             ]
         );
+
+        activity('bookings')
+            ->performedOn($booking)
+            ->causedBy(auth()->user())
+            ->withProperties(['event' => 'reschedul_decline', 'reason' => $request->reason])
+            ->log('Reschedule declined');
 
         return response()->json([
             'success' => true,
@@ -269,6 +299,12 @@ class BookingStatusController extends Controller
             ]
         );
 
+        activity('bookings')
+            ->performedOn($booking)
+            ->causedBy(auth()->user())
+            ->withProperties(['event' => 'schedul_assign', 'assigned_to' => $request->team_member_id, 'scheduled_date' => $request->scheduled_date])
+            ->log('Booking assigned to team member');
+
         return response()->json([
             'success' => true,
             'message' => 'Booking assigned successfully',
@@ -305,6 +341,12 @@ class BookingStatusController extends Controller
             ]
         );
 
+        activity('bookings')
+            ->performedOn($booking)
+            ->causedBy(auth()->user())
+            ->withProperties(['event' => 'schedul_completed', 'photos_count' => $request->photos_count, 'videos_count' => $request->videos_count])
+            ->log('Tour marked as completed');
+
         return response()->json([
             'success' => true,
             'message' => 'Tour marked as completed',
@@ -330,6 +372,12 @@ class BookingStatusController extends Controller
             $request->notes ?? 'Tour processing started',
             ['processing_started_at' => now()]
         );
+
+        activity('bookings')
+            ->performedOn($booking)
+            ->causedBy(auth()->user())
+            ->withProperties(['event' => 'tour_pending', 'notes' => $request->notes])
+            ->log('Tour processing started');
 
         return response()->json([
             'success' => true,
@@ -369,6 +417,12 @@ class BookingStatusController extends Controller
             ]
         );
 
+        activity('bookings')
+            ->performedOn($booking)
+            ->causedBy(auth()->user())
+            ->withProperties(['event' => 'tour_completed', 'tour_url' => $request->tour_url])
+            ->log('Tour processing completed');
+
         return response()->json([
             'success' => true,
             'message' => 'Tour processing completed',
@@ -394,6 +448,12 @@ class BookingStatusController extends Controller
             $request->notes ?? 'Tour published and live',
             ['published_at' => now()]
         );
+
+        activity('bookings')
+            ->performedOn($booking)
+            ->causedBy(auth()->user())
+            ->withProperties(['event' => 'tour_live', 'notes' => $request->notes])
+            ->log('Tour published and live');
 
         return response()->json([
             'success' => true,
@@ -421,6 +481,12 @@ class BookingStatusController extends Controller
                 'previous_status' => $booking->status
             ]
         );
+
+        activity('bookings')
+            ->performedOn($booking)
+            ->causedBy(auth()->user())
+            ->withProperties(['event' => 'maintenance', 'reason' => $request->reason])
+            ->log('Booking put under maintenance');
 
         return response()->json([
             'success' => true,
@@ -453,6 +519,12 @@ class BookingStatusController extends Controller
             ['maintenance_completed_at' => now()]
         );
 
+        activity('bookings')
+            ->performedOn($booking)
+            ->causedBy(auth()->user())
+            ->withProperties(['event' => $request->target_status, 'notes' => $request->notes])
+            ->log('Booking removed from maintenance');
+
         return response()->json([
             'success' => true,
             'message' => 'Booking removed from maintenance',
@@ -479,6 +551,12 @@ class BookingStatusController extends Controller
             ]
         );
 
+        activity('bookings')
+            ->performedOn($booking)
+            ->causedBy(auth()->user())
+            ->withProperties(['event' => 'expired', 'reason' => $request->reason])
+            ->log('Booking expired');
+
         return response()->json([
             'success' => true,
             'message' => 'Booking expired',
@@ -501,8 +579,8 @@ class BookingStatusController extends Controller
                     'from_status_label' => $entry->from_status ? ucwords(str_replace('_', ' ', $entry->from_status)) : null,
                     'to_status' => $entry->to_status,
                     'to_status_label' => ucwords(str_replace('_', ' ', $entry->to_status)),
-                    'changed_by' => $entry->changedBy ? 
-                        $entry->changedBy->firstname . ' ' . $entry->changedBy->lastname : 
+                    'changed_by' => $entry->changedBy ?
+                        $entry->changedBy->firstname . ' ' . $entry->changedBy->lastname :
                         'System',
                     'changed_by_email' => $entry->changedBy?->email,
                     'notes' => $entry->notes,
@@ -545,8 +623,8 @@ class BookingStatusController extends Controller
                     'from_status' => $entry->from_status,
                     'to_status' => $entry->to_status,
                     'to_status_label' => ucwords(str_replace('_', ' ', $entry->to_status)),
-                    'changed_by' => $entry->changedBy ? 
-                        $entry->changedBy->firstname . ' ' . $entry->changedBy->lastname : 
+                    'changed_by' => $entry->changedBy ?
+                        $entry->changedBy->firstname . ' ' . $entry->changedBy->lastname :
                         'System',
                     'notes' => $entry->notes,
                     'created_at' => $entry->created_at->format('Y-m-d H:i:s'),
@@ -587,6 +665,11 @@ class BookingStatusController extends Controller
                     $request->notes ?? 'Bulk status update',
                     ['bulk_update' => true]
                 );
+                activity('bookings')
+                    ->performedOn($booking)
+                    ->causedBy(auth()->user())
+                    ->withProperties(['event' => $request->status, 'notes' => $request->notes, 'bulk_update' => true])
+                    ->log('Bulk status update');
                 $updated++;
             } catch (\Exception $e) {
                 $failed++;
@@ -596,8 +679,8 @@ class BookingStatusController extends Controller
 
         return response()->json([
             'success' => $failed === 0,
-            'message' => "Updated {$updated} bookings to status: {$request->status}" . 
-                         ($failed > 0 ? ". {$failed} failed." : ""),
+            'message' => "Updated {$updated} bookings to status: {$request->status}" .
+                ($failed > 0 ? ". {$failed} failed." : ""),
             'updated' => $updated,
             'failed' => $failed,
             'errors' => $errors
@@ -621,6 +704,12 @@ class BookingStatusController extends Controller
             $request->notes,
             $request->metadata
         );
+
+        activity('bookings')
+            ->performedOn($booking)
+            ->causedBy(auth()->user())
+            ->withProperties(['event' => $request->status, 'notes' => $request->notes, 'metadata' => $request->metadata])
+            ->log('Booking status changed');
 
         return response()->json([
             'success' => true,
