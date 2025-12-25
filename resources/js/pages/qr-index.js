@@ -643,90 +643,61 @@ $(function() {
                             </div>`;
                             $('#assign-modal-qr-details').html(qrDetailsHtml);
                             
-                            // Check if QR is already assigned to a booking
+                            // Show booking list for assignment (allow reassignment if QR already has booking)
+                            $('#assignBookingModalLabel').text('Assign QR To Booking' + (bookingId ? ' (Change Booking)' : ''));
+                            
+                            // If QR is already assigned, show current booking info at top
                             if (bookingId) {
-                                // QR is assigned - show booking details
-                                $('#assignBookingModalLabel').text('QR & Booking Details');
-                                $('#assign-modal-content').html('<div class="text-center text-muted">Loading booking details...</div>');
+                                $('#assign-modal-content').html(`<div class="alert alert-info mb-3">
+                                    <i class="ri-information-line me-2"></i>
+                                    <strong>Current Booking:</strong> Booking ID #${bookingId}. You can select a different booking to reassign this QR code.
+                                </div>
+                                <div class="text-center text-muted">Loading available bookings...</div>`);
                                 
                                 const bookingDetailsApiUrl = $('#assignBookingModal').data('booking-details-api');
+                                // Load current booking details for reference (optional)
                                 $.ajax({
                                     url: bookingDetailsApiUrl,
                                     data: { booking_id: bookingId },
-                                    success: function(data) {
-                                        if (data && data.booking) {
-                                            const b = data.booking;
-                                            let detailsHtml = `
-                                                <div class="mt-3">
-                                                    <h6 class="mb-3">Booking Details</h6>
-                                                    <div class="card">
-                                                        <div class="card-body">
-                                                            <div class="row g-3">
-                                                                <div class="col-md-6">
-                                                                    <label class="form-label text-muted small mb-1">Booking ID</label>
-                                                                    <div class="fw-semibold">#${b.id}</div>
-                                                                </div>
-                                                                <div class="col-md-6">
-                                                                    <label class="form-label text-muted small mb-1">Customer</label>
-                                                                    <div class="fw-semibold">${b.customer || '-'}</div>
-                                                                </div>
-                                                                <div class="col-md-6">
-                                                                    <label class="form-label text-muted small mb-1">Property Type</label>
-                                                                    <div>${b.property_type || '-'}</div>
-                                                                </div>
-                                                                <div class="col-md-6">
-                                                                    <label class="form-label text-muted small mb-1">Property Sub-Type</label>
-                                                                    <div>${b.property_sub_type || '-'}</div>
-                                                                </div>
-                                                                <div class="col-md-6">
-                                                                    <label class="form-label text-muted small mb-1">BHK</label>
-                                                                    <div>${b.bhk || '-'}</div>
-                                                                </div>
-                                                                <div class="col-md-6">
-                                                                    <label class="form-label text-muted small mb-1">Location</label>
-                                                                    <div>${b.city || '-'}${b.state ? ', ' + b.state : ''}</div>
-                                                                </div>
-                                                                <div class="col-md-6">
-                                                                    <label class="form-label text-muted small mb-1">Area</label>
-                                                                    <div>${b.area ? b.area + ' sq.ft' : '-'}</div>
-                                                                </div>
-                                                                <div class="col-md-6">
-                                                                    <label class="form-label text-muted small mb-1">Price</label>
-                                                                    <div class="fw-semibold">${b.price || '-'}</div>
-                                                                </div>
-                                                                <div class="col-md-6">
-                                                                    <label class="form-label text-muted small mb-1">Booking Date</label>
-                                                                    <div>${b.booking_date || '-'}</div>
-                                                                </div>
-                                                                <div class="col-md-6">
-                                                                    <label class="form-label text-muted small mb-1">Status</label>
-                                                                    <div><span class="badge bg-secondary">${b.status || '-'}</span></div>
-                                                                </div>
-                                                                <div class="col-md-6">
-                                                                    <label class="form-label text-muted small mb-1">Payment Status</label>
-                                                                    <div><span class="badge bg-info">${b.payment_status || '-'}</span></div>
-                                                                </div>
-                                                                ${b.address ? `<div class="col-12">
-                                                                    <label class="form-label text-muted small mb-1">Address</label>
-                                                                    <div>${b.address}</div>
-                                                                </div>` : ''}
-                                                            </div>
-                                                        </div>
+                                    success: function(response) {
+                                        if (response.booking) {
+                                            const b = response.booking;
+                                            let currentBookingHtml = `<div class="alert alert-info mb-3">
+                                                <div class="d-flex align-items-start">
+                                                    <i class="ri-information-line me-2 mt-1"></i>
+                                                    <div class="flex-grow-1">
+                                                        <strong>Current Booking:</strong>
+                                                        <ul class="mb-0 mt-2" style="list-style: none; padding-left: 0;">
+                                                            <li><strong>ID:</strong> #${b.id}</li>
+                                                            <li><strong>Customer:</strong> ${b.customer || 'N/A'}</li>
+                                                            <li><strong>Property:</strong> ${b.property_type || 'N/A'} ${b.bhk ? '- ' + b.bhk : ''}</li>
+                                                            <li><strong>Address:</strong> ${b.address || 'N/A'}</li>
+                                                        </ul>
+                                                        <p class="mb-0 mt-2 text-muted small">You can select a different booking below to reassign this QR code.</p>
                                                     </div>
                                                 </div>
-                                            `;
-                                            $('#assign-modal-content').html(detailsHtml);
-                                        } else {
-                                            $('#assign-modal-content').html('<div class="text-center text-danger">Failed to load booking details.</div>');
+                                            </div>`;
+                                            $('#assign-modal-content').html(currentBookingHtml + '<div class="text-center text-muted">Loading available bookings...</div>');
                                         }
+                                        // Continue to load booking list
+                                        loadBookingList();
                                     },
                                     error: function() {
-                                        $('#assign-modal-content').html('<div class="text-center text-danger">Failed to load booking details.</div>');
+                                        // Continue with booking list loading even if current booking details fail
+                                        loadBookingList();
                                     }
                                 });
                             } else {
-                                // QR is not assigned - show booking list for assignment with DataTable
-                                $('#assignBookingModalLabel').text('Assign QR To Booking');
+                                $('#assign-modal-content').html('<div class="text-center text-muted">Loading available bookings...</div>');
+                                loadBookingList();
+                            }
+                            
+                            // Function to load booking list
+                            function loadBookingList() {
+                                // Get current content to preserve current booking info
+                                const currentContent = $('#assign-modal-content').html();
+                                
+                                // Append booking list HTML
                                 let html = `
                                     <div class="mt-3">
                                         <div class="d-flex justify-content-between align-items-center mb-3">
@@ -752,12 +723,18 @@ $(function() {
                                         <div class="mt-3 d-flex justify-content-between align-items-center bg-light p-3 rounded">
                                             <div id="selected-booking-info" class="text-muted small"><i class="ri-information-line me-1"></i>Please select a booking to assign</div>
                                             <button type="button" class="btn btn-primary" id="confirm-assign-btn" disabled>
-                                                <i class="ri-checkbox-circle-line me-1"></i>Assign Booking
+                                                <i class="ri-checkbox-circle-line me-1"></i>${bookingId ? 'Change Booking' : 'Assign Booking'}
                                             </button>
                                         </div>
                                     </div>
                                 `;
-                                $('#assign-modal-content').html(html);
+                                
+                                // If there's current booking info, prepend it; otherwise just set the html
+                                if (currentContent.includes('Current Booking')) {
+                                    $('#assign-modal-content').html(currentContent.replace('<div class="text-center text-muted">Loading available bookings...</div>', html));
+                                } else {
+                                    $('#assign-modal-content').html(html);
+                                }
 
                                 // Initialize DataTable for bookings
                                 const bookingApiUrl = $('#assignBookingModal').data('booking-list-api');

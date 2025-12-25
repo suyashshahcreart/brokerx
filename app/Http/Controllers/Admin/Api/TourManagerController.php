@@ -80,7 +80,7 @@ class TourManagerController extends Controller
             // QR Code
             $tour->qr_code = $tour->booking ? $tour->booking->tour_code : null;
             $tour->qr_link = $tour->booking ? $tour->booking->tour_code ? "https://qr.proppik.com/" . $tour->qr_code : null : null;
-            $tour->s3_link = $tour->booking ? $tour->booking->tour_code ? "https://proppik.s3.ap-south-1.amazonaws.com/tours/" . $tour->qr_code . "/" : null : null;
+            $tour->s3_link = $tour->booking ? $tour->booking->tour_code ? "https://creartimages.s3.ap-south-1.amazonaws.com/tours/" . $tour->qr_code . "/" : null : null;
             $tour->makeHidden(['booking']);
             $tour->makeVisible(['qr_code']);
             $tourArr = $tour->toArray();

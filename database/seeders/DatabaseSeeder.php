@@ -32,7 +32,7 @@ class DatabaseSeeder extends Seeder
 
 
         // Seed bookings
-        $this->call(BookingSeeder::class);
+        // $this->call(BookingSeeder::class);
 
         // Seed QR codes
         // $this->call(QRSeeder::class);
@@ -45,7 +45,7 @@ class DatabaseSeeder extends Seeder
                 'mobile' => 9876543210,
                 'email_verified_at' => now(),
                 'mobile_verified_at' => now(),
-                'password' => Hash::make('password'),
+                'password' => Hash::make('123456'),
                 'remember_token' => Str::random(10),
             ]
         );
