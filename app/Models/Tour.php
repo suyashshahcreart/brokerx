@@ -59,6 +59,15 @@ class Tour extends Model
         'custom_mobile',
         'custom_type',
         'custom_description',
+        // Sidebar and Footer fields
+        'company_address',
+        'sidebar_footer_link',
+        'sidebar_footer_text',
+        'sidebar_footer_link_show',
+        'footer_info_type',
+        'footer_brand_logo',
+        'footer_brand_text',
+        'footer_brand_mobile',
     ];
 
     /**
@@ -77,6 +86,7 @@ class Tour extends Model
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
             'deleted_at' => 'datetime',
+            'sidebar_footer_link_show' => 'boolean',
         ];
     }
 
