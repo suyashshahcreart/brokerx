@@ -387,6 +387,156 @@ class TourController extends Controller
     }
 
     /**
+     * Update tour from booking edit form (custom route)
+     */
+    public function updateTourDetails(Request $request, Tour $tour)
+    {
+        $validated = $request->validate([
+            'booking_id' => ['nullable', 'exists:bookings,id'],
+            'name' => ['required', 'string', 'max:255'],
+            'title' => ['required', 'string', 'max:255'],
+            'slug' => ['nullable', 'string', 'max:255', 'unique:tours,slug,' . $tour->id],
+            'description' => ['nullable', 'string'],
+            'content' => ['nullable', 'string'],
+            'featured_image' => ['nullable', 'string', 'max:255'],
+            'price' => ['nullable', 'numeric', 'min:0'],
+            'duration_days' => ['nullable', 'integer', 'min:1'],
+            'location' => ['nullable', 'string', 'max:255'],
+            'start_date' => ['nullable', 'date'],
+            'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
+            'max_participants' => ['nullable', 'integer', 'min:1'],
+            'status' => ['required', 'in:draft,published,archived'],
+            'revision' => ['nullable', 'string', 'max:255'],
+            'sidebar_footer_link_show' => ['nullable', 'boolean'],
+            'sidebar_footer_text' => ['nullable', 'string'],
+            'sidebar_footer_link' => ['nullable', 'string'],
+            'footer_info_type' => ['nullable', 'string'],
+            'footer_brand_logo_text' => ['nullable', 'string'],
+            'footer_brand_text' => ['nullable', 'string'],
+            'footer_brand_mobile' => ['nullable', 'string'],
+            'footer_name' => ['nullable', 'string'],
+            'footer_email' => ['nullable', 'string'],
+            'footer_mobile' => ['nullable', 'string'],
+            'footer_decription' => ['nullable', 'string'],
+        ]);
+
+        // Handle slug uniqueness
+        if (empty($validated['slug'])) {
+            $validated['slug'] = Str::slug($validated['title']);
+            $originalSlug = $validated['slug'];
+            $counter = 1;
+            while (Tour::where('slug', $validated['slug'])->where('id', '!=', $tour->id)->exists()) {
+                $validated['slug'] = $originalSlug . '-' . $counter;
+                $counter++;
+            }
+        }
+
+        // Handle file uploads (sidebar_logo, footer_logo, footer_brand_logo)
+        $logoSidebarFile = $request->file('sidebar_logo');
+        $logoFooterFile = $request->file('footer_logo');
+        $logoBrandFile = $request->file('footer_brand_logo');
+
+        $updateData = $validated;
+
+        // Sidebar logo
+        if ($logoSidebarFile) {
+            $sidebarFilename = 'logo_sidebar_' . time() . '_' . Str::random(8) . '.' . $logoSidebarFile->getClientOriginalExtension();
+            $sidebarPath = 'tours_logo/' . $tour->id . '/' . $sidebarFilename;
+            $sidebarContent = file_get_contents($logoSidebarFile->getRealPath());
+            $sidebarMime = $logoSidebarFile->getMimeType();
+            $uploaded = Storage::disk('s3')->put($sidebarPath, $sidebarContent, ['ContentType' => $sidebarMime]);
+            if ($uploaded) {
+                $updateData['sidebar_logo'] = $sidebarPath;
+            }
+        }
+        // Footer logo
+        if ($logoFooterFile) {
+            $footerFilename = 'logo_footer_' . time() . '_' . Str::random(8) . '.' . $logoFooterFile->getClientOriginalExtension();
+            $footerPath = 'tours_logo/' . $tour->id . '/' . $footerFilename;
+            $footerContent = file_get_contents($logoFooterFile->getRealPath());
+            $footerMime = $logoFooterFile->getMimeType();
+            $uploaded = Storage::disk('s3')->put($footerPath, $footerContent, ['ContentType' => $footerMime]);
+            if ($uploaded) {
+                $updateData['footer_logo'] = $footerPath;
+            }
+        }
+        // Footer brand logo
+        if ($logoBrandFile) {
+            $brandFilename = 'footer_brand_logo_' . time() . '_' . Str::random(8) . '.' . $logoBrandFile->getClientOriginalExtension();
+            $brandPath = 'tours_logo/' . $tour->id . '/' . $brandFilename;
+            $brandContent = file_get_contents($logoBrandFile->getRealPath());
+            $brandMime = $logoBrandFile->getMimeType();
+            $uploaded = Storage::disk('s3')->put($brandPath, $brandContent, ['ContentType' => $brandMime]);
+            if ($uploaded) {
+                $updateData['footer_brand_logo'] = $brandPath;
+            }
+        }
+
+        // If footer_brand_logo_text is present, update it as a text field
+        if ($request->has('footer_brand_logo_text')) {
+            $updateData['footer_brand_logo_text'] = $request->input('footer_brand_logo_text');
+        }
+
+        $tour->update($updateData);
+
+        return redirect()->back()->with('success', 'Tour updated successfully from booking edit.');
+    }
+
+    /**
+     * Update SEO fields for a tour from the SEO form.
+     */
+    public function updateTourSeo(Request $request, Tour $tour)
+    {   
+
+        $validated = $request->validate([
+            'meta_title' => ['nullable', 'string', 'max:255'],
+            'meta_keywords' => ['nullable', 'string', 'max:255'],
+            'meta_description' => ['nullable', 'string'],
+            'canonical_url' => ['nullable', 'url', 'max:255'],
+            'meta_robots' => ['nullable', 'string', 'max:255'],
+            'og_title' => ['nullable', 'string', 'max:255'],
+            'og_image' => ['nullable', 'string', 'max:255'],
+            'og_description' => ['nullable', 'string'],
+            'twitter_title' => ['nullable', 'string', 'max:255'],
+            'twitter_image' => ['nullable', 'string', 'max:255'],
+            'twitter_description' => ['nullable', 'string'],
+            'structured_data_type' => ['nullable', 'string', 'max:255'],
+            'structured_data' => ['nullable', 'string'],
+            'header_code' => ['nullable', 'string'],
+            'footer_code' => ['nullable', 'string'],
+        ]);
+
+        // Validate structured_data as JSON if present
+        if (!empty($validated['structured_data'])) {
+            json_decode($validated['structured_data']);
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                return back()->withInput()->withErrors(['structured_data' => 'Structured Data must be valid JSON.']);
+            }
+        }
+
+        // Update all SEO fields in the database
+        $tour->update([
+            'meta_title' => $validated['meta_title'] ?? null,
+            'meta_keywords' => $validated['meta_keywords'] ?? null,
+            'meta_description' => $validated['meta_description'] ?? null,
+            'canonical_url' => $validated['canonical_url'] ?? null,
+            'meta_robots' => $validated['meta_robots'] ?? null,
+            'og_title' => $validated['og_title'] ?? null,
+            'og_image' => $validated['og_image'] ?? null,
+            'og_description' => $validated['og_description'] ?? null,
+            'twitter_title' => $validated['twitter_title'] ?? null,
+            'twitter_image' => $validated['twitter_image'] ?? null,
+            'twitter_description' => $validated['twitter_description'] ?? null,
+            'structured_data_type' => $validated['structured_data_type'] ?? null,
+            'structured_data' => $validated['structured_data'] ?? null,
+            'header_code' => $validated['header_code'] ?? null,
+            'footer_code' => $validated['footer_code'] ?? null,
+        ]);
+
+        return redirect()->back()->with('success', 'SEO details updated successfully.');
+    }
+
+    /**
      * Remove the specified resource from storage.
      */
     public function destroy(Tour $tour)

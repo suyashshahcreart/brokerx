@@ -1,10 +1,10 @@
-<form method="POST" action="#" class="needs-validation" novalidate >
+<form method="POST" action="{{ route('admin.tours.updateSeo', $tour) }}" class="needs-validation" novalidate >
     @csrf
     @method('PUT')
     <!-- SEO Meta Tags -->
-    <div class="card border-success border-top mb-3">
-        <div class="card-header">
-            <h5 class="card-title mb-0">SEO Meta Tags</h5>
+    <div class="card mb-3">
+        <div class="card-header bg-primary-subtle border-primary">
+            <h5 class="card-title mb-0"> <i class="ri-bookmark-line"></i>  SEO Meta Tags</h5>
         </div>
         <div class="card-body">
             <div class="row">
@@ -50,9 +50,9 @@
     </div>
     
     <!-- Open Graph / Social Media -->
-    <div class="card border-info border-top mb-3">
-        <div class="card-header">
-            <h5 class="card-title mb-0">Open Graph / Social Media</h5>
+    <div class="card mb-3">
+        <div class="card-header bg-secondary-subtle border-secondary">
+            <h5 class="card-title mb-0"> <i class="ri-twitter-line"></i>  Open Graph / Social Media</h5>
         </div>
         <div class="card-body">
             <div class="row">
@@ -105,9 +105,9 @@
     </div>
 
     <!-- Structured Data -->
-    <div class="card border-warning border-top mb-3">
-        <div class="card-header">
-            <h5 class="card-title mb-0">Structured Data (JSON-LD)</h5>
+    <div class="card mb-3">
+        <div class="card-header bg-success-subtle border-success">
+            <h5 class="card-title mb-0"> <i class="ri-file-code-line"></i> Structured Data (JSON-LD)</h5>
         </div>
         <div class="card-body">
             <div class="row">
@@ -137,9 +137,9 @@
     </div>
 
     <!-- Custom Code -->
-    <div class="card border-danger border-top mb-3">
-        <div class="card-header">
-            <h5 class="card-title mb-0">Custom Code Injection</h5>
+    <div class="card mb-3">
+        <div class="card-header bg-warning-subtle border-warning">
+            <h5 class="card-title mb-0"> <i class="ri-code-s-slash-line"></i> Custom Code Injection</h5>
         </div>
         <div class="card-body">
             <div class="mb-3">

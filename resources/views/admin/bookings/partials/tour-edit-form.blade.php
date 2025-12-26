@@ -1,12 +1,14 @@
 {{-- Tour Edit Form --}}
-<form method="POST" action="{{ route('admin.tours.update', $tour) }}" class="needs-validation" novalidate>
+<form method="POST" action="{{ route('admin.tours.updateTourDetails', $tour) }}" enctype="multipart/form-data"
+    class="needs-validation" novalidate>
     @csrf
     @method('PUT')
     <input type="hidden" name="booking_id" value="{{ $booking->id }}">
+
     <!-- Basic Information -->
-    <div class="card border-primary border-top mb-3">
-        <div class="card-header">
-            <h5 class="card-title mb-0">Basic Information</h5>
+    <div class="card border-primary mb-3">
+        <div class="card-header bg-primary-subtle border-primary">
+            <h5 class="card-title mb-0"><i class="ri-list-indefinite"></i> Basic Information</h5>
         </div>
         <div class="card-body">
             <div class="row">
@@ -147,10 +149,9 @@
 
     <!-- sidebar section -->
     <div class="card panel-card border-info border-top mb-3">
-        <div class="card-header d-flex justify-content-between align-items-start flex-wrap gap-2">
+        <div class="card-header bg-info-subtle border-info">
             <div>
-                <h4>Sidebar section</h4>
-                <p class="text-muted mb-0">Add company branding and contact details for this tour</p>
+                <h4 class="card-title mb-0"> <i class="ri-layout-left-line"></i> Sidebar section</h4>
             </div>
         </div>
         <div class="card-body">
@@ -210,157 +211,138 @@
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- footer section -->
-        <div class="card panel-card border-info border-top mt-3">
-            <div class="card-header">
-                <h4 class="card-title mb-1">footer Section</h4>
-                <p class="text-muted mb-0">add and edit details of Tour Footer</p>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="mb-3">
+    <!-- footer section -->
+    <div class="card panel-card border-info border-top mt-3">
+        <div class="card-header bg-warning-subtle border-warning">
+            <h4 class="card-title mb-1"> <i class="ri-layout-row-line"></i> footer Section</h4>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="mb-3">
+                        <div class="mt-2">
+                            @if($tour->footer_logo)
+                                <img id="footer_logo_preview" src="{{ Storage::disk('s3')->url($tour->footer_logo) }}"
+                                    data-original-src="{{ Storage::disk('s3')->url($tour->footer_logo) }}" alt="Footer Logo"
+                                    style="max-width: 150px; max-height: 80px; border:1px solid #ddd; background:#fff; padding:2px;">
+                            @else
+                                <img id="footer_logo_preview" src="" data-original-src="" alt="Footer Logo"
+                                    style="max-width: 150px; max-height: 80px; border:1px solid #ddd; background:#fff; padding:2px; display:none;">
+                            @endif
+                        </div>
+                        <div>
                             <label class="form-label" for="footer_logo">Footer Logo</label>
-                            <input type="file" name="footer_logo" id="footer_logo" class="form-control" accept="image/*"
-                                onchange="previewImage(event, 'footer_logo_preview')">
-                            <div class="mt-2">
-                                @if($tour->footer_logo)
-                                    <img id="footer_logo_preview" src="{{ Storage::disk('s3')->url($tour->footer_logo) }}"
-                                        alt="Footer Logo"
-                                        style="max-width: 150px; max-height: 80px; border:1px solid #ddd; background:#fff; padding:2px;">
-                                @else
-                                    <img id="footer_logo_preview" src="" alt="Footer Logo"
-                                        style="max-width: 150px; max-height: 80px; border:1px solid #ddd; background:#fff; padding:2px; display:none;">
-                                @endif
-                            </div>
-                            @error('footer_logo')<div class="text-danger">{{ $message }}</div>@enderror
+                            <input type="file" name="footer_logo" id="footer_logo" class="form-control"
+                                accept="image/*">
                         </div>
+                        @error('footer_logo')<div class="text-danger">{{ $message }}</div>@enderror
                     </div>
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label for="footer_info_type" class="form-label">Footer Info Type</label>
-                            <select name="footer_info_type" id="footer_info_type" class="form-select">
-                                <option value="company"
-                                    {{ old('footer_info_type', $tour->footer_info_type) == 'company' ? 'selected' : '' }}>
-                                    Company</option>
-                                <option value="agent"
-                                    {{ old('footer_info_type', $tour->footer_info_type) == 'agent' ? 'selected' : '' }}>
-                                    Agent</option>
-                            </select>
-                            @error('footer_info_type')<div class="text-danger">{{ $message }}</div>@enderror
-                        </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="footer_info_type" class="form-label">Footer Info Type</label>
+                        <select name="footer_info_type" id="footer_info_type" class="form-select">
+                            <option value="company"
+                                {{ old('footer_info_type', $tour->footer_info_type) == 'company' ? 'selected' : '' }}>
+                                Company</option>
+                            <option value="agent"
+                                {{ old('footer_info_type', $tour->footer_info_type) == 'agent' ? 'selected' : '' }}>
+                                Agent</option>
+                        </select>
+                        @error('footer_info_type')<div class="text-danger">{{ $message }}</div>@enderror
                     </div>
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label for="footer_brand_logo" class="form-label">Footer Brand Logo</label>
-                            <input type="text" name="footer_brand_logo" id="footer_brand_logo" class="form-control"
-                                value="{{ old('footer_brand_logo', $tour->footer_brand_logo) }}">
-                            @error('footer_brand_logo')<div class="text-danger">{{ $message }}</div>@enderror
-                        </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="footer_name" class="form-label">Footer Name</label>
+                        <input type="text" name="footer_name" id="footer_name" class="form-control"
+                            value="{{ old('footer_name', $tour->footer_name) }}">
+                        @error('footer_name')<div class="text-danger">{{ $message }}</div>@enderror
                     </div>
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label for="footer_brand_text" class="form-label">Footer Brand Text</label>
-                            <input type="text" name="footer_brand_text" id="footer_brand_text" class="form-control"
-                                value="{{ old('footer_brand_text', $tour->footer_brand_text) }}">
-                            @error('footer_brand_text')<div class="text-danger">{{ $message }}</div>@enderror
-                        </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="footer_email" class="form-label">Footer Email</label>
+                        <input type="email" name="footer_email" id="footer_email" class="form-control"
+                            value="{{ old('footer_email', $tour->footer_email) }}">
+                        @error('footer_email')<div class="text-danger">{{ $message }}</div>@enderror
                     </div>
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label for="footer_brand_mobile" class="form-label">Footer Brand Mobile</label>
-                            <input type="text" name="footer_brand_mobile" id="footer_brand_mobile" class="form-control"
-                                value="{{ old('footer_brand_mobile', $tour->footer_brand_mobile) }}">
-                            @error('footer_brand_mobile')<div class="text-danger">{{ $message }}</div>@enderror
-                        </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="footer_mobile" class="form-label">Footer Mobile</label>
+                        <input type="number" name="footer_mobile" id="footer_mobile" class="form-control"
+                            value="{{ old('footer_mobile', $tour->footer_mobile) }}">
+                        @error('footer_mobile')<div class="text-danger">{{ $message }}</div>@enderror
                     </div>
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label for="footer_name" class="form-label">Footer Name</label>
-                            <input type="text" name="footer_name" id="footer_name" class="form-control"
-                                value="{{ old('footer_name', $tour->footer_name) }}">
-                            @error('footer_name')<div class="text-danger">{{ $message }}</div>@enderror
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label for="footer_email" class="form-label">Footer Email</label>
-                            <input type="email" name="footer_email" id="footer_email" class="form-control"
-                                value="{{ old('footer_email', $tour->footer_email) }}">
-                            @error('footer_email')<div class="text-danger">{{ $message }}</div>@enderror
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label for="footer_mobile" class="form-label">Footer Mobile</label>
-                            <input type="text" name="footer_mobile" id="footer_mobile" class="form-control"
-                                value="{{ old('footer_mobile', $tour->footer_mobile) }}">
-                            @error('footer_mobile')<div class="text-danger">{{ $message }}</div>@enderror
-                        </div>
-                    </div>
-                    <div class="col-md-12">
-                        <div class="mb-3">
-                            <label for="footer_decription" class="form-label">Footer Description</label>
-                            <textarea name="footer_decription" id="footer_decription" class="form-control"
-                                rows="2">{{ old('footer_decription', $tour->footer_decription) }}</textarea>
-                            @error('footer_decription')<div class="text-danger">{{ $message }}</div>@enderror
-                        </div>
+                </div>
+                <div class="col-md-12">
+                    <div class="mb-3">
+                        <label for="footer_decription" class="form-label">Footer Description</label>
+                        <textarea name="footer_decription" id="footer_decription" class="form-control"
+                            rows="2">{{ old('footer_decription', $tour->footer_decription) }}</textarea>
+                        @error('footer_decription')<div class="text-danger">{{ $message }}</div>@enderror
                     </div>
                 </div>
             </div>
-        </div>
-
-        <!-- Footer Brand section -->
-        <div class="card panel-card border-info border-top mt-3">
-            <div class="card-header">
-                <h4 class="card-title mb-1">Footer Brand</h4>
-                <p class="text-muted mb-0">Add and edit details of Footer Brand</p>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-4">
-                        <div class="mb-3">
-                            <label class="form-label" for="footer_brand_logo">Footer Brand Logo</label>
-                            <input type="file" name="footer_brand_logo" id="footer_brand_logo" class="form-control"
-                                accept="image/*" onchange="previewImage(event, 'footer_brand_logo_preview')">
-                            <div class="mt-2">
-                                @if($tour->footer_brand_logo)
-                                    <img id="footer_brand_logo_preview"
-                                        src="{{ Storage::disk('s3')->url($tour->footer_brand_logo) }}"
-                                        alt="Footer Brand Logo"
-                                        style="max-width: 150px; max-height: 80px; border:1px solid #ddd; background:#fff; padding:2px;">
-                                @else
-                                    <img id="footer_brand_logo_preview" src="" alt="Footer Brand Logo"
-                                        style="max-width: 150px; max-height: 80px; border:1px solid #ddd; background:#fff; padding:2px; display:none;">
-                                @endif
-                            </div>
-                            @error('footer_brand_logo')<div class="text-danger">{{ $message }}</div>@enderror
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <label for="footer_brand_text" class="form-label">Footer Brand Text</label>
-                        <input type="text" name="footer_brand_text" id="footer_brand_text" class="form-control"
-                            value="{{ old('footer_brand_text', $tour->footer_brand_text) }}">
-                        @error('footer_brand_text')<div class="text-danger">{{ $message }}</div>@enderror
-                    </div>
-                    <div class="col-md-4">
-                        <label for="footer_brand_mobile" class="form-label">Footer Brand Mobile</label>
-                        <input type="text" name="footer_brand_mobile" id="footer_brand_mobile" class="form-control"
-                            value="{{ old('footer_brand_mobile', $tour->footer_brand_mobile) }}">
-                        @error('footer_brand_mobile')<div class="text-danger">{{ $message }}</div>@enderror
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="d-flex gap-2">
-            <button class="btn btn-primary" type="submit">
-                <i class="ri-save-line me-1"></i> Update Tour
-            </button>
-            <button class="btn btn-soft-danger" type="button" id="unlinkTourBtn">
-                <i class="ri-link-unlink me-1"></i> Unlink Tour
-            </button>
         </div>
     </div>
+
+    <!-- Footer Brand section -->
+    <div class="card panel-card border-info border-top mt-3">
+        <div class="card-header bg-secondary-subtle border-secondary">
+            <h4 class="card-title mb-1"> <i class="ri-cash-line"></i> Footer Brand</h4>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="mb-3">
+                        <div class="mt-2">
+                            @if($tour->footer_brand_logo)
+                                <img id="footer_brand_logo_preview"
+                                    src="{{ Storage::disk('s3')->url($tour->footer_brand_logo) }}"
+                                    data-original-src="{{ Storage::disk('s3')->url($tour->footer_brand_logo) }}"
+                                    alt="Footer Brand Logo"
+                                    style="max-width: 150px; max-height: 80px; border:1px solid #ddd; background:#fff; padding:2px;">
+                            @else
+                                <img id="footer_brand_logo_preview" src="" data-original-src="" alt="Footer Brand Logo"
+                                    style="max-width: 150px; max-height: 80px; border:1px solid #ddd; background:#fff; padding:2px; display:none;">
+                            @endif
+                        </div>
+                        <div>
+                            <label class="form-label" for="footer_brand_logo">Footer Brand Logo</label>
+                            <input type="file" name="footer_brand_logo" id="footer_brand_logo" class="form-control"
+                                accept="image/*">
+                        </div>
+                        @error('footer_brand_logo')<div class="text-danger">{{ $message }}</div>@enderror
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <label for="footer_brand_text" class="form-label">Footer Brand Text</label>
+                    <input type="text" name="footer_brand_text" id="footer_brand_text" class="form-control"
+                        value="{{ old('footer_brand_text', $tour->footer_brand_text) }}">
+                    @error('footer_brand_text')<div class="text-danger">{{ $message }}</div>@enderror
+                </div>
+                <div class="col-md-4">
+                    <label for="footer_brand_mobile" class="form-label">Footer Brand Mobile</label>
+                    <input type="number" name="footer_brand_mobile" id="footer_brand_mobile" class="form-control"
+                        value="{{ old('footer_brand_mobile', $tour->footer_brand_mobile) }}">
+                    @error('footer_brand_mobile')<div class="text-danger">{{ $message }}</div>@enderror
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Button of actions -->
+    <div class="d-flex gap-2">
+        <button class="btn btn-primary" type="submit">
+            <i class="ri-save-line me-1"></i> Update Tour
+        </button>
+        <button class="btn btn-soft-danger" type="button" id="unlinkTourBtn">
+            <i class="ri-link-unlink me-1"></i> Unlink Tour
+        </button>
+    </div>
+
 </form>
