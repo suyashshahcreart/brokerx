@@ -504,6 +504,7 @@ class TourController extends Controller
             'structured_data' => ['nullable', 'string'],
             'header_code' => ['nullable', 'string'],
             'footer_code' => ['nullable', 'string'],
+            'gtm_tag' => ['nullable', 'string', 'max:255'],
         ]);
 
         // Validate structured_data as JSON if present
@@ -531,6 +532,7 @@ class TourController extends Controller
             'structured_data' => $validated['structured_data'] ?? null,
             'header_code' => $validated['header_code'] ?? null,
             'footer_code' => $validated['footer_code'] ?? null,
+            'gtm_tag' => $validated['gtm_tag'] ?? null,
         ]);
 
         return redirect()->back()->with('success', 'SEO details updated successfully.');

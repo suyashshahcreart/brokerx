@@ -68,6 +68,7 @@ class Tour extends Model
         'footer_brand_logo',
         'footer_brand_text',
         'footer_brand_mobile',
+        'gtm_tag',
     ];
 
     /**

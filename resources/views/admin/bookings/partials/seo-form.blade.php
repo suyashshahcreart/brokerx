@@ -24,33 +24,40 @@
                 </div>
             </div>
 
-            <div class="mb-3">
-                <label class="form-label" for="tour_meta_description">Meta Description</label>
-                <textarea name="meta_description" id="tour_meta_description" class="form-control"
+            <div class="row">
+                <div class="col-md-12 mb-3">
+                    <label class="form-label" for="tour_meta_description">Meta Description</label>
+                    <textarea name="meta_description" id="tour_meta_description" class="form-control"
                     rows="2">{{ $tour->meta_description }}</textarea>
+                </div>
             </div>
 
             <div class="row">
-                <div class="col-lg-6">
+                <div class="col-lg-4">
                     <div class="mb-3">
                         <label class="form-label" for="tour_canonical_url">Canonical URL</label>
                         <input type="url" name="canonical_url" id="tour_canonical_url" class="form-control"
                             value="{{ $tour->canonical_url }}">
                     </div>
                 </div>
-                <div class="col-lg-6">
+                <div class="col-lg-4">
                     <div class="mb-0">
                         <label class="form-label" for="tour_meta_robots">Meta Robots</label>
                         <input type="text" name="meta_robots" id="tour_meta_robots" class="form-control"
                             value="{{ $tour->meta_robots }}" placeholder="index, follow">
                     </div>
                 </div>
+                <div class="col-md-4">
+                    <label for="gtm_tag">GTM tag</label>
+                    <input type="text" name="gtm_tag" id="gtm_tag" class="form-control"
+                        value="{{ $tour->gtm_tag }}">
+                </div>
             </div>
         </div>
     </div>
     
     <!-- Open Graph / Social Media -->
-    <div class="card mb-3">
+    <div class="d-none card mb-3">
         <div class="card-header bg-secondary-subtle border-secondary">
             <h5 class="card-title mb-0"> <i class="ri-twitter-line"></i>  Open Graph / Social Media</h5>
         </div>
