@@ -133,20 +133,20 @@ class TourController extends Controller
             'footer_code' => ['nullable', 'string'],
 
             // Custom fields
-            'custom_logo_sidebar' => ['nullable', 'string', 'max:255'],
-            'custom_logo_footer' => ['nullable', 'string', 'max:255'],
-            'custom_name' => ['nullable', 'string', 'max:255'],
-            'custom_email' => ['nullable', 'string', 'max:255'],
-            'custom_mobile' => ['nullable', 'string', 'max:255'],
+            'sidebar_logo' => ['nullable'],
+            'footer_logo' => ['nullable', 'string', 'max:255'],
+            'footer_name' => ['nullable', 'string', 'max:255'],
+            'footer_email' => ['nullable', 'string', 'max:255'],
+            'footer_mobile' => ['nullable', 'string', 'max:255'],
             'custom_type' => ['nullable', 'string', 'max:255'],
-            'custom_description' => ['nullable', 'string'],
+            'footer_decription' => ['nullable', 'string'],
             // Sidebar and Footer fields
             'company_address' => ['nullable', 'string'],
             'sidebar_footer_link' => ['nullable', 'string'],
             'sidebar_footer_text' => ['nullable', 'string'],
             'sidebar_footer_link_show' => ['nullable', 'boolean'],
             'footer_info_type' => ['nullable', 'string'],
-            'footer_brand_logo' => ['nullable', 'string'],
+            'footer_brand_logo' => ['nullable'],
             'footer_brand_text' => ['nullable', 'string'],
             'footer_brand_mobile' => ['nullable', 'string'],
         ]);
@@ -166,9 +166,10 @@ class TourController extends Controller
 
 
         // Temporarily remove logo fields for file upload
-        $logoSidebarFile = $request->file('custom_logo_sidebar');
-        $logoFooterFile = $request->file('custom_logo_footer');
-        unset($validated['custom_logo_sidebar'], $validated['custom_logo_footer']);
+        $logoSidebarFile = $request->file('sidebar_logo');
+        $logoFooterFile = $request->file('footer_logo');
+        $logoBrandFile = $request->file('footer_brand_logo');
+        unset($validated['sidebar_logo'], $validated['footer_logo'], $validated['footer_brand_logo']);
 
         $tour = Tour::create($validated);
         try {
@@ -181,7 +182,7 @@ class TourController extends Controller
                 $sidebarMime = $logoSidebarFile->getMimeType();
                 $uploaded = \Storage::disk('s3')->put($sidebarPath, $sidebarContent, ['ContentType' => $sidebarMime]);
                 if ($uploaded) {
-                    $updateData['custom_logo_sidebar'] = $sidebarPath;
+                    $updateData['sidebar_logo'] = $sidebarPath;
                 }
             }
             if ($logoFooterFile) {
@@ -191,7 +192,17 @@ class TourController extends Controller
                 $footerMime = $logoFooterFile->getMimeType();
                 $uploaded = \Storage::disk('s3')->put($footerPath, $footerContent, ['ContentType' => $footerMime]);
                 if ($uploaded) {
-                    $updateData['custom_logo_footer'] = $footerPath;
+                    $updateData['footer_logo'] = $footerPath;
+                }
+            }
+            if ($logoBrandFile) {
+                $brandFilename = 'footer_brand_logo_' . time() . '_' . Str::random(8) . '.' . $logoBrandFile->getClientOriginalExtension();
+                $brandPath = 'tours_logo/' . $tour->id . '/' . $brandFilename;
+                $brandContent = file_get_contents($logoBrandFile->getRealPath());
+                $brandMime = $logoBrandFile->getMimeType();
+                $uploaded = \Storage::disk('s3')->put($brandPath, $brandContent, ['ContentType' => $brandMime]);
+                if ($uploaded) {
+                    $updateData['footer_brand_logo'] = $brandPath;
                 }
             }
             if (!empty($updateData)) {
@@ -277,20 +288,20 @@ class TourController extends Controller
             'footer_code' => ['nullable', 'string'],
 
             // Custom fields
-            'custom_logo_sidebar' => ['nullable'],
-            'custom_logo_footer' => ['nullable'],
-            'custom_name' => ['nullable', 'string', 'max:255'],
-            'custom_email' => ['nullable', 'string', 'max:255'],
-            'custom_mobile' => ['nullable', 'string', 'max:255'],
+            'sidebar_logo' => ['nullable'],
+            'footer_logo' => ['nullable'],
+            'footer_name' => ['nullable', 'string', 'max:255'],
+            'footer_email' => ['nullable', 'string', 'max:255'],
+            'footer_mobile' => ['nullable', 'string', 'max:255'],
             'custom_type' => ['nullable', 'string', 'max:255'],
-            'custom_description' => ['nullable', 'string'],
+            'footer_decription' => ['nullable', 'string'],
             // Sidebar and Footer fields
             'company_address' => ['nullable', 'string'],
             'sidebar_footer_link' => ['nullable', 'string'],
             'sidebar_footer_text' => ['nullable', 'string'],
             'sidebar_footer_link_show' => ['nullable', 'boolean'],
             'footer_info_type' => ['nullable', 'string'],
-            'footer_brand_logo' => ['nullable', 'string'],
+            'footer_brand_logo' => ['nullable'],
             'footer_brand_text' => ['nullable', 'string'],
             'footer_brand_mobile' => ['nullable', 'string'],
         ]);
@@ -310,9 +321,10 @@ class TourController extends Controller
 
 
         // Temporarily remove logo fields for file upload
-        $logoSidebarFile = $request->file('custom_logo_sidebar');
-        $logoFooterFile = $request->file('custom_logo_footer');
-        unset($validated['custom_logo_sidebar'], $validated['custom_logo_footer']);
+        $logoSidebarFile = $request->file('sidebar_logo');
+        $logoFooterFile = $request->file('footer_logo');
+        $logoBrandFile = $request->file('footer_brand_logo');
+        unset($validated['sidebar_logo'], $validated['footer_logo'], $validated['footer_brand_logo']);
 
         $oldData = $tour->toArray();
         try {
@@ -326,7 +338,7 @@ class TourController extends Controller
                 $sidebarMime = $logoSidebarFile->getMimeType();
                 $uploaded = Storage::disk('s3')->put($sidebarPath, $sidebarContent, ['ContentType' => $sidebarMime]);
                 if ($uploaded) {
-                    $updateData['custom_logo_sidebar'] = $sidebarPath;
+                    $updateData['sidebar_logo'] = $sidebarPath;
                 }
             }
             if ($logoFooterFile) {
@@ -336,7 +348,17 @@ class TourController extends Controller
                 $footerMime = $logoFooterFile->getMimeType();
                 $uploaded = Storage::disk('s3')->put($footerPath, $footerContent, ['ContentType' => $footerMime]);
                 if ($uploaded) {
-                    $updateData['custom_logo_footer'] = $footerPath;
+                    $updateData['footer_logo'] = $footerPath;
+                }
+            }
+            if ($logoBrandFile) {
+                $brandFilename = 'footer_brand_logo_' . time() . '_' . Str::random(8) . '.' . $logoBrandFile->getClientOriginalExtension();
+                $brandPath = 'tours_logo/' . $tour->id . '/' . $brandFilename;
+                $brandContent = file_get_contents($logoBrandFile->getRealPath());
+                $brandMime = $logoBrandFile->getMimeType();
+                $uploaded = Storage::disk('s3')->put($brandPath, $brandContent, ['ContentType' => $brandMime]);
+                if ($uploaded) {
+                    $updateData['footer_brand_logo'] = $brandPath;
                 }
             }
             if (!empty($updateData)) {

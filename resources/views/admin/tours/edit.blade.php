@@ -345,14 +345,14 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label class="form-label" for="custom_logo_sidebar">Sidebar Logo</label>
-                                    <input type="file" name="custom_logo_sidebar" id="custom_logo_sidebar"
+                                    <label class="form-label" for="sidebar_logo">Sidebar Logo</label>
+                                    <input type="file" name="sidebar_logo" id="custom_logo_sidebar"
                                         class="form-control" accept="image/*"
                                         onchange="previewImage(event, 'sidebar_logo_preview')">
                                     <div class="mt-2">
-                                        @if($tour->custom_logo_sidebar)
+                                        @if($tour->sidebar_logo)
                                             <img id="sidebar_logo_preview"
-                                                src="{{ Storage::disk('s3')->url($tour->custom_logo_sidebar) }}"
+                                                src="{{ Storage::disk('s3')->url($tour->sidebar_logo) }}"
                                                 alt="Sidebar Logo"
                                                 style="max-width: 150px; max-height: 80px; border:1px solid #ddd; background:#fff; padding:2px;">
                                         @else
@@ -360,7 +360,7 @@
                                                 style="max-width: 150px; max-height: 80px; border:1px solid #ddd; background:#fff; padding:2px; display:none;">
                                         @endif
                                     </div>
-                                    @error('custom_logo_sidebar')<div class="text-danger">{{ $message }}</div>@enderror
+                                    @error('sidebar_logo')<div class="text-danger">{{ $message }}</div>@enderror
                                 </div>
                             </div>
                             <div class="col-md-6">
@@ -463,7 +463,6 @@
                     </div>
                 </div>
 
-                <!-- Submit Buttons -->
                 <!-- Sidebar & Footer Fields (for testing) -->
                 <div class="card mt-4">
                     <div class="card-header"><strong>Sidebar & Footer Fields (Test)</strong></div>
