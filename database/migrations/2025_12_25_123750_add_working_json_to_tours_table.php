@@ -13,6 +13,11 @@ return new class extends Migration
     {
         Schema::table('tours', function (Blueprint $table) {
             $table->json('working_json')->nullable()->after('final_json');
+            $table->foreignId('working_json_last_update_user')
+                ->nullable()
+                ->after('working_json')
+                ->constrained('users')
+                ->nullOnDelete();
         });
     }
 
