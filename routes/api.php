@@ -22,9 +22,9 @@ use App\Http\Controllers\Admin\Api\TourManagerController;
 // Rest API's
 // Tour Manager APIs
 Route::post('/tour-manager/login', [TourManagerController::class, 'login']);
-
 Route::get('/tour-manager/customers', [TourManagerController::class, 'getCustomers']);
 Route::get('/tour-manager/tours-by-customer', [TourManagerController::class, 'getToursByCustomer']);
+Route::put('/tour-manager/working_json/{tour_id}', [TourManagerController::class, 'updateWorkingJson']);
 
 // Route::middleware('auth')->group(function () {
 // });

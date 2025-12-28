@@ -94,4 +94,92 @@ class TourManagerController extends Controller
             'tours' => $tours
         ]);
     }
+
+    /**
+     * Update working_json field for a specific tour (stores as JSON)
+     */
+    public function updateWorkingJson(Request $request, $tour_id)
+    {
+        // Read raw content and parse JSON
+        $rawContent = $request->getContent();
+        $workingJson = null;
+        $userId = null;
+        
+        if (!empty($rawContent)) {
+            $parsedContent = json_decode($rawContent, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($parsedContent)) {
+                $workingJson = $parsedContent['working_json'] ?? null;
+                $userId = $parsedContent['working_json_last_update_user'] ?? null;
+            }
+        }
+        
+        // Fallback: try regular input
+        if ($workingJson === null) {
+            $workingJson = $request->input('working_json');
+        }
+        if ($userId === null) {
+            $userId = $request->input('working_json_last_update_user');
+        }
+        
+        // Validate both fields are required
+        $errors = [];
+        if ($workingJson === null || $workingJson === '') {
+            $errors['working_json'] = ['The working json field is required.'];
+        }
+        if ($userId === null || $userId === '') {
+            $errors['working_json_last_update_user'] = ['The working json last update user field is required.'];
+        }
+        
+        if (!empty($errors)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $errors
+            ], 422);
+        }
+        
+        // Validate user exists
+        $user = User::find($userId);
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'User not found',
+                'errors' => [
+                    'working_json_last_update_user' => ['The specified user does not exist.']
+                ]
+            ], 422);
+        }
+        
+        // Find tour
+        $tour = Tour::find($tour_id);
+        if (!$tour) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tour not found'
+            ], 404);
+        }
+        
+        // If working_json is a string, try to decode it as JSON
+        if (is_string($workingJson)) {
+            $decoded = json_decode($workingJson, true);
+            if (json_last_error() === JSON_ERROR_NONE) {
+                $workingJson = $decoded;
+            }
+        }
+        
+        // Update both fields
+        $tour->working_json = $workingJson;
+        $tour->working_json_last_update_user = $userId;
+        $tour->save();
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Working JSON updated successfully',
+            'tour' => [
+                'id' => $tour->id,
+                'working_json' => $tour->working_json,
+                'working_json_last_update_user' => $tour->working_json_last_update_user
+            ]
+        ]);
+    }
 }
