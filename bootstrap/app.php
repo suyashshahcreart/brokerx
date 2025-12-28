@@ -32,5 +32,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->redirectGuestsTo('/login');
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        // Ensure API routes always return JSON
+        $exceptions->shouldRenderJsonWhen(function ($request, Throwable $e) {
+            return $request->is('api/*') || $request->expectsJson();
+        });
     })->create();
