@@ -36,7 +36,7 @@ class QRSeeder extends Seeder
     private function generateUniqueCode()
     {
         do {
-            $code = Str::random(9);
+            $code = Str::random(8);
         } while (QR::where('code', $code)->exists());
         return $code;
     }
