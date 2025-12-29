@@ -288,10 +288,10 @@
                         <li class="nav-item" role="presentation">
                             <button class="nav-link" id="tour-tab" data-bs-toggle="tab" data-bs-target="#tour-pane" type="button" role="tab" aria-controls="tour-pane" aria-selected="false">
                                 <i class="ri-map-pin-line me-1"></i> Tour Details
-                                @if($tour ?? null)
-                                    <span class="badge bg-success ms-1">Linked</span>
+                                @if($qr_code)
+                                    <span class="badge bg-success ms-1">Qr Linked</span>
                                 @else
-                                    <span class="badge bg-warning ms-1">Not Linked</span>
+                                    <span class="badge bg-danger ms-1">Qr not Linked</span>
                                 @endif
                             </button>
                         </li>
@@ -347,9 +347,9 @@
                         <!-- Tour Tab -->
                         <div class="tab-pane fade" id="tour-pane" role="tabpanel" aria-labelledby="tour-tab" tabindex="0">
                             @if($tour ?? null)
-                                @include('admin.bookings.partials.tour-edit-form')
+                                @include('admin.bookings.partials.tour-edit-form', ['qr_code' => $qr_code])
                             @else
-                                @include('admin.bookings.partials.tour-create-form')
+                                @include('admin.bookings.partials.tour-create-form',['qr_code' => $qr_code])
                             @endif
                         </div>
 

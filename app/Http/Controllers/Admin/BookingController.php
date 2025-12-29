@@ -10,6 +10,7 @@ use App\Models\BookingHistory;
 use App\Models\City;
 use App\Models\PropertySubType;
 use App\Models\PropertyType;
+use App\Models\QR;
 use App\Models\State;
 use App\Models\Tour;
 use App\Models\User;
@@ -344,8 +345,9 @@ class BookingController extends Controller{
 
         // Load tour if linked
         $tour = Tour::where('booking_id', $booking->id)->first();
-
-        // dd($booking);
+        $qr_code = QR::where('booking_id', $booking->id)->value('code');
+        
+        // dd($booking,$qr_code);
 
         return view('admin.bookings.edit', compact(
             'booking',
@@ -357,7 +359,8 @@ class BookingController extends Controller{
             'cities',
             'states',
             'paymentStatuses',
-            'statuses'
+            'statuses',
+            'qr_code'
         ));
     }
 
