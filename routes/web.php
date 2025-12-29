@@ -224,6 +224,19 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'middleware' => ['web', 'au
     Route::get('qr-analytics/{id}', [QRAnalyticsController::class, 'show'])->name('qr-analytics.show');
 
     Route::resource('settings', SettingController::class);
+    
+    // Settings AJAX/API routes
+    Route::prefix('api')->name('api.')->group(function () {
+        Route::post('/settings/update', [SettingController::class, 'apiUpdate'])->name('settings.update');
+        Route::get('/settings/{name}', [SettingController::class, 'apiGet'])->name('settings.get');
+        
+        // FTP Configuration routes
+        Route::get('/ftp-configurations', [SettingController::class, 'apiGetFtpConfigurations'])->name('ftp-configurations.index');
+        Route::get('/ftp-configurations/{id}', [SettingController::class, 'apiGetFtpConfiguration'])->name('ftp-configurations.show');
+        Route::post('/ftp-configurations', [SettingController::class, 'apiStoreFtpConfiguration'])->name('ftp-configurations.store');
+        Route::delete('/ftp-configurations/{id}', [SettingController::class, 'apiDeleteFtpConfiguration'])->name('ftp-configurations.destroy');
+    });
+    
     Route::get('activity', [ActivityLogController::class, 'index'])->name('activity.index');
     // QR Code Management
     Route::post('qr/bulk-generate', [QRController::class, 'bulkGenerate'])->name('qr.bulk-generate');

@@ -525,5 +525,258 @@ import '../../css/pages/setting-index.css';
 
         initTemplateManagement();
         initPanelCardActions();
+        
+        // FTP Configuration Management
+        initFtpConfigurationManagement();
     });
+
+    // FTP Configuration Management Functions
+    function initFtpConfigurationManagement() {
+        let ftpConfigModal = null;
+        let editingFtpConfigId = null;
+
+        // Initialize modal
+        const modalElement = document.getElementById('ftpConfigModal');
+        if (!modalElement) return;
+        
+        ftpConfigModal = new bootstrap.Modal(modalElement);
+        
+        // Helper function to get base URL for admin API routes
+        function getAdminApiUrl(path) {
+            const basePath = window.location.pathname.split('/admin')[0] || '';
+            return basePath + '/admin/api' + (path.startsWith('/') ? path : '/' + path);
+        }
+        
+        // Load FTP configurations on page load
+        loadFtpConfigurations();
+        
+        // Add button handler
+        const addBtn = document.getElementById('addFtpConfigBtn');
+        if (addBtn) {
+            addBtn.addEventListener('click', function() {
+                resetFtpConfigForm();
+                editingFtpConfigId = null;
+                document.getElementById('ftpConfigModalTitle').textContent = 'Add FTP Configuration';
+                ftpConfigModal.show();
+            });
+        }
+        
+        // Form submit handler
+        const form = document.getElementById('ftpConfigForm');
+        if (form) {
+            form.addEventListener('submit', handleFtpConfigSubmit);
+        }
+
+        function loadFtpConfigurations() {
+            fetch(getAdminApiUrl('/ftp-configurations'), {
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                credentials: 'same-origin'
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('FTP Configurations loaded:', data);
+                if (data.success && data.data) {
+                    renderFtpConfigurationsTable(data.data);
+                } else {
+                    console.error('Unexpected response format:', data);
+                }
+            })
+            .catch(error => {
+                console.error('Error loading FTP configurations:', error);
+            });
+        }
+
+        function renderFtpConfigurationsTable(configs) {
+            const tbody = document.getElementById('ftpConfigurationsTableBody');
+            if (!tbody) return;
+            
+            if (!configs || configs.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center">No FTP configurations found. Click "Add FTP Configuration" to create one.</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = configs.map(config => `
+                <tr>
+                    <td><strong>${config.category_name}</strong></td>
+                    <td>${config.display_name}</td>
+                    <td>${config.main_url}</td>
+                    <td><span class="badge bg-info">${(config.driver || 'FTP').toUpperCase()}</span></td>
+                    <td>${config.host || ''}</td>
+                    <td>${config.port || ''}</td>
+                    <td>
+                        <span class="badge ${config.is_active ? 'bg-success' : 'bg-secondary'}">
+                            ${config.is_active ? 'Active' : 'Inactive'}
+                        </span>
+                    </td>
+                    <td>
+                        <button class="btn btn-sm btn-primary me-1" onclick="window.editFtpConfig(${config.id})">
+                            <i class="ri-edit-line"></i>
+                        </button>
+                        <button class="btn btn-sm btn-danger" onclick="window.deleteFtpConfig(${config.id})">
+                            <i class="ri-delete-bin-line"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        window.editFtpConfig = function(id) {
+            fetch(getAdminApiUrl(`/ftp-configurations/${id}`), {
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                credentials: 'same-origin'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const config = data.data;
+                    populateFtpConfigForm(config);
+                    editingFtpConfigId = id;
+                    document.getElementById('ftpConfigModalTitle').textContent = 'Edit FTP Configuration';
+                    ftpConfigModal.show();
+                }
+            })
+            .catch(error => {
+                console.error('Error loading FTP configuration:', error);
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({ icon: 'error', title: 'Error!', text: 'Failed to load FTP configuration', timer: 2000, showConfirmButton: false });
+                }
+            });
+        };
+
+        function populateFtpConfigForm(config) {
+            document.getElementById('ftp_config_id').value = config.id || '';
+            document.getElementById('ftp_category_name').value = config.category_name || '';
+            document.getElementById('ftp_display_name').value = config.display_name || '';
+            document.getElementById('ftp_main_url').value = config.main_url || '';
+            document.getElementById('ftp_driver').value = config.driver || 'ftp';
+            document.getElementById('ftp_host').value = config.host || '';
+            document.getElementById('ftp_port').value = config.port || 21;
+            document.getElementById('ftp_username').value = config.username || '';
+            document.getElementById('ftp_password').value = ''; // Don't populate password for security
+            document.getElementById('ftp_root').value = config.root || '/';
+            document.getElementById('ftp_timeout').value = config.timeout || 30;
+            document.getElementById('ftp_passive').checked = config.passive !== false;
+            document.getElementById('ftp_ssl').checked = config.ssl === true;
+            document.getElementById('ftp_is_active').checked = config.is_active !== false;
+            document.getElementById('ftp_remote_path_pattern').value = config.remote_path_pattern || '{customer_id}/{slug}/index.php';
+            document.getElementById('ftp_url_pattern').value = config.url_pattern || 'https://{main_url}/{remote_path}';
+            document.getElementById('ftp_notes').value = config.notes || '';
+        }
+
+        function resetFtpConfigForm() {
+            const form = document.getElementById('ftpConfigForm');
+            if (form) form.reset();
+            document.getElementById('ftp_config_id').value = '';
+        }
+
+        function handleFtpConfigSubmit(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData.entries());
+            
+            // Convert checkboxes to boolean
+            data.passive = formData.has('passive');
+            data.ssl = formData.has('ssl');
+            data.is_active = formData.has('is_active');
+            
+            // Convert port and timeout to integers
+            if (data.port) data.port = parseInt(data.port);
+            if (data.timeout) data.timeout = parseInt(data.timeout);
+            
+            fetch(getAdminApiUrl('/ftp-configurations'), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({ icon: 'success', title: 'Success!', text: data.message, timer: 2000, showConfirmButton: false });
+                    } else {
+                        alert(data.message);
+                    }
+                    ftpConfigModal.hide();
+                    loadFtpConfigurations();
+                } else {
+                    let errorMessage = data.message || 'Failed to save FTP configuration';
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({ icon: 'error', title: 'Error!', text: errorMessage, timer: 3000, showConfirmButton: false });
+                    } else {
+                        alert('Error: ' + errorMessage);
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error saving FTP configuration:', error);
+                const errorMessage = 'Error saving FTP configuration. Please try again.';
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({ icon: 'error', title: 'Error!', text: errorMessage, timer: 3000, showConfirmButton: false });
+                } else {
+                    alert(errorMessage);
+                }
+            });
+        }
+
+        window.deleteFtpConfig = function(id) {
+            if (!confirm('Are you sure you want to delete this FTP configuration?')) {
+                return;
+            }
+            
+            fetch(getAdminApiUrl(`/ftp-configurations/${id}`), {
+                method: 'DELETE',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                },
+                credentials: 'same-origin'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({ icon: 'success', title: 'Deleted!', text: data.message, timer: 2000, showConfirmButton: false });
+                    } else {
+                        alert(data.message);
+                    }
+                    loadFtpConfigurations();
+                } else {
+                    const errorMessage = data.message || 'Failed to delete FTP configuration';
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({ icon: 'error', title: 'Error!', text: errorMessage, timer: 3000, showConfirmButton: false });
+                    } else {
+                        alert('Error: ' + errorMessage);
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error deleting FTP configuration:', error);
+                const errorMessage = 'Error deleting FTP configuration. Please try again.';
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({ icon: 'error', title: 'Error!', text: errorMessage, timer: 3000, showConfirmButton: false });
+                } else {
+                    alert(errorMessage);
+                }
+            });
+        };
+    }
 })();
