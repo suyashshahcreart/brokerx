@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use App\Models\Booking;
 use App\Models\BookingAssignee;
 use App\Models\BookingHistory;
+use App\Models\PaymentHistory;
 use App\Models\User;
 use App\Models\City;
 use App\Models\State;
@@ -1600,17 +1601,27 @@ class FrontendController extends Controller
 
                 // Only reuse session if payment is still pending AND amount hasn't changed
                 if (!$amountChanged && $booking->payment_status === 'pending' && $booking->cashfree_payment_status !== 'PAID') {
-                    return response()->json([
-                        'success' => true,
-                        'data' => [
-                            'order_id' => $booking->cashfree_order_id,
-                            'payment_session_id' => $booking->cashfree_payment_session_id,
-                            'amount' => $booking->cashfree_payment_amount ?: $amount,
-                            'currency' => $booking->cashfree_payment_currency ?: 'INR',
-                            'mode' => $this->cashfree->mode(),
-                            'return_url' => config('cashfree.return_url') ?: route('frontend.cashfree.callback'),
-                        ],
-                    ]);
+                    // Check if payment history exists and is still pending
+                    $existingPaymentHistory = PaymentHistory::where('booking_id', $booking->id)
+                        ->where('gateway', 'cashfree')
+                        ->where('gateway_order_id', $booking->cashfree_order_id)
+                        ->whereIn('status', ['pending', 'processing'])
+                        ->first();
+                    
+                    // If payment history exists and matches, return existing session
+                    if ($existingPaymentHistory) {
+                        return response()->json([
+                            'success' => true,
+                            'data' => [
+                                'order_id' => $booking->cashfree_order_id,
+                                'payment_session_id' => $booking->cashfree_payment_session_id,
+                                'amount' => $booking->cashfree_payment_amount ?: $amount,
+                                'currency' => $booking->cashfree_payment_currency ?: 'INR',
+                                'mode' => $this->cashfree->mode(),
+                                'return_url' => config('cashfree.return_url') ?: route('frontend.cashfree.callback'),
+                            ],
+                        ]);
+                    }
                 }
             }
 
@@ -1705,18 +1716,43 @@ class FrontendController extends Controller
                 ], 422);
             }
 
-            $booking->cashfree_order_id = $body['order_id'] ?? $orderId;
-            $booking->cashfree_payment_session_id = $body['payment_session_id'];
+            $orderIdFromResponse = $body['order_id'] ?? $orderId;
+            $sessionId = $body['payment_session_id'];
+            $orderAmount = (int) round($body['order_amount'] ?? $amount);
+            
+            // Update booking with Cashfree order details (backward compatibility)
+            $booking->cashfree_order_id = $orderIdFromResponse;
+            $booking->cashfree_payment_session_id = $sessionId;
             $booking->cashfree_payment_status = $body['order_status'] ?? 'CREATED';
-            $booking->cashfree_payment_amount = (int) round($body['order_amount'] ?? $amount);
+            $booking->cashfree_payment_amount = $orderAmount;
             $booking->cashfree_payment_currency = $body['order_currency'] ?? 'INR';
             $booking->cashfree_payment_meta = [
                 'customer_id' => $customerId,
             ];
             $booking->cashfree_last_response = $body;
-            $booking->price = $booking->price ?: (int) round($amount);
+            $booking->price = $booking->price ?: $orderAmount;
             $booking->payment_status = 'pending';
             $booking->save();
+
+            // Create payment history entry for this payment attempt
+            PaymentHistory::create([
+                'booking_id' => $booking->id,
+                'user_id' => $booking->user_id,
+                'gateway' => 'cashfree',
+                'gateway_order_id' => $orderIdFromResponse,
+                'gateway_session_id' => $sessionId,
+                'status' => 'pending',
+                'amount' => $orderAmount * 100, // Convert to paise
+                'currency' => $body['order_currency'] ?? 'INR',
+                'gateway_response' => $body,
+                'gateway_meta' => [
+                    'customer_id' => $customerId,
+                ],
+                'initiated_at' => now(),
+                'ip_address' => request()->ip(),
+                'user_agent' => request()->userAgent(),
+                'notes' => 'Payment session created',
+            ]);
 
             return response()->json([
                 'success' => true,
@@ -1849,7 +1885,12 @@ class FrontendController extends Controller
     protected function syncBookingWithCashfreeOrder(Booking $booking, array $orderData, bool $sendSMS = true): array
     {
         $orderStatus = strtoupper($orderData['order_status'] ?? 'UNKNOWN');
+        $orderId = $orderData['order_id'] ?? $booking->cashfree_order_id;
+        $orderAmount = (float) ($orderData['order_amount'] ?? 0);
+        $orderCurrency = $orderData['order_currency'] ?? 'INR';
         $payments = $orderData['payments'] ?? [];
+        
+        // Sort payments by payment time (latest first)
         if (count($payments) > 1) {
             usort($payments, function ($a, $b) {
                 $timeA = isset($a['payment_time']) ? strtotime($a['payment_time']) : 0;
@@ -1857,11 +1898,15 @@ class FrontendController extends Controller
                 return $timeB <=> $timeA;
             });
         }
+        
         $latestPayment = $payments[0] ?? null;
+        $oldStatus = $booking->status;
+        $oldPaymentStatus = $booking->payment_status;
 
+        // Update backward compatibility fields (for existing code that relies on them)
         $booking->cashfree_payment_status = $orderStatus;
-        $booking->cashfree_payment_amount = (int) round($orderData['order_amount'] ?? $booking->cashfree_payment_amount);
-        $booking->cashfree_payment_currency = $orderData['order_currency'] ?? $booking->cashfree_payment_currency ?? 'INR';
+        $booking->cashfree_payment_amount = (int) round($orderAmount);
+        $booking->cashfree_payment_currency = $orderCurrency;
         $booking->cashfree_last_response = $orderData;
 
         if ($latestPayment) {
@@ -1873,21 +1918,124 @@ class FrontendController extends Controller
             }
         }
 
-        $oldStatus = $booking->status;
-        $oldPaymentStatus = $booking->payment_status;
-
-        if ($orderStatus === 'PAID') {
-            $booking->payment_status = 'paid';
-            $booking->status = 'confirmed';
-            $booking->cashfree_payment_message = $booking->cashfree_payment_message ?: 'Payment successful';
-        } elseif (in_array($orderStatus, ['FAILED', 'EXPIRED', 'TERMINATED', 'TERMINATION_REQUESTED'])) {
-            $booking->payment_status = 'failed';
-            $booking->cashfree_payment_message = $booking->cashfree_payment_message ?: 'Payment failed';
-        } else {
-            $booking->payment_status = 'pending';
+        // Process each payment from Cashfree response and create/update payment history entries
+        $paymentHistoryEntries = [];
+        
+        foreach ($payments as $payment) {
+            $paymentId = $payment['cf_payment_id'] ?? $payment['payment_reference_id'] ?? null;
+            $paymentStatus = strtoupper($payment['payment_status'] ?? $orderStatus);
+            $paymentAmount = (float) ($payment['payment_amount'] ?? $orderAmount);
+            $paymentMethod = $payment['payment_method'] ?? null;
+            $paymentMessage = $payment['payment_message'] ?? null;
+            $paymentTime = !empty($payment['payment_time']) ? Carbon::parse($payment['payment_time']) : null;
+            
+            // Map Cashfree payment status to our payment history status
+            $historyStatus = $this->mapCashfreeStatusToPaymentHistoryStatus($paymentStatus);
+            
+            // Find existing payment history entry by gateway_payment_id or create new one
+            $paymentHistory = PaymentHistory::where('booking_id', $booking->id)
+                ->where('gateway', 'cashfree')
+                ->where(function($query) use ($paymentId, $orderId) {
+                    if ($paymentId) {
+                        $query->where('gateway_payment_id', $paymentId);
+                    } else {
+                        $query->where('gateway_order_id', $orderId);
+                    }
+                })
+                ->first();
+            
+            if (!$paymentHistory) {
+                // Create new payment history entry
+                $paymentHistory = PaymentHistory::create([
+                    'booking_id' => $booking->id,
+                    'user_id' => $booking->user_id,
+                    'gateway' => 'cashfree',
+                    'gateway_order_id' => $orderId,
+                    'gateway_payment_id' => $paymentId,
+                    'status' => $historyStatus,
+                    'amount' => (int) round($paymentAmount * 100), // Convert to paise
+                    'currency' => $orderCurrency,
+                    'payment_method' => $paymentMethod,
+                    'gateway_response' => $payment,
+                    'gateway_message' => $paymentMessage,
+                    'completed_at' => $historyStatus === 'completed' ? ($paymentTime ?? now()) : null,
+                    'failed_at' => in_array($historyStatus, ['failed', 'cancelled']) ? ($paymentTime ?? now()) : null,
+                    'ip_address' => request()->ip(),
+                    'user_agent' => request()->userAgent(),
+                    'notes' => 'Payment sync from Cashfree callback',
+                ]);
+            } else {
+                // Update existing payment history entry
+                $paymentHistory->status = $historyStatus;
+                $paymentHistory->amount = (int) round($paymentAmount * 100); // Convert to paise
+                $paymentHistory->currency = $orderCurrency;
+                $paymentHistory->payment_method = $paymentMethod;
+                $paymentHistory->gateway_response = array_merge($paymentHistory->gateway_response ?? [], $payment);
+                $paymentHistory->gateway_message = $paymentMessage;
+                
+                if ($historyStatus === 'completed' && !$paymentHistory->completed_at) {
+                    $paymentHistory->completed_at = $paymentTime ?? now();
+                }
+                if (in_array($historyStatus, ['failed', 'cancelled']) && !$paymentHistory->failed_at) {
+                    $paymentHistory->failed_at = $paymentTime ?? now();
+                }
+                
+                $paymentHistory->save();
+            }
+            
+            $paymentHistoryEntries[] = $paymentHistory;
         }
 
-        $booking->save();
+        // If no payments array, but we have order status, update/create a single payment history entry
+        if (empty($payments) && $orderId) {
+            $paymentHistory = PaymentHistory::where('booking_id', $booking->id)
+                ->where('gateway', 'cashfree')
+                ->where('gateway_order_id', $orderId)
+                ->first();
+            
+            $historyStatus = $this->mapCashfreeStatusToPaymentHistoryStatus($orderStatus);
+            
+            if (!$paymentHistory) {
+                PaymentHistory::create([
+                    'booking_id' => $booking->id,
+                    'user_id' => $booking->user_id,
+                    'gateway' => 'cashfree',
+                    'gateway_order_id' => $orderId,
+                    'status' => $historyStatus,
+                    'amount' => (int) round($orderAmount * 100), // Convert to paise
+                    'currency' => $orderCurrency,
+                    'gateway_response' => $orderData,
+                    'completed_at' => $historyStatus === 'completed' ? now() : null,
+                    'failed_at' => in_array($historyStatus, ['failed', 'cancelled']) ? now() : null,
+                    'ip_address' => request()->ip(),
+                    'user_agent' => request()->userAgent(),
+                    'notes' => 'Payment sync from Cashfree callback (no payments array)',
+                ]);
+            } else {
+                $paymentHistory->status = $historyStatus;
+                $paymentHistory->amount = (int) round($orderAmount * 100);
+                $paymentHistory->gateway_response = array_merge($paymentHistory->gateway_response ?? [], $orderData);
+                
+                if ($historyStatus === 'completed' && !$paymentHistory->completed_at) {
+                    $paymentHistory->completed_at = now();
+                }
+                if (in_array($historyStatus, ['failed', 'cancelled']) && !$paymentHistory->failed_at) {
+                    $paymentHistory->failed_at = now();
+                }
+                
+                $paymentHistory->save();
+            }
+        }
+
+        // Update booking payment status based on aggregated payment history
+        $booking->refresh(); // Refresh to get latest payment history
+        $booking->updatePaymentStatusFromHistory();
+
+        // Determine final order status for return value
+        $finalOrderStatus = $orderStatus;
+        if ($latestPayment) {
+            $finalOrderStatus = strtoupper($latestPayment['payment_status'] ?? $orderStatus);
+        }
 
         // Create history entry for payment callback with complete booking data
         // Always create history when callback is triggered to track all payment attempts
@@ -1973,8 +2121,9 @@ class FrontendController extends Controller
                 'user_agent' => request()->userAgent(),
             ]);
             
-            // Send SMS notification for successful payment
-            if ($orderStatus === 'PAID' && $booking->user && $booking->user->mobile && $sendSMS) {
+            // Send SMS notification for successful payment (check if any payment was successful)
+            $hasSuccessfulPayment = $booking->paymentHistories()->where('status', 'completed')->exists();
+            if (($orderStatus === 'PAID' || $hasSuccessfulPayment) && $booking->user && $booking->user->mobile && $sendSMS) {
                 try {
                     // PROPPIK: Your order is confirmed. You can now schedule your appointment on ##LINK##. – CREART
                     // Template ID: 69295ee79cb8142aae77f2a2
@@ -2072,18 +2221,44 @@ class FrontendController extends Controller
             }
         }
 
+        // Get aggregated payment data from payment history
+        $totalPaid = $booking->total_paid;
+        $latestPaymentHistory = $booking->latestPaymentHistory;
+        
         return [
             'booking_id' => $booking->id,
-            'order_id' => $booking->cashfree_order_id,
-            'order_status' => $orderStatus,
-            'amount' => $booking->cashfree_payment_amount,
-            'currency' => $booking->cashfree_payment_currency,
-            'payment_method' => $booking->cashfree_payment_method,
-            'reference_id' => $booking->cashfree_reference_id,
-            'payment_at' => optional($booking->cashfree_payment_at)->toDateTimeString(),
-            'status_message' => $booking->cashfree_payment_message,
+            'order_id' => $orderId,
+            'order_status' => $finalOrderStatus,
+            'amount' => $orderAmount,
+            'currency' => $orderCurrency,
+            'payment_method' => $latestPaymentHistory?->payment_method ?? $booking->cashfree_payment_method,
+            'reference_id' => $latestPaymentHistory?->gateway_payment_id ?? $booking->cashfree_reference_id,
+            'payment_at' => optional($latestPaymentHistory?->completed_at ?? $booking->cashfree_payment_at)->toDateTimeString(),
+            'status_message' => $latestPaymentHistory?->gateway_message ?? $booking->cashfree_payment_message,
+            'total_paid' => $totalPaid / 100, // Convert from paise to rupees
+            'remaining_amount' => $booking->remaining_amount_in_rupees,
+            'payment_history_count' => $booking->paymentHistories()->count(),
             'raw' => $orderData,
         ];
+    }
+
+    /**
+     * Map Cashfree payment status to PaymentHistory status
+     */
+    protected function mapCashfreeStatusToPaymentHistoryStatus(string $cashfreeStatus): string
+    {
+        $status = strtoupper(trim($cashfreeStatus));
+        
+        return match($status) {
+            'PAID', 'SUCCESS', 'SUCCESSFUL' => 'completed',
+            'FAILED', 'EXPIRED', 'TERMINATED', 'TERMINATION_REQUESTED' => 'failed',
+            'CANCELLED', 'CANCELED' => 'cancelled',
+            'REFUNDED' => 'refunded',
+            'PARTIALLY_REFUNDED' => 'partially_refunded',
+            'ACTIVE', 'CREATED', 'PENDING' => 'pending',
+            'PROCESSING' => 'processing',
+            default => 'pending',
+        };
     }
 
     protected function formatBookingForGrid(Booking $booking): array
