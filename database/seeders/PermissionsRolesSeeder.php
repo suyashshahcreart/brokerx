@@ -109,8 +109,9 @@ class PermissionsRolesSeeder extends Seeder
         }
 
         $adminRole = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
-        $brokerRole = Role::firstOrCreate(['name' => 'broker', 'guard_name' => 'web']);
         $photographerRole = Role::firstOrCreate(['name' => 'photographer', 'guard_name' => 'web']);
+        $tour_manager = Role::firstOrCreate(['name' => 'tour_manager', 'guard_name' => 'web']);
+        $seo_manager = Role::firstOrCreate(['name' => 'seo_manager', 'guard_name' => 'web']);
         $customer = Role::firstOrCreate(['name' => 'customer', 'guard_name' => 'web']);
 
         $adminRole->syncPermissions(Permission::all());
@@ -136,8 +137,6 @@ class PermissionsRolesSeeder extends Seeder
             'user_delete',
             'user_manage_roles',
         ])->get();
-
-        $brokerRole->syncPermissions($defaultBrokerPermissions);
 
         // Photographer role permissions
         $photographerPermissions = Permission::whereIn('name', [

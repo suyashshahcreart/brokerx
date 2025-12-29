@@ -375,6 +375,7 @@
                             @endif
                         </div>
                     </div>
+                    </div>
 
                     <!-- Schedule & Status Card -->
                     <div class="detail-card mb-4">

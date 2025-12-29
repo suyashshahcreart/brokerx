@@ -14,18 +14,15 @@ use Yajra\DataTables\Facades\DataTables;
 use ZipArchive;
 use Aws\S3\Exception\S3Exception;
 
-class TourManagerController extends Controller
-{
-    public function __construct()
-    {
+class TourManagerController extends Controller{
+    public function __construct(){
         $this->middleware('auth');
     }
 
     /**
      * Display a listing of bookings for tour management
      */
-    public function index(Request $request)
-    {
+    public function index(Request $request){
         if ($request->ajax()) {
             $query = Booking::with([
                 'user',
@@ -167,7 +164,10 @@ class TourManagerController extends Controller
             'qr'
         ]);
 
-        return view('admin.tour-manager.show', compact('booking'));
+        // Get the tour for this booking
+        $tour = $booking->tours()->first();
+
+        return view('admin.tour-manager.show', compact('booking', 'tour'));
     }
 
     /**

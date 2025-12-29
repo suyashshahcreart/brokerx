@@ -34,6 +34,8 @@ class Tour extends Model
         'max_participants',
         'status',
         'final_json',
+        'working_json',
+        'working_json_last_update_user',
         'revision',
         // SEO Meta Fields
         'meta_title',
@@ -59,6 +61,15 @@ class Tour extends Model
         'custom_mobile',
         'custom_type',
         'custom_description',
+        // Sidebar and Footer fields
+        'company_address',
+        'sidebar_footer_link',
+        'sidebar_footer_text',
+        'sidebar_footer_link_show',
+        'footer_info_type',
+        'footer_brand_logo',
+        'footer_brand_text',
+        'footer_brand_mobile',
     ];
 
     /**
@@ -74,9 +85,11 @@ class Tour extends Model
             'price' => 'decimal:2',
             'structured_data' => 'array',
             'final_json' => 'array',
+            'working_json' => 'array',
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
             'deleted_at' => 'datetime',
+            'sidebar_footer_link_show' => 'boolean',
         ];
     }
 

@@ -161,6 +161,142 @@ class Booking extends Model
     }
 
     /**
+     * Get all payment history entries for this booking
+     */
+    public function paymentHistories()
+    {
+        return $this->hasMany(PaymentHistory::class)->orderByDesc('created_at');
+    }
+
+    /**
+     * Get the latest payment history entry
+     */
+    public function latestPaymentHistory()
+    {
+        return $this->hasOne(PaymentHistory::class)->latestOfMany();
+    }
+
+    /**
+     * Get all successful payments
+     */
+    public function successfulPayments()
+    {
+        return $this->hasMany(PaymentHistory::class)->where('status', 'completed');
+    }
+
+    /**
+     * Get total amount paid (sum of all successful payments)
+     * Returns amount in paise (smallest currency unit)
+     */
+    public function getTotalPaidAttribute(): int
+    {
+        $sum = $this->paymentHistories()
+            ->where('status', 'completed')
+            ->sum('amount');
+        return (int) ($sum ?? 0);
+    }
+
+    /**
+     * Get total amount paid in rupees
+     */
+    public function getTotalPaidInRupeesAttribute(): float
+    {
+        return $this->total_paid / 100;
+    }
+
+    /**
+     * Get remaining amount to be paid (in paise)
+     */
+    public function getRemainingAmountAttribute(): int
+    {
+        $totalAmount = (int) ($this->price ?? 0) * 100; // Convert to paise
+        $paidAmount = $this->total_paid;
+        $remaining = $totalAmount - $paidAmount;
+        return max(0, $remaining);
+    }
+
+    /**
+     * Get remaining amount in rupees
+     */
+    public function getRemainingAmountInRupeesAttribute(): float
+    {
+        return $this->remaining_amount / 100;
+    }
+
+    /**
+     * Check if booking is fully paid
+     */
+    public function isFullyPaid(): bool
+    {
+        return $this->remaining_amount <= 0 && $this->total_paid > 0;
+    }
+
+    /**
+     * Check if booking has any payments
+     */
+    public function hasPayments(): bool
+    {
+        return $this->paymentHistories()->exists();
+    }
+
+    /**
+     * Check if booking has partial payment
+     */
+    public function hasPartialPayment(): bool
+    {
+        return $this->total_paid > 0 && !$this->isFullyPaid();
+    }
+
+    /**
+     * Update payment status based on payment history
+     * This method aggregates payment history and updates the booking's payment_status
+     */
+    public function updatePaymentStatusFromHistory(): void
+    {
+        $totalAmount = (int) ($this->price ?? 0) * 100; // Convert to paise
+        $paidAmount = $this->total_paid;
+        
+        // Check if there are any recent successful payments
+        $hasSuccessfulPayment = $this->paymentHistories()
+            ->where('status', 'completed')
+            ->exists();
+        
+        // Check if there are any pending payments
+        $hasPendingPayment = $this->paymentHistories()
+            ->whereIn('status', ['pending', 'processing'])
+            ->exists();
+        
+        // Determine payment status
+        if ($paidAmount >= $totalAmount && $totalAmount > 0) {
+            $this->payment_status = 'paid';
+            // If booking was not confirmed, mark it as confirmed
+            if ($this->status === 'pending' || $this->status === 'inquiry') {
+                $this->status = 'confirmed';
+            }
+        } elseif ($paidAmount > 0) {
+            // Partial payment
+            $this->payment_status = 'pending';
+        } elseif ($hasPendingPayment) {
+            $this->payment_status = 'pending';
+        } else {
+            // Check if all payments failed
+            $allFailed = $this->paymentHistories()
+                ->whereIn('status', ['failed', 'cancelled'])
+                ->count() > 0 
+                && !$hasSuccessfulPayment
+                && !$hasPendingPayment;
+            
+            if ($allFailed) {
+                $this->payment_status = 'failed';
+            } else {
+                $this->payment_status = 'unpaid';
+            }
+        }
+        
+        $this->save();
+    }
+
+    /**
      * Check if booking has complete property data
      * Based on validation logic from setup page
      */

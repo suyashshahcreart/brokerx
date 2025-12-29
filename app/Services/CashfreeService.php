@@ -4,8 +4,7 @@ namespace App\Services;
 
 use RuntimeException;
 
-class CashfreeService
-{
+class CashfreeService{
     protected string $env;
     protected string $appId;
     protected string $secretKey;
@@ -13,8 +12,7 @@ class CashfreeService
     protected int $timeout;
     protected ?string $customBaseUrl;
 
-    public function __construct()
-    {
+    public function __construct(){
         $this->env = config('cashfree.env', 'sandbox');
         $this->appId = (string) config('cashfree.app_id', '');
         $this->secretKey = (string) config('cashfree.secret_key', '');
@@ -23,23 +21,19 @@ class CashfreeService
         $this->customBaseUrl = config('cashfree.base_url');
     }
 
-    public function mode(): string
-    {
+    public function mode(): string{
         return $this->env === 'production' ? 'production' : 'sandbox';
     }
 
-    public function createOrder(array $payload): array
-    {
+    public function createOrder(array $payload): array{
         return $this->request('POST', '/orders', $payload);
     }
 
-    public function fetchOrder(string $orderId): array
-    {
+    public function fetchOrder(string $orderId): array{
         return $this->request('GET', '/orders/' . urlencode($orderId));
     }
 
-    public function request(string $method, string $endpoint, ?array $payload = null): array
-    {
+    public function request(string $method, string $endpoint, ?array $payload = null): array{
         if (empty($this->appId) || empty($this->secretKey)) {
             throw new RuntimeException('Cashfree credentials are not configured.');
         }
@@ -85,8 +79,7 @@ class CashfreeService
         ];
     }
 
-    protected function baseUrl(): string
-    {
+    protected function baseUrl(): string{
         if (!empty($this->customBaseUrl)) {
             return rtrim($this->customBaseUrl, '/');
         }

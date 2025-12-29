@@ -20,6 +20,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
             'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
             'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
+            'not.customer' => \App\Http\Middleware\BlockCustomerRole::class,
         ]);
 
         // Exclude API routes from CSRF verification for Postman testing
@@ -27,9 +28,12 @@ return Application::configure(basePath: dirname(__DIR__))
             'api/*',
         ]);
 
-        // Redirect unauthenticated users to admin login
-        $middleware->redirectGuestsTo('/admin/login');
+        // Redirect unauthenticated users to login
+        $middleware->redirectGuestsTo('/login');
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        // Ensure API routes always return JSON
+        $exceptions->shouldRenderJsonWhen(function ($request, Throwable $e) {
+            return $request->is('api/*') || $request->expectsJson();
+        });
     })->create();

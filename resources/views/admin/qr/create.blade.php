@@ -57,32 +57,84 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Name</label>
-                        <div class="input-group">
-                            <input type="text" name="name" id="name" class="form-control" maxlength="8" pattern="[A-Za-z0-9]{8}" placeholder="Optional name (8 characters)" autocomplete="off" value="{{ $defaultName ?? '' }}">
-                            <button type="button" class="btn btn-outline-secondary" id="refreshNameBtn" title="Regenerate Name">
-                                <i class="ri-refresh-line"></i>
-                            </button>
-                        </div>
-                        <div class="form-text">Name is optional, must be exactly 8 characters (A-Z, a-z, 0-9 only) if provided</div>
-                        <div class="invalid-feedback">Please enter a valid 8-character name (A-Z, a-z, 0-9 only)</div>
+                        <input type="text" name="name" id="name" class="form-control" placeholder="Optional name (any text)" autocomplete="off" value="">
+                        <div class="form-text">Name is optional and can be any text</div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Booking</label>
                         <select name="booking_id" class="form-control">
                             <option value="">Select Booking</option>
                             @foreach($bookings as $booking)
-                                <option value="{{ $booking->id }}">{{ $booking->id }}</option>
+                                @php
+                                    // Build customer name
+                                    $customerName = trim(($booking->user->firstname ?? '') . ' ' . ($booking->user->lastname ?? ''));
+                                    if (empty($customerName)) {
+                                        $customerName = 'N/A';
+                                    }
+                                    
+                                    // Build property details
+                                    $propertyDetails = [];
+                                    if ($booking->propertyType) {
+                                        $propertyDetails[] = $booking->propertyType->name;
+                                    }
+                                    if ($booking->propertySubType) {
+                                        $propertyDetails[] = $booking->propertySubType->name;
+                                    }
+                                    if ($booking->bhk) {
+                                        $propertyDetails[] = $booking->bhk->name;
+                                    }
+                                    if ($booking->furniture_type) {
+                                        $propertyDetails[] = $booking->furniture_type;
+                                    }
+                                    if ($booking->area) {
+                                        $propertyDetails[] = number_format($booking->area) . ' sq.ft';
+                                    }
+                                    $propertyText = !empty($propertyDetails) ? implode(' | ', $propertyDetails) : 'N/A';
+                                    
+                                    // Build address
+                                    $addressParts = [];
+                                    if ($booking->house_no) {
+                                        $addressParts[] = $booking->house_no;
+                                    }
+                                    if ($booking->building) {
+                                        $addressParts[] = $booking->building;
+                                    }
+                                    if ($booking->city) {
+                                        $addressParts[] = $booking->city->name;
+                                    }
+                                    if ($booking->state) {
+                                        $addressParts[] = $booking->state->name;
+                                    }
+                                    if ($booking->pin_code) {
+                                        $addressParts[] = $booking->pin_code;
+                                    }
+                                    $addressText = !empty($addressParts) ? implode(', ', $addressParts) : 'N/A';
+                                    
+                                    // Build display text
+                                    $displayParts = [
+                                        'ID: ' . $booking->id,
+                                        $customerName,
+                                        $booking->user->mobile ?? 'N/A',
+                                        ($booking->user->email ? $booking->user->email : ''),
+                                        $propertyText,
+                                        $addressText
+                                    ];
+                                    $displayText = implode(' | ', array_filter($displayParts));
+                                @endphp
+                                <option value="{{ $booking->id }}">{{ $displayText }}</option>
                             @endforeach
                         </select>
                     </div>
-                    <div class="mb-3">
+
+                    {{-- now just comment this here  --}}
+                    {{-- <div class="mb-3">
                         <label class="form-label">Image</label>
                         <input type="file" name="image" class="form-control">
                     </div>
                     <div class="mb-3">
                         <label class="form-label">QR Link</label>
                         <input type="text" name="qr_link" class="form-control">
-                    </div>
+                    </div> --}}
                     <button type="submit" class="btn btn-primary">Save</button>
                 </form>
             </div>
@@ -148,20 +200,12 @@
         const codeInput = document.getElementById('code');
         const nameInput = document.getElementById('name');
         const refreshCodeBtn = document.getElementById('refreshCodeBtn');
-        const refreshNameBtn = document.getElementById('refreshNameBtn');
         const form = document.getElementById('qrCreateForm');
 
         // Generate initial code on page load
         if (codeInput) {
             if (!codeInput.value || codeInput.value.trim() === '') {
                 codeInput.value = generateRandomCode();
-            }
-        }
-
-        // Generate initial name on page load (optional, but auto-generate for convenience)
-        if (nameInput) {
-            if (!nameInput.value || nameInput.value.trim() === '') {
-                nameInput.value = generateRandomCode();
             }
         }
 
@@ -172,17 +216,6 @@
                     codeInput.value = generateRandomCode();
                     codeInput.classList.remove('is-invalid');
                     codeInput.focus();
-                }
-            });
-        }
-
-        // Refresh name button click handler
-        if (refreshNameBtn) {
-            refreshNameBtn.addEventListener('click', function() {
-                if (nameInput) {
-                    nameInput.value = generateRandomCode();
-                    nameInput.classList.remove('is-invalid');
-                    nameInput.focus();
                 }
             });
         }
@@ -205,29 +238,10 @@
             });
         }
 
-        // Custom validation for name field (optional)
-        if (nameInput) {
-            nameInput.addEventListener('input', function() {
-                const value = this.value;
-                const pattern = /^[A-Za-z0-9]{8}$/;
-                
-                if (value.length > 0 && !pattern.test(value)) {
-                    // Only allow A-Za-z0-9 characters
-                    this.value = value.replace(/[^A-Za-z0-9]/g, '');
-                }
-                
-                // Limit to 8 characters
-                if (this.value.length > 8) {
-                    this.value = this.value.substring(0, 8);
-                }
-            });
-        }
-
         // Form validation
         if (form) {
             form.addEventListener('submit', function(event) {
                 const codeValue = codeInput ? codeInput.value.trim() : '';
-                const nameValue = nameInput ? nameInput.value.trim() : '';
                 const pattern = /^[A-Za-z0-9]{8}$/;
                 
                 // Code is required
@@ -244,19 +258,7 @@
                     }
                 }
                 
-                // Name is optional, but if provided must be valid
-                if (nameValue && !pattern.test(nameValue)) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    if (nameInput) {
-                        nameInput.classList.add('is-invalid');
-                        nameInput.focus();
-                    }
-                } else {
-                    if (nameInput) {
-                        nameInput.classList.remove('is-invalid');
-                    }
-                }
+                // Name is optional, no validation needed
                 
                 if (!form.checkValidity()) {
                     event.preventDefault();

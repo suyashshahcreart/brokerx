@@ -140,6 +140,15 @@ class TourController extends Controller
             'custom_mobile' => ['nullable', 'string', 'max:255'],
             'custom_type' => ['nullable', 'string', 'max:255'],
             'custom_description' => ['nullable', 'string'],
+            // Sidebar and Footer fields
+            'company_address' => ['nullable', 'string'],
+            'sidebar_footer_link' => ['nullable', 'string'],
+            'sidebar_footer_text' => ['nullable', 'string'],
+            'sidebar_footer_link_show' => ['nullable', 'boolean'],
+            'footer_info_type' => ['nullable', 'string'],
+            'footer_brand_logo' => ['nullable', 'string'],
+            'footer_brand_text' => ['nullable', 'string'],
+            'footer_brand_mobile' => ['nullable', 'string'],
         ]);
 
         // Auto-generate slug if not provided
@@ -275,6 +284,15 @@ class TourController extends Controller
             'custom_mobile' => ['nullable', 'string', 'max:255'],
             'custom_type' => ['nullable', 'string', 'max:255'],
             'custom_description' => ['nullable', 'string'],
+            // Sidebar and Footer fields
+            'company_address' => ['nullable', 'string'],
+            'sidebar_footer_link' => ['nullable', 'string'],
+            'sidebar_footer_text' => ['nullable', 'string'],
+            'sidebar_footer_link_show' => ['nullable', 'boolean'],
+            'footer_info_type' => ['nullable', 'string'],
+            'footer_brand_logo' => ['nullable', 'string'],
+            'footer_brand_text' => ['nullable', 'string'],
+            'footer_brand_mobile' => ['nullable', 'string'],
         ]);
 
         // Auto-generate slug if not provided
