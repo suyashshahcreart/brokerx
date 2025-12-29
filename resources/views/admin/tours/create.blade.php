@@ -56,6 +56,18 @@
                             </div>
                         </div>
                     </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label" for="sidebar_logo">Sidebar Logo</label>
+                                <input type="file" name="sidebar_logo" id="sidebar_logo" class="form-control" accept="image/*" onchange="previewImage(event, 'sidebar_logo_preview')">
+                                <div class="mt-2">
+                                    <img id="sidebar_logo_preview" src="" alt="Sidebar Logo" style="max-width: 150px; max-height: 80px; border:1px solid #ddd; background:#fff; padding:2px; display:none;">
+                                </div>
+                                @error('sidebar_logo')<div class="text-danger">{{ $message }}</div>@enderror
+                            </div>
+                        </div>
+                    </div>
 
                     <div class="row">
                         <div class="col-lg-4">

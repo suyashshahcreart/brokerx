@@ -9,7 +9,7 @@
     <div class="col-12">
         <div class="mb-1">
             <label class="form-label" for="user_id">Select User <span class="text-danger">*</span></label>
-            <select name="user_id" id="user_id" data-choices class="form-select" required>
+            <select name="user_id" id="user_id" disabled data-choices class="form-select" required>
                 <option value="">Choose a user...</option>
                 @foreach($users as $u)
                     <option value="{{ $u->id }}" @selected($booking->user_id == $u->id)>
