@@ -181,7 +181,7 @@ class TourController extends Controller
                 $sidebarPath = 'tours_logo/' . $tour->id . '/' . $sidebarFilename;
                 $sidebarContent = file_get_contents($logoSidebarFile->getRealPath());
                 $sidebarMime = $logoSidebarFile->getMimeType();
-                $uploaded = \Storage::disk('s3')->put($sidebarPath, $sidebarContent, ['ContentType' => $sidebarMime]);
+                $uploaded = Storage::disk('s3')->put($sidebarPath, $sidebarContent, ['ContentType' => $sidebarMime]);
                 if ($uploaded) {
                     $updateData['sidebar_logo'] = $sidebarPath;
                 }
@@ -191,7 +191,7 @@ class TourController extends Controller
                 $footerPath = 'tours_logo/' . $tour->id . '/' . $footerFilename;
                 $footerContent = file_get_contents($logoFooterFile->getRealPath());
                 $footerMime = $logoFooterFile->getMimeType();
-                $uploaded = \Storage::disk('s3')->put($footerPath, $footerContent, ['ContentType' => $footerMime]);
+                $uploaded = Storage::disk('s3')->put($footerPath, $footerContent, ['ContentType' => $footerMime]);
                 if ($uploaded) {
                     $updateData['footer_logo'] = $footerPath;
                 }
@@ -201,7 +201,7 @@ class TourController extends Controller
                 $brandPath = 'tours_logo/' . $tour->id . '/' . $brandFilename;
                 $brandContent = file_get_contents($logoBrandFile->getRealPath());
                 $brandMime = $logoBrandFile->getMimeType();
-                $uploaded = \Storage::disk('s3')->put($brandPath, $brandContent, ['ContentType' => $brandMime]);
+                $uploaded = Storage::disk('s3')->put($brandPath, $brandContent, ['ContentType' => $brandMime]);
                 if ($uploaded) {
                     $updateData['footer_brand_logo'] = $brandPath;
                 }
@@ -588,7 +588,7 @@ class TourController extends Controller
 
         // Generate slug if not provided
         if (empty($validated['slug'])) {
-            $validated['slug'] = \Illuminate\Support\Str::slug($validated['title']);
+            $validated['slug'] = Str::slug($validated['title']);
         }
 
         $oldData = $tour->toArray();
@@ -636,7 +636,7 @@ class TourController extends Controller
 
         // Generate slug if not provided
         if (empty($validated['slug'])) {
-            $validated['slug'] = \Illuminate\Support\Str::slug($validated['title']);
+            $validated['slug'] = Str::slug($validated['title']);
         }
 
         $tour = Tour::create($validated);
