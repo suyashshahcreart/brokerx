@@ -7,6 +7,7 @@ use App\Models\Tour;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Spatie\Activitylog\Models\Activity;
+use App\Models\QR;
 use Storage;
 use Yajra\DataTables\DataTables;
 
@@ -420,6 +421,8 @@ class TourController extends Controller
             'footer_decription' => ['nullable', 'string'],
         ]);
 
+        $qr_code = QR::where('booking_id', $tour->booking_id)->value('code');
+
         // Handle slug uniqueness
         if (empty($validated['slug'])) {
             $validated['slug'] = Str::slug($validated['title']);
@@ -439,9 +442,9 @@ class TourController extends Controller
         $updateData = $validated;
 
         // Sidebar logo
-        if ($logoSidebarFile) {
+        if ($logoSidebarFile && $qr_code) {
             $sidebarFilename = 'logo_sidebar_' . time() . '_' . Str::random(8) . '.' . $logoSidebarFile->getClientOriginalExtension();
-            $sidebarPath = 'tours_logo/' . $tour->id . '/' . $sidebarFilename;
+            $sidebarPath = 'tours/' . $qr_code . '/assets/' . $sidebarFilename;
             $sidebarContent = file_get_contents($logoSidebarFile->getRealPath());
             $sidebarMime = $logoSidebarFile->getMimeType();
             $uploaded = Storage::disk('s3')->put($sidebarPath, $sidebarContent, ['ContentType' => $sidebarMime]);
@@ -450,9 +453,9 @@ class TourController extends Controller
             }
         }
         // Footer logo
-        if ($logoFooterFile) {
+        if ($logoFooterFile && $qr_code) {
             $footerFilename = 'logo_footer_' . time() . '_' . Str::random(8) . '.' . $logoFooterFile->getClientOriginalExtension();
-            $footerPath = 'tours_logo/' . $tour->id . '/' . $footerFilename;
+            $footerPath = 'tours/' . $qr_code . '/assets/' . $footerFilename;
             $footerContent = file_get_contents($logoFooterFile->getRealPath());
             $footerMime = $logoFooterFile->getMimeType();
             $uploaded = Storage::disk('s3')->put($footerPath, $footerContent, ['ContentType' => $footerMime]);
@@ -461,9 +464,9 @@ class TourController extends Controller
             }
         }
         // Footer brand logo
-        if ($logoBrandFile) {
+        if ($logoBrandFile && $qr_code) {
             $brandFilename = 'footer_brand_logo_' . time() . '_' . Str::random(8) . '.' . $logoBrandFile->getClientOriginalExtension();
-            $brandPath = 'tours_logo/' . $tour->id . '/' . $brandFilename;
+            $brandPath = 'tours/' . $qr_code . '/assets/' . $brandFilename;
             $brandContent = file_get_contents($logoBrandFile->getRealPath());
             $brandMime = $logoBrandFile->getMimeType();
             $uploaded = Storage::disk('s3')->put($brandPath, $brandContent, ['ContentType' => $brandMime]);
