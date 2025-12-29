@@ -459,20 +459,29 @@
                                     // Need longer delay for Commercial tab to be fully visible
                                     if (window.bookingOldValues.furniture_type) {
                                         setTimeout(function() {
+                                            // Normalize furniture type: handle both "Semi Furnished" (space) and "Semi-Furnished" (hyphen)
+                                            // Also handle "Fully Furnished" -> "Furnished"
+                                            let normalizedFurnitureType = window.bookingOldValues.furniture_type;
+                                            if (normalizedFurnitureType === 'Semi Furnished') {
+                                                normalizedFurnitureType = 'Semi-Furnished';
+                                            } else if (normalizedFurnitureType === 'Fully Furnished') {
+                                                normalizedFurnitureType = 'Furnished';
+                                            }
+                                            
                                             // Determine correct group based on property type
                                             let furnitureGroup = 'resFurnish';
                                             if (window.bookingOldValues.main_property_type === 'Commercial') {
                                                 furnitureGroup = 'comFurnish';
                                             }
                                             
-                                            // Find and click the furniture chip
-                                            const furnitureChip = document.querySelector(`[data-group="${furnitureGroup}"][data-value="${window.bookingOldValues.furniture_type}"]`);
+                                            // Find and click the furniture chip using normalized value
+                                            const furnitureChip = document.querySelector(`[data-group="${furnitureGroup}"][data-value="${normalizedFurnitureType}"]`);
                                             if (furnitureChip) {
                                                 furnitureChip.click();
                                             } else {
                                                 // Fallback: try the other group
                                                 const fallbackGroup = furnitureGroup === 'resFurnish' ? 'comFurnish' : 'resFurnish';
-                                                const fallbackChip = document.querySelector(`[data-group="${fallbackGroup}"][data-value="${window.bookingOldValues.furniture_type}"]`);
+                                                const fallbackChip = document.querySelector(`[data-group="${fallbackGroup}"][data-value="${normalizedFurnitureType}"]`);
                                                 if (fallbackChip) {
                                                     fallbackChip.click();
                                                 }

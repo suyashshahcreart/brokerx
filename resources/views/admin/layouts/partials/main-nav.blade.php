@@ -36,8 +36,8 @@
 
                @can('user_view')
                     <li class="nav-item">
-                         <a class="nav-link {{ request()->routeIs('admin.users.*') ? 'active' : '' }}"
-                              href="{{ route('admin.users.index') }}">
+                         <a class="nav-link {{ request()->routeIs('admin.customer.*') ? 'active' : '' }}"
+                              href="{{ route('admin.customer.index') }}">
                               <span class="nav-icon">
                                    <i class="ri-user-line"></i>
                               </span>

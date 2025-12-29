@@ -101,4 +101,12 @@ class User extends Authenticatable
     {
         return $this->broker && $this->broker->status === 'approved';
     }
+
+    /**
+     * Get the bookings for the user.
+     */
+    public function bookings()
+    {
+        return $this->hasMany(Booking::class);
+    }
 }
