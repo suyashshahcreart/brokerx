@@ -317,9 +317,9 @@
                     <input type="hidden" id="choice_ownerType" name="owner_type" value="{{ old('owner_type') }}">
                     <input type="hidden" id="mainPropertyType" name="main_property_type" value="{{ old('main_property_type') }}">
                     
-                    <!-- User Selection - Full Width -->
+                    <!-- User Selection, Status, and Payment Status - Three Columns -->
                     <div class="row">
-                        <div class="col-12">
+                        <div class="col-4">
                             <div class="mb-1">
                                 <label class="form-label" for="user_id">Select User <span class="text-danger">*</span></label>
                                 <select name="user_id" id="user_id" data-choices class="form-select @error('user_id') is-invalid @enderror" required>
@@ -331,6 +331,30 @@
                                     @endforeach
                                 </select>
                                 <div class="invalid-feedback">@error('user_id'){{ $message }}@else Please select a user.@enderror</div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="mb-1">
+                                <label class="form-label" for="status">Status <span class="text-danger">*</span></label>
+                                <select name="status" id="status" class="form-select @error('status') is-invalid @enderror" required>
+                                    <option value="">Select status...</option>
+                                    @foreach($statuses as $status)
+                                        <option value="{{ $status }}" @selected(old('status')==$status)>{{ ucfirst($status) }}</option>
+                                    @endforeach
+                                </select>
+                                <div class="invalid-feedback">@error('status'){{ $message }}@else Please select a status.@enderror</div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="mb-1">
+                                <label class="form-label" for="payment_status">Payment Status <span class="text-danger">*</span></label>
+                                <select name="payment_status" id="payment_status" class="form-select @error('payment_status') is-invalid @enderror" required>
+                                    <option value="">Select payment status...</option>
+                                    @foreach($paymentStatuses as $ps)
+                                        <option value="{{ $ps }}" @selected(old('payment_status')==$ps)>{{ ucfirst($ps) }}</option>
+                                    @endforeach
+                                </select>
+                                <div class="invalid-feedback">@error('payment_status'){{ $message }}@else Please select a payment status.@enderror</div>
                             </div>
                         </div>
                     </div>
@@ -652,7 +676,6 @@
                                                 <input type="text" name="pin_code" id="pin_code" class="form-control @error('pin_code') is-invalid @enderror" value="{{ old('pin_code') }}" placeholder="e.g., 380015" maxlength="6" required>
                                                 <div class="invalid-feedback">@error('pin_code'){{ $message }}@else Valid 6-digit PIN Code is required.@enderror</div>
                                             </div>
-
                                         </div>
                                     </div>
 

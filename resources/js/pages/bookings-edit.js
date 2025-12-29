@@ -686,9 +686,12 @@ document.addEventListener('DOMContentLoaded', function () {
     
     if (furnitureType) {
         // Normalize furniture type: handle both "Semi Furnished" (space) and "Semi-Furnished" (hyphen)
+        // Also handle "Fully Furnished" -> "Furnished"
         let normalizedFurnitureType = furnitureType;
         if (furnitureType === 'Semi Furnished') {
             normalizedFurnitureType = 'Semi-Furnished';
+        } else if (furnitureType === 'Fully Furnished') {
+            normalizedFurnitureType = 'Furnished';
         }
         
         // Wait a bit for tabs to be properly initialized
@@ -937,6 +940,22 @@ document.addEventListener('DOMContentLoaded', function () {
                         form.appendChild(bhkInput);
                     }
                     bhkInput.value = activeBhkPill.dataset.value;
+                }
+            }
+            
+            // Ensure user_id is captured and submitted (in case Choices.js interferes)
+            const userIdSelect = form.querySelector('select[name="user_id"]');
+            if (userIdSelect) {
+                const userIdValue = userIdSelect.value;
+                if (userIdValue) {
+                    let userIdInput = form.querySelector('input[name="user_id"]');
+                    if (!userIdInput) {
+                        userIdInput = document.createElement('input');
+                        userIdInput.type = 'hidden';
+                        userIdInput.name = 'user_id';
+                        form.appendChild(userIdInput);
+                    }
+                    userIdInput.value = userIdValue;
                 }
             }
             
