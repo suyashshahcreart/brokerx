@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\BookingHistory;
+use Illuminate\Support\Carbon;
 use App\Services\SmsService;
 use Illuminate\Http\Request;
 
@@ -27,7 +28,7 @@ class PendingScheduleController extends Controller
         if ($request->ajax()) {
             $query = Booking::with(['user', 'propertyType', 'propertySubType', 'bhk', 'city', 'state'])
                 ->whereIn('status', ['schedul_pending', 'reschedul_pending']);
-            
+
             return \Yajra\DataTables\Facades\DataTables::of($query)
                 ->addColumn('user', function (Booking $booking) {
                     return $booking->user ? $booking->user->firstname . ' ' . $booking->user->lastname : '-';
@@ -56,7 +57,7 @@ class PendingScheduleController extends Controller
                     $view = route('admin.bookings.show', $booking);
                     $accept = route('admin.pending-schedules.accept', $booking);
                     $decline = route('admin.pending-schedules.decline', $booking);
-                    
+
                     return '
                         <div class="btn-group btn-group-sm" role="group">
                             <a href="' . $view . '" class="btn btn-light border" title="View"><i class="ri-eye-line"></i></a>
@@ -72,7 +73,7 @@ class PendingScheduleController extends Controller
                 ->rawColumns(['type_subtype', 'city_state', 'status', 'payment_status', 'actions'])
                 ->toJson();
         }
-        
+
         $canEdit = $request->user()->can('booking_edit');
         return view('admin.pending-schedules.index', compact('canEdit'));
     }
@@ -96,10 +97,10 @@ class PendingScheduleController extends Controller
 
         $isReschedule = $booking->status === 'reschedul_pending';
         $oldStatus = $booking->status;
+        $oldData = $booking->toArray();
 
         // Change status using the booking model method
         $newStatus = $isReschedule ? 'reschedul_accepted' : 'schedul_accepted';
-        
         $booking->changeStatus(
             $newStatus,
             auth()->id(),
@@ -107,34 +108,62 @@ class PendingScheduleController extends Controller
             array_filter([
                 'approved_by' => auth()->user()->name,
                 'approved_at' => now()->toDateTimeString(),
-                'scheduled_date' => $booking->booking_date?->format('Y-m-d'),
+                'scheduled_date' => $booking->booking_date ? Carbon::parse($booking->booking_date)->format('Y-m-d') : null,
                 'admin_notes' => $request->notes,
-            ], function($value) {
+            ], function ($value) {
                 return !is_null($value) && $value !== '';
             })
         );
+        $booking->refresh();
+        // Add booking history
+        BookingHistory::create([
+            'booking_id' => $booking->id,
+            'from_status' => $oldStatus,
+            'to_status' => $newStatus,
+            'changed_by' => auth()->id(),
+            'notes' => $request->notes ?? ($isReschedule ? 'Reschedule approved by admin' : 'Schedule approved by admin'),
+            'metadata' => [
+                'approved_by' => auth()->user()->name,
+                'approved_at' => now()->toDateTimeString(),
+                'scheduled_date' => $booking->booking_date ? Carbon::parse($booking->booking_date)->format('Y-m-d') : null,
+                'admin_notes' => $request->notes,
+            ],
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
+        // Log activity after status change
+        activity('booking')
+            ->performedOn($booking)
+            ->causedBy($request->user())
+            ->withProperties([
+                'event' => $isReschedule ? 'reschedule_accepted' : 'schedule_accepted',
+                'before' => $oldData,
+                'after' => $booking->toArray(),
+                'notes' => $request->notes,
+            ])
+            ->log($isReschedule ? 'Reschedule accepted for booking' : 'Schedule accepted for booking');
 
         // Send SMS notification to customer when schedule is accepted
         if ($booking->user && $booking->user->mobile && $booking->booking_date) {
             try {
                 // PROPPIK: Your appointment is scheduled on ##DATE##. Please ensure you are available. – CREART
                 // Template ID: 69295d82a0f6627e122a0252
-                
+
                 $mobile = $booking->user->mobile;
-                
+
                 // Ensure mobile has country code (91 for India)
                 if (!str_starts_with($mobile, '91')) {
                     $mobile = '91' . $mobile;
                 }
-                
+
                 // Format booking date for SMS
-                $formattedDate = $booking->booking_date->format('d M Y'); // e.g., "05 Dec 2025"
-                
+                $formattedDate = $booking->booking_date ? Carbon::parse($booking->booking_date)->format('d M Y') : null; // e.g., "05 Dec 2025"
+
                 // Prepare SMS parameters
                 $smsParams = [
                     'DATE' => $formattedDate
                 ];
-                
+
                 // Send SMS using MSG91 appointment_scheduled template
                 $this->smsService->send(
                     $mobile,                        // Mobile number with country code
@@ -147,7 +176,7 @@ class PendingScheduleController extends Controller
                         'notes' => 'Appointment scheduled SMS sent after admin approval'
                     ]
                 );
-                
+
                 \Log::info('Appointment scheduled SMS sent successfully', [
                     'booking_id' => $booking->id,
                     'mobile' => $mobile,
@@ -193,7 +222,8 @@ class PendingScheduleController extends Controller
 
         $isReschedule = $booking->status === 'reschedul_pending';
         $oldStatus = $booking->status;
-        $requestedDate = $booking->booking_date?->format('Y-m-d');
+        $oldData = $booking->toArray();
+        $requestedDate = $booking->booking_date ? Carbon::parse($booking->booking_date)->format('Y-m-d') : null;
 
         // Clear booking date when declined
         $booking->booking_date = null;
@@ -202,7 +232,6 @@ class PendingScheduleController extends Controller
 
         // Change status using the booking model method
         $newStatus = $isReschedule ? 'reschedul_decline' : 'schedul_decline';
-        
         $booking->changeStatus(
             $newStatus,
             auth()->id(),
@@ -214,6 +243,35 @@ class PendingScheduleController extends Controller
                 'scheduled_date_requested' => $requestedDate,
             ]
         );
+        $booking->refresh();
+        // Add booking history
+        BookingHistory::create([
+            'booking_id' => $booking->id,
+            'from_status' => $oldStatus,
+            'to_status' => $newStatus,
+            'changed_by' => auth()->id(),
+            'notes' => ($isReschedule ? 'Reschedule declined: ' : 'Schedule declined: ') . $request->reason,
+            'metadata' => [
+                'declined_by' => auth()->user()->name,
+                'declined_at' => now()->toDateTimeString(),
+                'reason' => $request->reason,
+                'scheduled_date_requested' => $requestedDate,
+            ],
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
+        
+        // Log activity after status change
+        activity('booking')
+            ->performedOn($booking)
+            ->causedBy($request->user())
+            ->withProperties([
+                'event' => $isReschedule ? 'reschedule_declined' : 'schedule_declined',
+                'before' => $oldData,
+                'after' => $booking->toArray(),
+                'reason' => $request->reason,
+            ])
+            ->log($isReschedule ? 'Reschedule declined for booking' : 'Schedule declined for booking');
 
         return response()->json([
             'success' => true,

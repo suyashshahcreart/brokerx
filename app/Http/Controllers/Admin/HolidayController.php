@@ -119,6 +119,7 @@ class HolidayController extends Controller
             'date' => $request->date,
             'updated_by' => Auth::id(),
         ]);
+        $holiday->fresh();
         activity('holidays')
             ->performedOn($holiday)
             ->causedBy($request->user())
