@@ -51,9 +51,51 @@ class TourManagerController extends Controller
         ]);
     }
 
+    /* set Trou List
+        List with filters for property_type and sub_property_type
+        and pagination 
+    */
+    public function TourListAPi(Request $request)
+    {
+        // Get filter values
+        $propertyType = $request->input('property_type');
+        $subPropertyType = $request->input('sub_property_type');
+        $status = $request->input('status', 'published');
+        $perPage = (int) $request->input('per_page', 10);
+        $limit = $request->input('limit');
+
+        // Only tours that are connected to a booking
+        $query = Tour::query()->where('status', $status)
+            ->whereHas('booking', function ($q) use ($propertyType, $subPropertyType) {
+                if (!empty($propertyType)) {
+                    $q->where('property_type_id', $propertyType);
+                }
+                if (!empty($subPropertyType)) {
+                    $q->where('property_sub_type_id', $subPropertyType);
+                }
+            })
+            ->with(['booking']);
+
+        $tours = $query->orderByDesc('created_at')->paginate($perPage);
+
+        // Apply limit to the returned data if specified
+        $data = $tours->items();
+
+        return response()->json([
+            'success' => true,
+            'data' => $data,
+            'pagination' => [
+                'current_page' => $tours->currentPage(),
+                'last_page' => $tours->lastPage(),
+                'per_page' => $tours->perPage(),
+                'total' => $tours->total(),
+            ]
+        ]);
+    }
+
     /**
      * Get all users with role 'customer'
-     */
+    */
     public function getCustomers(Request $request)
     {
         $customers = User::role('customer')->get(['id', 'firstname', 'lastname', 'email', 'mobile']);
@@ -62,7 +104,6 @@ class TourManagerController extends Controller
             'customers' => $customers
         ]);
     }
-
     /**
      * Get all tours for a given customer (user_id) via bookings
      */

@@ -26,6 +26,9 @@ Route::get('/tour-manager/customers', [TourManagerController::class, 'getCustome
 Route::get('/tour-manager/tours-by-customer', [TourManagerController::class, 'getToursByCustomer']);
 Route::put('/tour-manager/working_json/{tour_id}', [TourManagerController::class, 'updateWorkingJson']);
 
+// List tours with filters and pagination
+Route::get('/tour-manager/tour-list', [TourManagerController::class, 'TourListAPi']);
+
 // Route::middleware('auth')->group(function () {
 // });
 
