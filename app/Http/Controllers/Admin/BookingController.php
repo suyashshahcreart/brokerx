@@ -18,8 +18,10 @@ use Illuminate\Http\Request;
 use Spatie\Activitylog\Models\Activity;
 use Yajra\DataTables\DataTables;
 
-class BookingController extends Controller{
-    public function __construct(){
+class BookingController extends Controller
+{
+    public function __construct()
+    {
         $this->middleware('permission:booking_view')->only(['index', 'show']);
         $this->middleware('permission:booking_create')->only(['create', 'store']);
         $this->middleware('permission:booking_edit')->only(['edit', 'update']);
@@ -27,13 +29,14 @@ class BookingController extends Controller{
     }
 
     //  calender view for assignments | ADMIN
-    public function AssignementCalender(){
+    public function AssignementCalender()
+    {
         // Provide photographer list and schedule-related statuses to the view
-        $photographers = User::whereHas('roles', function($q){
+        $photographers = User::whereHas('roles', function ($q) {
             $q->where('name', 'photographer');
         })->orderBy('firstname')->get();
 
-        $statuses = [ 'pending' , 'schedul_accepted' ,'confirmed', 'schedul_assign', 'reschedul_assign', 'schedul_pending', 'schedul_inprogress', 'schedul_completed'];
+        $statuses = ['pending', 'schedul_accepted', 'confirmed', 'schedul_assign', 'reschedul_assign', 'schedul_pending', 'schedul_inprogress', 'schedul_completed'];
 
         return view('admin.photographer.index', [
             'title' => 'Booking Assignment Calendar',
@@ -42,7 +45,8 @@ class BookingController extends Controller{
         ]);
     }
 
-    public function index(Request $request){
+    public function index(Request $request)
+    {
         if ($request->ajax()) {
             $query = Booking::with(['user', 'propertyType', 'propertySubType', 'bhk', 'city', 'state', 'assignees']);
 
@@ -117,11 +121,11 @@ class BookingController extends Controller{
                 ->rawColumns(['type_subtype', 'city_state', 'status', 'payment_status', 'actions', 'schedule'])
                 ->toJson();
         }
-        
+
         // Get filter options for view
         $states = State::all();
         $cities = City::all();
-        
+
         $canCreate = $request->user()->can('booking_create');
         $canEdit = $request->user()->can('booking_edit');
         $canDelete = $request->user()->can('booking_delete');
@@ -130,7 +134,8 @@ class BookingController extends Controller{
     /**
      * API: Return bookings with filters (for modal, returns JSON)
      */
-    public function apiList(Request $request){
+    public function apiList(Request $request)
+    {
         $query = Booking::query()
             ->with(['user', 'propertyType', 'propertySubType'])
             ->whereDoesntHave('qr');
@@ -185,7 +190,8 @@ class BookingController extends Controller{
     /**
      * API: Get booking details by ID (for QR modal)
      */
-    public function getBookingDetails(Request $request){
+    public function getBookingDetails(Request $request)
+    {
         $request->validate([
             'booking_id' => 'required|exists:bookings,id',
         ]);
@@ -212,7 +218,8 @@ class BookingController extends Controller{
         return response()->json(['booking' => $bookingData]);
     }
 
-    public function create(){
+    public function create()
+    {
         $users = User::orderBy('firstname')->get();
         $propertyTypes = PropertyType::orderBy('name')->get();
         $propertySubTypes = PropertySubType::orderBy('name')->get();
@@ -235,7 +242,8 @@ class BookingController extends Controller{
         ));
     }
 
-    public function store(Request $request){
+    public function store(Request $request)
+    {
         $validated = $request->validate([
             'user_id' => ['required', 'exists:users,id'],
             'property_type_id' => ['required', 'exists:property_types,id'],
@@ -290,7 +298,7 @@ class BookingController extends Controller{
                 'booking_id' => $booking->id
             ])
             ->log('Tour created for booking');
-        
+
         // Create a photographer visit job for this booking
         $job = PhotographerVisitJob::create([
             'booking_id' => $booking->id,
@@ -320,18 +328,20 @@ class BookingController extends Controller{
         return redirect()->route('admin.bookings.index')->with('success', 'Booking, tour, and photographer job created successfully.');
     }
 
-    public function show(Booking $booking){
+    public function show(Booking $booking)
+    {
         $booking->load(['user', 'propertyType', 'propertySubType', 'bhk', 'city', 'state', 'creator', 'assignees.user']);
-        
+
         // Get photographers for assignment modal
-        $photographers = \App\Models\User::whereHas('roles', function($q) {
+        $photographers = \App\Models\User::whereHas('roles', function ($q) {
             $q->where('name', 'photographer');
         })->get();
-        
+
         return view('admin.bookings.show', compact('booking', 'photographers'));
     }
 
-    public function edit(Booking $booking){
+    public function edit(Booking $booking)
+    {
         $users = User::orderBy('firstname')->get();
         $propertyTypes = PropertyType::orderBy('name')->get();
         $propertySubTypes = PropertySubType::orderBy('name')->get();
@@ -361,7 +371,8 @@ class BookingController extends Controller{
         ));
     }
 
-    public function update(Request $request, Booking $booking){
+    public function update(Request $request, Booking $booking)
+    {
         $validated = $request->validate([
             'user_id' => ['required', 'exists:users,id'],
             'property_type_id' => ['required', 'exists:property_types,id'],
@@ -412,7 +423,8 @@ class BookingController extends Controller{
         return redirect()->route('admin.bookings.index')->with('success', 'Booking updated successfully.');
     }
 
-    public function destroy(Booking $booking){
+    public function destroy(Booking $booking)
+    {
         $before = $booking->toArray();
         $bookingId = $booking->id;
         $bookingType = get_class($booking);
@@ -434,25 +446,26 @@ class BookingController extends Controller{
         return redirect()->route('admin.bookings.index')->with('success', 'Booking deleted successfully.');
     }
 
-    public function reschedule(Request $request, Booking $booking){
+    public function reschedule(Request $request, Booking $booking)
+    {
         $request->validate([
             'schedule_date' => ['required', 'date'],
         ]);
-        
+
         $oldDate = $booking->booking_date;
         $newDate = $request->input('schedule_date');
         $oldStatus = $booking->status;
-        
+
         // Compare dates to check if date actually changed
         $oldDateStr = $oldDate ? \Carbon\Carbon::parse($oldDate)->format('Y-m-d') : null;
         $newDateStr = \Carbon\Carbon::parse($newDate)->format('Y-m-d');
         $dateChanged = $oldDateStr && $oldDateStr !== $newDateStr;
-        
+
         // Determine new status based on current status
         // If status is schedul_assign or reschedul_assign, and date is changed, change to schedul_accepted or reschedul_accepted
         $newStatus = $oldStatus;
         $statusChanged = false;
-        
+
         // If date changed, remove photographer assignments (same logic as frontend)
         if ($dateChanged) {
             // Check if status should change when date is updated
@@ -468,10 +481,10 @@ class BookingController extends Controller{
             $existingAssignees = BookingAssignee::where('booking_id', $booking->id)
                 ->with('user')
                 ->get()
-                ->filter(function($assignee) {
+                ->filter(function ($assignee) {
                     return $assignee->user && $assignee->user->hasRole('photographer');
                 });
-            
+
             // Store old assignment info for history before deletion
             $oldAssignmentInfo = null;
             $assignmentRemoved = false;
@@ -485,7 +498,7 @@ class BookingController extends Controller{
                     'old_assigned_date' => $oldAssignee->date ? \Carbon\Carbon::parse($oldAssignee->date)->format('Y-m-d') : null,
                     'old_assigned_time' => $oldAssignee->time ? \Carbon\Carbon::parse($oldAssignee->time)->format('H:i') : null,
                 ];
-                
+
                 // Delete all photographer assignments for this booking
                 // This removes the assignment but booking history remains intact
                 foreach ($existingAssignees as $assignee) {
@@ -493,19 +506,19 @@ class BookingController extends Controller{
                 }
                 $assignmentRemoved = true;
             }
-            
+
             // Also check and remove PhotographerVisitJob if exists
             $visitJob = PhotographerVisitJob::where('booking_id', $booking->id)->first();
             if ($visitJob) {
                 $visitJob->delete(); // Soft delete
                 $assignmentRemoved = true;
             }
-            
+
             // Clear booking_time when rescheduling (photographer assignment removed)
             if ($dateChanged || $assignmentRemoved) {
                 $booking->booking_time = null;
             }
-            
+
             // Create booking history entry for date change
             if ($assignmentRemoved) {
                 $photographerName = $oldAssignmentInfo['photographer_name'] ?? 'Unknown';
@@ -527,15 +540,15 @@ class BookingController extends Controller{
                 ]);
             }
         }
-        
+
         // Update booking date and status
         $booking->booking_date = $newDate;
         $booking->updated_by = auth()->id();
-        
+
         // Update status if it needs to change (from schedul_assign to schedul_accepted)
         if ($statusChanged) {
             $booking->status = $newStatus;
-            
+
             // Create booking history entry for status change
             $booking->changeStatus(
                 $newStatus,
@@ -550,7 +563,7 @@ class BookingController extends Controller{
                 ]
             );
         }
-        
+
         $booking->save();
 
         activity('bookings')
@@ -566,12 +579,12 @@ class BookingController extends Controller{
                 'status_changed' => $statusChanged,
                 'assignment_removed' => $assignmentRemoved ?? false,
             ])
-            ->log('Booking rescheduled' . 
+            ->log('Booking rescheduled' .
                 ($statusChanged ? ' - Status changed from ' . $oldStatus . ' to ' . $booking->status : '') .
                 ($assignmentRemoved ?? false ? ' - Photographer assignment removed' : ''));
 
         return response()->json([
-            'success' => true, 
+            'success' => true,
             'new_date' => $booking->booking_date ? \Carbon\Carbon::parse($booking->booking_date)->format('Y-m-d') : null,
             'new_status' => $booking->status,
             'status_changed' => $statusChanged,
@@ -593,8 +606,10 @@ class BookingController extends Controller{
 
         $qr = \App\Models\QR::findOrFail($request->qr_id);
         $booking = Booking::findOrFail($request->booking_id);
-        
+
         $oldBookingId = $qr->booking_id;
+        $oldQrId = $booking->qr ? $booking->qr->id : null;
+        $oldTourCode = $booking->tour_code;
 
         // Check if booking is already assigned to another QR
         if ($booking->qr && $booking->qr->id !== $qr->id) {
@@ -618,8 +633,38 @@ class BookingController extends Controller{
         $booking->tour_code = $qr->code;
         $booking->save();
 
+        // Add booking history
+        BookingHistory::create([
+            'booking_id' => $booking->id,
+            'from_status' => $booking->status,
+            'to_status' => $booking->status,
+            'changed_by' => auth()->id(),
+            'notes' => 'Booking assigned to QR code',
+            'metadata' => [
+                'old_qr_id' => $oldQrId,
+                'new_qr_id' => $qr->id,
+                'old_tour_code' => $oldTourCode,
+                'new_tour_code' => $qr->code,
+            ],
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
+
+        // Add activity log
+        activity('bookings')
+            ->performedOn($booking)
+            ->causedBy($request->user())
+            ->withProperties([
+                'event' => 'assigned_to_qr',
+                'old_qr_id' => $oldQrId,
+                'new_qr_id' => $qr->id,
+                'old_tour_code' => $oldTourCode,
+                'new_tour_code' => $qr->code,
+            ])
+            ->log('Booking assigned to QR code');
+
         return response()->json([
-            'success' => true, 
+            'success' => true,
             'message' => 'Booking assigned to QR successfully.',
             'qr' => $qr->fresh(),
             'booking' => $booking->fresh()

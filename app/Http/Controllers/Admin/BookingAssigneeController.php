@@ -260,7 +260,7 @@ class BookingAssigneeController extends Controller
         $assignee = BookingAssignee::create($validated);
 
         // Get photographer details for history
-        $photographer = \App\Models\User::find($validated['user_id']);
+        $photographer = User::find($validated['user_id']);
         $oldStatus = $booking->status;
 
         // Update booking status to schedul_assign and set booking_time

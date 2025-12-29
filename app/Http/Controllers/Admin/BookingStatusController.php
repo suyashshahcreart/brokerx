@@ -46,6 +46,21 @@ class BookingStatusController extends Controller
             ]
         );
 
+        BookingHistory::create([
+            'booking_id' => $booking->id,
+            'from_status' => 'schedul_pending',
+            'to_status' => 'schedul_accepted',
+            'changed_by' => auth()->id(),
+            'notes' => $request->notes ?? 'Schedule approved by ' . auth()->user()->name,
+            'metadata' => [
+                'approved_at' => now(),
+                'approved_by' => auth()->user()->name,
+                'scheduled_date' => $request->scheduled_date
+            ],
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
+
         activity('bookings')
             ->performedOn($booking)
             ->causedBy(auth()->user())
@@ -86,6 +101,23 @@ class BookingStatusController extends Controller
                 'scheduled_date_requested' => $requestedDate
             ]
         );
+
+        BookingHistory::create([
+            'booking_id' => $booking->id,
+            'from_status' => 'schedul_pending',
+            'to_status' => 'schedul_decline',
+            'changed_by' => auth()->id(),
+            'notes' => 'Schedule declined: ' . $request->reason,
+            'metadata' => [
+                'declined_at' => now(),
+                'declined_by' => auth()->user()->name,
+                'reason' => $request->reason,
+                'scheduled_date_requested' => $requestedDate
+            ],
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
+
 
         activity('bookings')
             ->performedOn($booking)
@@ -162,6 +194,21 @@ class BookingStatusController extends Controller
             ]
         );
 
+        BookingHistory::create([
+            'booking_id' => $booking->id,
+            'from_status' => $booking->status,
+            'to_status' => 'reschedul_pending',
+            'changed_by' => auth()->id(),
+            'notes' => 'Reschedule requested: ' . $request->reason,
+            'metadata' => [
+                'requested_date' => $request->new_date,
+                'reason' => $request->reason,
+                'attempt_number' => $rescheduleCount + 1
+            ],
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
+
         activity('bookings')
             ->performedOn($booking)
             ->causedBy(auth()->user())
@@ -207,6 +254,20 @@ class BookingStatusController extends Controller
                 'new_scheduled_date' => $request->scheduled_date
             ]
         );
+
+        BookingHistory::create([
+            'booking_id' => $booking->id,
+            'from_status' => 'reschedul_pending',
+            'to_status' => 'reschedul_accepted',
+            'changed_by' => auth()->id(),
+            'notes' => $request->notes ?? 'Reschedule approved',
+            'metadata' => [
+                'approved_at' => now(),
+                'new_scheduled_date' => $request->scheduled_date
+            ],
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
 
         activity('bookings')
             ->performedOn($booking)
@@ -256,6 +317,22 @@ class BookingStatusController extends Controller
             ]
         );
 
+        BookingHistory::create([
+            'booking_id' => $booking->id,
+            'from_status' => 'reschedul_pending',
+            'to_status' => 'reschedul_decline',
+            'changed_by' => auth()->id(),
+            'notes' => 'Reschedule declined: ' . $request->reason,
+            'metadata' => [
+                'declined_at' => now(),
+                'declined_by' => auth()->user()->name,
+                'reason' => $request->reason,
+                'scheduled_date_requested' => $requestedDate
+            ],
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
+
         activity('bookings')
             ->performedOn($booking)
             ->causedBy(auth()->user())
@@ -299,6 +376,22 @@ class BookingStatusController extends Controller
             ]
         );
 
+        BookingHistory::create([
+            'booking_id' => $booking->id,
+            'from_status' => $booking->status,
+            'to_status' => 'schedul_assign',
+            'changed_by' => auth()->id(),
+            'notes' => $request->notes ?? 'Assigned to ' . $teamMember->firstname . ' ' . $teamMember->lastname,
+            'metadata' => [
+                'assigned_to' => $request->team_member_id,
+                'assigned_to_name' => $teamMember->firstname . ' ' . $teamMember->lastname,
+                'assigned_by' => auth()->id(),
+                'scheduled_date' => $request->scheduled_date
+            ],
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
+
         activity('bookings')
             ->performedOn($booking)
             ->causedBy(auth()->user())
@@ -341,6 +434,21 @@ class BookingStatusController extends Controller
             ]
         );
 
+        BookingHistory::create([
+            'booking_id' => $booking->id,
+            'from_status' => $booking->status,
+            'to_status' => 'schedul_completed',
+            'changed_by' => auth()->id(),
+            'notes' => $request->completion_notes ?? 'Tour completed',
+            'metadata' => [
+                'completed_at' => now(),
+                'photos_count' => $request->photos_count,
+                'videos_count' => $request->videos_count
+            ],
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
+
         activity('bookings')
             ->performedOn($booking)
             ->causedBy(auth()->user())
@@ -372,6 +480,19 @@ class BookingStatusController extends Controller
             $request->notes ?? 'Tour processing started',
             ['processing_started_at' => now()]
         );
+
+        BookingHistory::create([
+            'booking_id' => $booking->id,
+            'from_status' => $booking->status,
+            'to_status' => 'tour_pending',
+            'changed_by' => auth()->id(),
+            'notes' => $request->notes ?? 'Tour processing started',
+            'metadata' => [
+                'processing_started_at' => now()
+            ],
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
 
         activity('bookings')
             ->performedOn($booking)
@@ -417,6 +538,21 @@ class BookingStatusController extends Controller
             ]
         );
 
+
+        BookingHistory::create([
+            'booking_id' => $booking->id,
+            'from_status' => $booking->status,
+            'to_status' => 'tour_completed',
+            'changed_by' => auth()->id(),
+            'notes' => $request->notes ?? 'Tour processing completed',
+            'metadata' => [
+                'tour_url' => $request->tour_url,
+                'processing_completed_at' => now()
+            ],
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
+
         activity('bookings')
             ->performedOn($booking)
             ->causedBy(auth()->user())
@@ -448,6 +584,19 @@ class BookingStatusController extends Controller
             $request->notes ?? 'Tour published and live',
             ['published_at' => now()]
         );
+
+        BookingHistory::create([
+            'booking_id' => $booking->id,
+            'from_status' => $booking->status,
+            'to_status' => 'tour_live',
+            'changed_by' => auth()->id(),
+            'notes' => $request->notes ?? 'Tour published and live',
+            'metadata' => [
+                'published_at' => now()
+            ],
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
 
         activity('bookings')
             ->performedOn($booking)
@@ -698,12 +847,25 @@ class BookingStatusController extends Controller
             'metadata' => 'nullable|array'
         ]);
 
+        $oldData = $booking->toArray();
+
         $booking->changeStatus(
             $request->status,
             auth()->id(),
             $request->notes,
             $request->metadata
         );
+
+        BookingHistory::create([
+            'booking_id' => $booking->id,
+            'from_status' => $oldData->status,
+            'to_status' => $request->status,
+            'changed_by' => auth()->id(),
+            'notes' => $request->notes,
+            'metadata' => $request->metadata,
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
 
         activity('bookings')
             ->performedOn($booking)
