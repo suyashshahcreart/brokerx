@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Setting;
+use App\Models\FtpConfiguration;
 use App\Services\Sms\SmsGatewayManager;
 use Illuminate\Http\Request;
 use Yajra\DataTables\Facades\DataTables;
@@ -634,6 +635,117 @@ class SettingController extends Controller
                 'name' => $setting->name,
                 'value' => $value,
             ]
+        ]);
+    }
+
+    /**
+     * Get FTP configurations for API
+     */
+    public function apiGetFtpConfigurations(Request $request)
+    {
+        // Get all configurations (active and inactive) for settings page
+        // This allows admins to manage all configurations
+        $configs = FtpConfiguration::ordered()
+            ->get(['id', 'category_name', 'display_name', 'main_url', 'driver', 'host', 'port', 'is_active']);
+
+        return response()->json([
+            'success' => true,
+            'data' => $configs
+        ]);
+    }
+
+    /**
+     * Get single FTP configuration by ID
+     */
+    public function apiGetFtpConfiguration(Request $request, $id)
+    {
+        $config = FtpConfiguration::find($id);
+
+        if (!$config) {
+            return response()->json([
+                'success' => false,
+                'message' => 'FTP configuration not found'
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $config
+        ]);
+    }
+
+    /**
+     * Create/Update FTP Configuration via API
+     */
+    public function apiStoreFtpConfiguration(Request $request)
+    {
+        $validated = $request->validate([
+            'id' => 'nullable|exists:ftp_configurations,id',
+            'category_name' => 'required|string|max:255|unique:ftp_configurations,category_name,' . ($request->id ?? 'NULL'),
+            'display_name' => 'required|string|max:255',
+            'main_url' => 'required|string|max:255',
+            'driver' => 'required|in:ftp,sftp',
+            'host' => 'required|string|max:255',
+            'username' => 'required|string|max:255',
+            'password' => 'required|string',
+            'port' => 'required|integer|min:1|max:65535',
+            'root' => 'nullable|string|max:500',
+            'passive' => 'boolean',
+            'ssl' => 'boolean',
+            'timeout' => 'integer|min:1|max:300',
+            'remote_path_pattern' => 'nullable|string|max:500',
+            'url_pattern' => 'nullable|string|max:500',
+            'is_active' => 'boolean',
+            'sort_order' => 'integer|min:0',
+            'notes' => 'nullable|string',
+        ]);
+
+        if ($request->filled('id')) {
+            $ftpConfig = FtpConfiguration::findOrFail($request->id);
+            $ftpConfig->update(array_merge($validated, [
+                'updated_by' => $request->user()->id
+            ]));
+            $message = 'FTP configuration updated successfully';
+        } else {
+            $ftpConfig = FtpConfiguration::create(array_merge($validated, [
+                'created_by' => $request->user()->id,
+                'updated_by' => $request->user()->id
+            ]));
+            $message = 'FTP configuration created successfully';
+        }
+
+        activity('ftp_configuration')
+            ->performedOn($ftpConfig)
+            ->causedBy($request->user())
+            ->withProperties([
+                'event' => $request->filled('id') ? 'updated' : 'created',
+                'data' => $validated
+            ])
+            ->log('FTP configuration ' . ($request->filled('id') ? 'updated' : 'created'));
+
+        return response()->json([
+            'success' => true,
+            'message' => $message,
+            'data' => $ftpConfig
+        ]);
+    }
+
+    /**
+     * Delete FTP Configuration via API
+     */
+    public function apiDeleteFtpConfiguration(Request $request, $id)
+    {
+        $ftpConfig = FtpConfiguration::findOrFail($id);
+        $ftpConfig->delete();
+
+        activity('ftp_configuration')
+            ->performedOn($ftpConfig)
+            ->causedBy($request->user())
+            ->log('FTP configuration deleted');
+
+        return response()->json([
+            'success' => true,
+            'message' => 'FTP configuration deleted successfully'
         ]);
     }
 }

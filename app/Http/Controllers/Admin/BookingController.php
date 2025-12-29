@@ -10,10 +10,12 @@ use App\Models\BookingHistory;
 use App\Models\City;
 use App\Models\PropertySubType;
 use App\Models\PropertyType;
+use App\Models\QR;
 use App\Models\State;
 use App\Models\Tour;
 use App\Models\User;
 use App\Models\PhotographerVisitJob;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Spatie\Activitylog\Models\Activity;
 use Yajra\DataTables\DataTables;
@@ -324,7 +326,7 @@ class BookingController extends Controller{
         $booking->load(['user', 'propertyType', 'propertySubType', 'bhk', 'city', 'state', 'creator', 'assignees.user']);
         
         // Get photographers for assignment modal
-        $photographers = \App\Models\User::whereHas('roles', function($q) {
+        $photographers = User::whereHas('roles', function($q) {
             $q->where('name', 'photographer');
         })->get();
         
@@ -344,8 +346,9 @@ class BookingController extends Controller{
 
         // Load tour if linked
         $tour = Tour::where('booking_id', $booking->id)->first();
-
-        // dd($booking);
+        $qr_code = QR::where('booking_id', $booking->id)->value('code');
+        
+        // dd($booking,$qr_code);
 
         return view('admin.bookings.edit', compact(
             'booking',
@@ -357,7 +360,8 @@ class BookingController extends Controller{
             'cities',
             'states',
             'paymentStatuses',
-            'statuses'
+            'statuses',
+            'qr_code'
         ));
     }
 
@@ -444,8 +448,8 @@ class BookingController extends Controller{
         $oldStatus = $booking->status;
         
         // Compare dates to check if date actually changed
-        $oldDateStr = $oldDate ? \Carbon\Carbon::parse($oldDate)->format('Y-m-d') : null;
-        $newDateStr = \Carbon\Carbon::parse($newDate)->format('Y-m-d');
+        $oldDateStr = $oldDate ? Carbon::parse($oldDate)->format('Y-m-d') : null;
+        $newDateStr = Carbon::parse($newDate)->format('Y-m-d');
         $dateChanged = $oldDateStr && $oldDateStr !== $newDateStr;
         
         // Determine new status based on current status
@@ -482,8 +486,8 @@ class BookingController extends Controller{
                     'photographer_id' => $oldPhotographer->id ?? null,
                     'photographer_name' => $oldPhotographer->name ?? null,
                     'photographer_phone' => $oldPhotographer->mobile ?? null,
-                    'old_assigned_date' => $oldAssignee->date ? \Carbon\Carbon::parse($oldAssignee->date)->format('Y-m-d') : null,
-                    'old_assigned_time' => $oldAssignee->time ? \Carbon\Carbon::parse($oldAssignee->time)->format('H:i') : null,
+                    'old_assigned_date' => $oldAssignee->date ? Carbon::parse($oldAssignee->date)->format('Y-m-d') : null,
+                    'old_assigned_time' => $oldAssignee->time ? Carbon::parse($oldAssignee->time)->format('H:i') : null,
                 ];
                 
                 // Delete all photographer assignments for this booking
@@ -572,7 +576,7 @@ class BookingController extends Controller{
 
         return response()->json([
             'success' => true, 
-            'new_date' => $booking->booking_date ? \Carbon\Carbon::parse($booking->booking_date)->format('Y-m-d') : null,
+            'new_date' => $booking->booking_date ? Carbon::parse($booking->booking_date)->format('Y-m-d') : null,
             'new_status' => $booking->status,
             'status_changed' => $statusChanged,
             'assignment_removed' => $assignmentRemoved ?? false,
@@ -591,7 +595,7 @@ class BookingController extends Controller{
             'booking_id' => 'required|exists:bookings,id',
         ]);
 
-        $qr = \App\Models\QR::findOrFail($request->qr_id);
+        $qr = QR::findOrFail($request->qr_id);
         $booking = Booking::findOrFail($request->booking_id);
         
         $oldBookingId = $qr->booking_id;

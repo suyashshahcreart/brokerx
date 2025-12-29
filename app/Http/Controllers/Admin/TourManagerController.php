@@ -6,9 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\QR;
 use App\Models\Tour;
+use App\Models\FtpConfiguration;
 use App\Jobs\UploadTourAssetsToS3;
 use GrahamCampbell\ResultType\Success;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Storage;
 use Yajra\DataTables\Facades\DataTables;
 use ZipArchive;
@@ -198,9 +200,12 @@ class TourManagerController extends Controller{
      */
     public function update(Request $request, Booking $booking)
     {
+        // Get valid location values from FTP configurations
+        $validLocations = FtpConfiguration::active()->pluck('category_name')->toArray();
+        
         $validated = $request->validate([
             'slug' => 'required|string|max:255|regex:/^[a-z0-9-]+$/',
-            'location' => 'required|string|in:industry,htl,re,rs,creart_qr,tours',
+            'location' => ['required', 'string', Rule::in($validLocations)],
             'files.*' => 'nullable|file|max:512000', // 500MB for zip files - single file only
         ]);
 
@@ -347,6 +352,8 @@ class TourManagerController extends Controller{
     private function processZipFile($zipFile, Tour $tour, $uniqueCode)
     {
         try {
+            // Load booking relationship to get customer_id
+            $tour->load('booking');
             $zip = new ZipArchive();
             $tempPath = $zipFile->getPathname();
 
@@ -571,8 +578,7 @@ class TourManagerController extends Controller{
                     // Upload index.php to FTP server based on tour location
                     $ftpUploadResult = $this->uploadIndexPhpToFtp(
                         $rootTourDirectory . '/index.php', 
-                        $tour->location, 
-                        $tour->slug
+                        $tour
                     );
                 } catch (\Exception $e) {
                     \Log::error("Error reading/processing index.html: " . $e->getMessage());
@@ -1730,24 +1736,26 @@ JS;
     }
 
     /**
-     * Upload index.php to FTP server (https://creart.in/qr/)
+     * Upload index.php to FTP server using dynamic FTP configuration
      * 
      * @param string $localIndexPhpPath Local path to index.php file
-     * @param string $uniqueCode Unique code for the tour folder
+     * @param Tour $tour Tour object containing location, slug, and booking relationship
      * @return array Result with success status and FTP URL
      */
-    private function uploadIndexPhpToFtp($localIndexPhpPath, $location, $tourSlug)
+    private function uploadIndexPhpToFtp($localIndexPhpPath, Tour $tour)
     {
         try {
+            $location = $tour->location;
+            $tourSlug = $tour->slug;
+            
             \Log::info("=== Starting FTP upload for tour: {$tourSlug} (Location: {$location}) ===");
             
             // Validate location
-            $validLocations = ['industry', 'htl', 're', 'rs', 'creart_qr', 'tours'];
-            if (empty($location) || !in_array($location, $validLocations)) {
-                \Log::warning("Invalid or missing location: {$location}. Skipping FTP upload.");
+            if (empty($location)) {
+                \Log::warning("Location is missing. Skipping FTP upload.");
                 return [
                     'success' => false,
-                    'message' => 'Invalid tour location. Must be one of: ' . implode(', ', $validLocations)
+                    'message' => 'Tour location is required for FTP upload'
                 ];
             }
             
@@ -1760,31 +1768,30 @@ JS;
                 ];
             }
             
-            // Get location-based FTP configuration
-            $ftpDiskName = 'ftp_' . $location;
-            $ftpConfig = config("filesystems.disks.{$ftpDiskName}");
+            // Get customer_id from tour's booking
+            $customerId = null;
+            if ($tour->booking) {
+                $customerId = $tour->booking->user_id;
+            }
             
+            if (empty($customerId)) {
+                \Log::warning("Customer ID is missing. Skipping FTP upload.");
+                return [
+                    'success' => false,
+                    'message' => 'Customer ID is required for FTP upload. Tour must be associated with a booking.'
+                ];
+            }
+            
+            // Get FTP configuration from database
+            $ftpConfig = FtpConfiguration::where('category_name', $location)
+                ->active()
+                ->first();
+                
             if (!$ftpConfig) {
                 \Log::error("FTP configuration not found for location: {$location}");
                 return [
                     'success' => false,
                     'message' => "FTP configuration not found for location: {$location}"
-                ];
-            }
-            
-            $ftpHost = $ftpConfig['host'];
-            $ftpUser = $ftpConfig['username'];
-            $ftpPass = $ftpConfig['password'];
-            $ftpPort = $ftpConfig['port'];
-            
-            // Remove ftp://, ftps://, sftp:// prefix from host if present
-            $ftpHost = preg_replace('#^s?ftps?://#', '', $ftpHost);
-            
-            if (empty($ftpHost) || empty($ftpUser) || empty($ftpPass)) {
-                \Log::warning("FTP configuration incomplete for location: {$location}. Skipping FTP upload.");
-                return [
-                    'success' => false,
-                    'message' => 'FTP configuration incomplete'
                 ];
             }
             
@@ -1797,90 +1804,106 @@ JS;
                 ];
             }
             
-            // Determine FTP path and URL based on location
-            if ($location === 'creart_qr') {
-                // creart_qr uses: qr/{tour-slug}/index.php
-                $ftpRemotePath = "qr/{$tourSlug}/index.php";
-                $ftpUrl = "http://creart.in/{$ftpRemotePath}";
-            } elseif ($location === 'tours') {
-                // tours uses custom domain tour.proppik.in
-                $ftpRemotePath = "{$tourSlug}/index.php";
-                $ftpUrl = "https://tour.proppik.in/{$ftpRemotePath}";
-            } else {
-                // Other locations use: {tour-slug}/index.php
-                $ftpRemotePath = "{$tourSlug}/index.php";
-                $ftpUrl = "https://{$location}.proppik.com/{$ftpRemotePath}";
-            }
+            // Get remote path and URL using FTP config methods (includes customer_id)
+            $ftpRemotePath = $ftpConfig->getRemotePathForTour($tourSlug, $customerId);
+            $ftpUrl = $ftpConfig->getUrlForTour($tourSlug, $customerId);
             
             \Log::info("FTP Upload Details:");
-            \Log::info("  Location: {$location}");
-            \Log::info("  FTP Disk: {$ftpDiskName}");
-            \Log::info("  Host: {$ftpHost}:{$ftpPort}");
-            \Log::info("  Username: {$ftpUser}");
-            \Log::info("  Password: " . (empty($ftpPass) ? 'EMPTY' : '***SET***'));
+            \Log::info("  Category: {$ftpConfig->category_name}");
+            \Log::info("  Display Name: {$ftpConfig->display_name}");
+            \Log::info("  Main URL: {$ftpConfig->main_url}");
+            \Log::info("  Driver: {$ftpConfig->driver}");
+            \Log::info("  Host: {$ftpConfig->host}:{$ftpConfig->port}");
+            \Log::info("  Username: {$ftpConfig->username}");
+            \Log::info("  Customer ID: {$customerId}");
             \Log::info("  Local file: {$localIndexPhpPath}");
             \Log::info("  Remote path: {$ftpRemotePath}");
             \Log::info("  Final URL: {$ftpUrl}");
             
-            // For 'tours' (SFTP) use Storage driver directly (native FTP won't work)
-            if ($location === 'tours') {
-                \Log::info("Using Storage SFTP driver for 'tours' upload...");
-                $ftpDisk = Storage::disk($ftpDiskName);
+            // Create a temporary disk config for this FTP configuration
+            $diskName = 'ftp_temp_' . $ftpConfig->id;
+            config(["filesystems.disks.{$diskName}" => $ftpConfig->storage_config]);
+            
+            // Use SFTP driver if configured
+            if ($ftpConfig->driver === 'sftp') {
+                \Log::info("Using Storage SFTP driver for upload...");
+                
+                $ftpDisk = Storage::disk($diskName);
                 $fileContent = file_get_contents($localIndexPhpPath);
+                
                 if ($fileContent === false) {
                     throw new \Exception("Failed to read local index.php file");
                 }
                 
-                // Ensure remote directory exists (Flysystem will create recursively)
+                // Ensure remote directory exists (create customer_id folder and tour slug folder)
                 $remoteDir = trim(dirname($ftpRemotePath), '/');
                 if (!empty($remoteDir) && $remoteDir !== '.') {
                     try {
                         $ftpDisk->makeDirectory($remoteDir);
-                        \Log::info("Ensured remote directory exists for SFTP: {$remoteDir}");
+                        \Log::info("Ensured remote directory exists: {$remoteDir}");
                     } catch (\Exception $dirEx) {
-                        \Log::warning("Could not create remote directory '{$remoteDir}' on SFTP: " . $dirEx->getMessage());
+                        \Log::warning("Could not create remote directory '{$remoteDir}': " . $dirEx->getMessage());
                     }
                 }
-
+                
                 // Upload with explicit visibility so Flysystem maps to 0777 per config
                 $uploaded = $ftpDisk->put($ftpRemotePath, $fileContent, ['visibility' => 'public']);
+                
                 if (!$uploaded) {
                     throw new \Exception("SFTP put() returned false for {$ftpRemotePath}");
                 }
-                // Double-check existence
+                
+                // Verify upload
                 if (!$ftpDisk->exists($ftpRemotePath)) {
                     throw new \Exception("SFTP upload verification failed; file not found at {$ftpRemotePath}");
                 }
-                // Attempt to set permissions to 0777 for file and parent directory
+                
+                // Set permissions
                 try {
                     $ftpDisk->setVisibility($ftpRemotePath, 'public');
-                } catch (\Exception $visEx) {
-                    \Log::warning("Could not set visibility for file '{$ftpRemotePath}': " . $visEx->getMessage());
-                }
-                if (!empty($remoteDir) && $remoteDir !== '.') {
-                    try {
+                    if (!empty($remoteDir) && $remoteDir !== '.') {
                         $ftpDisk->setVisibility($remoteDir, 'public');
-                    } catch (\Exception $visDirEx) {
-                        \Log::warning("Could not set visibility for directory '{$remoteDir}': " . $visDirEx->getMessage());
                     }
+                } catch (\Exception $visEx) {
+                    \Log::warning("Could not set visibility: " . $visEx->getMessage());
                 }
+                
             } else {
-                // Use native PHP FTP functions directly (more reliable for directory creation)
+                // Use native PHP FTP functions for FTP (more reliable for directory creation)
                 \Log::info("Using native PHP FTP functions for upload...");
                 try {
-                    $uploaded = $this->uploadToFtpNative($ftpHost, $ftpPort, $ftpUser, $ftpPass, $ftpRemotePath, $localIndexPhpPath);
+                    $host = preg_replace('#^ftps?://#', '', $ftpConfig->host);
+                    $uploaded = $this->uploadToFtpNative(
+                        $host,
+                        $ftpConfig->port,
+                        $ftpConfig->username,
+                        $ftpConfig->password,
+                        $ftpRemotePath,
+                        $localIndexPhpPath,
+                        $ftpConfig->passive
+                    );
                 } catch (\Exception $nativeException) {
                     \Log::error("Native FTP upload failed: " . $nativeException->getMessage());
                     
                     // Try Laravel Storage as fallback
                     \Log::info("Trying Laravel Storage FTP driver as fallback...");
                     try {
-                        $ftpDisk = Storage::disk($ftpDiskName);
+                        $ftpDisk = Storage::disk($diskName);
                         
                         // Read local file content
                         $fileContent = file_get_contents($localIndexPhpPath);
                         if ($fileContent === false) {
                             throw new \Exception("Failed to read local index.php file");
+                        }
+                        
+                        // Ensure remote directory exists
+                        $remoteDir = trim(dirname($ftpRemotePath), '/');
+                        if (!empty($remoteDir) && $remoteDir !== '.') {
+                            try {
+                                $ftpDisk->makeDirectory($remoteDir);
+                            } catch (\Exception $dirEx) {
+                                \Log::warning("Could not create remote directory: " . $dirEx->getMessage());
+                            }
                         }
                         
                         // Upload file to FTP using Storage facade
@@ -1902,8 +1925,9 @@ JS;
                     'message' => 'index.php uploaded to FTP successfully',
                     'ftp_path' => $ftpRemotePath,
                     'ftp_url' => $ftpUrl,
-                    'ftp_host' => $ftpHost,
-                    'location' => $location
+                    'ftp_host' => $ftpConfig->host,
+                    'location' => $ftpConfig->category_name,
+                    'customer_id' => $customerId
                 ];
             } else {
                 \Log::error("FTP upload returned false for: {$ftpRemotePath}");
@@ -1932,9 +1956,10 @@ JS;
      * @param string $password FTP password
      * @param string $remotePath Remote path on FTP server
      * @param string $localPath Local file path
+     * @param bool $passive Whether to use passive mode (default: true)
      * @return bool Success status
      */
-    private function uploadToFtpNative($host, $port, $username, $password, $remotePath, $localPath)
+    private function uploadToFtpNative($host, $port, $username, $password, $remotePath, $localPath, $passive = true)
     {
         if (!function_exists('ftp_connect')) {
             throw new \Exception("PHP FTP extension is not enabled");
@@ -1962,9 +1987,9 @@ JS;
         
         \Log::info("✓ FTP login successful");
         
-        // Enable passive mode
-        ftp_pasv($connection, true);
-        \Log::info("✓ Passive mode enabled");
+        // Set passive mode
+        ftp_pasv($connection, $passive);
+        \Log::info("✓ Passive mode " . ($passive ? "enabled" : "disabled"));
         
         try {
             // Create directory structure if needed

@@ -71,13 +71,17 @@
                                         <i class="ri-message-3-line me-2"></i>
                                         <span>SMS Configuration</span>
                                     </a>
+                                    <a class="nav-link" id="vl-pills-ftp-tab" data-bs-toggle="pill" href="#vl-pills-ftp" role="tab" aria-controls="vl-pills-ftp" aria-selected="false">
+                                        <i class="ri-server-line me-2"></i>
+                                        <span>FTP Configuration</span>
+                                    </a>
                                 </div>
                             </div>
                         
                             <div class="col-sm-9 col-md-9 col-lg-9">
                                 <div class="tab-content pt-0" id="vl-pills-tabContent">
                                     <div class="tab-pane fade active show" id="vl-pills-home" role="tabpanel" aria-labelledby="vl-pills-home-tab">
-                                        <form id="settingsForm" action="{{ route('api.settings.update') }}" method="POST"
+                                        <form id="settingsForm" action="{{ route('admin.api.settings.update') }}" method="POST"
                                             class="needs-validation" novalidate data-csrf="{{ csrf_token() }}">
                                             @csrf
                                             <!-- AVALIABLE DAY -->
@@ -130,7 +134,7 @@
                                         </form>
                                     </div>
                                     <div class="tab-pane fade" id="vl-pills-photographer" role="tabpanel" aria-labelledby="vl-pills-photographer-tab">
-                                        <form id="photographerSettingsForm" action="{{ route('api.settings.update') }}" method="POST"
+                                        <form id="photographerSettingsForm" action="{{ route('admin.api.settings.update') }}" method="POST"
                                             class="needs-validation" novalidate data-csrf="{{ csrf_token() }}">
                                             @csrf
 
@@ -166,7 +170,7 @@
                                         </form>
                                     </div>
                                     <div class="tab-pane fade" id="vl-pills-profile" role="tabpanel" aria-labelledby="vl-pills-profile-tab">
-                                        <form id="basePriceForm" action="{{ route('api.settings.update') }}" method="POST"
+                                        <form id="basePriceForm" action="{{ route('admin.api.settings.update') }}" method="POST"
                                             class="needs-validation" novalidate data-csrf="{{ csrf_token() }}">
                                             @csrf
                                             <!-- BASE PRICE -->
@@ -224,7 +228,7 @@
                                         <div class="row g-4">
                                             <!-- Cashfree Card -->
                                             <div class="col-md-6 col-lg-4">
-                                                <form id="cashfreeForm" action="{{ route('api.settings.update') }}" method="POST"
+                                                <form id="cashfreeForm" action="{{ route('admin.api.settings.update') }}" method="POST"
                                                     class="needs-validation" novalidate data-csrf="{{ csrf_token() }}">
                                                     @csrf
                                                     <div class="card h-100 border">
@@ -307,7 +311,7 @@
 
                                             <!-- PayU Money Card -->
                                             <div class="col-md-6 col-lg-4">
-                                                <form id="payuForm" action="{{ route('api.settings.update') }}" method="POST"
+                                                <form id="payuForm" action="{{ route('admin.api.settings.update') }}" method="POST"
                                                     class="needs-validation" novalidate data-csrf="{{ csrf_token() }}">
                                                     @csrf
                                                     <div class="card h-100 border">
@@ -363,7 +367,7 @@
 
                                             <!-- Razorpay Card -->
                                             <div class="col-md-6 col-lg-4">
-                                                <form id="razorpayForm" action="{{ route('api.settings.update') }}" method="POST"
+                                                <form id="razorpayForm" action="{{ route('admin.api.settings.update') }}" method="POST"
                                                     class="needs-validation" novalidate data-csrf="{{ csrf_token() }}">
                                                     @csrf
                                                     <div class="card h-100 border">
@@ -426,7 +430,7 @@
                                             @endphp
                                             @if($msg91Gateway)
                                                 <div class="col-6">
-                                                    <form id="msg91SmsForm" action="{{ route('api.settings.update') }}" method="POST"
+                                                    <form id="msg91SmsForm" action="{{ route('admin.api.settings.update') }}" method="POST"
                                                         class="needs-validation" novalidate data-csrf="{{ csrf_token() }}">
                                                         @csrf
                                                         <div class="card h-100 border {{ $msg91Gateway['isActive'] ? 'border-success' : '' }}">
@@ -516,6 +520,34 @@
                                             @endif
                                         </div>
                                     </div>
+                                    <div class="tab-pane fade" id="vl-pills-ftp" role="tabpanel" aria-labelledby="vl-pills-ftp-tab">
+                                        <div class="d-flex justify-content-between align-items-center mb-3">
+                                            <h5 class="mb-0">FTP Server Configurations</h5>
+                                            <button type="button" class="btn btn-primary btn-sm" id="addFtpConfigBtn">
+                                                <i class="ri-add-line me-1"></i> Add FTP Configuration
+                                            </button>
+                                        </div>
+                                        
+                                        <div class="table-responsive">
+                                            <table class="table table-bordered table-hover" id="ftpConfigurationsTable">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Category Name</th>
+                                                        <th>Display Name</th>
+                                                        <th>Main URL</th>
+                                                        <th>Driver</th>
+                                                        <th>Host</th>
+                                                        <th>Port</th>
+                                                        <th>Status</th>
+                                                        <th>Actions</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="ftpConfigurationsTableBody">
+                                                    <!-- Will be populated via AJAX -->
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -594,6 +626,131 @@
                             </div>
                         </div>
 
+                        <!-- FTP Configuration Modal -->
+                        <div class="modal fade" id="ftpConfigModal" tabindex="-1">
+                            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="ftpConfigModalTitle">Add FTP Configuration</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <form id="ftpConfigForm">
+                                        @csrf
+                                        <input type="hidden" name="id" id="ftp_config_id">
+                                        <div class="modal-body">
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <div class="mb-3">
+                                                        <label class="form-label">Category Name <span class="text-danger">*</span></label>
+                                                        <input type="text" name="category_name" id="ftp_category_name" class="form-control" required>
+                                                        <small class="text-muted">Unique identifier (e.g., tour, industry)</small>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <div class="mb-3">
+                                                        <label class="form-label">Display Name <span class="text-danger">*</span></label>
+                                                        <input type="text" name="display_name" id="ftp_display_name" class="form-control" required>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <div class="mb-3">
+                                                        <label class="form-label">Main URL <span class="text-danger">*</span></label>
+                                                        <input type="text" name="main_url" id="ftp_main_url" class="form-control" required placeholder="tour.proppik.in">
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <div class="mb-3">
+                                                        <label class="form-label">Driver <span class="text-danger">*</span></label>
+                                                        <select name="driver" id="ftp_driver" class="form-select" required>
+                                                            <option value="ftp">FTP</option>
+                                                            <option value="sftp">SFTP</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-8">
+                                                    <div class="mb-3">
+                                                        <label class="form-label">Host <span class="text-danger">*</span></label>
+                                                        <input type="text" name="host" id="ftp_host" class="form-control" required>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <div class="mb-3">
+                                                        <label class="form-label">Port <span class="text-danger">*</span></label>
+                                                        <input type="number" name="port" id="ftp_port" class="form-control" value="21" required>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <div class="mb-3">
+                                                        <label class="form-label">Username <span class="text-danger">*</span></label>
+                                                        <input type="text" name="username" id="ftp_username" class="form-control" required>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <div class="mb-3">
+                                                        <label class="form-label">Password <span class="text-danger">*</span></label>
+                                                        <input type="password" name="password" id="ftp_password" class="form-control" required>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <div class="mb-3">
+                                                        <label class="form-label">Root Path</label>
+                                                        <input type="text" name="root" id="ftp_root" class="form-control" value="/">
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <div class="mb-3">
+                                                        <label class="form-label">Timeout (seconds)</label>
+                                                        <input type="number" name="timeout" id="ftp_timeout" class="form-control" value="30">
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <div class="form-check form-switch mt-4">
+                                                        <input type="checkbox" name="passive" id="ftp_passive" class="form-check-input" checked>
+                                                        <label class="form-check-label" for="ftp_passive">Passive Mode</label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <div class="form-check form-switch mt-4">
+                                                        <input type="checkbox" name="ssl" id="ftp_ssl" class="form-check-input">
+                                                        <label class="form-check-label" for="ftp_ssl">SSL</label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <div class="form-check form-switch mt-4">
+                                                        <input type="checkbox" name="is_active" id="ftp_is_active" class="form-check-input" checked>
+                                                        <label class="form-check-label" for="ftp_is_active">Active</label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12">
+                                                    <div class="mb-3">
+                                                        <label class="form-label">Remote Path Pattern</label>
+                                                        <input type="text" name="remote_path_pattern" id="ftp_remote_path_pattern" class="form-control" value="{customer_id}/{slug}/index.php" placeholder="{customer_id}/{slug}/index.php">
+                                                        <small class="text-muted">Use {customer_id} and {slug} placeholders for tour path</small>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12">
+                                                    <div class="mb-3">
+                                                        <label class="form-label">URL Pattern</label>
+                                                        <input type="text" name="url_pattern" id="ftp_url_pattern" class="form-control" value="https://{main_url}/{remote_path}" placeholder="https://{main_url}/{remote_path}">
+                                                        <small class="text-muted">Use {main_url} and {remote_path} placeholders</small>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12">
+                                                    <div class="mb-3">
+                                                        <label class="form-label">Notes</label>
+                                                        <textarea name="notes" id="ftp_notes" class="form-control" rows="2"></textarea>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                            <button type="submit" class="btn btn-primary">Save Configuration</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
 
                         
                     </div>
