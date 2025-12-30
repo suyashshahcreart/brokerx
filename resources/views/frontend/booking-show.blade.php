@@ -25,7 +25,10 @@
 
 <div class="page bg-setup-form py-4">
     <div class="container">
-        
+        @php
+            // Get FTP URL for tour_live status using Booking model method
+            $tourFtpUrl = $booking->getTourLiveUrl();
+        @endphp
 
         <!-- Booking Header -->
         <div class="booking-header text-center mb-4">
@@ -639,7 +642,12 @@
                             <div class="d-flex gap-3 justify-content-center flex-wrap">
                                 
                                 
-                                @if($booking->payment_status === 'paid')
+                                @if($status === 'tour_live')
+                                    {{-- Tour is live - show live tour button (regardless of payment status) --}}
+                                    <a href="{{ $tourFtpUrl }}" target="_blank" class="btn btn-primary action-btn">
+                                        <i class="fa-solid fa-video me-1"></i> View Tour 
+                                    </a>
+                                @elseif($booking->payment_status === 'paid')
                                     @php
                                         $scheduledDate = $booking->booking_date;
                                     @endphp
@@ -757,7 +765,12 @@
                         </button>
                     @endif
                     
-                    @if($booking->payment_status === 'paid')
+                    @if($status === 'tour_live')
+                        {{-- Tour is live - show live tour button (regardless of payment status) --}}
+                        <a href="{{ $tourFtpUrl }}" target="_blank" class="btn btn-primary action-btn">
+                            <i class="fa-solid fa-video me-1"></i> View Tour 
+                        </a>
+                    @elseif($booking->payment_status === 'paid')
                         @php
                             $scheduledDate = $booking->booking_date;
                         @endphp

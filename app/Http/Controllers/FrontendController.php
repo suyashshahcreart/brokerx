@@ -24,8 +24,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Spatie\Permission\Models\Role;
 
-class FrontendController extends Controller
-{
+class FrontendController extends Controller{
+
     protected CashfreeService $cashfree;
     protected SmsService $smsService;
 
@@ -61,8 +61,7 @@ class FrontendController extends Controller
      * Check if user exists and send OTP
      * Creates new user if doesn't exist, generates and saves OTP to user table
      */
-    public function checkUserAndSendOtp(Request $request)
-    {
+    public function checkUserAndSendOtp(Request $request){
         try {
             // Validate request
             $validated = $request->validate([
