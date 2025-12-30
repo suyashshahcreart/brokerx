@@ -264,6 +264,37 @@ class BookingController extends Controller{
 
         $booking = Booking::create($validated);
 
+        // Generate unique QR code and create QR record for this booking
+        $qrCode = $this->generateUniqueQrCode();
+        
+        // Get user name for QR code naming
+        $user = User::find($validated['user_id']);
+        $userName = $user ? ($user->firstname . ' ' . $user->lastname) : 'Customer';
+        
+        // Create QR code for this booking
+        $qr = QR::create([
+            'code' => $qrCode,
+            'name' => 'Booking #' . $booking->id . ' - ' . $userName,
+            'booking_id' => $booking->id,
+            'qr_link' => 'https://qr.proppik.com/' . $qrCode,
+            'created_by' => $request->user()->id ?? null,
+            'updated_by' => $request->user()->id ?? null,
+        ]);
+        
+        // Update booking's tour_code field with the QR code
+        $booking->tour_code = $qrCode;
+        $booking->save();
+        
+        activity('qr_code')
+            ->performedOn($qr)
+            ->causedBy($request->user())
+            ->withProperties([
+                'event' => 'created',
+                'after' => $qr->toArray(),
+                'booking_id' => $booking->id
+            ])
+            ->log('QR code auto-created for new booking');
+
         // Create a tour for this booking with unique slug
         $tour = Tour::create([
             'booking_id' => $booking->id,
@@ -319,7 +350,7 @@ class BookingController extends Controller{
             ])
             ->log('Photographer visit job created for booking');
 
-        return redirect()->route('admin.bookings.index')->with('success', 'Booking, tour, and photographer job created successfully.');
+        return redirect()->route('admin.bookings.index')->with('success', 'Booking, QR code, tour, and photographer job created successfully.');
     }
 
     public function show(Booking $booking){
@@ -740,5 +771,33 @@ class BookingController extends Controller{
             'message' => 'Booking updated successfully',
             'booking' => $booking->fresh(),
         ]);
+    }
+
+    /**
+     * Generate a random 8-character QR code (A-Za-z0-9)
+     * 
+     * @return string
+     */
+    private function generateRandomQrCode(): string
+    {
+        $chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        $code = '';
+        for ($i = 0; $i < 8; $i++) {
+            $code .= $chars[random_int(0, strlen($chars) - 1)];
+        }
+        return $code;
+    }
+
+    /**
+     * Generate a unique QR code that doesn't exist in the database
+     * 
+     * @return string
+     */
+    private function generateUniqueQrCode(): string
+    {
+        do {
+            $code = $this->generateRandomQrCode();
+        } while (QR::where('code', $code)->exists());
+        return $code;
     }
 }

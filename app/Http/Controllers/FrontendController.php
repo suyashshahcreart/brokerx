@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\PhotographerVisitJob;
 use App\Models\Tour;
+use App\Models\QR;
 use Illuminate\Http\Request;
 use App\Models\Booking;
 use App\Models\BookingAssignee;
@@ -598,6 +599,33 @@ class FrontendController extends Controller{
             'user_agent' => $request->userAgent(),
         ]);
 
+        // Generate unique QR code and create QR record for this booking
+        $qrCode = $this->generateUniqueQrCode();
+        
+        // Create QR code for this booking
+        $qr = QR::create([
+            'code' => $qrCode,
+            'name' => 'Booking #' . $booking->id . ' - ' . ($validated['name'] ?? 'Property'),
+            'booking_id' => $booking->id,
+            'qr_link' => 'https://qr.proppik.com/' . $qrCode,
+            'created_by' => $user->id,
+            'updated_by' => $user->id,
+        ]);
+        
+        // Update booking's tour_code field with the QR code
+        $booking->tour_code = $qrCode;
+        $booking->save();
+        
+        activity('qr_code')
+            ->performedOn($qr)
+            ->causedBy($user)
+            ->withProperties([
+                'event' => 'created',
+                'after' => $qr->toArray(),
+                'booking_id' => $booking->id
+            ])
+            ->log('QR code auto-created for new booking');
+
         // Create a tour for this booking
         Tour::create([
             'booking_id' => $booking->id,
@@ -747,8 +775,35 @@ class FrontendController extends Controller{
             ]);
         }
 
-        // Create tour only if this is a new booking (not an update)
+        // Create tour and QR code only if this is a new booking (not an update)
         if ($isNewBooking) {
+            // Generate unique QR code
+            $qrCode = $this->generateUniqueQrCode();
+            
+            // Create QR code for this booking
+            $qr = QR::create([
+                'code' => $qrCode,
+                'name' => 'Booking #' . $booking->id . ' - ' . ($validated['name'] ?? 'Property'),
+                'booking_id' => $booking->id,
+                'qr_link' => 'https://qr.proppik.com/' . $qrCode,
+                'created_by' => $user->id,
+                'updated_by' => $user->id,
+            ]);
+            
+            // Update booking's tour_code field with the QR code
+            $booking->tour_code = $qrCode;
+            $booking->save();
+            
+            activity('qr_code')
+                ->performedOn($qr)
+                ->causedBy($user)
+                ->withProperties([
+                    'event' => 'created',
+                    'after' => $qr->toArray(),
+                    'booking_id' => $booking->id
+                ])
+                ->log('QR code auto-created for new booking');
+            
             $tour = Tour::create([
                 'booking_id' => $booking->id,
                 'name' => 'Tour for Booking #' . $booking->id,
@@ -1517,6 +1572,34 @@ class FrontendController extends Controller{
         }
 
         return $price;
+    }
+
+    /**
+     * Generate a random 8-character QR code (A-Za-z0-9)
+     * 
+     * @return string
+     */
+    protected function generateRandomQrCode(): string
+    {
+        $chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        $code = '';
+        for ($i = 0; $i < 8; $i++) {
+            $code .= $chars[random_int(0, strlen($chars) - 1)];
+        }
+        return $code;
+    }
+
+    /**
+     * Generate a unique QR code that doesn't exist in the database
+     * 
+     * @return string
+     */
+    protected function generateUniqueQrCode(): string
+    {
+        do {
+            $code = $this->generateRandomQrCode();
+        } while (QR::where('code', $code)->exists());
+        return $code;
     }
 
     /**
