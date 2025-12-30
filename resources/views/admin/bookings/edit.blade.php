@@ -276,7 +276,7 @@
                     <x-admin.back-button :fallback="route('admin.bookings.index')" :classes="['btn', 'btn-soft-secondary']" :merge="false" icon="ri-arrow-go-back-line" />
                 </div>
             </div>
-
+            
             <div class="card panel-card border-primary border-top" data-panel-card>
                 <div class="card-header">
                     <ul class="nav nav-tabs card-header-tabs" id="bookingEditTabs" role="tablist">
@@ -288,20 +288,30 @@
                         <li class="nav-item" role="presentation">
                             <button class="nav-link" id="tour-tab" data-bs-toggle="tab" data-bs-target="#tour-pane" type="button" role="tab" aria-controls="tour-pane" aria-selected="false">
                                 <i class="ri-map-pin-line me-1"></i> Tour Details
-                                @if($tour ?? null)
-                                    <span class="badge bg-success ms-1">Linked</span>
+                                @if($qr_code)
+                                    <span class="badge bg-success ms-1">Qr Linked</span>
                                 @else
-                                    <span class="badge bg-warning ms-1">Not Linked</span>
+                                    <span class="badge bg-danger ms-1">Qr not Linked</span>
                                 @endif
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="seo-tab" data-bs-toggle="tab" data-bs-target="#seo-pane" type="button" role="tab" aria-controls="seo-pane" aria-selected="false">
+                                <i class="ri-search-eye-line me-1"></i> SEO
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="json-tab" data-bs-toggle="tab" data-bs-target="#json-pane" type="button" role="tab" aria-controls="json-pane" aria-selected="false">
+                                <i class="ri-code-s-slash-line me-1"></i> JSON
                             </button>
                         </li>
                     </ul>
                 </div>
                 <div class="card-body pt-0">
                     <div class="tab-content" id="bookingEditTabsContent">
+
                         <!-- Booking Tab -->
                         <div class="tab-pane fade show active" id="booking-pane" role="tabpanel" aria-labelledby="booking-tab" tabindex="0">
-                            
                             {{-- Display Validation Errors --}}
                             @if($errors->any())
                             <div class="alert alert-danger alert-dismissible fade show" role="alert">
@@ -315,15 +325,7 @@
                                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                             </div>
                             @endif
-
-                            {{-- Display Success Message --}}
-                            @if(session('success'))
-                            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                                <i class="ri-checkbox-circle-line me-2"></i>{{ session('success') }}
-                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                            </div>
-                            @endif
-
+                            <!-- Booking Form Partial -->
                             <form method="POST" action="{{ route('admin.bookings.update', $booking) }}" class="needs-validation" novalidate>
                                 @csrf
                                 @method('PUT')
@@ -345,10 +347,23 @@
                         <!-- Tour Tab -->
                         <div class="tab-pane fade" id="tour-pane" role="tabpanel" aria-labelledby="tour-tab" tabindex="0">
                             @if($tour ?? null)
-                                @include('admin.bookings.partials.tour-edit-form')
+                                @include('admin.bookings.partials.tour-edit-form', ['qr_code' => $qr_code])
                             @else
-                                @include('admin.bookings.partials.tour-create-form')
+                                @include('admin.bookings.partials.tour-create-form',['qr_code' => $qr_code])
                             @endif
+                        </div>
+
+                        <!-- SEO Tab -->
+                        <div class="tab-pane fade" id="seo-pane" role="tabpanel" aria-labelledby="seo-tab" tabindex="0">
+                            @include('admin.bookings.partials.seo-form')
+                        </div>
+
+                        <!-- JSON Tab -->
+                        <div class="tab-pane fade" id="json-pane" role="tabpanel" aria-labelledby="json-tab" tabindex="0">
+                            <div class="mt-3">
+                                <h5>Booking JSON Data</h5>
+                                <pre class="bg-light p-3 rounded border" style="font-size: 13px; max-height: 90%; overflow: auto;">{!! is_array($tour->final_json) ? json_encode($tour->final_json, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) : $tour->final_json !!}</pre>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -356,9 +371,10 @@
         </div>
     </div>
 @endsection
+
+<!-- script section  -->
 @section('script')
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    @vite(['resources/js/pages/bookings-edit.js'])
+    @vite(['resources/js/pages/bookings-edit.js','resources/js/pages/edit-booking-tour.js'])
     <script>
         // Pass data to JavaScript
         window.bookingData = {

@@ -54,13 +54,13 @@ class Tour extends Model
         'header_code',
         'footer_code',
         // New fields added by migration
-        'custom_logo_sidebar',
-        'custom_logo_footer',
-        'custom_name',
-        'custom_email',
-        'custom_mobile',
+        'sidebar_logo',
+        'footer_logo',
+        'footer_name',
+        'footer_email',
+        'footer_mobile',
         'custom_type',
-        'custom_description',
+        'footer_decription',
         // Sidebar and Footer fields
         'company_address',
         'sidebar_footer_link',
@@ -70,6 +70,7 @@ class Tour extends Model
         'footer_brand_logo',
         'footer_brand_text',
         'footer_brand_mobile',
+        'gtm_tag',
     ];
 
     /**
