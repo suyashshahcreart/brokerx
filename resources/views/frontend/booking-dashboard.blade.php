@@ -188,6 +188,9 @@
                                 if (!empty($booking->full_address)) $addressParts[] = $booking->full_address;
                                 
                                 $addressDisplay = !empty($addressParts) ? implode(', ', $addressParts) : 'N/A';
+                                
+                                // Get FTP URL for tour_live status using Booking model method
+                                $tourFtpUrl = $booking->getTourLiveUrl();
                             @endphp
                             
                             <div class="col-md-6 col-lg-4">
@@ -204,21 +207,23 @@
                                                 @endif
                                                 
                                                 {{-- Schedule Status Badge --}}
-                                                @if($isPaymentPaid)
-                                                    @if($isBlocked)
-                                                        <span class="badge bg-dark">Blocked ({{ $attemptCount }}/{{ $maxAttempts }})</span>
-                                                    @elseif(in_array($status, ['schedul_pending', 'reschedul_pending']))
-                                                        <span class="badge bg-warning">{{ $statusText }} ({{ $attemptCount }}/{{ $maxAttempts }})</span>
-                                                    @elseif(in_array($status, ['schedul_accepted', 'reschedul_accepted']))
-                                                        <span class="badge bg-success">Approved</span>
-                                                    @elseif(in_array($status, ['schedul_decline', 'reschedul_decline']))
-                                                        <span class="badge bg-danger">Declined ({{ $attemptCount }}/{{ $maxAttempts }})</span>
-                                                    @elseif($scheduledDate)
-                                                        <span class="badge bg-info">{{ $statusText }}</span>
-                                                    @else
-                                                        <span class="badge bg-secondary">Not Scheduled</span>
+                                                @if($status === 'tour_live')
+                                                    <span class="badge bg-success">Live</span>
+                                                @elseif($isPaymentPaid)
+                                                        @if($isBlocked)
+                                                            <span class="badge bg-dark">Blocked ({{ $attemptCount }}/{{ $maxAttempts }})</span>
+                                                        @elseif(in_array($status, ['schedul_pending', 'reschedul_pending']))
+                                                            <span class="badge bg-warning">{{ $statusText }} ({{ $attemptCount }}/{{ $maxAttempts }})</span>
+                                                        @elseif(in_array($status, ['schedul_accepted', 'reschedul_accepted']))
+                                                            <span class="badge bg-success">Approved</span>
+                                                        @elseif(in_array($status, ['schedul_decline', 'reschedul_decline']))
+                                                            <span class="badge bg-danger">Declined ({{ $attemptCount }}/{{ $maxAttempts }})</span>
+                                                        @elseif($scheduledDate)
+                                                            <span class="badge bg-info">{{ $statusText }}</span>
+                                                        @else
+                                                            <span class="badge bg-secondary">Not Scheduled</span>
+                                                        @endif
                                                     @endif
-                                                @endif
                                             </div>
                                         </div>
                                         
@@ -259,7 +264,12 @@
                                                 <i class="fa-solid fa-eye me-1"></i>View
                                             </a>
                                             
-                                            @if($isPaymentPaid)
+                                            @if($status === 'tour_live')
+                                                {{-- Tour is live - show live tour button (regardless of payment status) --}}
+                                                <a href="{{ $tourFtpUrl }}" target="_blank" class="btn btn-sm-r btn-success flex-fill">
+                                                    <i class="fa-solid fa-video me-1"></i> View Tour 
+                                                </a>
+                                            @elseif($isPaymentPaid)
                                                 {{-- Payment is paid - show schedule button based on status --}}
                                                 @if($isBlocked)
                                                     {{-- Blocked - show contact admin button --}}
@@ -326,7 +336,9 @@
                                         <div class="mt-2">
 
                                             {{-- All Notifications Consolidated Here --}}
-                                            @if(!$isPaymentPaid)
+                                            @if($status === 'tour_live')
+                                                <span class="badge bg-success"></span>
+                                            @elseif(!$isPaymentPaid)
                                                 {{-- Unpaid Booking Notifications --}}
                                                 @if(!$booking->isReadyForPayment())
                                                     @php

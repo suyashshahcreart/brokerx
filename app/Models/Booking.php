@@ -501,4 +501,45 @@ class Booking extends Model
             default => ucfirst($this->status),
         };
     }
+
+    /**
+     * Get FTP URL for tour if status is tour_live
+     * Returns the full FTP URL without index.php suffix
+     * 
+     * @return string FTP URL or '#' if not available
+     */
+    public function getTourLiveUrl(): string {
+        // Only generate URL if status is tour_live
+        if ($this->status !== 'tour_live') {
+            return '#';
+        }
+
+        // Get the latest tour for this booking
+        $tour = $this->tours()
+            ->orderBy('created_at', 'desc')
+            ->first();
+
+        // Check if tour exists and has required data
+        if (!$tour || !$tour->location || !$tour->slug || !$this->user_id) {
+            return '#';
+        }   
+
+        // Get FTP configuration based on tour location
+        $ftpConfig = \App\Models\FtpConfiguration::where('category_name', $tour->location)->first();
+        
+        if (!$ftpConfig) {
+            return '#';
+        }
+
+        // Generate FTP URL
+        $fullFtpUrl = $ftpConfig->getUrlForTour($tour->slug, $this->user_id);
+        $tourFtpUrl = rtrim($fullFtpUrl, '/');
+        
+        // Remove /index.php if present
+        if (substr($tourFtpUrl, -10) === '/index.php') {
+            $tourFtpUrl = substr($tourFtpUrl, 0, -10);
+        }
+
+        return $tourFtpUrl;
+    }
 }
