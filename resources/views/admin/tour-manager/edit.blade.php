@@ -58,12 +58,15 @@
                                     <label class="form-label fw-bold">Tour Location <span class="text-danger">*</span></label>
                                     <select name="location" id="tour_location" class="form-select" required>
                                         <option value="">Select Location</option>
-                                        <option value="industry" @selected(old('location', $tour->location) == 'industry')>industry (industry.proppik.com)</option>
-                                        <option value="htl" @selected(old('location', $tour->location) == 'htl')>htl (htl.proppik.com)</option>
-                                        <option value="re" @selected(old('location', $tour->location) == 're')>re (re.proppik.com)</option>
-                                        <option value="rs" @selected(old('location', $tour->location) == 'rs')>rs (rs.proppik.com)</option>
-                                        <option value="tours" @selected(old('location', $tour->location) == 'tours')>tours (tour.proppik.in)</option>
-                                        <option value="creart_qr" @selected(old('location', $tour->location) == 'creart_qr')>creart_qr (creart.in/qr/)</option>
+                                        @php
+                                            $ftpConfigs = \App\Models\FtpConfiguration::active()->ordered()->get();
+                                        @endphp
+                                        @foreach($ftpConfigs as $ftpConfig)
+                                            <option value="{{ $ftpConfig->category_name }}" 
+                                                @selected(old('location', $tour->location) == $ftpConfig->category_name)>
+                                                {{ $ftpConfig->display_name }} ({{ $ftpConfig->main_url }})
+                                            </option>
+                                        @endforeach
                                     </select>
                                     @error('location')
                                         <div class="text-danger small">{{ $message }}</div>
@@ -81,6 +84,19 @@
                                  config('filesystems.disks.s3.region') . '.amazonaws.com');
                             $s3FullPath = rtrim($s3BaseUrl, '/') . '/tours/' . ($booking->tour_code ?? 'N/A') . '/';
                             $s3RelativePath = 'tours/' . ($booking->tour_code ?? 'N/A') . '/';
+                            
+                            // Get customer_id for FTP URL generation
+                            $customerId = $booking->user_id ?? null;
+                            
+                            // Get FTP configuration if location is set
+                            $ftpConfig = null;
+                            $ftpUrl = 'N/A';
+                            if ($tour->location && $customerId && $tour->slug) {
+                                $ftpConfig = \App\Models\FtpConfiguration::where('category_name', $tour->location)->first();
+                                if ($ftpConfig) {
+                                    $ftpUrl = $ftpConfig->getUrlForTour($tour->slug, $customerId);
+                                }
+                            }
                         @endphp
                         <div class="alert alert-info mb-3" id="upload-paths-info">
                             <h6 class="alert-heading mb-2"><i class="ri-information-line me-1"></i> Upload Paths</h6>
@@ -97,20 +113,12 @@
                             <div class="mb-0">
                                 <div class="d-flex justify-content-between align-items-center mb-1">
                                     <strong>FTP Full URL ( Tour Slug And Location Based Generated ) :</strong>
-                                    <button type="button" class="btn btn-sm btn-outline-secondary copy-btn" data-copy-target="ftp-full-url-text" title="Copy FTP URL">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary copy-btn" data-copy-target="ftp-full-url-text-2" title="Copy FTP URL">
                                         <i class="ri-file-copy-line me-1"></i> Copy
                                     </button>
                                 </div>
-                                <code class="d-block mt-1 small text-break p-2 bg-light rounded" id="ftp-full-url-text">
-                                    @if($tour->location === 'creart_qr')
-                                        http://creart.in/qr/{{ $tour->slug ?? 'N/A' }}/index.php
-                                    @elseif($tour->location === 'tours' && $tour->slug)
-                                        https://tour.proppik.in/{{ $tour->slug }}/index.php
-                                    @elseif($tour->location && $tour->slug)
-                                        https://{{ $tour->location }}.proppik.com/{{ $tour->slug }}/index.php
-                                    @else
-                                        N/A
-                                    @endif
+                                <code class="d-block mt-1 small text-break p-2 bg-light rounded" id="ftp-full-url-text-2">
+                                    {{ $ftpUrl }}
                                 </code>
                                 <small class="text-muted d-block mt-1">The converted index.php file will be uploaded to this FTP URL.</small>
                             </div>
@@ -404,10 +412,27 @@
 <script>
 // Inline script to ensure real-time path updates work
 (function() {
+    // Customer ID from server
+    const customerId = {{ $booking->user_id ?? 'null' }};
+    
+    // FTP configurations data for URL generation
+    @php
+        $ftpConfigsData = [];
+        foreach(\App\Models\FtpConfiguration::all() as $config) {
+            $ftpConfigsData[$config->category_name] = [
+                'category_name' => $config->category_name,
+                'main_url' => $config->main_url,
+                'remote_path_pattern' => $config->remote_path_pattern ?? '{customer_id}/{slug}/index.php',
+                'url_pattern' => $config->url_pattern ?? 'https://{main_url}/{remote_path}',
+            ];
+        }
+    @endphp
+    const ftpConfigs = @json($ftpConfigsData);
+    
     function updatePaths() {
         const slugInput = document.getElementById('tour_slug');
         const locationSelect = document.getElementById('tour_location');
-        const ftpFullUrlText = document.getElementById('ftp-full-url-text');
+        const ftpFullUrlText = document.getElementById('ftp-full-url-text-2');
         
         if (!slugInput || !locationSelect || !ftpFullUrlText) {
             return;
@@ -416,17 +441,23 @@
         const slug = slugInput.value.trim();
         const location = locationSelect.value;
         
-        // Update FTP Full URL based on location and slug
-        if (location === 'creart_qr') {
-            if (slug) {
-                ftpFullUrlText.textContent = 'http://creart.in/qr/' + slug + '/index.php';
-            } else {
-                ftpFullUrlText.textContent = 'N/A';
-            }
-        } else if (location === 'tours' && slug) {
-            ftpFullUrlText.textContent = 'https://tour.proppik.in/' + slug + '/index.php';
-        } else if (location && slug) {
-            ftpFullUrlText.textContent = 'https://' + location + '.proppik.com/' + slug + '/index.php';
+        // Update FTP Full URL using FTP configuration data
+        if (location && slug && customerId && ftpConfigs[location]) {
+            const config = ftpConfigs[location];
+            const remotePathPattern = config.remote_path_pattern || '{customer_id}/{slug}/index.php';
+            const urlPattern = config.url_pattern || 'https://{main_url}/{remote_path}';
+            
+            // Replace placeholders in remote path
+            let remotePath = remotePathPattern
+                .replace(/{customer_id}/g, customerId)
+                .replace(/{slug}/g, slug);
+            
+            // Replace placeholders in URL pattern
+            const ftpUrl = urlPattern
+                .replace(/{main_url}/g, config.main_url)
+                .replace(/{remote_path}/g, remotePath);
+            
+            ftpFullUrlText.textContent = ftpUrl;
         } else {
             ftpFullUrlText.textContent = 'N/A';
         }

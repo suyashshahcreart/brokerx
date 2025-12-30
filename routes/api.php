@@ -43,9 +43,7 @@ Route::middleware('auth')->get('/user', function (Request $request) {
 Route::middleware(['web', 'auth'])->group(function () {
     // Public Settings API routes (no auth required for frontend setup page)
     Route::get('/settings/{name}', [SettingController::class, 'apiGet'])->name('api.settings.get.public');
-
-    Route::post('/settings/update', [SettingController::class, 'apiUpdate'])->name('api.settings.update');
-    // Note: GET /settings/{name} is public (defined above) - no auth required
+    
     // Holidays API
     Route::get('/holidays', [HolidayController::class, 'indexAPI']);
 
