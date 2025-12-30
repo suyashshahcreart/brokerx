@@ -40,6 +40,9 @@ class DatabaseSeeder extends Seeder
         // Seed settings
         $this->call(SettingsSeeder::class);
 
+        
+        $this->call(FtpConfigurationSeeder::class);
+
         $user = User::updateOrCreate(
             ['email' => 'admin@admin.com'],
             [
