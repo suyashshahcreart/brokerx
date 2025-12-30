@@ -30,6 +30,10 @@
 
     <div class="page bg-setup-form py-5">
         <div class="container">
+            @php
+                // Get FTP URL for tour_live status using Booking model method
+                $tourFtpUrl = $booking->getTourLiveUrl();
+            @endphp
             
             <!-- Booking Status Header Card -->
             <div class="row mb-4">
@@ -389,7 +393,21 @@
                                 $showScheduledDate = $booking->booking_date && !in_array($status, ['schedul_decline', 'reschedul_decline', 'reschedul_blocked']);
                             @endphp
                             
-                            @if($isPaymentPaid)
+                            @if($status === 'tour_live')
+                                {{-- Tour is live - show live tour button (regardless of payment status) --}}
+                                <div class="alert alert-success py-2 mb-3" role="alert">
+                                    <small class="d-block mb-1">
+                                        <i class="fa-solid fa-video me-1"></i>
+                                        <strong>Tour is Live</strong>
+                                    </small>
+                                    <small class="text-muted d-block mb-2">
+                                        Your property tour is now live and accessible.
+                                    </small>
+                                </div>
+                                <a href="{{ $tourFtpUrl }}" target="_blank" class="btn btn-success w-100">
+                                    <i class="fa-solid fa-video me-2"></i> View Tour 
+                                </a>
+                            @elseif($isPaymentPaid)
                                 @if($isBlocked)
                                     <div class="alert alert-danger py-2 mb-3" role="alert">
                                         <small class="d-block mb-1"><i class="fa-solid fa-ban me-1"></i><strong>Scheduling Blocked</strong></small>
