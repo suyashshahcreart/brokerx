@@ -65,6 +65,7 @@ export default defineConfig({
                 'resources/js/pages/photographer-visits-index.js',
                 'resources/js/pages/photographer-index.js',
                 'resources/js/pages/edit-booking-tour.js',
+                'resources/js/pages/customer-show.js',
 
                 //components
                 'resources/js/components/maps-google.js',

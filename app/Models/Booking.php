@@ -8,37 +8,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Booking extends Model
 {
-    /**
-     * Get the QR code assigned to this booking (if any)
-     */
-    public function qr()
-    {
-        return $this->hasOne(\App\Models\QR::class, 'booking_id');
-    }
-
-    /**
-     * Get all QR analytics records for this booking
-     */
-    public function qrAnalytics()
-    {
-        return $this->hasMany(\App\Models\QRAnalytics::class, 'booking_id');
-    }
-
-    /**
-     * Get the booking history entries
-     */
-    public function histories()
-    {
-        return $this->hasMany(BookingHistory::class)->orderByDesc('created_at');
-    }
-
-    /**
-     * Get the latest booking history entry
-     */
-    public function latestHistory()
-    {
-        return $this->hasOne(BookingHistory::class)->latestOfMany();
-    }
+    
     /** @use HasFactory<\Database\Factories\BookingFactory> */
     use HasFactory, SoftDeletes;
 
@@ -143,6 +113,38 @@ class Booking extends Model
     }
 
 
+    /**
+     * Get the QR code assigned to this booking (if any)
+     */
+    public function qr()
+    {
+        return $this->hasOne(\App\Models\QR::class, 'booking_id');
+    }
+
+    /**
+     * Get all QR analytics records for this booking
+     */
+    public function qrAnalytics()
+    {
+        return $this->hasMany(\App\Models\QRAnalytics::class, 'booking_id');
+    }
+
+    /**
+     * Get the booking history entries
+     */
+    public function histories()
+    {
+        return $this->hasMany(BookingHistory::class)->orderByDesc('created_at');
+    }
+
+    /**
+     * Get the latest booking history entry
+     */
+    public function latestHistory()
+    {
+        return $this->hasOne(BookingHistory::class)->latestOfMany();
+    }
+    
     public function assignees()
     {
         return $this->hasMany(BookingAssignee::class);
