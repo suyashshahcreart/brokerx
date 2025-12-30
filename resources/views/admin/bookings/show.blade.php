@@ -241,6 +241,7 @@
                             <div class="flex-grow-1 ms-3">
                                 <h5 class="mb-1">{{ $booking->user?->firstname }} {{ $booking->user?->lastname }}</h5>
                                 <div class="d-flex gap-3">
+                                    <small class="text-muted"><i class="ri-id-card-line me-1"></i>{{ $booking->user?->id ?? '-' }}</small>
                                     <small class="text-muted"><i class="ri-mail-line me-1"></i>{{ $booking->user?->email ?? '-' }}</small>
                                     <small class="text-muted"><i class="ri-phone-line me-1"></i>{{ $booking->user?->mobile ?? '-' }}</small>
                                 </div>

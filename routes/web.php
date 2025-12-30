@@ -1,4 +1,5 @@
 <?php
+use App\Http\Controllers\Admin\CustomerController;
 use App\Http\Controllers\Admin\HolidayController;
 use App\Http\Controllers\Admin\QRController;
 use App\Http\Controllers\Admin\BookingAssigneeController;
@@ -140,7 +141,8 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'middleware' => ['web', 'au
     Route::resource('permissions', PermissionController::class);
     Route::resource('roles', RoleController::class);
     Route::resource('users', AdminUserController::class);
-    Route::get('customer', [\App\Http\Controllers\Admin\CustomerController::class, 'index'])->name('customer.index');
+    Route::get('customer', [CustomerController::class, 'index'])->name('customer.index');
+    Route::get('customer/{customer}', [CustomerController::class, 'show'])->name('customer.show');
     Route::get('assignment-calendar', [BookingController::class, 'AssignementCalender'])->name('assignment-calendar');
     // Booking custom routes (BEFORE resource to prevent route conflicts)
     Route::post('bookings/{booking}/update-ajax', [BookingController::class, 'updateAjax'])->name('bookings.update-ajax');

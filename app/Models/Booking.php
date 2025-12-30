@@ -8,37 +8,6 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Booking extends Model
 {
-    /**
-     * Get the QR code assigned to this booking (if any)
-     */
-    public function qr()
-    {
-        return $this->hasOne(\App\Models\QR::class, 'booking_id');
-    }
-
-    /**
-     * Get all QR analytics records for this booking
-     */
-    public function qrAnalytics()
-    {
-        return $this->hasMany(\App\Models\QRAnalytics::class, 'booking_id');
-    }
-
-    /**
-     * Get the booking history entries
-     */
-    public function histories()
-    {
-        return $this->hasMany(BookingHistory::class)->orderByDesc('created_at');
-    }
-
-    /**
-     * Get the latest booking history entry
-     */
-    public function latestHistory()
-    {
-        return $this->hasOne(BookingHistory::class)->latestOfMany();
-    }
     /** @use HasFactory<\Database\Factories\BookingFactory> */
     use HasFactory, SoftDeletes;
 
@@ -146,6 +115,37 @@ class Booking extends Model
     public function assignees()
     {
         return $this->hasMany(BookingAssignee::class);
+    }
+    /**
+     * Get the QR code assigned to this booking (if any)
+     */
+    public function qr()
+    {
+        return $this->hasOne(QR::class, 'booking_id');
+    }
+
+    /**
+     * Get all QR analytics records for this booking
+     */
+    public function qrAnalytics()
+    {
+        return $this->hasMany(\App\Models\QRAnalytics::class, 'booking_id');
+    }
+
+    /**
+     * Get the booking history entries
+     */
+    public function histories()
+    {
+        return $this->hasMany(BookingHistory::class)->orderByDesc('created_at');
+    }
+
+    /**
+     * Get the latest booking history entry
+     */
+    public function latestHistory()
+    {
+        return $this->hasOne(BookingHistory::class)->latestOfMany();
     }
 
     /**
@@ -255,17 +255,17 @@ class Booking extends Model
     {
         $totalAmount = (int) ($this->price ?? 0) * 100; // Convert to paise
         $paidAmount = $this->total_paid;
-        
+
         // Check if there are any recent successful payments
         $hasSuccessfulPayment = $this->paymentHistories()
             ->where('status', 'completed')
             ->exists();
-        
+
         // Check if there are any pending payments
         $hasPendingPayment = $this->paymentHistories()
             ->whereIn('status', ['pending', 'processing'])
             ->exists();
-        
+
         // Determine payment status
         if ($paidAmount >= $totalAmount && $totalAmount > 0) {
             $this->payment_status = 'paid';
@@ -282,17 +282,17 @@ class Booking extends Model
             // Check if all payments failed
             $allFailed = $this->paymentHistories()
                 ->whereIn('status', ['failed', 'cancelled'])
-                ->count() > 0 
+                ->count() > 0
                 && !$hasSuccessfulPayment
                 && !$hasPendingPayment;
-            
+
             if ($allFailed) {
                 $this->payment_status = 'failed';
             } else {
                 $this->payment_status = 'unpaid';
             }
         }
-        
+
         $this->save();
     }
 
@@ -422,7 +422,7 @@ class Booking extends Model
     public function changeStatus(string $newStatus, ?int $userId = null, ?string $notes = null, ?array $metadata = null): bool
     {
         $oldStatus = $this->status;
-        
+
         // Don't create history if status hasn't changed
         if ($oldStatus === $newStatus) {
             return true;
@@ -481,7 +481,7 @@ class Booking extends Model
      */
     public function getStatusLabelAttribute(): string
     {
-        return match($this->status) {
+        return match ($this->status) {
             'inquiry' => 'Inquiry',
             'pending' => 'Pending',
             'schedul_pending' => 'Schedule Pending',
