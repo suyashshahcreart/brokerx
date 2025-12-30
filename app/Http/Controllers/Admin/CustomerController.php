@@ -103,9 +103,8 @@ class CustomerController extends Controller
         }
 
         $totalBookings = $customer->bookings()->count();
-        $totalTours = 0;
-        $totalQrs = 0;
-        return view('admin.customers.show', compact('customer', 'totalBookings', 'totalTours', 'totalQrs'));
+        $totalTours = $totalBookings;
+        return view('admin.customers.show', compact('customer', 'totalBookings', 'totalTours'));
     }
 }
 

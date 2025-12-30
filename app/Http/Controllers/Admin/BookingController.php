@@ -324,7 +324,7 @@ class BookingController extends Controller{
 
     public function show(Booking $booking){
         $booking->load(['user', 'propertyType', 'propertySubType', 'bhk', 'city', 'state', 'creator', 'assignees.user']);
-        
+        $tour = Tour::where('booking_id', $booking->id)->first();
         // Get photographers for assignment modal
         $photographers = User::whereHas('roles', function($q) {
             $q->where('name', 'photographer');
