@@ -19,6 +19,8 @@ use Aws\S3\Exception\S3Exception;
 class TourManagerController extends Controller{
     public function __construct(){
         $this->middleware('auth');
+        $this->middleware('permission:tour_manager_view')->only(['index', 'show']);
+        $this->middleware('permission:tour_manager_edit')->only(['edit', 'update', 'uploadFile', 'scheduleTour']);
     }
 
     /**
@@ -125,14 +127,14 @@ class TourManagerController extends Controller{
                 ->addColumn('price', function (Booking $booking) {
                     return '₹' . number_format($booking->price, 2);
                 })
-                ->addColumn('actions', function (Booking $booking) {
+                ->addColumn('actions', function (Booking $booking) use ($request) {
                     $actions = '<div class="btn-group" role="group">';
 
                     // View button
                     $actions .= '<a href="' . route('admin.tour-manager.show', $booking) . '" class="btn btn-sm btn-primary" title="View Details"><i class="ri-eye-line"></i></a>';
 
-                    // Edit tour button (only if booking has tours)
-                    if ($booking->tours()->exists()) {
+                    // Edit tour button (only if booking has tours AND user has edit permission)
+                    if ($booking->tours()->exists() && $request->user()->can('tour_manager_edit')) {
                         $actions .= ' <a href="' . route('admin.tour-manager.edit', $booking) . '" class="btn btn-sm btn-warning" title="Edit Tour"><i class="ri-edit-line"></i></a>';
                     }
 
@@ -146,8 +148,9 @@ class TourManagerController extends Controller{
 
         $statuses = ['pending', 'confirmed', 'scheduled', 'completed', 'cancelled'];
         $paymentStatuses = ['pending', 'paid', 'failed', 'refunded'];
+        $canEdit = $request->user()->can('tour_manager_edit');
 
-        return view('admin.tour-manager.index', compact('statuses', 'paymentStatuses'));
+        return view('admin.tour-manager.index', compact('statuses', 'paymentStatuses', 'canEdit'));
     }
 
     /**
@@ -168,8 +171,9 @@ class TourManagerController extends Controller{
 
         // Get the tour for this booking
         $tour = $booking->tours()->first();
+        $canEdit = auth()->user()->can('tour_manager_edit');
 
-        return view('admin.tour-manager.show', compact('booking', 'tour'));
+        return view('admin.tour-manager.show', compact('booking', 'tour', 'canEdit'));
     }
 
     /**
@@ -177,6 +181,10 @@ class TourManagerController extends Controller{
      */
     public function edit(Booking $booking)
     {
+        // Permission check is handled by middleware, but verify again
+        if (!auth()->user()->can('tour_manager_edit')) {
+            abort(403, 'You do not have permission to edit tours.');
+        }
         
         // Get the tour for this booking
         $tour = $booking->tours()->first();

@@ -15,7 +15,7 @@
             </div>
             <div class="d-flex align-items-center gap-2">
                 <x-admin.back-button :classes="['btn', 'btn-soft-secondary']" :merge="false" icon="ri-arrow-go-back-line" />
-                @can('user_create')
+                @can('customer_create')
                 <a href="{{ route('admin.customer.create') }}" class="btn btn-primary" title="Add Customer" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Add Customer">
                     <i class="ri-user-add-line me-1"></i> New Customer
                 </a>
@@ -77,9 +77,10 @@
                 return;
             }
 
-            const canEdit = @json($canEdit);
-            const canDelete = @json($canDelete);
-            const canManageActions = Boolean(canEdit || canDelete);
+            const canShow = @json($canShow ?? false);
+            const canEdit = @json($canEdit ?? false);
+            const canDelete = @json($canDelete ?? false);
+            const canManageActions = Boolean(canShow || canEdit || canDelete);
 
             const dataTable = table.DataTable({
                 processing: true,

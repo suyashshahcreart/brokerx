@@ -1210,12 +1210,14 @@
                 <!-- Action Sidebar (col-3) -->
                 <div class="col-lg-3">
                     <!-- Quick Actions Card -->
-                    <div class="card border mb-3 sticky-top" style="top: 20px;">
+                    @if($hasAnyQuickActionPermission ?? false)
+                    <div class="card border mb-3 ">
                         <div class="card-header bg-dark text-white">
                             <h5 class="card-title mb-0"><i class="ri-flashlight-line me-2"></i>Quick Actions</h5>
                         </div>
                         <div class="card-body p-2">
                             <!-- Payment Status -->
+                            @if($canUpdatePaymentStatus ?? false)
                             <div class="mb-3">
                                 <label class="form-label fw-semibold text-muted" style="font-size: 11px;">PAYMENT
                                     STATUS</label>
@@ -1230,11 +1232,13 @@
                                     <option value="failed" {{ $booking->payment_status == 'failed' ? 'selected' : '' }}>
                                         Failed</option>
                                     <option value="refunded" {{ $booking->payment_status == 'refunded' ? 'selected' : '' }}>
-                                        Refunded</option>
+                                        Refunded                                    </option>
                                 </select>
                             </div>
+                            @endif
 
                             <!-- Booking Status -->
+                            @if($canUpdateStatus ?? false)
                             <div class="mb-3">
                                 <label class="form-label fw-semibold text-muted" style="font-size: 11px;">BOOKING
                                     STATUS</label>
@@ -1289,6 +1293,7 @@
                                     </option>
                                 </select>
                             </div>
+                            @endif
 
                             <hr class="my-3">
 
@@ -1352,22 +1357,26 @@
                             <hr class="my-3"> --}}
 
                             <!-- Schedule Date -->
+                            @if($canSchedule ?? false)
                             <div class="mb-3">
                                 <button class="btn btn-outline-primary btn-sm w-100" data-bs-toggle="modal"
                                     data-bs-target="#scheduleModal">
                                     <i class="ri-calendar-check-line me-1"></i> Schedule Date
                                 </button>
                             </div>
+                            @endif
 
                             <!-- Assign QR -->
+                            @if($canAssignQR ?? false)
                             <div class="mb-3">
                                 <button class="btn btn-outline-success btn-sm w-100" onclick="assignQR()">
                                     <i class="ri-qr-code-line me-1"></i> Assign QR Code
                                 </button>
                             </div>
+                            @endif
 
                             <!-- Accept/Decline Schedule (if pending) -->
-                            @if(in_array($booking->status, ['schedul_pending', 'reschedul_pending']))
+                            @if(in_array($booking->status, ['schedul_pending', 'reschedul_pending']) && ($canApproval ?? false))
                                 <hr class="my-3">
 
                                 <div class="card border-warning mb-3">
@@ -1418,7 +1427,7 @@
                             @endif
 
                             <!-- Booking Assignees (if schedule accepted) -->
-                            @if(in_array($booking->status, ['schedul_accepted', 'reschedul_accepted']))
+                            @if(in_array($booking->status, ['schedul_accepted', 'reschedul_accepted']) && ($canManageAssignees ?? false))
                                 <hr class="my-3">
 
                                 <div class="card border-info mb-3">
@@ -1464,10 +1473,12 @@
                                                 assign one.</p>
                                         @endif
 
+                                        @if($canManageAssignees ?? false)
                                         <button class="btn btn-info btn-sm w-100" data-bs-toggle="modal"
                                             data-bs-target="#assignBookingModal">
                                             <i class="ri-user-add-line me-1"></i> Assign Photographer
                                         </button>
+                                        @endif
                                     </div>
                                 </div>
                             @endif
@@ -1475,11 +1486,13 @@
                             <hr class="my-3">
 
                             <!-- Edit Button -->
+                            @can('booking_edit')
                             <div class="mb-2">
                                 <a href="{{ route('admin.bookings.edit', $booking) }}" class="btn btn-info btn-sm w-100">
                                     <i class="ri-edit-line me-1"></i> Edit Booking
                                 </a>
                             </div>
+                            @endcan
 
                             <!-- Delete Button -->
                             {{-- <div class="mb-0">
@@ -1489,6 +1502,7 @@
                             </div> --}}
                         </div>
                     </div>
+                    @endif
 
                     <!-- Booking Summary Card -->
                     <div class="card border mb-3">

@@ -35,8 +35,9 @@ class LoginRequest extends FormRequest
             ];
         }
 
+        // Allow email or mobile for admin login
         return [
-            'email' => 'required|string|email',
+            'email' => 'required|string', // Can be email or mobile
             'password' => 'required|string',
         ];
     }
@@ -52,7 +53,24 @@ class LoginRequest extends FormRequest
     {
         $this->ensureIsNotRateLimited();
 
-        if (!Auth::attempt($this->only('email', 'password'), $this->filled('remember'))) {
+        $identifier = $this->input('email');
+        $password = $this->input('password');
+        $remember = $this->filled('remember');
+
+        // Determine if identifier is email or mobile
+        $isEmail = filter_var($identifier, FILTER_VALIDATE_EMAIL);
+        
+        // Build credentials array
+        $credentials = ['password' => $password];
+        
+        if ($isEmail) {
+            $credentials['email'] = $identifier;
+        } else {
+            $credentials['mobile'] = $identifier;
+        }
+
+        // Attempt authentication with email or mobile
+        if (!Auth::attempt($credentials, $remember)) {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([

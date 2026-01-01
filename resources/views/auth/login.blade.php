@@ -43,15 +43,15 @@
                             <input type="password" id="login-password"
                                    class="form-control bg-light bg-opacity-50 border-light py-2"
                                    placeholder="Enter your password" name="password">
-                            <small class="form-text mt-1"><button type="button" id="login-toggle-otp" class="btn btn-link p-0">Verify with OTP</button></small>
+                            <small class="form-text mt-1 d-none"><button type="button" id="login-toggle-otp" class="btn btn-link p-0 d-none">Verify with OTP</button></small>
                         </div>
-                        <div class="mb-3" id="otp-login-block" style="display:none;">
+                        <div class="mb-3 d-none" id="otp-login-block" style="display:none;">
                             <label class="form-label" for="login-otp-code">One-Time Password</label>
                             <div class="input-group">
                                 <input type="text" id="login-otp-code" name="otp_code" class="form-control bg-light bg-opacity-50 border-light py-2" placeholder="Enter 6-digit code" inputmode="numeric" maxlength="6">
                             </div>
-                            <small id="login-otp-text" class="form-text d-flex align-items-center gap-1 mt-1"></small>
-                            <div class="d-flex justify-content-between mt-1">
+                            <small id="login-otp-text" class="form-text d-flex align-items-center gap-1 mt-1 d-none"></small>
+                            <div class="d-flex justify-content-between mt-1 d-none">
                                 <small class="form-text"><button type="button" id="login-toggle-password" class="btn btn-link p-0">Use password instead</button></small>
                                 <small class="form-text"><button type="button" id="login-change-identifier" class="btn btn-link p-0">Change email or mobile</button></small>
                             </div>
@@ -82,11 +82,11 @@
             </div> <!-- end card-body -->
         </div> <!-- end card -->
 
-        <p class="mb-0 text-center text-white">New here? <a href="{{ route('admin.register') }}"
+        <p class="mb-0 text-center text-white d-none">New here? <a href="{{ route('admin.register') }}"
 
             class="text-reset text-unline-dashed fw-bold ms-1">Sign Up</a>
         </p>
-        <p class="mb-0 text-center text-white mt-2">
+        <p class="mb-0 text-center text-white mt-2 d-none">
             <a href="{{ route('admin.photographer.login') }}" class="text-reset text-unline-dashed">
                 <i class='bx bx-camera me-1'></i>Login as Photographer
             </a>

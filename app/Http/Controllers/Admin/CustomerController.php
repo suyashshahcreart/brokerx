@@ -13,7 +13,10 @@ class CustomerController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('permission:user_view')->only(['index']);
+        $this->middleware('permission:customer_view')->only(['index', 'show']);
+        $this->middleware('permission:customer_create')->only(['create', 'store']);
+        $this->middleware('permission:customer_edit')->only(['edit', 'update']);
+        $this->middleware('permission:customer_delete')->only(['destroy']);
     }
 
     public function index(Request $request)
@@ -22,9 +25,9 @@ class CustomerController extends Controller
             // Filter only users with 'customer' role and load bookings count
             $query = User::role('customer')
                 ->withCount('bookings');
-            $canEdit = $request->user()->can('user_edit');
-            $canDelete = $request->user()->can('user_delete');
-            $canShow = true;
+            $canEdit = $request->user()->can('customer_edit');
+            $canDelete = $request->user()->can('customer_delete');
+            $canShow = $request->user()->can('customer_view');
 
             return DataTables::of($query)
                 ->addColumn('name', function (User $user) {
@@ -47,18 +50,20 @@ class CustomerController extends Controller
                     $count = $user->bookings_count ?? 0;
                     return '<span class="badge bg-primary">' . $count . '</span>';
                 })
-                ->addColumn('actions', function (User $user) use ($canEdit, $canDelete) {
-                    return view('admin.customers.partials.actions', compact('user', 'canEdit', 'canDelete'))->render();
+                ->addColumn('actions', function (User $user) use ($canEdit, $canDelete, $canShow) {
+                    return view('admin.customers.partials.actions', compact('user', 'canEdit', 'canDelete', 'canShow'))->render();
                 })
                 ->editColumn('email', fn(User $user) => e($user->email))
                 ->rawColumns(['bookings_count', 'actions'])
                 ->toJson();
         }
 
-        $canEdit = $request->user()->can('user_edit');
-        $canDelete = $request->user()->can('user_delete');
+        $canEdit = $request->user()->can('customer_edit');
+        $canDelete = $request->user()->can('customer_delete');
+        $canCreate = $request->user()->can('customer_create');
+        $canShow = $request->user()->can('customer_view');
 
-        return view('admin.customers.index', compact('canEdit', 'canDelete'));
+        return view('admin.customers.index', compact('canEdit', 'canDelete', 'canCreate', 'canShow'));
     }
     /* 
     show function of a customer show all the booking and tour details of the custoner
@@ -112,6 +117,7 @@ class CustomerController extends Controller
     */
     public function create()
     {
+        // Permission check is handled by middleware
         return view('admin.customers.create');
     }
 
@@ -180,6 +186,7 @@ class CustomerController extends Controller
     */
     public function edit(User $customer)
     {
+        // Permission check is handled by middleware
         return view('admin.customers.edit', compact('customer'));
     }
 
@@ -270,5 +277,43 @@ class CustomerController extends Controller
             ->log('Customer updated');
 
         return redirect()->route('admin.customer.index')->with('success', 'Customer updated');
+    }
+
+    /* 
+    Delete the customer from DB
+    @paramer Request $request, User $customer
+    */
+    public function destroy(Request $request, User $customer)
+    {
+        // Verify the user has customer role
+        if (!$customer->hasRole('customer')) {
+            return redirect()->route('admin.customer.index')->with('error', 'This user is not a customer.');
+        }
+
+        // Capture before deletion
+        $customer->load('roles');
+        $before = [
+            'name' => $customer->name,
+            'firstname' => $customer->firstname,
+            'lastname' => $customer->lastname,
+            'mobile' => $customer->mobile,
+            'email' => $customer->email,
+            'roles' => $customer->roles->pluck('name')->sort()->values()->toArray(),
+        ];
+
+        $customerId = $customer->id;
+        $customer->delete();
+
+        // Log activity for deleted customer
+        activity('customers')
+            ->causedBy($request->user())
+            ->withProperties([
+                'event' => 'deleted',
+                'before' => $before,
+                'deleted_id' => $customerId,
+            ])
+            ->log('Customer deleted');
+
+        return redirect()->route('admin.customer.index')->with('success', 'Customer deleted successfully.');
     }
 }

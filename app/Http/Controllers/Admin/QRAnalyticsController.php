@@ -12,8 +12,7 @@ class QRAnalyticsController extends Controller
 {
     public function __construct()
     {
-        // Add permissions if needed
-        // $this->middleware('permission:qr_analytics_view')->only(['index', 'show']);
+        $this->middleware('permission:qr_analytics_view')->only(['index', 'show']);
     }
 
     /**
