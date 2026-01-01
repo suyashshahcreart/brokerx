@@ -108,7 +108,9 @@ class BookingController extends Controller{
                     $method = method_field('DELETE');
                     $schedule = '';
                     if (auth()->user()->can('booking_delete')) {
-                        $schedule = '<a href="#" class="btn btn-soft-warning btn-sm me-1" title="Schedule"><i class="ri-calendar-line"></i></a>';
+                        if($booking->status != 'tour_live'  ){
+                            $schedule = '<a href="#" class="btn btn-soft-warning btn-sm me-1" title="Schedule"><i class="ri-calendar-line"></i></a>';
+                        }
                     }
                     return $schedule .
                         '<a href="' . $view . '" class="btn btn-light btn-sm border" title="View"><i class="ri-eye-line"></i></a>' .
