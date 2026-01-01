@@ -11,6 +11,8 @@ use App\Models\QR;
 use Storage;
 use Yajra\DataTables\DataTables;
 
+require_once app_path('Helpers/JsObfuscator.php');
+
 class TourController extends Controller
 {
     public function __construct()
@@ -422,7 +424,7 @@ class TourController extends Controller
         ]);
 
         $qr_code = QR::where('booking_id', $tour->booking_id)->value('code');
-
+        $jsPath = 'tours/' . $qr_code . '/assets/js/tour-data.js';
         // Handle slug uniqueness
         if (empty($validated['slug'])) {
             $validated['slug'] = Str::slug($validated['title']);
@@ -433,6 +435,25 @@ class TourController extends Controller
                 $counter++;
             }
         }
+
+        //  update the final json according to the new fields
+        $finalJson = $tour->final_json ? json_encode($tour->final_json, true) : [];
+        $finalJson = json_decode($finalJson, true);
+
+        // update the sidebar data in json;
+        $finalJson['sidebarConfig']['footerButton']['text'] = $validated['sidebar_footer_text'];
+        $finalJson['sidebarConfig']['footerButton']['link'] = $validated['sidebar_footer_link'];
+        $finalJson['sidebarConfig']['footerButton']['show'] = $validated['sidebar_footer_link_show'];
+        // footer data update in json
+        // $finalJson['bottomMarker']
+        $finalJson['bottomMarker']['agentName'] = $validated['footer_name'];
+        $finalJson['bottomMarker']['companyName'] = $validated['footer_decription'];
+        $finalJson['bottomMarker']['contactNumber'] = $validated['footer_mobile'];
+        $finalJson['bottomMarker']['services'] = 'Not added Yest! working on it';
+
+        // footer brand info update in json
+        $finalJson['bottomMarker']['tourContactText'] = $validated['footer_brand_text'];
+        $finalJson['bottomMarker']['tourContactNumber'] = $validated['footer_brand_mobile'];
 
         // Handle file uploads (sidebar_logo, footer_logo, footer_brand_logo)
         $logoSidebarFile = $request->file('sidebar_logo');
@@ -448,6 +469,7 @@ class TourController extends Controller
             $sidebarContent = file_get_contents($logoSidebarFile->getRealPath());
             $sidebarMime = $logoSidebarFile->getMimeType();
             $uploaded = Storage::disk('s3')->put($sidebarPath, $sidebarContent, ['ContentType' => $sidebarMime]);
+            $finalJson['sidebarConfig']['logo'] = 'assets/' . $sidebarFilename;
             if ($uploaded) {
                 $updateData['sidebar_logo'] = $sidebarPath;
             }
@@ -459,6 +481,7 @@ class TourController extends Controller
             $footerContent = file_get_contents($logoFooterFile->getRealPath());
             $footerMime = $logoFooterFile->getMimeType();
             $uploaded = Storage::disk('s3')->put($footerPath, $footerContent, ['ContentType' => $footerMime]);
+            $finalJson['bottomMarker']['profilePicture'] = 'assets/' . $footerFilename;
             if ($uploaded) {
                 $updateData['footer_logo'] = $footerPath;
             }
@@ -470,6 +493,7 @@ class TourController extends Controller
             $brandContent = file_get_contents($logoBrandFile->getRealPath());
             $brandMime = $logoBrandFile->getMimeType();
             $uploaded = Storage::disk('s3')->put($brandPath, $brandContent, ['ContentType' => $brandMime]);
+            $finalJson['bottomMarker']['brandLogo'] = 'assets/' . $brandFilename;
             if ($uploaded) {
                 $updateData['footer_brand_logo'] = $brandPath;
             }
@@ -479,9 +503,59 @@ class TourController extends Controller
         if ($request->has('footer_brand_logo_text')) {
             $updateData['footer_brand_logo_text'] = $request->input('footer_brand_logo_text');
         }
+        $updateData['final_json'] = $finalJson;
 
+        //  create a new js file with updated final json
+        $jsonString = json_encode(
+            $finalJson,
+            JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+        );
+
+        $jsFileContent = '
+        window.EMBEDDED_TOUR_DATA= '.$jsonString.'
+        // Helper function to extract YouTube video ID from URL
+        window.extractYouTubeVideoId = function(url) {
+        if (!url) return null;
+        const patterns = [
+            /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
+            /youtube\.com\/watch\?.*v=([^&\n?#]+)/,
+        ];
+        for (const pattern of patterns) {
+            const match = url.match(pattern);
+            if (match && match[1]) {
+            return match[1];
+            }
+        }
+        return null;
+        };
+
+        // Helper function to create YouTube iframe element
+        window.createYouTubeIframe = function(videoId, width, height) {
+        if (!videoId) return null;
+        const iframe = document.createElement("iframe");
+        iframe.src = `https://www.youtube.com/embed/${videoId}`;
+        iframe.width = String(width || 640);
+        iframe.height = String(height || 360);
+        iframe.style.width = `${width || 640}px`;
+        iframe.style.height = `${height || 360}px`;
+        iframe.style.border = "none";
+        iframe.style.display = "block";
+        iframe.allow = "fullscreen";
+        iframe.setAttribute("allowfullscreen", "true");
+        return iframe;
+        };';
+        
+        // encript the js code and testing things.
+        $obfuscatedJs = obfuscateJs($jsFileContent);
+        
+        // Upload the JS file to S3
+        Storage::disk('s3')->put($jsPath, $obfuscatedJs, ['ContentType' => 'application/javascript']);
+        
+        // update the json file of virtual-tour-nodes.json
+        Storage::disk('s3')->put('tours/' . $qr_code . '/virtual-tour-nodes.json', $jsonString, ['ContentType' => 'application/json']);
+        
+        // Update the tour with new data DB
         $tour->update($updateData);
-
         return redirect()->back()->with('success', 'Tour updated successfully from booking edit.');
     }
 
@@ -489,7 +563,7 @@ class TourController extends Controller
      * Update SEO fields for a tour from the SEO form.
      */
     public function updateTourSeo(Request $request, Tour $tour)
-    {   
+    {
 
         $validated = $request->validate([
             'meta_title' => ['nullable', 'string', 'max:255'],
@@ -518,6 +592,13 @@ class TourController extends Controller
             }
         }
 
+        //  update the final json according to the new fields
+        $finalJson = $tour->final_json ? json_encode($tour->final_json, true) : [];
+        $finalJson = json_decode($finalJson, true);
+
+        //GTM tag update in json
+        $finalJson['googleTagManagerId'] = $validated['gtm_tag'] ?? '';
+
         // Update all SEO fields in the database
         $tour->update([
             'meta_title' => $validated['meta_title'] ?? null,
@@ -536,6 +617,7 @@ class TourController extends Controller
             'header_code' => $validated['header_code'] ?? null,
             'footer_code' => $validated['footer_code'] ?? null,
             'gtm_tag' => $validated['gtm_tag'] ?? null,
+            'final_json' => $finalJson,
         ]);
 
         return redirect()->back()->with('success', 'SEO details updated successfully.');
