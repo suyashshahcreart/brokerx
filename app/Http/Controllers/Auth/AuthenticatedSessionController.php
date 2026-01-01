@@ -51,6 +51,25 @@ class AuthenticatedSessionController extends Controller
                 Auth::login($user);
                 $request->session()->regenerate();
 
+                // Log login activity
+                activity('authentication')
+                    ->performedOn($user)
+                    ->causedBy($user)
+                    ->withProperties([
+                        'event' => 'login',
+                        'method' => 'otp',
+                        'identifier' => $identifier,
+                        'identifier_type' => $isEmail ? 'email' : 'mobile',
+                        'ip_address' => $request->ip(),
+                        'user_agent' => $request->userAgent(),
+                    ])
+                    ->log('User logged in via OTP');
+
+                // Check if this is an admin login (from /admin/login route)
+                if ($request->is('admin/login') || $request->routeIs('admin.login')) {
+                    return redirect()->intended('/admin/');
+                }
+
                 return redirect()->intended(RouteServiceProvider::HOME);
             }
 
@@ -60,7 +79,30 @@ class AuthenticatedSessionController extends Controller
         // Default password-based authentication
         $request->authenticate();
 
+        $user = Auth::user();
+        $identifier = $request->input('email');
+        $isEmail = filter_var($identifier, FILTER_VALIDATE_EMAIL);
+
         $request->session()->regenerate();
+
+        // Log login activity
+        activity('authentication')
+            ->performedOn($user)
+            ->causedBy($user)
+            ->withProperties([
+                'event' => 'login',
+                'method' => 'password',
+                'identifier' => $identifier,
+                'identifier_type' => $isEmail ? 'email' : 'mobile',
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+            ])
+            ->log('User logged in via password');
+
+        // Check if this is an admin login (from /admin/login route)
+        if ($request->is('admin/login') || $request->routeIs('admin.login')) {
+            return redirect()->intended('/admin/');
+        }
 
         return redirect()->intended(RouteServiceProvider::HOME);
     }
@@ -73,12 +115,31 @@ class AuthenticatedSessionController extends Controller
      */
     public function destroy(Request $request)
     {
+        $user = Auth::user();
+
+        // Log logout activity before logout
+        if ($user) {
+            activity('authentication')
+                ->performedOn($user)
+                ->causedBy($user)
+                ->withProperties([
+                    'event' => 'logout',
+                    'ip_address' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                ])
+                ->log('User logged out');
+        }
+
         Auth::guard('web')->logout();
 
         $request->session()->invalidate();
 
         $request->session()->regenerateToken();
 
+        // Check if logout was from admin area
+        if ($request->is('admin/logout') || $request->routeIs('admin.logout')) {
+            return redirect('/admin/login');
+        }
 
         return redirect('/');
     }

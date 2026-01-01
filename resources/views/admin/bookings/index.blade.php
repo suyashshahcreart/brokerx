@@ -39,9 +39,11 @@
                 <div class="d-flex align-items-center gap-2">
                     <x-admin.back-button :classes="['btn', 'btn-soft-secondary']" :merge="false"
                         icon="ri-arrow-go-back-line" />
+                    @can('booking_create')
                     <a href="{{ route('admin.bookings.create') }}" class="btn btn-primary">
                         <i class="ri-add-line me-1"></i> New Booking
                     </a>
+                    @endcan
                 </div>
             </div>
 

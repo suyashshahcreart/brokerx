@@ -99,8 +99,8 @@ class BookingController extends Controller
                 ->editColumn('status', fn(Booking $booking) => '<span class="badge bg-secondary text-uppercase">' . $booking->status . '</span>')
                 ->editColumn('payment_status', fn(Booking $booking) => '<span class="badge bg-info text-uppercase">' . $booking->payment_status . '</span>')
                 ->addColumn('schedule', function (Booking $booking) {
-                    if (auth()->user()->can('booking_delete')) {
-                        return '<a href="#" class="btn btn-soft-warning btn-sm" title="Schedule"><i class="ri-calendar-line"></i></a>';
+                    if (auth()->user()->can('booking_schedule')) {
+                        return '<a href="#" class="btn btn-soft-warning btn-sm schedule-booking-btn" data-booking-id="' . $booking->id . '" data-booking-date="' . ($booking->booking_date ? $booking->booking_date->format('Y-m-d') : '') . '" title="Schedule"><i class="ri-calendar-line"></i></a>';
                     }
                     return '';
                 })
@@ -111,9 +111,9 @@ class BookingController extends Controller
                     $csrf = csrf_field();
                     $method = method_field('DELETE');
                     $schedule = '';
-                    if (auth()->user()->can('booking_delete')) {
+                    if (auth()->user()->can('booking_schedule')) {
                         if ($booking->status != 'tour_live') {
-                            $schedule = '<a href="#" class="btn btn-soft-warning btn-sm me-1" title="Schedule"><i class="ri-calendar-line"></i></a>';
+                            $schedule = '<a href="#" class="btn btn-soft-warning btn-sm me-1 schedule-booking-btn" data-booking-id="' . $booking->id . '" data-booking-date="' . ($booking->booking_date ? $booking->booking_date->format('Y-m-d') : '') . '" title="Schedule"><i class="ri-calendar-line"></i></a>';
                         }
                     }
                     return $schedule .
@@ -126,6 +126,12 @@ class BookingController extends Controller
                 ->toJson();
         }
 
+        // Check permissions for actions
+        $canSchedule = $request->user()->can('booking_schedule');
+        $canCreate = $request->user()->can('booking_create');
+        $canEdit = $request->user()->can('booking_edit');
+        $canDelete = $request->user()->can('booking_delete');
+
         // Get filter options for view
         $states = State::all();
         $cities = City::all();
@@ -133,7 +139,9 @@ class BookingController extends Controller
         $canCreate = $request->user()->can('booking_create');
         $canEdit = $request->user()->can('booking_edit');
         $canDelete = $request->user()->can('booking_delete');
-        return view('admin.bookings.index', compact('canCreate', 'canEdit', 'canDelete', 'states', 'cities'));
+        $canSchedule = $request->user()->can('booking_schedule');
+        
+        return view('admin.bookings.index', compact('canCreate', 'canEdit', 'canDelete', 'canSchedule', 'states', 'cities'));
     }
     /**
      * API: Return bookings with filters (for modal, returns JSON)
@@ -363,7 +371,7 @@ class BookingController extends Controller
         return redirect()->route('admin.bookings.index')->with('success', 'Booking, QR code, tour, and photographer job created successfully.');
     }
 
-    public function show(Booking $booking)
+    public function show(Request $request, Booking $booking)
     {
         $booking->load(['user', 'propertyType', 'propertySubType', 'bhk', 'city', 'state', 'creator', 'assignees.user']);
 
@@ -372,7 +380,44 @@ class BookingController extends Controller
             $q->where('name', 'photographer');
         })->get();
 
-        return view('admin.bookings.show', compact('booking', 'photographers'));
+        // Check permissions for Quick Actions
+        $canSchedule = $request->user()->can('booking_schedule');
+        $canUpdatePaymentStatus = $request->user()->can('booking_update_payment_status');
+        $canUpdateStatus = $request->user()->can('booking_update_status');
+        $canAssignQR = $request->user()->can('booking_assign_qr');
+        $canApproval = $request->user()->can('booking_approval');
+        $canManageAssignees = $request->user()->can('booking_manage_assignees');
+        $canEdit = $request->user()->can('booking_edit');
+        $canDelete = $request->user()->can('booking_delete');
+
+        // Check if user has ANY Quick Actions permission
+        // Approval permission only counts if booking is pending
+        // Manage assignees only counts if booking is accepted
+        $hasApprovalPermission = $canApproval && in_array($booking->status, ['schedul_pending', 'reschedul_pending']);
+        $hasManageAssigneesPermission = $canManageAssignees && in_array($booking->status, ['schedul_accepted', 'reschedul_accepted']);
+        
+        $hasAnyQuickActionPermission = $canSchedule || 
+                                       $canUpdatePaymentStatus || 
+                                       $canUpdateStatus || 
+                                       $canAssignQR || 
+                                       $hasApprovalPermission || 
+                                       $hasManageAssigneesPermission || 
+                                       $canEdit || 
+                                       $canDelete;
+
+        return view('admin.bookings.show', compact(
+            'booking', 
+            'photographers',
+            'canSchedule',
+            'canUpdatePaymentStatus',
+            'canUpdateStatus',
+            'canAssignQR',
+            'canApproval',
+            'canManageAssignees',
+            'canEdit',
+            'canDelete',
+            'hasAnyQuickActionPermission'
+        ));
     }
 
     public function edit(Booking $booking)
@@ -485,6 +530,18 @@ class BookingController extends Controller
 
     public function reschedule(Request $request, Booking $booking)
     {
+        // Check permission
+        if (!$request->user()->can('booking_schedule')) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You do not have permission to schedule bookings.'
+                ], 403);
+            }
+            return redirect()->route('admin.bookings.show', $booking)
+                ->with('error', 'You do not have permission to schedule bookings.');
+        }
+
         $request->validate([
             'schedule_date' => ['required', 'date'],
         ]);
@@ -661,6 +718,14 @@ class BookingController extends Controller
      */
     public function assignBookingToQr(Request $request)
     {
+        // Check permission
+        if (!$request->user()->can('booking_assign_qr')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You do not have permission to assign QR codes to bookings.'
+            ], 403);
+        }
+
         $request->validate([
             'qr_id' => 'required|exists:qr_code,id',
             'booking_id' => 'required|exists:bookings,id',
@@ -708,6 +773,14 @@ class BookingController extends Controller
     {
         // Check if this is a status-only or payment_status-only update
         if ($request->has('status') && !$request->has('user_id')) {
+            // Check permission for status update
+            if (!$request->user()->can('booking_update_status')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You do not have permission to update booking status.'
+                ], 403);
+            }
+            
             // Status-only update - use changeStatus method
             $request->validate([
                 'status' => ['required', 'in:' . implode(',', Booking::getAvailableStatuses())],
@@ -730,6 +803,14 @@ class BookingController extends Controller
 
         // Check if this is a payment_status-only update
         if ($request->has('payment_status') && !$request->has('user_id')) {
+            // Check permission for payment status update
+            if (!$request->user()->can('booking_update_payment_status')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You do not have permission to update payment status.'
+                ], 403);
+            }
+            
             $request->validate([
                 'payment_status' => ['required', 'in:unpaid,pending,paid,failed,refunded'],
                 'notes' => ['nullable', 'string', 'max:500'],

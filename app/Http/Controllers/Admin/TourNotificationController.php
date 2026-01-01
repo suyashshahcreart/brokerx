@@ -12,8 +12,7 @@ class TourNotificationController extends Controller
 {
     public function __construct()
     {
-        // Add permissions if needed
-        // $this->middleware('permission:tour_notification_view')->only(['index', 'show']);
+        $this->middleware('permission:tour_notification_view')->only(['index', 'show']);
     }
 
     /**

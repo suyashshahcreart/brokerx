@@ -242,16 +242,19 @@ document.addEventListener('DOMContentLoaded', function () {
 		}
 	});
 
-	table.on('click', '.btn-soft-warning', function (e) {
+	// Handle schedule booking button clicks (both .btn-soft-warning and .schedule-booking-btn)
+	table.on('click', '.btn-soft-warning.schedule-booking-btn, .schedule-booking-btn', function (e) {
 		e.preventDefault();
-		const row = $(this).closest('tr');
-		const rowData = dataTable.row(row).data();
-		if (rowData && rowData.id) {
-			$('#schedule-booking-id').val(rowData.id);
+		const $btn = $(this);
+		const bookingId = $btn.data('booking-id');
+		const bookingDate = $btn.data('booking-date');
+		
+		if (bookingId) {
+			$('#schedule-booking-id').val(bookingId);
 			let selectedDate = '';
-			if (rowData.booking_date && rowData.booking_date !== '-') {
-				selectedDate = rowData.booking_date;
-				$('#current-booking-date').text(rowData.booking_date);
+			if (bookingDate && bookingDate !== '' && bookingDate !== '-') {
+				selectedDate = bookingDate;
+				$('#current-booking-date').text(bookingDate);
 			} else {
 				$('#current-booking-date').text('Not set');
 			}
@@ -261,6 +264,25 @@ document.addEventListener('DOMContentLoaded', function () {
 			fetchHolidaysAndInitPicker(selectedDate);
 			const modal = new bootstrap.Modal(document.getElementById('scheduleModal'));
 			modal.show();
+		} else {
+			// Fallback to row data if data attributes not available
+			const row = $(this).closest('tr');
+			const rowData = dataTable.row(row).data();
+			if (rowData && rowData.id) {
+				$('#schedule-booking-id').val(rowData.id);
+				let selectedDate = '';
+				if (rowData.booking_date && rowData.booking_date !== '-') {
+					selectedDate = rowData.booking_date;
+					$('#current-booking-date').text(rowData.booking_date);
+				} else {
+					$('#current-booking-date').text('Not set');
+				}
+				lastSelectedDate = selectedDate;
+				$('#schedule-mode-default').prop('checked', true);
+				fetchHolidaysAndInitPicker(selectedDate);
+				const modal = new bootstrap.Modal(document.getElementById('scheduleModal'));
+				modal.show();
+			}
 		}
 	});
 

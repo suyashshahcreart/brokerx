@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
+use App\Models\User;
 
 class NewPasswordController extends Controller
 {
@@ -18,7 +19,7 @@ class NewPasswordController extends Controller
      */
     public function create(Request $request)
     {
-        return view('auth.forgot-password', ['request' => $request]);
+        return view('auth.reset-password', ['request' => $request]);
     }
 
     /**
@@ -40,9 +41,11 @@ class NewPasswordController extends Controller
         // Here we will attempt to reset the user's password. If it is successful we
         // will update the password on an actual user model and persist it to the
         // database. Otherwise we will parse the error and return the response.
+        $resetUser = null;
         $status = Password::reset(
             $request->only('email', 'password', 'password_confirmation', 'token'),
-            function ($user) use ($request) {
+            function ($user) use ($request, &$resetUser) {
+                $resetUser = $user;
                 $user->forceFill([
                     'password' => Hash::make($request->password),
                     'remember_token' => Str::random(60),
@@ -51,6 +54,20 @@ class NewPasswordController extends Controller
                 event(new PasswordReset($user));
             }
         );
+
+        // Log password reset activity
+        if ($resetUser && $status == Password::PASSWORD_RESET) {
+            activity('authentication')
+                ->performedOn($resetUser)
+                ->causedBy($resetUser) // User resetting their own password
+                ->withProperties([
+                    'event' => 'password_reset',
+                    'email' => $request->email,
+                    'ip_address' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                ])
+                ->log('Password reset successfully');
+        }
 
         // If the password was successfully reset, we will redirect the user back to
         // the application's home authenticated view. If there is an error we can

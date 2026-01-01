@@ -15,7 +15,21 @@ class SettingController extends Controller
 
     public function __construct(SmsGatewayManager $gatewayManager)
     {
-        $this->middleware('permission:setting_view')->only(['index', 'show']);
+        // Allow access to index if user has setting_view OR any specific settings tab permission
+        $this->middleware(function ($request, $next) {
+            $user = $request->user();
+            if (!$user->can('setting_view') && 
+                !$user->can('setting_booking_schedule') && 
+                !$user->can('setting_photographer') && 
+                !$user->can('setting_base_price') && 
+                !$user->can('setting_payment_gateway') && 
+                !$user->can('setting_sms_configuration') && 
+                !$user->can('setting_ftp_configuration')) {
+                abort(403, 'Unauthorized access to settings.');
+            }
+            return $next($request);
+        })->only(['index', 'show']);
+        
         $this->middleware('permission:setting_create')->only(['create', 'store']);
         $this->middleware('permission:setting_edit')->only(['edit', 'update']);
         $this->middleware('permission:setting_delete')->only(['destroy']);
@@ -88,7 +102,30 @@ class SettingController extends Controller
         $msg91Templates = config('msg91.templates', []);
         $templatesSource = 'config';
         
-        return view('admin.settings.index', compact('settings', 'canCreate', 'canEdit', 'canDelete', 'gatewayInstances', 'activeSmsGateway', 'msg91Templates', 'templatesSource'));
+        // Check permissions for each settings tab
+        $canBookingSchedule = $request->user()->can('setting_booking_schedule');
+        $canPhotographer = $request->user()->can('setting_photographer');
+        $canBasePrice = $request->user()->can('setting_base_price');
+        $canPaymentGateway = $request->user()->can('setting_payment_gateway');
+        $canSmsConfiguration = $request->user()->can('setting_sms_configuration');
+        $canFtpConfiguration = $request->user()->can('setting_ftp_configuration');
+        
+        return view('admin.settings.index', compact(
+            'settings', 
+            'canCreate', 
+            'canEdit', 
+            'canDelete', 
+            'gatewayInstances', 
+            'activeSmsGateway', 
+            'msg91Templates', 
+            'templatesSource',
+            'canBookingSchedule',
+            'canPhotographer',
+            'canBasePrice',
+            'canPaymentGateway',
+            'canSmsConfiguration',
+            'canFtpConfiguration'
+        ));
     }
 
     /**
@@ -376,6 +413,72 @@ class SettingController extends Controller
         // Get all request data except system fields
         $settingsData = $request->except(['_token', '_method', 'csrf_token']);
         
+        // Define settings fields for each tab
+        $bookingScheduleFields = ['avaliable_days', 'per_day_booking', 'customer_attempt', 'customer_attempt_note'];
+        $photographerFields = ['photographer_available_from', 'photographer_available_to', 'photographer_working_duration'];
+        $basePriceFields = ['base_price', 'base_area', 'extra_area', 'extra_area_price'];
+        $paymentGatewayFields = ['cashfree_status', 'cashfree_app_id', 'cashfree_secret_key', 'cashfree_env', 'cashfree_base_url', 'cashfree_return_url', 
+                                  'payu_status', 'payu_merchant_key', 'payu_merchant_salt', 'payu_mode', 
+                                  'razorpay_status', 'razorpay_key', 'razorpay_secret', 'razorpay_mode', 'active_payment_gateway'];
+        $smsFields = ['active_sms_gateway', 'msg91_templates'];
+        $ftpFields = ['ftp_configuration']; // FTP is handled separately via API routes
+        
+        // Check which sections are being updated and validate permissions
+        $fieldsToCheck = array_keys($settingsData);
+        
+        // Check Booking Schedule permissions
+        if (array_intersect($fieldsToCheck, $bookingScheduleFields)) {
+            if (!$request->user()->can('setting_booking_schedule')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You do not have permission to update Booking Schedule settings.'
+                ], 403);
+            }
+        }
+        
+        // Check Photographer permissions
+        if (array_intersect($fieldsToCheck, $photographerFields)) {
+            if (!$request->user()->can('setting_photographer')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You do not have permission to update Photographer settings.'
+                ], 403);
+            }
+        }
+        
+        // Check Base Price permissions
+        if (array_intersect($fieldsToCheck, $basePriceFields)) {
+            if (!$request->user()->can('setting_base_price')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You do not have permission to update Base Price settings.'
+                ], 403);
+            }
+        }
+        
+        // Check Payment Gateway permissions
+        if (array_intersect($fieldsToCheck, $paymentGatewayFields)) {
+            if (!$request->user()->can('setting_payment_gateway')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You do not have permission to update Payment Gateway settings.'
+                ], 403);
+            }
+        }
+        
+        // Check SMS Configuration permissions
+        $smsRelatedFields = array_filter($fieldsToCheck, function($field) use ($smsFields) {
+            return in_array($field, $smsFields) || strpos($field, 'sms_gateway_') === 0;
+        });
+        if (!empty($smsRelatedFields)) {
+            if (!$request->user()->can('setting_sms_configuration')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You do not have permission to update SMS Configuration settings.'
+                ], 403);
+            }
+        }
+        
         // Separate Cashfree credentials for .env update
         $cashfreeEnvFields = ['cashfree_app_id', 'cashfree_secret_key', 'cashfree_env', 'cashfree_base_url', 'cashfree_return_url'];
         $cashfreeEnvData = [];
@@ -643,6 +746,14 @@ class SettingController extends Controller
      */
     public function apiGetFtpConfigurations(Request $request)
     {
+        // Check permission
+        if (!$request->user()->can('setting_ftp_configuration')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You do not have permission to view FTP configurations.'
+            ], 403);
+        }
+        
         // Get all configurations (active and inactive) for settings page
         // This allows admins to manage all configurations
         $configs = FtpConfiguration::ordered()
@@ -659,6 +770,14 @@ class SettingController extends Controller
      */
     public function apiGetFtpConfiguration(Request $request, $id)
     {
+        // Check permission
+        if (!$request->user()->can('setting_ftp_configuration')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You do not have permission to view FTP configurations.'
+            ], 403);
+        }
+        
         $config = FtpConfiguration::find($id);
 
         if (!$config) {
@@ -679,6 +798,14 @@ class SettingController extends Controller
      */
     public function apiStoreFtpConfiguration(Request $request)
     {
+        // Check permission
+        if (!$request->user()->can('setting_ftp_configuration')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You do not have permission to manage FTP configurations.'
+            ], 403);
+        }
+        
         $validated = $request->validate([
             'id' => 'nullable|exists:ftp_configurations,id',
             'category_name' => 'required|string|max:255|unique:ftp_configurations,category_name,' . ($request->id ?? 'NULL'),
@@ -735,6 +862,14 @@ class SettingController extends Controller
      */
     public function apiDeleteFtpConfiguration(Request $request, $id)
     {
+        // Check permission
+        if (!$request->user()->can('setting_ftp_configuration')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You do not have permission to delete FTP configurations.'
+            ], 403);
+        }
+        
         $ftpConfig = FtpConfiguration::findOrFail($id);
         $ftpConfig->delete();
 

@@ -17,6 +17,12 @@ use Yajra\DataTables\Facades\DataTables;
 
 class BookingAssigneeController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('permission:booking_manage_assignees')->only(['store', 'update', 'destroy', 'checkIn', 'checkOut']);
+        $this->middleware('permission:booking_view')->only(['index', 'show', 'checkInForm', 'checkOutForm']);
+    }
+
     /**
      * Display a listing of the resource.
      */
