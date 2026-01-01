@@ -412,16 +412,16 @@ class CalendarSchedule {
                             className = 'bg-primary'; // Assigned → success
                             break;
                         case 'schedul_accepted':
-                            className = 'bg-secondary'; // Accepted → warning
+                            className = 'bg-info'; // Accepted → warning
                             break;
                         case 'schedul_decline':
                             className = 'bg-danger'; // Accepted → warning
                             break;
                         case 'reschedul_accepted':
-                            className = 'bg-secondary'; // Accepted → warning
+                            className = 'bg-info'; // Accepted → warning
                             break;
                         case 'schedul_inprogress':
-                            className = 'bg-info'; // In-progress → info
+                            className = 'bg-secondary'; // In-progress → info
                             break;
                         case 'schedul_completed':
                             className = 'bg-success'; // Completed → success
@@ -903,34 +903,34 @@ class CalendarSchedule {
                 },
                 body: JSON.stringify({ reason: notes })
             })
-            .then(response => {
-                if (!response.ok) {
-                    return response.json().then(err => Promise.reject(err));
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.success) {
-                    modal.hide();
-                    self.calendarObj.refetchEvents();
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Declined',
-                        text: data.message || 'Schedule declined successfully',
-                        timer: 2000,
-                        showConfirmButton: false
-                    });
-                } else {
-                    Swal.fire({ icon: 'error', title: 'Error', text: data.message || 'Failed to decline schedule' });
-                }
-            })
-            .catch(error => {
-                Swal.fire({ icon: 'error', title: 'Error', text: error.message || 'Failed to decline schedule' });
-            })
-            .finally(() => {
-                declineButton.disabled = false;
-                declineButton.innerHTML = '<i class="ri-close-line me-1"></i> Decline Schedule';
-            });
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(err => Promise.reject(err));
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        modal.hide();
+                        self.calendarObj.refetchEvents();
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Declined',
+                            text: data.message || 'Schedule declined successfully',
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+                    } else {
+                        Swal.fire({ icon: 'error', title: 'Error', text: data.message || 'Failed to decline schedule' });
+                    }
+                })
+                .catch(error => {
+                    Swal.fire({ icon: 'error', title: 'Error', text: error.message || 'Failed to decline schedule' });
+                })
+                .finally(() => {
+                    declineButton.disabled = false;
+                    declineButton.innerHTML = '<i class="ri-close-line me-1"></i> Decline Schedule';
+                });
         });
     }
 

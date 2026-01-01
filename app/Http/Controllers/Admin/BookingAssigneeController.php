@@ -26,7 +26,7 @@ class BookingAssigneeController extends Controller
         $states = State::all();
         $cities = City::all();
         // Get only photographers (filter by role)
-        $users = User::whereHas('roles', function($q) {
+        $users = User::whereHas('roles', function ($q) {
             $q->where('name', 'photographer');
         })->get();
 
@@ -46,7 +46,7 @@ class BookingAssigneeController extends Controller
             if ($request->filled('status')) {
                 $query->where('status', $request->status);
             } else {
-                $query->whereIn('status', ['Schedul_accepted', 'Reschedul_accepted','Schedul_assign','Reschedul_assigned']);
+                $query->whereIn('status', ['Schedul_accepted', 'Reschedul_accepted', 'Schedul_assign', 'Reschedul_assigned']);
             }
 
             if ($request->filled('date_from') && $request->filled('date_to')) {
@@ -122,14 +122,14 @@ class BookingAssigneeController extends Controller
                     if ($booking->status === 'schedul_assign') {
                         return '<button class="btn btn-sm btn-success" ><i class="ri-check-line me-1"></i>Assigned</button>';
                     }
-                    
+
                     $date = $booking->booking_date ? \Carbon\Carbon::parse($booking->booking_date)->format('Y-m-d') : '';
                     $address = htmlspecialchars($booking->full_address ?? '');
                     $city = htmlspecialchars($booking->city ? $booking->city->name : '');
                     $state = htmlspecialchars($booking->state ? $booking->state->name : '');
                     $pincode = htmlspecialchars($booking->pin_code ?? '');
                     $userName = htmlspecialchars($booking->user ? $booking->user->name : '');
-                    
+
                     return '<button class="btn btn-sm btn-primary assign-btn" 
                         data-booking-id="' . $booking->id . '" 
                         data-booking-address="' . $address . '"
@@ -184,8 +184,9 @@ class BookingAssigneeController extends Controller
 
         $toMinutes = function ($t) {
             $parts = explode(':', $t);
-            if (count($parts) < 2) return null;
-            return (int)$parts[0] * 60 + (int)$parts[1];
+            if (count($parts) < 2)
+                return null;
+            return (int) $parts[0] * 60 + (int) $parts[1];
         };
 
         $timeMins = $toMinutes($validated['time']);
@@ -239,7 +240,8 @@ class BookingAssigneeController extends Controller
             }
 
             $existingStart = $toMinutes($existingTimeStr);
-            if ($existingStart === null) continue;
+            if ($existingStart === null)
+                continue;
             $existingEnd = $existingStart + $duration;
 
             // Overlap check
@@ -415,7 +417,7 @@ class BookingAssigneeController extends Controller
     public function checkInForm(BookingAssignee $bookingAssignee)
     {
         // Ensure the authenticated user is the assigned photographer
-        if ((int)$bookingAssignee->user_id !== (int)auth()->id()) {
+        if ((int) $bookingAssignee->user_id !== (int) auth()->id()) {
             return redirect()->back()->with('error', 'You are not assigned to this booking.');
         }
 
@@ -428,7 +430,7 @@ class BookingAssigneeController extends Controller
 
 
         if ($activeVisit) {
-            
+
             return redirect()->route('admin.photographer-visits.index')->with('error', 'This booking is already checked in. Please check out the current visit before starting a new one.');
         }
 
@@ -462,7 +464,7 @@ class BookingAssigneeController extends Controller
             if ($activeVisit) {
                 return redirect()->back()->with('error', 'This booking is already checked in. Please check out the current visit before starting a new one.');
             }
-            
+
             // If needed, add status checks on BookingAssignee here
 
             // Handle photo upload
@@ -512,9 +514,25 @@ class BookingAssigneeController extends Controller
             // Update booking status to shedul_inproccess (as requested)
             $booking = $bookingAssignee->booking;
             if ($booking) {
+                $oldStatus = $booking->status;
                 $booking->update([
                     'status' => 'schedul_inprogress',
                     'updated_by' => auth()->id(),
+                ]);
+                // Save booking history for check-in
+                BookingHistory::create([
+                    'booking_id' => $booking->id,
+                    'from_status' => $oldStatus,
+                    'to_status' => 'schedul_inprogress',
+                    'changed_by' => auth()->id(),
+                    'notes' => 'Photographer checked in to booking assignee.',
+                    'metadata' => [
+                        'booking_assignees_id' => $bookingAssignee->id,
+                        'photographer_id' => auth()->id(),
+                        'check_in_metadata' => $checkInMetadata,
+                    ],
+                    'ip_address' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
                 ]);
             }
 
@@ -544,7 +562,7 @@ class BookingAssigneeController extends Controller
     public function checkOutForm(BookingAssignee $bookingAssignee)
     {
         // Ensure the authenticated user is the assigned photographer
-        if ((int)$bookingAssignee->user_id !== (int)auth()->id()) {
+        if ((int) $bookingAssignee->user_id !== (int) auth()->id()) {
             return redirect()->back()->with('error', 'You are not assigned to this booking.');
         }
 
@@ -583,7 +601,7 @@ class BookingAssigneeController extends Controller
 
         try {
             // Ensure the authenticated user is the assigned photographer
-            if ((int)$bookingAssignee->user_id !== (int)auth()->id()) {
+            if ((int) $bookingAssignee->user_id !== (int) auth()->id()) {
                 return redirect()->back()->with('error', 'You are not assigned to this booking.');
             }
 
@@ -663,9 +681,25 @@ class BookingAssigneeController extends Controller
             // Update booking status to shedule_complete
             $booking = $bookingAssignee->booking;
             if ($booking) {
+                $oldStatus = $booking->status;
                 $booking->update([
                     'status' => 'schedul_completed',
                     'updated_by' => auth()->id(),
+                ]);
+                // Save booking history for check-out
+                BookingHistory::create([
+                    'booking_id' => $booking->id,
+                    'from_status' => $oldStatus,
+                    'to_status' => 'schedul_completed',
+                    'changed_by' => auth()->id(),
+                    'notes' => 'Photographer checked out from booking assignee.',
+                    'metadata' => [
+                        'booking_assignees_id' => $bookingAssignee->id,
+                        'photographer_id' => auth()->id(),
+                        'check_out_metadata' => $checkOutMetadata,
+                    ],
+                    'ip_address' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
                 ]);
             }
 

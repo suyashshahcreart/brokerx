@@ -34,6 +34,31 @@ class BookingStatusController extends Controller
             'notes' => 'nullable|string|max:500'
         ]);
 
+        $oldStatus = $booking->status;
+        $oldDate = $booking->booking_date;
+
+        // Update scheduled date if provided
+        if ($request->scheduled_date) {
+            $booking->booking_date = $request->scheduled_date;
+            $booking->save();
+
+            // Log date update separately
+            BookingHistory::create([
+                'booking_id' => $booking->id,
+                'from_status' => $oldStatus,
+                'to_status' => $oldStatus,
+                'changed_by' => auth()->id(),
+                'notes' => 'Scheduled date updated during approval',
+                'metadata' => [
+                    'old_date' => $oldDate ? $oldDate->format('Y-m-d') : null,
+                    'new_date' => $request->scheduled_date,
+                    'updated_during' => 'schedule_approval'
+                ],
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+            ]);
+        }
+
         // Change status with history tracking
         $booking->changeStatus(
             'schedul_accepted',
@@ -45,6 +70,18 @@ class BookingStatusController extends Controller
                 'scheduled_date' => $request->scheduled_date
             ]
         );
+
+        activity('bookings')
+            ->performedOn($booking)
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'event' => 'schedule_approved',
+                'old_status' => $oldStatus,
+                'new_status' => 'schedul_accepted',
+                'scheduled_date' => $request->scheduled_date,
+                'notes' => $request->notes
+            ])
+            ->log('Schedule approved for booking');
 
         return response()->json([
             'success' => true,
@@ -62,12 +99,29 @@ class BookingStatusController extends Controller
             'reason' => 'required|string|max:500'
         ]);
 
+        $oldStatus = $booking->status;
         $requestedDate = $booking->booking_date?->format('Y-m-d');
         
         // Clear booking date when declined
         $booking->booking_date = null;
         $booking->booking_notes = null;
         $booking->save();
+
+        // Log date clearing
+        BookingHistory::create([
+            'booking_id' => $booking->id,
+            'from_status' => $oldStatus,
+            'to_status' => $oldStatus,
+            'changed_by' => auth()->id(),
+            'notes' => 'Booking date and notes cleared due to schedule decline',
+            'metadata' => [
+                'cleared_date' => $requestedDate,
+                'reason' => $request->reason,
+                'action' => 'date_cleared'
+            ],
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
 
         $booking->changeStatus(
             'schedul_decline',
@@ -80,6 +134,18 @@ class BookingStatusController extends Controller
                 'scheduled_date_requested' => $requestedDate
             ]
         );
+
+        activity('bookings')
+            ->performedOn($booking)
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'event' => 'schedule_declined',
+                'old_status' => $oldStatus,
+                'new_status' => 'schedul_decline',
+                'reason' => $request->reason,
+                'requested_date' => $requestedDate
+            ])
+            ->log('Schedule declined for booking');
 
         return response()->json([
             'success' => true,
@@ -111,12 +177,31 @@ class BookingStatusController extends Controller
             ->whereIn('to_status', ['schedul_accepted', 'reschedul_accepted'])
             ->count();
 
+        // Log reschedule attempt tracking
+        BookingHistory::create([
+            'booking_id' => $booking->id,
+            'from_status' => $booking->status,
+            'to_status' => $booking->status,
+            'changed_by' => auth()->id(),
+            'notes' => 'Reschedule attempt ' . ($rescheduleCount + 1) . ' requested',
+            'metadata' => [
+                'attempt_number' => $rescheduleCount + 1,
+                'requested_date' => $request->new_date,
+                'reason' => $request->reason,
+                'action' => 'reschedule_attempt_tracked'
+            ],
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
+
         // Get max attempts from settings
         $maxAttemptsSetting = \App\Models\Setting::where('name', 'customer_attempt')->first();
         $maxAttempts = $maxAttemptsSetting ? (int) $maxAttemptsSetting->value : 3;
 
         // Block if too many attempts
         if ($rescheduleCount >= $maxAttempts) {
+            $oldStatus = $booking->status;
+
             $booking->changeStatus(
                 'reschedul_blocked',
                 auth()->id(),
@@ -129,6 +214,18 @@ class BookingStatusController extends Controller
                 ]
             );
 
+            activity('bookings')
+                ->performedOn($booking)
+                ->causedBy(auth()->user())
+                ->withProperties([
+                    'event' => 'reschedule_blocked',
+                    'old_status' => $oldStatus,
+                    'new_status' => 'reschedul_blocked',
+                    'reschedule_count' => $rescheduleCount,
+                    'max_attempts' => $maxAttempts
+                ])
+                ->log('Booking blocked due to maximum reschedule attempts');
+
             $blockedMessage = \App\Models\Setting::where('name', 'customer_attempt_note')->first();
             return response()->json([
                 'success' => false,
@@ -138,6 +235,8 @@ class BookingStatusController extends Controller
                 'max_attempts' => $maxAttempts
             ], 422);
         }
+
+        $oldStatus = $booking->status;
 
         $booking->changeStatus(
             'reschedul_pending',
@@ -149,6 +248,19 @@ class BookingStatusController extends Controller
                 'attempt_number' => $rescheduleCount + 1
             ]
         );
+
+        activity('bookings')
+            ->performedOn($booking)
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'event' => 'reschedule_requested',
+                'old_status' => $oldStatus,
+                'new_status' => 'reschedul_pending',
+                'requested_date' => $request->new_date,
+                'reason' => $request->reason,
+                'attempt_number' => $rescheduleCount + 1
+            ])
+            ->log('Reschedule requested for booking');
 
         return response()->json([
             'success' => true,
@@ -174,10 +286,29 @@ class BookingStatusController extends Controller
             'notes' => 'nullable|string|max:500'
         ]);
 
+        $oldStatus = $booking->status;
+        $oldDate = $booking->booking_date;
+
         // Update booking date if provided
         if ($request->scheduled_date) {
             $booking->booking_date = $request->scheduled_date;
             $booking->save();
+
+            // Log date update
+            BookingHistory::create([
+                'booking_id' => $booking->id,
+                'from_status' => $oldStatus,
+                'to_status' => $oldStatus,
+                'changed_by' => auth()->id(),
+                'notes' => 'Booking date updated during reschedule approval',
+                'metadata' => [
+                    'old_date' => $oldDate ? $oldDate->format('Y-m-d') : null,
+                    'new_date' => $request->scheduled_date,
+                    'action' => 'date_updated'
+                ],
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+            ]);
         }
 
         $booking->changeStatus(
@@ -189,6 +320,19 @@ class BookingStatusController extends Controller
                 'new_scheduled_date' => $request->scheduled_date
             ]
         );
+
+        activity('bookings')
+            ->performedOn($booking)
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'event' => 'reschedule_approved',
+                'old_status' => $oldStatus,
+                'new_status' => 'reschedul_accepted',
+                'old_date' => $oldDate,
+                'new_scheduled_date' => $request->scheduled_date,
+                'notes' => $request->notes
+            ])
+            ->log('Reschedule approved for booking');
 
         return response()->json([
             'success' => true,
@@ -213,12 +357,29 @@ class BookingStatusController extends Controller
             'reason' => 'required|string|max:500'
         ]);
 
+        $oldStatus = $booking->status;
         $requestedDate = $booking->booking_date?->format('Y-m-d');
         
         // Clear booking date when reschedule is declined
         $booking->booking_date = null;
         $booking->booking_notes = null;
         $booking->save();
+
+        // Log date clearing
+        BookingHistory::create([
+            'booking_id' => $booking->id,
+            'from_status' => $oldStatus,
+            'to_status' => $oldStatus,
+            'changed_by' => auth()->id(),
+            'notes' => 'Booking date cleared due to reschedule decline',
+            'metadata' => [
+                'cleared_date' => $requestedDate,
+                'reason' => $request->reason,
+                'action' => 'date_cleared'
+            ],
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
 
         $booking->changeStatus(
             'reschedul_decline',
@@ -231,6 +392,18 @@ class BookingStatusController extends Controller
                 'scheduled_date_requested' => $requestedDate
             ]
         );
+
+        activity('bookings')
+            ->performedOn($booking)
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'event' => 'reschedule_declined',
+                'old_status' => $oldStatus,
+                'new_status' => 'reschedul_decline',
+                'reason' => $request->reason,
+                'requested_date' => $requestedDate
+            ])
+            ->log('Reschedule declined for booking');
 
         return response()->json([
             'success' => true,
@@ -250,9 +423,29 @@ class BookingStatusController extends Controller
             'notes' => 'nullable|string|max:500'
         ]);
 
+        $oldStatus = $booking->status;
+        $oldDate = $booking->booking_date;
+
         // Update booking with assignment details
         $booking->update([
             'booking_date' => $request->scheduled_date
+        ]);
+
+        // Log date assignment
+        BookingHistory::create([
+            'booking_id' => $booking->id,
+            'from_status' => $oldStatus,
+            'to_status' => $oldStatus,
+            'changed_by' => auth()->id(),
+            'notes' => 'Booking date updated for team member assignment',
+            'metadata' => [
+                'old_date' => $oldDate ? $oldDate->format('Y-m-d') : null,
+                'new_date' => $request->scheduled_date,
+                'team_member_id' => $request->team_member_id,
+                'action' => 'date_updated_for_assignment'
+            ],
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
         ]);
 
         $teamMember = User::find($request->team_member_id);
@@ -268,6 +461,21 @@ class BookingStatusController extends Controller
                 'scheduled_date' => $request->scheduled_date
             ]
         );
+
+        activity('bookings')
+            ->performedOn($booking)
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'event' => 'assigned_to_team_member',
+                'old_status' => $oldStatus,
+                'new_status' => 'schedul_assign',
+                'old_date' => $oldDate,
+                'scheduled_date' => $request->scheduled_date,
+                'team_member_id' => $request->team_member_id,
+                'team_member_name' => $teamMember->firstname . ' ' . $teamMember->lastname,
+                'notes' => $request->notes
+            ])
+            ->log('Booking assigned to team member');
 
         return response()->json([
             'success' => true,
@@ -294,6 +502,26 @@ class BookingStatusController extends Controller
             'videos_count' => 'nullable|integer|min:0'
         ]);
 
+        $oldStatus = $booking->status;
+
+        // Log media counts if provided
+        if ($request->photos_count || $request->videos_count) {
+            BookingHistory::create([
+                'booking_id' => $booking->id,
+                'from_status' => $oldStatus,
+                'to_status' => $oldStatus,
+                'changed_by' => auth()->id(),
+                'notes' => 'Media counts recorded for tour completion',
+                'metadata' => [
+                    'photos_count' => $request->photos_count ?? 0,
+                    'videos_count' => $request->videos_count ?? 0,
+                    'action' => 'media_counts_recorded'
+                ],
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+            ]);
+        }
+
         $booking->changeStatus(
             'schedul_completed',
             auth()->id(),
@@ -304,6 +532,19 @@ class BookingStatusController extends Controller
                 'videos_count' => $request->videos_count
             ]
         );
+
+        activity('bookings')
+            ->performedOn($booking)
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'event' => 'tour_completed',
+                'old_status' => $oldStatus,
+                'new_status' => 'schedul_completed',
+                'photos_count' => $request->photos_count,
+                'videos_count' => $request->videos_count,
+                'completion_notes' => $request->completion_notes
+            ])
+            ->log('Tour marked as completed');
 
         return response()->json([
             'success' => true,
@@ -324,12 +565,25 @@ class BookingStatusController extends Controller
             ], 422);
         }
 
+        $oldStatus = $booking->status;
+
         $booking->changeStatus(
             'tour_pending',
             auth()->id(),
             $request->notes ?? 'Tour processing started',
             ['processing_started_at' => now()]
         );
+
+        activity('bookings')
+            ->performedOn($booking)
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'event' => 'tour_processing_started',
+                'old_status' => $oldStatus,
+                'new_status' => 'tour_pending',
+                'notes' => $request->notes
+            ])
+            ->log('Tour processing started');
 
         return response()->json([
             'success' => true,
@@ -355,8 +609,27 @@ class BookingStatusController extends Controller
             'notes' => 'nullable|string|max:500'
         ]);
 
+        $oldStatus = $booking->status;
+        $oldTourUrl = $booking->tour_final_link;
+
         $booking->update([
             'tour_final_link' => $request->tour_url
+        ]);
+
+        // Log tour URL update
+        BookingHistory::create([
+            'booking_id' => $booking->id,
+            'from_status' => $oldStatus,
+            'to_status' => $oldStatus,
+            'changed_by' => auth()->id(),
+            'notes' => 'Tour final link updated',
+            'metadata' => [
+                'old_tour_url' => $oldTourUrl,
+                'new_tour_url' => $request->tour_url,
+                'action' => 'tour_url_updated'
+            ],
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
         ]);
 
         $booking->changeStatus(
@@ -368,6 +641,18 @@ class BookingStatusController extends Controller
                 'processing_completed_at' => now()
             ]
         );
+
+        activity('bookings')
+            ->performedOn($booking)
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'event' => 'tour_processing_completed',
+                'old_status' => $oldStatus,
+                'new_status' => 'tour_completed',
+                'tour_url' => $request->tour_url,
+                'notes' => $request->notes
+            ])
+            ->log('Tour processing completed');
 
         return response()->json([
             'success' => true,
@@ -388,12 +673,25 @@ class BookingStatusController extends Controller
             ], 422);
         }
 
+        $oldStatus = $booking->status;
+
         $booking->changeStatus(
             'tour_live',
             auth()->id(),
             $request->notes ?? 'Tour published and live',
             ['published_at' => now()]
         );
+
+        activity('bookings')
+            ->performedOn($booking)
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'event' => 'tour_published',
+                'old_status' => $oldStatus,
+                'new_status' => 'tour_live',
+                'notes' => $request->notes
+            ])
+            ->log('Tour published and made live');
 
         return response()->json([
             'success' => true,
@@ -411,6 +709,26 @@ class BookingStatusController extends Controller
             'reason' => 'required|string|max:500'
         ]);
 
+        $oldStatus = $booking->status;
+
+        // Store previous status for restoration tracking
+        $previousStatus = $booking->status;
+        
+        BookingHistory::create([
+            'booking_id' => $booking->id,
+            'from_status' => $oldStatus,
+            'to_status' => $oldStatus,
+            'changed_by' => auth()->id(),
+            'notes' => 'Maintenance started - Previous status stored for restoration',
+            'metadata' => [
+                'previous_status' => $previousStatus,
+                'reason' => $request->reason,
+                'action' => 'maintenance_initiated'
+            ],
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
+
         $booking->changeStatus(
             'maintenance',
             auth()->id(),
@@ -421,6 +739,17 @@ class BookingStatusController extends Controller
                 'previous_status' => $booking->status
             ]
         );
+
+        activity('bookings')
+            ->performedOn($booking)
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'event' => 'put_under_maintenance',
+                'old_status' => $oldStatus,
+                'new_status' => 'maintenance',
+                'reason' => $request->reason
+            ])
+            ->log('Booking put under maintenance');
 
         return response()->json([
             'success' => true,
@@ -446,12 +775,41 @@ class BookingStatusController extends Controller
             'notes' => 'nullable|string|max:500'
         ]);
 
+        $oldStatus = $booking->status;
+
+        // Log restoration details
+        BookingHistory::create([
+            'booking_id' => $booking->id,
+            'from_status' => $oldStatus,
+            'to_status' => $oldStatus,
+            'changed_by' => auth()->id(),
+            'notes' => 'Booking restored from maintenance to ' . $request->target_status,
+            'metadata' => [
+                'maintenance_status' => $oldStatus,
+                'restored_to' => $request->target_status,
+                'action' => 'maintenance_restoration'
+            ],
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
+
         $booking->changeStatus(
             $request->target_status,
             auth()->id(),
             $request->notes ?? 'Maintenance completed',
             ['maintenance_completed_at' => now()]
         );
+
+        activity('bookings')
+            ->performedOn($booking)
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'event' => 'removed_from_maintenance',
+                'old_status' => $oldStatus,
+                'new_status' => $request->target_status,
+                'notes' => $request->notes
+            ])
+            ->log('Booking removed from maintenance');
 
         return response()->json([
             'success' => true,
@@ -469,6 +827,8 @@ class BookingStatusController extends Controller
             'reason' => 'nullable|string|max:500'
         ]);
 
+        $oldStatus = $booking->status;
+
         $booking->changeStatus(
             'expired',
             auth()->id(),
@@ -478,6 +838,17 @@ class BookingStatusController extends Controller
                 'reason' => $request->reason
             ]
         );
+
+        activity('bookings')
+            ->performedOn($booking)
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'event' => 'booking_expired',
+                'old_status' => $oldStatus,
+                'new_status' => 'expired',
+                'reason' => $request->reason
+            ])
+            ->log('Booking expired');
 
         return response()->json([
             'success' => true,
@@ -581,12 +952,44 @@ class BookingStatusController extends Controller
 
         foreach ($bookings as $booking) {
             try {
+                $oldStatus = $booking->status;
+
+                // Log that this booking is part of bulk operation
+                BookingHistory::create([
+                    'booking_id' => $booking->id,
+                    'from_status' => $oldStatus,
+                    'to_status' => $oldStatus,
+                    'changed_by' => auth()->id(),
+                    'notes' => 'Included in bulk status update operation',
+                    'metadata' => [
+                        'total_bookings' => count($request->booking_ids),
+                        'target_status' => $request->status,
+                        'bulk_operation_id' => uniqid('bulk_'),
+                        'action' => 'bulk_operation_started'
+                    ],
+                    'ip_address' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                ]);
+
                 $booking->changeStatus(
                     $request->status,
                     auth()->id(),
                     $request->notes ?? 'Bulk status update',
                     ['bulk_update' => true]
                 );
+
+                activity('bookings')
+                    ->performedOn($booking)
+                    ->causedBy(auth()->user())
+                    ->withProperties([
+                        'event' => 'bulk_status_update',
+                        'old_status' => $oldStatus,
+                        'new_status' => $request->status,
+                        'notes' => $request->notes,
+                        'booking_ids' => $request->booking_ids
+                    ])
+                    ->log('Booking status updated via bulk operation');
+
                 $updated++;
             } catch (\Exception $e) {
                 $failed++;
@@ -615,12 +1018,26 @@ class BookingStatusController extends Controller
             'metadata' => 'nullable|array'
         ]);
 
+        $oldStatus = $booking->status;
+
         $booking->changeStatus(
             $request->status,
             auth()->id(),
             $request->notes,
             $request->metadata
         );
+
+        activity('bookings')
+            ->performedOn($booking)
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'event' => 'status_changed',
+                'old_status' => $oldStatus,
+                'new_status' => $request->status,
+                'notes' => $request->notes,
+                'metadata' => $request->metadata
+            ])
+            ->log('Booking status changed');
 
         return response()->json([
             'success' => true,
