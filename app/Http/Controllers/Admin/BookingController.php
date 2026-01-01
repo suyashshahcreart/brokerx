@@ -488,6 +488,8 @@ class BookingController extends Controller
         $request->validate([
             'schedule_date' => ['required', 'date'],
         ]);
+        // Snapshot before changes so activity log can capture accurate diff
+        $before = $booking->toArray();
 
         $oldDate = $booking->booking_date;
         $newDate = $request->input('schedule_date');
@@ -610,7 +612,19 @@ class BookingController extends Controller
         }
 
         $booking->save();
+        $booking->refresh();
 
+        $after = $booking->toArray();
+
+        // Build a simple change set for the log
+        $changes = [];
+        foreach ($after as $key => $value) {
+            $oldValue = $before[$key] ?? null;
+            if ($oldValue !== $value) {
+                $changes[$key] = ['old' => $oldValue, 'new' => $value];
+            }
+        }
+        
         activity('bookings')
             ->performedOn($booking)
             ->causedBy($request->user())
@@ -622,6 +636,9 @@ class BookingController extends Controller
                 'new_status' => $booking->status,
                 'date_changed' => $dateChanged,
                 'status_changed' => $statusChanged,
+                'before' => $before,
+                'after' => $after,
+                'changes' => $changes,
                 'assignment_removed' => $assignmentRemoved ?? false,
             ])
             ->log('Booking rescheduled' .
