@@ -32,6 +32,12 @@ class PermissionsRolesSeeder extends Seeder
             'user_delete',
             'user_manage_roles',
 
+            // Customer management
+            'customer_view',
+            'customer_create',
+            'customer_edit',
+            'customer_delete',
+
             // Activity management
             'activity_view',
             'activity_manage',
@@ -41,23 +47,19 @@ class PermissionsRolesSeeder extends Seeder
             'media_upload',
             'media_delete',
 
-            // Scheduler management
-            'scheduler_view',
-            'scheduler_create',
-            'scheduler_edit',
-            'scheduler_delete',
-
-            // Portfolio view of the setup
-            'portfolio_view',
-            'portfolio_create',
-            'portfolio_edit',
-            'portfolio_delete',
 
             //booking 
             'booking_view',
             'booking_create',
             'booking_edit',
             'booking_delete',
+            // Booking action permissions
+            'booking_schedule',
+            'booking_update_payment_status',
+            'booking_update_status',
+            'booking_assign_qr',
+            'booking_approval',
+            'booking_manage_assignees',
 
             // Photographer Visit management
             'photographer_visit_view',
@@ -65,12 +67,6 @@ class PermissionsRolesSeeder extends Seeder
             'photographer_visit_edit',
             'photographer_visit_delete',
 
-            // Photographer Visit Job management
-            'photographer_visit_job_view',
-            'photographer_visit_job_create',
-            'photographer_visit_job_edit',
-            'photographer_visit_job_delete',
-            'photographer_visit_job_assign',
 
             // Holiday management
             'holiday_view',
@@ -83,25 +79,36 @@ class PermissionsRolesSeeder extends Seeder
             'setting_create',
             'setting_edit',
             'setting_delete',
+            // Settings tabs permissions
+            'setting_booking_schedule',
+            'setting_photographer',
+            'setting_base_price',
+            'setting_payment_gateway',
+            'setting_sms_configuration',
+            'setting_ftp_configuration',
 
             // QR management
             'qr_view',
             'qr_create',
             'qr_edit',
             'qr_delete',
-
             // Tour management
             'tour_view',
             'tour_create',
             'tour_edit',
             'tour_delete',
+            
+            // QR Analytics management
+            'qr_analytics_view',
 
-            // Booking Assignee management
-            'booking_assignee_view',
-            'booking_assignee_create',
-            'booking_assignee_edit',
-            'booking_assignee_delete',
-            'booking_assignee_assign',
+
+            // Tour Manager management
+            'tour_manager_view',
+            'tour_manager_edit',
+
+            // Tour Notification management
+            'tour_notification_view',
+
         ];
 
         foreach ($permissions as $permissionName) {
@@ -143,12 +150,26 @@ class PermissionsRolesSeeder extends Seeder
             'photographer_visit_view',
             'photographer_visit_create',
             'photographer_visit_edit',
-            'photographer_visit_job_view',
-            'photographer_visit_job_edit',
             'booking_view',
-            'portfolio_view',
         ])->get();
 
         $photographerRole->syncPermissions($photographerPermissions);
+
+        // Tour Manager role permissions
+        $tourManagerPermissions = Permission::whereIn('name', [
+            'tour_manager_view',
+            'tour_manager_edit',
+            'tour_notification_view',
+            'tour_view',
+            'booking_view',
+        ])->get();
+
+        $seoManagerPermissions = Permission::whereIn('name', [
+            'tour_view',
+            'booking_view',
+            'booking_edit',
+        ])->get();
+
+        $tour_manager->syncPermissions($tourManagerPermissions);
     }
 }

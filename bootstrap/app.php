@@ -28,8 +28,15 @@ return Application::configure(basePath: dirname(__DIR__))
             'api/*',
         ]);
 
-        // Redirect unauthenticated users to login
-        $middleware->redirectGuestsTo('/login');
+        // Redirect unauthenticated users to login (conditional based on route)
+        $middleware->redirectGuestsTo(function ($request) {
+            // If accessing admin routes, redirect to admin login
+            if ($request->is('admin') || $request->is('admin/*')) {
+                return '/admin/login';
+            }
+            // Otherwise redirect to frontend login
+            return '/login';
+        });
     })
     ->withExceptions(function (Exceptions $exceptions) {
         // Ensure API routes always return JSON

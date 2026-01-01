@@ -51,36 +51,72 @@
                         <div class="row mb-5">
                             <div class="col-sm-3 col-md-3 col-lg-3 mb-2 mb-sm-0">
                                 <div class="nav flex-column nav-pills settings-nav-pills" id="vl-pills-tab" role="tablist" aria-orientation="vertical">
-                                    <a class="nav-link active show" id="vl-pills-home-tab" data-bs-toggle="pill" href="#vl-pills-home" role="tab" aria-controls="vl-pills-home" aria-selected="true">
-                                        <i class="ri-calendar-event-line me-2"></i>
-                                        <span>Booking Schedule Date</span>
-                                    </a>
-                                    <a class="nav-link" id="vl-pills-photographer-tab" data-bs-toggle="pill" href="#vl-pills-photographer" role="tab" aria-controls="vl-pills-photographer" aria-selected="false">
-                                        <i class="ri-camera-2-line me-2"></i>
-                                        <span>Photographer Settings</span>
-                                    </a>
-                                    <a class="nav-link" id="vl-pills-profile-tab" data-bs-toggle="pill" href="#vl-pills-profile" role="tab" aria-controls="vl-pills-profile" aria-selected="false">
-                                        <i class="ri-money-dollar-circle-line me-2"></i>
-                                        <span>Base Price</span>
-                                    </a>
-                                    <a class="nav-link" id="vl-pills-settings-tab" data-bs-toggle="pill" href="#vl-pills-settings" role="tab" aria-controls="vl-pills-settings" aria-selected="false">
-                                        <i class="ri-bank-card-line me-2"></i>
-                                        <span>Payment Gateway</span>
-                                    </a>
-                                    <a class="nav-link" id="vl-pills-sms-tab" data-bs-toggle="pill" href="#vl-pills-sms" role="tab" aria-controls="vl-pills-sms" aria-selected="false">
-                                        <i class="ri-message-3-line me-2"></i>
-                                        <span>SMS Configuration</span>
-                                    </a>
-                                    <a class="nav-link" id="vl-pills-ftp-tab" data-bs-toggle="pill" href="#vl-pills-ftp" role="tab" aria-controls="vl-pills-ftp" aria-selected="false">
-                                        <i class="ri-server-line me-2"></i>
-                                        <span>FTP Configuration</span>
-                                    </a>
+                                    @php
+                                        // Find first available tab to make active
+                                        $firstActiveTab = null;
+                                        if ($canBookingSchedule) {
+                                            $firstActiveTab = 'vl-pills-home';
+                                        } elseif ($canPhotographer) {
+                                            $firstActiveTab = 'vl-pills-photographer';
+                                        } elseif ($canBasePrice) {
+                                            $firstActiveTab = 'vl-pills-profile';
+                                        } elseif ($canPaymentGateway) {
+                                            $firstActiveTab = 'vl-pills-settings';
+                                        } elseif ($canSmsConfiguration) {
+                                            $firstActiveTab = 'vl-pills-sms';
+                                        } elseif ($canFtpConfiguration) {
+                                            $firstActiveTab = 'vl-pills-ftp';
+                                        }
+                                    @endphp
+                                    
+                                    @if($canBookingSchedule)
+                                        <a class="nav-link {{ ($firstActiveTab === 'vl-pills-home') ? 'active show' : '' }}" id="vl-pills-home-tab" data-bs-toggle="pill" href="#vl-pills-home" role="tab" aria-controls="vl-pills-home" aria-selected="{{ ($firstActiveTab === 'vl-pills-home') ? 'true' : 'false' }}">
+                                            <i class="ri-calendar-event-line me-2"></i>
+                                            <span>Booking Schedule Date</span>
+                                        </a>
+                                    @endif
+                                    
+                                    @if($canPhotographer)
+                                        <a class="nav-link {{ ($firstActiveTab === 'vl-pills-photographer') ? 'active show' : '' }}" id="vl-pills-photographer-tab" data-bs-toggle="pill" href="#vl-pills-photographer" role="tab" aria-controls="vl-pills-photographer" aria-selected="{{ ($firstActiveTab === 'vl-pills-photographer') ? 'true' : 'false' }}">
+                                            <i class="ri-camera-2-line me-2"></i>
+                                            <span>Photographer Settings</span>
+                                        </a>
+                                    @endif
+                                    
+                                    @if($canBasePrice)
+                                        <a class="nav-link {{ ($firstActiveTab === 'vl-pills-profile') ? 'active show' : '' }}" id="vl-pills-profile-tab" data-bs-toggle="pill" href="#vl-pills-profile" role="tab" aria-controls="vl-pills-profile" aria-selected="{{ ($firstActiveTab === 'vl-pills-profile') ? 'true' : 'false' }}">
+                                            <i class="ri-money-dollar-circle-line me-2"></i>
+                                            <span>Base Price</span>
+                                        </a>
+                                    @endif
+                                    
+                                    @if($canPaymentGateway)
+                                        <a class="nav-link {{ ($firstActiveTab === 'vl-pills-settings') ? 'active show' : '' }}" id="vl-pills-settings-tab" data-bs-toggle="pill" href="#vl-pills-settings" role="tab" aria-controls="vl-pills-settings" aria-selected="{{ ($firstActiveTab === 'vl-pills-settings') ? 'true' : 'false' }}">
+                                            <i class="ri-bank-card-line me-2"></i>
+                                            <span>Payment Gateway</span>
+                                        </a>
+                                    @endif
+                                    
+                                    @if($canSmsConfiguration)
+                                        <a class="nav-link {{ ($firstActiveTab === 'vl-pills-sms') ? 'active show' : '' }}" id="vl-pills-sms-tab" data-bs-toggle="pill" href="#vl-pills-sms" role="tab" aria-controls="vl-pills-sms" aria-selected="{{ ($firstActiveTab === 'vl-pills-sms') ? 'true' : 'false' }}">
+                                            <i class="ri-message-3-line me-2"></i>
+                                            <span>SMS Configuration</span>
+                                        </a>
+                                    @endif
+                                    
+                                    @if($canFtpConfiguration)
+                                        <a class="nav-link {{ ($firstActiveTab === 'vl-pills-ftp') ? 'active show' : '' }}" id="vl-pills-ftp-tab" data-bs-toggle="pill" href="#vl-pills-ftp" role="tab" aria-controls="vl-pills-ftp" aria-selected="{{ ($firstActiveTab === 'vl-pills-ftp') ? 'true' : 'false' }}">
+                                            <i class="ri-server-line me-2"></i>
+                                            <span>FTP Configuration</span>
+                                        </a>
+                                    @endif
                                 </div>
                             </div>
                         
                             <div class="col-sm-9 col-md-9 col-lg-9">
                                 <div class="tab-content pt-0" id="vl-pills-tabContent">
-                                    <div class="tab-pane fade active show" id="vl-pills-home" role="tabpanel" aria-labelledby="vl-pills-home-tab">
+                                    @if($canBookingSchedule)
+                                    <div class="tab-pane fade {{ ($firstActiveTab === 'vl-pills-home') ? 'active show' : '' }}" id="vl-pills-home" role="tabpanel" aria-labelledby="vl-pills-home-tab">
                                         <form id="settingsForm" action="{{ route('admin.api.settings.update') }}" method="POST"
                                             class="needs-validation" novalidate data-csrf="{{ csrf_token() }}">
                                             @csrf
@@ -133,7 +169,9 @@
                                             </div>
                                         </form>
                                     </div>
-                                    <div class="tab-pane fade" id="vl-pills-photographer" role="tabpanel" aria-labelledby="vl-pills-photographer-tab">
+                                    @endif
+                                    @if($canPhotographer)
+                                    <div class="tab-pane fade {{ ($firstActiveTab === 'vl-pills-photographer') ? 'active show' : '' }}" id="vl-pills-photographer" role="tabpanel" aria-labelledby="vl-pills-photographer-tab">
                                         <form id="photographerSettingsForm" action="{{ route('admin.api.settings.update') }}" method="POST"
                                             class="needs-validation" novalidate data-csrf="{{ csrf_token() }}">
                                             @csrf
@@ -169,7 +207,9 @@
                                             </div>
                                         </form>
                                     </div>
-                                    <div class="tab-pane fade" id="vl-pills-profile" role="tabpanel" aria-labelledby="vl-pills-profile-tab">
+                                    @endif
+                                    @if($canBasePrice)
+                                    <div class="tab-pane fade {{ ($firstActiveTab === 'vl-pills-profile') ? 'active show' : '' }}" id="vl-pills-profile" role="tabpanel" aria-labelledby="vl-pills-profile-tab">
                                         <form id="basePriceForm" action="{{ route('admin.api.settings.update') }}" method="POST"
                                             class="needs-validation" novalidate data-csrf="{{ csrf_token() }}">
                                             @csrf
@@ -224,7 +264,9 @@
                                             </div>
                                         </form>
                                     </div>
-                                    <div class="tab-pane fade" id="vl-pills-settings" role="tabpanel" aria-labelledby="vl-pills-settings-tab">
+                                    @endif
+                                    @if($canPaymentGateway)
+                                    <div class="tab-pane fade {{ ($firstActiveTab === 'vl-pills-settings') ? 'active show' : '' }}" id="vl-pills-settings" role="tabpanel" aria-labelledby="vl-pills-settings-tab">
                                         <div class="row g-4">
                                             <!-- Cashfree Card -->
                                             <div class="col-md-6 col-lg-4">
@@ -422,7 +464,9 @@
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="tab-pane fade" id="vl-pills-sms" role="tabpanel" aria-labelledby="vl-pills-sms-tab">
+                                    @endif
+                                    @if($canSmsConfiguration)
+                                    <div class="tab-pane fade {{ ($firstActiveTab === 'vl-pills-sms') ? 'active show' : '' }}" id="vl-pills-sms" role="tabpanel" aria-labelledby="vl-pills-sms-tab">
                                         <div class="row g-4">
                                             @php
                                                 // Show only MSG91 gateway
@@ -520,7 +564,9 @@
                                             @endif
                                         </div>
                                     </div>
-                                    <div class="tab-pane fade" id="vl-pills-ftp" role="tabpanel" aria-labelledby="vl-pills-ftp-tab">
+                                    @endif
+                                    @if($canFtpConfiguration)
+                                    <div class="tab-pane fade {{ ($firstActiveTab === 'vl-pills-ftp') ? 'active show' : '' }}" id="vl-pills-ftp" role="tabpanel" aria-labelledby="vl-pills-ftp-tab">
                                         <div class="d-flex justify-content-between align-items-center mb-3">
                                             <h5 class="mb-0">FTP Server Configurations</h5>
                                             <button type="button" class="btn btn-primary btn-sm" id="addFtpConfigBtn">
@@ -548,6 +594,7 @@
                                             </table>
                                         </div>
                                     </div>
+                                    @endif
                                 </div>
                             </div>
                         </div>

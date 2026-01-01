@@ -21,6 +21,14 @@ class BookingStatusController extends Controller
      */
     public function approveSchedule(Request $request, Booking $booking)
     {
+        // Check permission
+        if (!$request->user()->can('booking_approval')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You do not have permission to approve schedules.'
+            ], 403);
+        }
+
         // Validate that booking is in correct state
         if ($booking->status !== 'schedul_pending') {
             return response()->json([
@@ -58,6 +66,14 @@ class BookingStatusController extends Controller
      */
     public function declineSchedule(Request $request, Booking $booking)
     {
+        // Check permission
+        if (!$request->user()->can('booking_approval')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You do not have permission to decline schedules.'
+            ], 403);
+        }
+
         $request->validate([
             'reason' => 'required|string|max:500'
         ]);
@@ -609,6 +625,14 @@ class BookingStatusController extends Controller
      */
     public function changeStatus(Request $request, Booking $booking)
     {
+        // Check permission
+        if (!$request->user()->can('booking_update_status')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You do not have permission to update booking status.'
+            ], 403);
+        }
+
         $request->validate([
             'status' => 'required|in:' . implode(',', Booking::getAvailableStatuses()),
             'notes' => 'nullable|string|max:500',
