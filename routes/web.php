@@ -1,4 +1,5 @@
 <?php
+use App\Http\Controllers\Admin\CustomerController;
 use App\Http\Controllers\Admin\HolidayController;
 use App\Http\Controllers\Admin\QRController;
 use App\Http\Controllers\Admin\BookingAssigneeController;
@@ -140,7 +141,7 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'middleware' => ['web', 'au
     Route::resource('permissions', PermissionController::class);
     Route::resource('roles', RoleController::class);
     Route::resource('users', AdminUserController::class);
-    Route::get('customer', [\App\Http\Controllers\Admin\CustomerController::class, 'index'])->name('customer.index');
+    Route::resource('customer', CustomerController::class);
     Route::get('assignment-calendar', [BookingController::class, 'AssignementCalender'])->name('assignment-calendar');
     // Booking custom routes (BEFORE resource to prevent route conflicts)
     Route::post('bookings/{booking}/update-ajax', [BookingController::class, 'updateAjax'])->name('bookings.update-ajax');
@@ -225,19 +226,19 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'middleware' => ['web', 'au
     Route::get('qr-analytics/{id}', [QRAnalyticsController::class, 'show'])->name('qr-analytics.show');
 
     Route::resource('settings', SettingController::class);
-    
+
     // Settings AJAX/API routes
     Route::prefix('api')->name('api.')->group(function () {
         Route::post('/settings/update', [SettingController::class, 'apiUpdate'])->name('settings.update');
         Route::get('/settings/{name}', [SettingController::class, 'apiGet'])->name('settings.get');
-        
+
         // FTP Configuration routes
         Route::get('/ftp-configurations', [SettingController::class, 'apiGetFtpConfigurations'])->name('ftp-configurations.index');
         Route::get('/ftp-configurations/{id}', [SettingController::class, 'apiGetFtpConfiguration'])->name('ftp-configurations.show');
         Route::post('/ftp-configurations', [SettingController::class, 'apiStoreFtpConfiguration'])->name('ftp-configurations.store');
         Route::delete('/ftp-configurations/{id}', [SettingController::class, 'apiDeleteFtpConfiguration'])->name('ftp-configurations.destroy');
     });
-    
+
     Route::get('activity', [ActivityLogController::class, 'index'])->name('activity.index');
     // QR Code Management
     Route::post('qr/bulk-generate', [QRController::class, 'bulkGenerate'])->name('qr.bulk-generate');
