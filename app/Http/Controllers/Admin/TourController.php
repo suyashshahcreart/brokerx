@@ -11,6 +11,8 @@ use App\Models\QR;
 use Storage;
 use Yajra\DataTables\DataTables;
 
+require_once app_path('Helpers/JsObfuscator.php');
+
 class TourController extends Controller
 {
     public function __construct()
@@ -541,12 +543,17 @@ class TourController extends Controller
         iframe.allow = "fullscreen";
         iframe.setAttribute("allowfullscreen", "true");
         return iframe;
-        };
-        ';
+        };';
+        
+        // encript the js code and testing things.
+        $obfuscatedJs = obfuscateJs($jsFileContent);
+        
         // Upload the JS file to S3
-        Storage::disk('s3')->put($jsPath, $jsFileContent, ['ContentType' => 'application/javascript']);
+        Storage::disk('s3')->put($jsPath, $obfuscatedJs, ['ContentType' => 'application/javascript']);
+        
         // update the json file of virtual-tour-nodes.json
         Storage::disk('s3')->put('tours/' . $qr_code . '/virtual-tour-nodes.json', $jsonString, ['ContentType' => 'application/json']);
+        
         // Update the tour with new data DB
         $tour->update($updateData);
         return redirect()->back()->with('success', 'Tour updated successfully from booking edit.');
