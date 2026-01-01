@@ -16,7 +16,7 @@
                 <div class="d-flex align-items-center gap-2">
                     <x-admin.back-button :fallback="route('admin.bookings.index')" :classes="['btn', 'btn-soft-secondary']"
                         :merge="false" icon="ri-arrow-go-back-line" />
-                    <a href="{{ route('admin.users.edit', $customer) }}" class="btn btn-primary"><i
+                    <a href="{{ route('admin.customer.edit', $customer) }}" class="btn btn-primary"><i
                             class="ri-edit-line me-1"></i> Edit Customer</a>
                 </div>
             </div>

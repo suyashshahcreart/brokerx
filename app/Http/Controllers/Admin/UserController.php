@@ -24,6 +24,10 @@ class UserController extends Controller
     {
         if ($request->ajax()) {
             $query = User::query()->with('roles');
+            // Filter: load only non-customer users if requested
+            $query->whereDoesntHave('roles', function ($q) {
+                $q->where('name', 'customer');
+            });
             $canEdit = $request->user()->can('user_edit');
             $canDelete = $request->user()->can('user_delete');
 
@@ -73,11 +77,11 @@ class UserController extends Controller
     public function store(Request $request)
     {
         $rules = [
-            'firstname' => ['required','string','max:255'],
-            'lastname' => ['required','string','max:255'],
-            'mobile' => ['required','numeric','digits:10','unique:users,mobile'],
-            'email' => ['required','email','max:255','unique:users,email'],
-            'password' => ['required','string','min:6'],
+            'firstname' => ['required', 'string', 'max:255'],
+            'lastname' => ['required', 'string', 'max:255'],
+            'mobile' => ['required', 'numeric', 'digits:10', 'unique:users,mobile'],
+            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'password' => ['required', 'string', 'min:6'],
         ];
 
         if ($request->user()->can('user_manage_roles')) {
@@ -88,7 +92,7 @@ class UserController extends Controller
         }
 
         $validated = $request->validate($rules);
-        
+
         $user = User::create([
             'firstname' => $validated['firstname'],
             'lastname' => $validated['lastname'],
@@ -104,7 +108,7 @@ class UserController extends Controller
 
         $user->syncRoles($selectedRoles);
         $user->load('roles');
-        
+
         activity('users')
             ->performedOn($user)
             ->causedBy($request->user())
@@ -120,7 +124,7 @@ class UserController extends Controller
                 ]
             ])
             ->log('User created');
-            
+
         return redirect()->route('admin.users.index')->with('success', 'User created');
     }
 
@@ -129,17 +133,17 @@ class UserController extends Controller
         $canManageRoles = auth()->user()->can('user_manage_roles');
         $roles = $canManageRoles ? Role::orderBy('name')->get() : collect();
         $user->load('roles');
-        return view('admin.users.edit', compact('user','roles','canManageRoles'));
+        return view('admin.users.edit', compact('user', 'roles', 'canManageRoles'));
     }
 
     public function update(Request $request, User $user)
     {
         $rules = [
-            'firstname' => ['required','string','max:255'],
-            'lastname' => ['required','string','max:255'],
-            'mobile' => ['required','numeric','digits:10','unique:users,mobile,' . $user->id],
-            'email' => ['required','email','max:255','unique:users,email,' . $user->id],
-            'password' => ['nullable','string','min:6'],
+            'firstname' => ['required', 'string', 'max:255'],
+            'lastname' => ['required', 'string', 'max:255'],
+            'mobile' => ['required', 'numeric', 'digits:10', 'unique:users,mobile,' . $user->id],
+            'email' => ['required', 'email', 'max:255', 'unique:users,email,' . $user->id],
+            'password' => ['nullable', 'string', 'min:6'],
         ];
 
         if ($request->user()->can('user_manage_roles')) {
@@ -150,7 +154,7 @@ class UserController extends Controller
         }
 
         $validated = $request->validate($rules);
-        
+
         // Capture before state
         $user->load('roles');
         $before = [
@@ -161,7 +165,7 @@ class UserController extends Controller
             'email' => $user->email,
             'roles' => $user->roles->pluck('name')->sort()->values()->toArray(),
         ];
-        
+
         // Prepare update data
         $data = [
             'firstname' => $validated['firstname'],
@@ -169,15 +173,15 @@ class UserController extends Controller
             'mobile' => $validated['mobile'],
             'email' => $validated['email']
         ];
-        
+
         if (!empty($validated['password'])) {
             $data['password'] = Hash::make($validated['password']);
             $before['password'] = '***';
         }
-        
+
         // Update user
         $user->update($data);
-        
+
         // Sync roles
         if ($request->user()->can('user_manage_roles')) {
             $selectedRoles = array_values(array_filter($request->input('roles', [])));
@@ -185,7 +189,7 @@ class UserController extends Controller
             $isUserAdmin = $user->hasRole('admin');
             $adminRoleRetained = in_array('admin', $selectedRoles, true);
 
-            if ($isUserAdmin && ! $adminRoleRetained) {
+            if ($isUserAdmin && !$adminRoleRetained) {
                 $otherAdmins = User::role('admin')
                     ->where('users.id', '!=', $user->id)
                     ->count();
@@ -203,7 +207,7 @@ class UserController extends Controller
 
         $user->syncRoles($selectedRoles);
         $user->load('roles');
-        
+
         // Capture after state
         $after = [
             'name' => $user->name,
@@ -213,11 +217,11 @@ class UserController extends Controller
             'email' => $user->email,
             'roles' => $user->roles->pluck('name')->sort()->values()->toArray(),
         ];
-        
+
         if (!empty($validated['password'])) {
             $after['password'] = '***';
         }
-        
+
         // Calculate changes
         $changes = [];
         foreach ($after as $key => $value) {
@@ -228,7 +232,7 @@ class UserController extends Controller
                 ];
             }
         }
-        
+
         activity('users')
             ->performedOn($user)
             ->causedBy($request->user())
@@ -239,7 +243,7 @@ class UserController extends Controller
                 'changes' => $changes
             ])
             ->log('User updated');
-            
+
         return redirect()->route('admin.users.index')->with('success', 'User updated');
     }
 
@@ -264,11 +268,11 @@ class UserController extends Controller
             'email' => $user->email,
             'roles' => $user->roles->pluck('name')->sort()->values()->toArray(),
         ];
-        
+
         $userId = $user->id;
         $userType = get_class($user);
         $user->delete();
-        
+
         // Manually create activity log for deleted model
         Activity::create([
             'log_name' => 'users',
@@ -283,7 +287,7 @@ class UserController extends Controller
                 'deleted_id' => $userId
             ]
         ]);
-            
+
         return redirect()->route('admin.users.index')->with('success', 'User deleted');
     }
 }
