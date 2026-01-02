@@ -681,13 +681,35 @@ class CalendarSchedule {
         const slotModeAny = document.getElementById('slotModeAny');
         const getSlotMode = () => (slotModeAny?.checked ? 'any' : 'available');
 
+        // Helper to check if time is in the past
+        const isPastTime = (timeInMinutes, selectedDate) => {
+            if (!selectedDate) return false;
+            
+            const now = new Date();
+            // Parse selectedDate string (YYYY-MM-DD) to avoid timezone issues
+            const [year, month, day] = selectedDate.split('-').map(Number);
+            const selectedDateObj = new Date(year, month - 1, day);
+            const todayDateObj = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            
+            // If selected date is not today, no filtering needed
+            if (selectedDateObj.getTime() !== todayDateObj.getTime()) {
+                return false;
+            }
+            
+            // For today, check if the slot start time has passed
+            const currentMinutes = now.getHours() * 60 + now.getMinutes();
+            return timeInMinutes <= currentMinutes;
+        };
+
         // Build all possible slots
         const buildAllSlots = () => {
             timeSel.innerHTML = '<option value="">Select a time</option>';
             if (toM < fromM) return;
+            const dateVal = dateEl.value;
             for (let t = fromM; t <= toM; t += slotStep) {
-                const candidateEnd = t + workingDuration;
-                if (candidateEnd > toM) continue;
+                // Skip past times if date is today
+                if (dateVal && isPastTime(t, dateVal)) continue;
+                
                 const opt = document.createElement('option');
                 opt.value = formatHM(t);
                 opt.textContent = formatDisplay(t);
@@ -768,7 +790,9 @@ class CalendarSchedule {
                     const parts = s.time.split(':');
                     if (parts.length < 2) return;
                     const start = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
-                    const end = start + workingDuration;
+                    // Add buffer time equal to working duration after the working duration
+                    const bufferTime = workingDuration;
+                    const end = start + workingDuration + bufferTime;
                     occupiedIntervals.push({ start, end });
                 });
 
@@ -776,7 +800,9 @@ class CalendarSchedule {
                 for (let t = fromM; t <= toM; t += slotStep) {
                     const candidateStart = t;
                     const candidateEnd = t + workingDuration;
-                    if (candidateEnd > toM) continue;
+
+                    // Skip past times if date is today
+                    if (isPastTime(candidateStart, dateVal)) continue;
 
                     let overlaps = false;
                     for (const occ of occupiedIntervals) {

@@ -224,6 +224,19 @@ class BookingAssigneeController extends Controller
             return redirect()->back()->with('error', $error)->withInput();
         }
 
+        // Check if the same booking is already assigned to any photographer on the same date
+        $existingBookingAssignment = BookingAssignee::where('booking_id', $validated['booking_id'])
+            ->whereDate('date', $booking->booking_date)
+            ->first();
+
+        if ($existingBookingAssignment) {
+            $error = 'already assigne to a Photographer and on this date:: ' . Carbon::parse($booking->booking_date)->format('d M Y');
+            if ($request->ajax()) {
+                return response()->json(['success' => false, 'message' => $error], 422);
+            }
+            return redirect()->back()->with('error', $error)->withInput();
+        }
+
         // Check for overlapping assignments for the selected photographer on the same date
         // We treat assignments as occupying a [start, start + duration) interval and reject overlapping intervals
         $duration = (int) $duration; // ensure integer minutes
