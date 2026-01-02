@@ -25,6 +25,7 @@ use App\Http\Controllers\Admin\TourController;
 use App\Http\Controllers\Admin\TourManagerController;
 use App\Http\Controllers\Admin\TourNotificationController;
 use App\Http\Controllers\Admin\QRAnalyticsController;
+use App\Http\Controllers\Admin\ProfileController;
 use App\Http\Controllers\FrontendController;
 use App\Http\Controllers\PortfolioController;
 use App\Http\Controllers\BrokerX\BrokerXController;
@@ -138,11 +139,17 @@ Route::group(['prefix' => 'themes', 'middleware' => 'auth'], function () {
 
 Route::group(['prefix' => 'admin', 'as' => 'admin.', 'middleware' => ['web', 'auth', 'not.customer']], function () {
     Route::get('/', [AdminDashboardController::class, 'index'])->name('index');
+    
+    // Profile routes
+    Route::get('profile', [ProfileController::class, 'index'])->name('profile.index');
+    Route::put('profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::get('profile/change-password', [ProfileController::class, 'showChangePassword'])->name('profile.change-password');
+    Route::put('profile/change-password', [ProfileController::class, 'updatePassword'])->name('profile.update-password');
+    
     Route::resource('permissions', PermissionController::class);
     Route::resource('roles', RoleController::class);
     Route::resource('users', AdminUserController::class);
-    Route::get('customer', [CustomerController::class, 'index'])->name('customer.index');
-    Route::get('customer/{customer}', [CustomerController::class, 'show'])->name('customer.show');
+    Route::resource('customer', CustomerController::class);
     Route::get('assignment-calendar', [BookingController::class, 'AssignementCalender'])->name('assignment-calendar');
     // Booking custom routes (BEFORE resource to prevent route conflicts)
     Route::post('bookings/{booking}/update-ajax', [BookingController::class, 'updateAjax'])->name('bookings.update-ajax');

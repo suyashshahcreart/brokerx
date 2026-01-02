@@ -16,7 +16,7 @@ class PendingScheduleController extends Controller
     {
         $this->smsService = $smsService;
         $this->middleware('permission:booking_view')->only(['index']);
-        $this->middleware('permission:booking_edit')->only(['accept', 'decline']);
+        $this->middleware('permission:booking_approval')->only(['accept', 'decline']);
     }
 
     /**
@@ -82,6 +82,14 @@ class PendingScheduleController extends Controller
      */
     public function accept(Request $request, Booking $booking)
     {
+        // Check permission
+        if (!$request->user()->can('booking_approval')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You do not have permission to approve schedules.'
+            ], 403);
+        }
+
         // Validate booking is in pending state
         if (!in_array($booking->status, ['schedul_pending', 'reschedul_pending'])) {
             return response()->json([
@@ -179,6 +187,14 @@ class PendingScheduleController extends Controller
      */
     public function decline(Request $request, Booking $booking)
     {
+        // Check permission
+        if (!$request->user()->can('booking_approval')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You do not have permission to decline schedules.'
+            ], 403);
+        }
+
         // Validate booking is in pending state
         if (!in_array($booking->status, ['schedul_pending', 'reschedul_pending'])) {
             return response()->json([

@@ -5,7 +5,7 @@
 
 @if($canEdit || $canDelete)
     <div class="d-flex justify-content-end gap-1">
-        @if(true)
+        @if(false)
             <a href="{{ route('admin.customer.show', $user) }}" class="btn btn-sm btn-soft-secondary" title="Show User">
                 <i class="ri-eye-line"></i>
             </a>
