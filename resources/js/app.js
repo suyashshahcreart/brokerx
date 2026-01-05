@@ -67,6 +67,7 @@ import {
 import 'iconify-icon';
 import 'simplebar'
 
+console.log('Prop pik Admin - Main JS Loaded ./app.js');
 // Components
 class Components {
     initBootstrapComponents() {
