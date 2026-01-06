@@ -140,6 +140,8 @@ class BookingController extends Controller
         $canEdit = $request->user()->can('booking_edit');
         $canDelete = $request->user()->can('booking_delete');
         $canSchedule = $request->user()->can('booking_schedule');
+
+        //dd($canCreate, $canEdit, $canDelete, $canSchedule, $states, $cities);
         
         return view('admin.bookings.index', compact('canCreate', 'canEdit', 'canDelete', 'canSchedule', 'states', 'cities'));
     }
@@ -232,7 +234,7 @@ class BookingController extends Controller
 
     public function create()
     {
-        $users = User::orderBy('firstname')->get();
+        $users = User::role('customer')->orderBy('firstname')->get();
         $propertyTypes = PropertyType::orderBy('name')->get();
         $propertySubTypes = PropertySubType::orderBy('name')->get();
         $bhks = BHK::orderBy('name')->get();
@@ -438,7 +440,7 @@ class BookingController extends Controller
 
     public function edit(Booking $booking)
     {
-        $users = User::orderBy('firstname')->get();
+        $users = User::role('customer')->orderBy('firstname')->get();
         $propertyTypes = PropertyType::orderBy('name')->get();
         $propertySubTypes = PropertySubType::orderBy('name')->get();
         $bhks = BHK::orderBy('name')->get();
@@ -454,6 +456,37 @@ class BookingController extends Controller
 
         // dd($booking,$qr_code);
 
+        // Get photographers for assignment modal (needed for Quick Actions)
+        $photographers = User::whereHas('roles', function ($q) {
+            $q->where('name', 'photographer');
+        })->get();
+
+        // Check permissions for Quick Actions
+        $request = request(); // Get request instance
+        $canSchedule = $request->user()->can('booking_schedule');
+        $canUpdatePaymentStatus = $request->user()->can('booking_update_payment_status');
+        $canUpdateStatus = $request->user()->can('booking_update_status');
+        $canAssignQR = $request->user()->can('booking_assign_qr');
+        $canApproval = $request->user()->can('booking_approval');
+        $canManageAssignees = $request->user()->can('booking_manage_assignees');
+        $canEdit = $request->user()->can('booking_edit');
+        $canDelete = $request->user()->can('booking_delete');
+
+        // Check if user has ANY Quick Actions permission
+        // Approval permission only counts if booking is pending
+        // Manage assignees only counts if booking is accepted
+        $hasApprovalPermission = $canApproval && in_array($booking->status, ['schedul_pending', 'reschedul_pending']);
+        $hasManageAssigneesPermission = $canManageAssignees && in_array($booking->status, ['schedul_accepted', 'reschedul_accepted']);
+        
+        $hasAnyQuickActionPermission = $canSchedule || 
+                                       $canUpdatePaymentStatus || 
+                                       $canUpdateStatus || 
+                                       $canAssignQR || 
+                                       $hasApprovalPermission || 
+                                       $hasManageAssigneesPermission || 
+                                       $canEdit || 
+                                       $canDelete;
+
         return view('admin.bookings.edit', compact(
             'booking',
             'tour',
@@ -465,7 +498,17 @@ class BookingController extends Controller
             'states',
             'paymentStatuses',
             'statuses',
-            'qr_code'
+            'qr_code',
+            'photographers',
+            'canSchedule',
+            'canUpdatePaymentStatus',
+            'canUpdateStatus',
+            'canAssignQR',
+            'canApproval',
+            'canManageAssignees',
+            'canEdit',
+            'canDelete',
+            'hasAnyQuickActionPermission'
         ));
     }
 
@@ -518,7 +561,7 @@ class BookingController extends Controller
             ])
             ->log('Booking updated');
 
-        return redirect()->route('admin.bookings.index')->with('success', 'Booking updated successfully.');
+        return redirect()->route('admin.bookings.edit', $booking)->with(['success' => 'Booking updated successfully.', 'active_tab' => 'booking']);
     }
 
     public function destroy(Booking $booking)

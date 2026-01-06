@@ -6,7 +6,7 @@
                 <div>
                     <nav aria-label="breadcrumb" class="mb-0">
                         <ol class="breadcrumb mb-0">
-                            <li class="breadcrumb-item"><a href="{{ route('root') }}">Home</a></li>
+                            <li class="breadcrumb-item"><a href="{{ route('admin.index') }}">Home</a></li>
                             <li class="breadcrumb-item"><a href="{{ route('admin.bookings.index') }}">Customer</a></li>
                             <li class="breadcrumb-item active" aria-current="page">#{{ $customer->id }}</li>
                         </ol>

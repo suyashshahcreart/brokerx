@@ -7,7 +7,7 @@
             <div>
                 <nav aria-label="breadcrumb" class="mb-0">
                     <ol class="breadcrumb mb-0">
-                        <li class="breadcrumb-item"><a href="{{ route('root') }}">Home</a></li>
+                        <li class="breadcrumb-item"><a href="{{ route('admin.index') }}">Home</a></li>
                         <li class="breadcrumb-item"><a href="{{ route('admin.photographer-visit-jobs.index') }}">Photographer Jobs</a></li>
                         <li class="breadcrumb-item active" aria-current="page">Edit {{ $photographerVisitJob->job_code }}</li>
                     </ol>

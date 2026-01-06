@@ -24,7 +24,7 @@
                <li class="menu-title">Menu</li>
 
                <li class="nav-item">
-                    <a class="nav-link" href="{{ route('root') }}">
+                    <a class="nav-link" href="{{ route('admin.index') }}">
                          <span class="nav-icon">
                               <i class="ri-dashboard-2-line"></i>
                          </span>

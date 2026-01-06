@@ -535,7 +535,7 @@ class TourController extends Controller
 
         // If final_json was empty originally, only persist DB changes and skip S3
         if ($finalJsonWasEmpty) {
-            return redirect()->back()->with('warning', 'Tour updated, but files were not uploaded to S3 because final JSON was empty.');
+            return redirect()->back()->with(['warning' => 'Tour updated, but files were not uploaded to S3 because final JSON was empty.', 'active_tab' => 'tour']);
         }
 
         //  create a new js file with updated final json
@@ -587,7 +587,7 @@ class TourController extends Controller
         // update the json file of virtual-tour-nodes.json
         Storage::disk('s3')->put('tours/' . $qr_code . '/virtual-tour-nodes.json', $jsonString, ['ContentType' => 'application/json']);
         
-        return redirect()->back()->with('success', 'Tour updated successfully from booking edit.');
+        return redirect()->back()->with(['success' => 'Tour updated successfully from booking edit.', 'active_tab' => 'tour']);
     }
 
     /**
@@ -643,7 +643,7 @@ class TourController extends Controller
             'gtm_tag' => $validated['gtm_tag'] ?? null,
         ]);
 
-        return redirect()->back()->with('success', 'SEO details updated successfully.');
+        return redirect()->back()->with(['success' => 'SEO details updated successfully.', 'active_tab' => 'seo']);
     }
 
     /**

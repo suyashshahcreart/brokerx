@@ -1,6 +1,6 @@
 @props([
     'label' => 'Back',
-    'fallback' => route('root'),
+    'fallback' => route('admin.index'),
     'classes' => [],
     'icon' => 'ri-arrow-left-line',
     'merge' => true,
