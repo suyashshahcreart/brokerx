@@ -265,7 +265,7 @@
                 <div>
                     <nav aria-label="breadcrumb" class="mb-0">
                         <ol class="breadcrumb mb-0">
-                            <li class="breadcrumb-item"><a href="{{ route('root') }}">Home</a></li>
+                            <li class="breadcrumb-item"><a href="{{ route('admin.index') }}">Home</a></li>
                             <li class="breadcrumb-item"><a href="{{ route('admin.bookings.index') }}">Bookings</a></li>
                             <li class="breadcrumb-item active" aria-current="page">Edit #{{ $booking->id }}</li>
                         </ol>
@@ -274,6 +274,12 @@
                 </div>
                 <div class="d-flex align-items-center gap-2">
                     <x-admin.back-button :fallback="route('admin.bookings.index')" :classes="['btn', 'btn-soft-secondary']" :merge="false" icon="ri-arrow-go-back-line" />
+
+                <a href="{{ route('admin.bookings.show', $booking->id) }}" class="btn btn-primary" title="View Booking" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="View Booking">
+                    <i class="ri-eye-line"></i>
+                    <span>View</span>
+                </a>
+                    
                 </div>
             </div>
             
@@ -286,13 +292,13 @@
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="quick-actions-tab" data-bs-toggle="tab" data-bs-target="#quick-actions-pane" type="button" role="tab" aria-controls="quick-actions-pane" aria-selected="false">
+                                <i class="ri-flashlight-line me-1"></i> Quick Actions
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
                             <button class="nav-link" id="tour-tab" data-bs-toggle="tab" data-bs-target="#tour-pane" type="button" role="tab" aria-controls="tour-pane" aria-selected="false">
                                 <i class="ri-map-pin-line me-1"></i> Tour Details
-                                @if($qr_code)
-                                    <span class="badge bg-success ms-1">Qr Linked</span>
-                                @else
-                                    <span class="badge bg-danger ms-1">Qr not Linked</span>
-                                @endif
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
@@ -305,6 +311,7 @@
                                 <i class="ri-code-s-slash-line me-1"></i> JSON
                             </button>
                         </li>
+
                     </ul>
                 </div>
                 <div class="card-body pt-0">
@@ -344,6 +351,11 @@
                             </form>
                         </div>
 
+                        <!-- Quick Actions Tab -->
+                        <div class="tab-pane fade" id="quick-actions-pane" role="tabpanel" aria-labelledby="quick-actions-tab" tabindex="0">
+                            @include('admin.bookings.partials.quick-actions')
+                        </div>
+
                         <!-- Tour Tab -->
                         <div class="tab-pane fade" id="tour-pane" role="tabpanel" aria-labelledby="tour-tab" tabindex="0">
                             @if($tour ?? null)
@@ -365,6 +377,8 @@
                                 <pre class="bg-light p-3 rounded border" style="font-size: 13px; max-height: 90%; overflow: auto;">{!! is_array($tour->final_json) ? json_encode($tour->final_json, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) : $tour->final_json !!}</pre>
                             </div>
                         </div>
+
+
                     </div>
                 </div>
             </div>
@@ -375,7 +389,29 @@
 <!-- script section  -->
 @section('script')
     @vite(['resources/js/pages/bookings-edit.js','resources/js/pages/edit-booking-tour.js'])
+    @include('admin.bookings.partials.quick-actions-script')
     <script>
+        // Persist active tab across reloads
+        document.addEventListener('DOMContentLoaded', function () {
+            // Restore tab from localStorage
+            const activeTabId = localStorage.getItem('activeBookingTab');
+            if (activeTabId) {
+                const tabTrigger = document.querySelector(`#${activeTabId}`);
+                if (tabTrigger) {
+                    const tab = new bootstrap.Tab(tabTrigger);
+                    tab.show();
+                }
+            }
+
+            // Save tab on change
+            const tabEls = document.querySelectorAll('button[data-bs-toggle="tab"]');
+            tabEls.forEach(tabEl => {
+                tabEl.addEventListener('shown.bs.tab', event => {
+                    localStorage.setItem('activeBookingTab', event.target.id);
+                });
+            });
+        });
+
         // Pass data to JavaScript
         window.bookingData = {
             id: {{ $booking->id }},
@@ -591,6 +627,31 @@
                     confirmButtonColor: '#dc3545',
                     width: '600px'
                 });
+            }
+        });
+        @endif
+
+        // Activate the correct tab after form submission
+        @if(session('active_tab'))
+        document.addEventListener('DOMContentLoaded', function() {
+            const activeTab = '{{ session("active_tab") }}';
+            let tabToActivate = null;
+            
+            // Map session values to tab IDs
+            const tabMapping = {
+                'booking': 'booking-tab',
+                'tour': 'tour-tab',
+                'seo': 'seo-tab'
+            };
+            
+            if (tabMapping[activeTab]) {
+                tabToActivate = document.getElementById(tabMapping[activeTab]);
+                
+                if (tabToActivate) {
+                    // Use Bootstrap's Tab API to show the tab
+                    const tab = new bootstrap.Tab(tabToActivate);
+                    tab.show();
+                }
             }
         });
         @endif

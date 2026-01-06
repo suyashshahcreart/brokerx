@@ -218,7 +218,7 @@
                 <div>
                     <nav aria-label="breadcrumb" class="mb-0">
                         <ol class="breadcrumb mb-0">
-                            <li class="breadcrumb-item"><a href="{{ route('root') }}">Home</a></li>
+                            <li class="breadcrumb-item"><a href="{{ route('admin.index') }}">Home</a></li>
                             <li class="breadcrumb-item"><a href="{{ route('admin.bookings.index') }}">Bookings</a></li>
                             <li class="breadcrumb-item active" aria-current="page">#{{ $booking->id }}</li>
                         </ol>
@@ -253,10 +253,34 @@
                                         <div class="d-flex gap-3">
                                             <small class="text-muted"><i
                                                     class="ri-id-card-line me-1"></i>{{ $booking->user?->id ?? '-' }}</small>
-                                            <small class="text-muted"><i
-                                                    class="ri-mail-line me-1"></i>{{ $booking->user?->email ?? '-' }}</small>
+                                            
                                             <small class="text-muted"><i
                                                     class="ri-phone-line me-1"></i>{{ $booking->user?->mobile ?? '-' }}</small>
+                                            @if($booking->user?->email)
+                                            <small class="text-muted"><i
+                                                class="ri-mail-line me-1"></i>{{ $booking->user?->email ?? '-' }}</small>
+                                            @endif
+                                        </div>
+                                    </div>
+                                    <!-- Metadata Integrated to Right Side -->
+                                    <div class="text-end">
+                                        <div class="d-block mb-1">
+                                            <small class="text-muted">
+                                                <i class="ri-user-add-line me-1"></i>
+                                                Created by <strong>{{ $booking->creator?->firstname }}
+                                                    {{ $booking->creator?->lastname }}</strong>
+                                            </small>
+                                        </div>
+                                        <div class="d-block mb-1">
+                                            <small class="text-muted">
+                                                on {{ $booking->created_at?->format('d M, Y h:i A') }}
+                                            </small>
+                                        </div>
+                                        <div class="d-block">
+                                            <small class="text-muted">
+                                                <i class="ri-time-line me-1"></i>
+                                                Updated {{ $booking->updated_at?->diffForHumans() }}
+                                            </small>
                                         </div>
                                     </div>
                                 </div>
@@ -786,27 +810,7 @@
                     </div>
                     <!-- End row for Property + Address -->
 
-                    <!-- Metadata - Full Width Below -->
-                    <div class="row">
-                        <div class="col-12">
-                            <div class="card border-0 bg-light">
-                                <div class="card-body p-2">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <small class="text-muted">
-                                            <i class="ri-user-add-line me-1"></i>
-                                            Created by <strong>{{ $booking->creator?->firstname }}
-                                                {{ $booking->creator?->lastname }}</strong>
-                                            on {{ $booking->created_at?->format('d M, Y h:i A') }}
-                                        </small>
-                                        <small class="text-muted">
-                                            <i class="ri-time-line me-1"></i>
-                                            Updated {{ $booking->updated_at?->diffForHumans() }}
-                                        </small>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    <!-- Metadata moved to top -->
 
                     <!-- Booking History Timeline -->
                     @if($booking->histories && $booking->histories->count() > 0)
@@ -1366,14 +1370,6 @@
                             </div>
                             @endif
 
-                            <!-- Assign QR -->
-                            @if($canAssignQR ?? false)
-                            <div class="mb-3">
-                                <button class="btn btn-outline-success btn-sm w-100" onclick="assignQR()">
-                                    <i class="ri-qr-code-line me-1"></i> Assign QR Code
-                                </button>
-                            </div>
-                            @endif
 
                             <!-- Accept/Decline Schedule (if pending) -->
                             @if(in_array($booking->status, ['schedul_pending', 'reschedul_pending']) && ($canApproval ?? false))
@@ -1502,6 +1498,90 @@
                             </div> --}}
                         </div>
                     </div>
+                    @endif
+
+                    <!-- QR Code Information -->
+                    @if($booking && $booking->qr)
+                        <div class="card border mb-3">
+                            <div class="card-header bg-light">
+                                <h6 class="card-title mb-0"><i class="ri-qr-code-line me-2"></i>QR Code</h6>
+                            </div>
+                            <div class="card-body text-center p-3">
+                                <div class="mb-3">
+                                    @if($booking->qr->image)
+                                        <img src="{{ asset('storage/' . $booking->qr->image) }}" alt="QR Code" class="img-fluid"
+                                            style="max-width: 200px;">
+                                    @elseif($booking->qr->qr_link)
+                                        <div class="qr-code-container">
+                                            {!! $booking->qr->qr_code_image !!}
+                                        </div>
+                                    @elseif($booking->qr->code)
+                                        @php
+                                            // Generate QR code from code if qr_link doesn't exist
+                                            $qrUrl = 'https://qr.proppik.com/' . $booking->qr->code;
+                                            $qrCodeSvg = \SimpleSoftwareIO\QrCode\Facades\QrCode::size(200)
+                                                ->format('svg')
+                                                ->color(40, 41, 115)
+                                                ->generate($qrUrl);
+                                        @endphp
+                                        <div class="qr-code-container">
+                                            {!! $qrCodeSvg !!}
+                                        </div>
+                                    @else
+                                        <div class="alert alert-info mb-0">
+                                            <i class="ri-qr-code-line fs-3"></i>
+                                            <p class="mb-0 mt-2 small">QR Code not generated yet</p>
+                                        </div>
+                                    @endif
+                                </div>
+                                <div class="row text-start">
+                                    <div class="col-6 mb-2">
+                                        <small class="text-muted d-block" style="font-size: 10px;">QR NAME</small>
+                                        <strong class="d-block">{{ $booking->qr->name ?? 'N/A' }}</strong>
+                                    </div>
+                                    <div class="col-6 mb-2">
+                                        <small class="text-muted d-block" style="font-size: 10px;">QR CODE</small>
+                                        <code class="d-block">{{ $booking->qr->code }}</code>
+                                    </div>
+                                    <div class="col-12 mb-2">
+                                        <small class="text-muted d-block" style="font-size: 10px;">QR LINK</small>
+                                        <a href="https://qr.proppik.com/{{ $booking->qr->code }}" target="_blank" class="text-break small">
+                                            https://qr.proppik.com/{{ $booking->qr->code }}
+                                            <i class="ri-external-link-line ms-1"></i>
+                                        </a>
+                                    </div>
+                                    @if($booking->qr->qr_link)
+                                        <div class="col-12 mb-2">
+                                            <small class="text-muted d-block" style="font-size: 10px;">REDIRECT LINK</small>
+                                            <a href="{{ $booking->qr->qr_link }}" target="_blank" class="text-truncate d-block small"
+                                                style="max-width: 100%;">
+                                                <code>{{ Str::limit($booking->qr->qr_link, 50) }}</code>
+                                                <i class="ri-external-link-line ms-1"></i>
+                                            </a>
+                                        </div>
+                                    @endif
+                                </div>
+                                @if($booking->qr->image)
+                                    <div class="mt-3">
+                                        <a href="{{ asset('storage/' . $booking->qr->image) }}" download class="btn btn-primary btn-sm w-100">
+                                            <i class="ri-download-line me-1"></i> Download QR
+                                        </a>
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+                    @else
+                        <div class="card border mb-3">
+                            <div class="card-header bg-light">
+                                <h6 class="card-title mb-0"><i class="ri-qr-code-line me-2"></i>QR Code</h6>
+                            </div>
+                            <div class="card-body text-center p-3">
+                                <div class="alert alert-info mb-0">
+                                    <i class="ri-qr-code-line fs-3"></i>
+                                    <p class="mb-0 mt-2 small">QR Code not assigned to this booking yet</p>
+                                </div>
+                            </div>
+                        </div>
                     @endif
 
                     <!-- Booking Summary Card -->

@@ -7,7 +7,7 @@
             <div>
                 <nav aria-label="breadcrumb" class="mb-1">
                     <ol class="breadcrumb mb-0">
-                        <li class="breadcrumb-item"><a href="{{ route('root') }}">Home</a></li>
+                        <li class="breadcrumb-item"><a href="{{ route('admin.index') }}">Home</a></li>
                         <li class="breadcrumb-item"><a href="#">System</a></li>
                         <li class="breadcrumb-item"><a href="{{ route('admin.qr.index') }}">QR Codes</a></li>
                         <li class="breadcrumb-item active" aria-current="page">Edit</li>

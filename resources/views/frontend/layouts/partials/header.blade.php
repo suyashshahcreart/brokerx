@@ -13,22 +13,25 @@
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav ms-auto align-items-center">
                 <li class="nav-item">
-                    <a class="nav-link fw-medium text-uppercase" href="{{ route('frontend.index') }}">Home</a>
+                    <a class="nav-link fw-medium text-uppercase" href="https://proppik.com/">Home</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link fw-medium text-uppercase" href="{{ route('frontend.index') }}#about">About</a>
+                    <a class="nav-link fw-medium text-uppercase" href="https://proppik.com/#about">About</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link fw-medium text-uppercase" href="{{ route('frontend.index') }}#why-choose-us">Why Choose Us</a>
+                    <a class="nav-link fw-medium text-uppercase" href="https://proppik.com/#why-choose-us">Why Choose Us</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link fw-medium text-uppercase" href="{{ route('frontend.index') }}#how-it-works">How It Works</a>
+                    <a class="nav-link fw-medium text-uppercase" href="https://proppik.com/#how-it-works">How It Works</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link fw-medium text-uppercase" href="{{ route('frontend.index') }}#gallery">Gallery</a>
+                    <a class="nav-link fw-medium text-uppercase" href="https://proppik.com/our-portfolio.html">Portfolio</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link fw-medium text-uppercase" href="{{ route('frontend.index') }}#contact">Contact Us</a>
+                    <a class="nav-link fw-medium text-uppercase" href="https://proppik.com/#gallery">Gallery</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link fw-medium text-uppercase" href="https://proppik.com/#contact">Contact Us</a>
                 </li>
 
                 @auth
@@ -65,13 +68,6 @@
                         </ul>
                     </li>
                 @endauth
-
-                @guest
-                    
-                    <li class="nav-item">
-                        <a class="nav-link fw-medium text-uppercase" href="{{ route('frontend.login') }}">My Bookings</a>
-                    </li>
-                @endguest
 
                 <li class="nav-item ms-3">
                     <a href="{{ route('frontend.setup') }}" class="btn btn-primary">Book Now</a>

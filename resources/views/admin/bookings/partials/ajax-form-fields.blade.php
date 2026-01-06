@@ -6,18 +6,42 @@
 
 <!-- User Selection - Full Width -->
 <div class="row">
-    <div class="col-12">
+    <div class="col-6">
         <div class="mb-1">
-            <label class="form-label" for="user_id">Select User <span class="text-danger">*</span></label>
-            <select name="user_id" id="user_id" data-choices class="form-select" required>
-                <option value="">Choose a user...</option>
+            <label class="form-label" for="user_id">Select Customer <span class="text-danger">*</span></label>
+            <select name="user_id" id="user_id" data-choices class="form-select @error('user_id') is-invalid @enderror" required>
+                <option value="">Choose a customer...</option>
                 @foreach($users as $u)
                     <option value="{{ $u->id }}" @selected($booking->user_id == $u->id)>
                         {{ $u->firstname }} {{ $u->lastname }} | {{ $u->mobile }}@if($u->email) | {{ $u->email }}@endif
                     </option>
                 @endforeach
             </select>
-            <div class="invalid-feedback">Please select a user.</div>
+            <div class="invalid-feedback">@error('user_id'){{ $message }}@else Please select a customer.@enderror</div>
+        </div>
+    </div>
+    <!-- <div class="col-4 d-none">
+        <div class="mb-1">
+            <label class="form-label" for="status">Status <span class="text-danger">*</span></label>
+            <select name="status" id="status" class="form-select @error('status') is-invalid @enderror" required>
+                <option value="">Select status...</option>
+                @foreach($statuses as $status)
+                    <option value="{{ $status }}" @selected(old('status', $booking->status) == $status)>{{ ucfirst($status) }}</option>
+                @endforeach
+            </select>
+            <div class="invalid-feedback">@error('status'){{ $message }}@else Please select a status.@enderror</div>
+        </div>
+    </div> -->
+    <div class="col-6">
+        <div class="mb-1">
+            <label class="form-label" for="payment_status">Payment Status <span class="text-danger">*</span></label>
+            <select name="payment_status" id="payment_status" class="form-select @error('payment_status') is-invalid @enderror" required>
+                <option value="">Select payment status...</option>
+                @foreach($paymentStatuses as $ps)
+                    <option value="{{ $ps }}" @selected(old('payment_status', $booking->payment_status) == $ps)>{{ ucfirst($ps) }}</option>
+                @endforeach
+            </select>
+            <div class="invalid-feedback">@error('payment_status'){{ $message }}@else Please select a payment status.@enderror</div>
         </div>
     </div>
 </div>
