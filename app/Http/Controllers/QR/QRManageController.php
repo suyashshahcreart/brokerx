@@ -74,6 +74,7 @@ class QRManageController extends Controller
                 } elseif ($tour->location && $tour->slug) {
                     $redirectUrl = 'https://' . $tour->location . '.proppik.com/' . $tour->slug . '/index.php';
                 }
+                $redirectUrl = $tour->getTourLiveUrl();
             }
             
             // Check if booking status is 'tour_live'
