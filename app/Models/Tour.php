@@ -223,4 +223,44 @@ class Tour extends Model
         
         return "{$days} Day" . ($days > 1 ? 's' : '');
     }
+
+    /**
+     * Get FTP URL for tour if booking status is tour_live
+     * Returns the full FTP URL without index.php suffix
+     * 
+     * @return string FTP URL or '#' if not available
+     */
+    public function getTourLiveUrl(): string {
+        // Get the booking associated with this tour
+        $booking = $this->booking;
+        
+        // Only generate URL if booking exists and status is tour_live
+            
+        // if (!$booking || $booking->status !== 'tour_live') {
+        //     return '#';
+        // }
+
+        // Check if tour has required data
+        if (!$this->location || !$this->slug || !$booking->user_id) {
+            return '#';
+        }   
+
+        // Get FTP configuration based on tour location
+        $ftpConfig = \App\Models\FtpConfiguration::where('category_name', $this->location)->first();
+        
+        if (!$ftpConfig) {
+            return '#';
+        }
+
+        // Generate FTP URL
+        $fullFtpUrl = $ftpConfig->getUrlForTour($this->slug, $booking->user_id);
+        $tourFtpUrl = rtrim($fullFtpUrl, '/');
+        
+        // Remove /index.php if present
+        if (substr($tourFtpUrl, -9) === 'index.php') {
+            $tourFtpUrl = substr($tourFtpUrl, 0, -9);
+        }
+
+        return $tourFtpUrl;
+    }
 }

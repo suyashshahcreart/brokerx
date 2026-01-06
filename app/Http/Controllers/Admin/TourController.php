@@ -592,13 +592,6 @@ class TourController extends Controller
             }
         }
 
-        //  update the final json according to the new fields
-        $finalJson = $tour->final_json ? json_encode($tour->final_json, true) : [];
-        $finalJson = json_decode($finalJson, true);
-
-        //GTM tag update in json
-        $finalJson['googleTagManagerId'] = $validated['gtm_tag'] ?? '';
-
         // Update all SEO fields in the database
         $tour->update([
             'meta_title' => $validated['meta_title'] ?? null,
@@ -617,7 +610,6 @@ class TourController extends Controller
             'header_code' => $validated['header_code'] ?? null,
             'footer_code' => $validated['footer_code'] ?? null,
             'gtm_tag' => $validated['gtm_tag'] ?? null,
-            'final_json' => $finalJson,
         ]);
 
         return redirect()->back()->with('success', 'SEO details updated successfully.');

@@ -538,8 +538,8 @@ class Booking extends Model
         $tourFtpUrl = rtrim($fullFtpUrl, '/');
         
         // Remove /index.php if present
-        if (substr($tourFtpUrl, -10) === '/index.php') {
-            $tourFtpUrl = substr($tourFtpUrl, 0, -10);
+        if (substr($tourFtpUrl, -9) === '/index.php') {
+            $tourFtpUrl = substr($tourFtpUrl, 0, -9);
         }
 
         return $tourFtpUrl;

@@ -547,6 +547,65 @@ class TourManagerController extends Controller{
                     }
                     \Log::info("Successfully loaded index.html from: {$indexPathFound} (" . strlen($indexHtmlContent) . " bytes)");
 
+                // Prepare PHP echo snippet for GTM code replacement
+                $gtmPhpEcho = '<?php echo escAttr($gtmCode); ?>';
+
+                // Replace static SEO tags in the extracted HTML with dynamic PHP echoes
+                $indexHtmlContent = preg_replace(
+                    '/<title>.*?<\\/title>/is',
+                    '<title><?php echo $metaTitle; ?></title>',
+                    $indexHtmlContent,
+                    1
+                );
+                
+
+                $indexHtmlContent = preg_replace(
+                    '/<meta\\s+property="og:title"[^>]*content=".*?"[^>]*>/is',
+                    '<meta property="og:title" id="ogTitle" content="<?php echo $ogTitle; ?>" />',
+                    $indexHtmlContent,
+                    1
+                );
+                $indexHtmlContent = preg_replace(
+                    '/<meta\\s+property="og:description"[^>]*content=".*?"[^>]*>/is',
+                    '<meta property="og:description" id="ogDescription" content="<?php echo $ogDescription; ?>" />',
+                    $indexHtmlContent,
+                    1
+                );
+                
+                
+                $indexHtmlContent = preg_replace(
+                    '/<meta\\s+property="twitter:title"[^>]*content=".*?"[^>]*>/is',
+                    '<meta property="twitter:title" id="twitterTitle" content="<?php echo $twitterTitle; ?>" />',
+                    $indexHtmlContent,
+                    1
+                );
+                $indexHtmlContent = preg_replace(
+                    '/<meta\\s+property="twitter:description"[^>]*content=".*?"[^>]*>/is',
+                    '<meta property="twitter:description" id="twitterDescription" content="<?php echo $twitterDescription; ?>" />',
+                    $indexHtmlContent,
+                    1
+                );
+
+                // Replace Google Tag Manager occurrences with dynamic GTM code
+                $indexHtmlContent = preg_replace(
+                    '/https:\\/\\/www\\.googletagmanager\\.com\\/gtm\\.js\\?id=[^"\'\\s)]+/i',
+                    'https://www.googletagmanager.com/gtm.js?id=' . $gtmPhpEcho,
+                    $indexHtmlContent,
+                    1
+                );
+                $indexHtmlContent = preg_replace(
+                    '/https:\\/\\/www\\.googletagmanager\\.com\\/ns\\.html\\?id=[^"\'\\s)]+/i',
+                    'https://www.googletagmanager.com/ns.html?id=' . $gtmPhpEcho,
+                    $indexHtmlContent,
+                    1
+                );
+                $indexHtmlContent = preg_replace(
+                    '/["\']GTM-[A-Z0-9]+["\']/i',
+                    '"' . $gtmPhpEcho . '"',
+                    $indexHtmlContent,
+                    1
+                );
+
                 // Prepend PHP script to fetch tour and booking data
                 $phpScript = $this->generateDatabaseFetchScript();
 
@@ -1463,163 +1522,204 @@ class TourManagerController extends Controller{
     private function generateDatabaseFetchScript()
     {
         return <<<'PHP'
-<?php
-// Helper function to escape HTML attributes
-function escAttr($str) {
-    return htmlspecialchars($str ?? '', ENT_QUOTES, 'UTF-8');
-}
+        <?php
+        // Helper function to escape HTML attributes
+        function escAttr($str) {
+            return htmlspecialchars($str ?? '', ENT_QUOTES, 'UTF-8');
+        }
 
-// Get the current tour code from the URL path
-$currentPath = dirname($_SERVER['SCRIPT_NAME']);
-$tourCode = basename($currentPath);
+        // Get the current tour code from the URL path
+        $currentPath = dirname($_SERVER['SCRIPT_NAME']);
+        $tourCode = basename($currentPath);
 
-// Static database configuration (no .env read)
-$dbHost = '127.0.0.1';
-$dbPort = '3306';
-$dbName = 'proppik_dev';
-$dbUser = 'proppik_dev';
-$dbPass = 'PropPik@2026@';
+        // Static database configuration (no .env read)
+        $dbHost = '127.0.0.1';
+        $dbPort = '3306';
+        $dbName = 'proppik_dev';
+        $dbUser = 'proppik_dev';
+        $dbPass = 'PropPik@2026@';
 
-// Initialize variables
-$tourData = null;
-$bookingData = null;
-$baseUrl = '';
-$seoMetaTags = '';
-$headerCode = '';
-$footerCode = '';
+        // Initialize variables
+        $tourData = null;
+        $bookingData = null;
+        $baseUrl = '';
+        $seoMetaTags = '';
+        $headerCode = '';
+        $footerCode = '';
+        $gtmCode = '';
 
-try {
-    // Create database connection
-    $dsn = "mysql:host=$dbHost;port=$dbPort;dbname=$dbName;charset=utf8mb4";
-    $pdo = new PDO($dsn, $dbUser, $dbPass, [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-        PDO::ATTR_EMULATE_PREPARES => false,
-    ]);
-    
-    // Fetch booking data by tour slug (matches tours.slug)
-    $stmt = $pdo->prepare("
-        SELECT b.*, 
-               u.firstname, u.lastname, u.mobile, u.email,
-               pt.name as property_type_name,
-               pst.name as property_sub_type_name,
-               bhk.name as bhk_name,
-               c.name as city_name,
-               s.name as state_name,
-               qr.code as qr_code
-        FROM bookings b
-        LEFT JOIN users u ON b.user_id = u.id
-        LEFT JOIN property_types pt ON b.property_type_id = pt.id
-        LEFT JOIN property_sub_types pst ON b.property_sub_type_id = pst.id
-        LEFT JOIN b_h_k_s bhk ON b.bhk_id = bhk.id
-        LEFT JOIN cities c ON b.city_id = c.id
-        LEFT JOIN states s ON b.state_id = s.id
-        LEFT JOIN qr_code qr ON b.id = qr.booking_id
-        INNER JOIN tours t ON t.booking_id = b.id
-        WHERE t.slug = :tour_slug
-        ORDER BY t.created_at DESC
-        LIMIT 1
-    ");
-    $stmt->execute(['tour_slug' => $tourCode]);
-    $bookingData = $stmt->fetch();
-    
-    if ($bookingData) {
-        // Fetch tour data for this booking (with all SEO fields)
-        $stmt = $pdo->prepare("
-            SELECT t.*, 
-                   u.firstname as creator_firstname, 
-                   u.lastname as creator_lastname
-            FROM tours t
-            LEFT JOIN users u ON t.created_by = u.id
-            WHERE t.booking_id = :booking_id
-            ORDER BY t.created_at DESC
-            LIMIT 1
-        ");
-        $stmt->execute(['booking_id' => $bookingData['id']]);
-        $tourData = $stmt->fetch();
-        
-        // Get base URL from booking
-        $baseUrl = $bookingData['base_url'] ?? '';
-        
-        // Generate SEO meta tags if tour data exists
-        if ($tourData) {
-            $seoTags = [];
+        try {
+            // Create database connection
+            $dsn = "mysql:host=$dbHost;port=$dbPort;dbname=$dbName;charset=utf8mb4";
+            $pdo = new PDO($dsn, $dbUser, $dbPass, [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                PDO::ATTR_EMULATE_PREPARES => false,
+            ]);
             
-            // Basic Meta Tags
-            if (!empty($tourData['meta_title'])) {
-                $seoTags[] = '<title>' . escAttr($tourData['meta_title']) . '</title>';
-            }
-            if (!empty($tourData['meta_description'])) {
-                $seoTags[] = '<meta name="description" content="' . escAttr($tourData['meta_description']) . '" />';
-            }
-            if (!empty($tourData['meta_keywords'])) {
-                $seoTags[] = '<meta name="keywords" content="' . escAttr($tourData['meta_keywords']) . '" />';
-            }
-            if (!empty($tourData['meta_robots'])) {
-                $seoTags[] = '<meta name="robots" content="' . escAttr($tourData['meta_robots']) . '" />';
-            }
-            if (!empty($tourData['canonical_url'])) {
-                $seoTags[] = '<link rel="canonical" href="' . escAttr($tourData['canonical_url']) . '" />';
+            // Fetch booking data by tour slug (matches tours.slug)
+            $stmt = $pdo->prepare("
+                SELECT b.id,b.base_url, 
+                    u.firstname, u.lastname, u.mobile, u.email,
+                    pt.name as property_type_name,
+                    pst.name as property_sub_type_name,
+                    bhk.name as bhk_name,
+                    c.name as city_name,
+                    s.name as state_name,
+                    qr.code as qr_code
+                FROM bookings b
+                LEFT JOIN users u ON b.user_id = u.id
+                LEFT JOIN property_types pt ON b.property_type_id = pt.id
+                LEFT JOIN property_sub_types pst ON b.property_sub_type_id = pst.id
+                LEFT JOIN b_h_k_s bhk ON b.bhk_id = bhk.id
+                LEFT JOIN cities c ON b.city_id = c.id
+                LEFT JOIN states s ON b.state_id = s.id
+                LEFT JOIN qr_code qr ON b.id = qr.booking_id
+                INNER JOIN tours t ON t.booking_id = b.id
+                WHERE t.slug = :tour_slug
+                ORDER BY t.created_at DESC
+                LIMIT 1
+            ");
+            $stmt->execute(['tour_slug' => $tourCode]);
+            $bookingData = $stmt->fetch();
+
+            // If booking is expired, show a simple message and stop further execution
+            if ($bookingData && isset($bookingData['status']) && $bookingData['status'] === 'expired') {
+                $redirectUrl = 'https://www.proppik.com/';
+                echo <<<HTML
+                <!DOCTYPE html>
+                <html lang="en">
+                <head>
+                    <meta charset="UTF-8" />
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+                    <title>Tour Expired</title>
+                    <style>
+                        body { margin:0; padding:0; font-family: Arial, sans-serif; background:#f6f7fb; color:#1f2933; display:flex; align-items:center; justify-content:center; min-height:100vh; }
+                        .card { background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:32px; box-shadow:0 10px 30px rgba(0,0,0,0.08); max-width:420px; text-align:center; }
+                        h1 { margin:0 0 12px; font-size:24px; color:#111827; }
+                        p { margin:0 0 20px; line-height:1.5; }
+                        .btn { display:inline-block; padding:12px 20px; background:#2563eb; color:#fff; border-radius:8px; text-decoration:none; font-weight:600; }
+                        .btn:hover { background:#1d4ed8; }
+                    </style>
+                </head>
+                <body>
+                    <div class="card">
+                        <h1>Tour Expired</h1>
+                        <p>This virtual tour is no longer available. Please visit our site to explore more experiences.</p>
+                        <a class="btn" href="{$redirectUrl}">Go to PROP PIK</a>
+                    </div>
+                </body>
+                </html>
+                HTML;
+                exit;
             }
             
-            // Open Graph Tags
-            if (!empty($tourData['og_title'])) {
-                $seoTags[] = '<meta property="og:title" content="' . escAttr($tourData['og_title']) . '" />';
-            }
-            if (!empty($tourData['og_description'])) {
-                $seoTags[] = '<meta property="og:description" content="' . escAttr($tourData['og_description']) . '" />';
-            }
-            if (!empty($tourData['og_image'])) {
-                $seoTags[] = '<meta property="og:image" content="' . escAttr($tourData['og_image']) . '" />';
-                $seoTags[] = '<meta property="og:image:secure_url" content="' . escAttr($tourData['og_image']) . '" />';
-            }
-            $seoTags[] = '<meta property="og:type" content="website" />';
-            $seoTags[] = '<meta property="og:url" content="' . escAttr($_SERVER['REQUEST_URI'] ?? '') . '" />';
-            
-            // Twitter Card Tags
-            $seoTags[] = '<meta name="twitter:card" content="summary_large_image" />';
-            if (!empty($tourData['twitter_title'])) {
-                $seoTags[] = '<meta name="twitter:title" content="' . escAttr($tourData['twitter_title']) . '" />';
-            }
-            if (!empty($tourData['twitter_description'])) {
-                $seoTags[] = '<meta name="twitter:description" content="' . escAttr($tourData['twitter_description']) . '" />';
-            }
-            if (!empty($tourData['twitter_image'])) {
-                $seoTags[] = '<meta name="twitter:image" content="' . escAttr($tourData['twitter_image']) . '" />';
-            }
-            
-            // Structured Data (JSON-LD)
-            if (!empty($tourData['structured_data'])) {
-                $structuredData = json_decode($tourData['structured_data'], true);
-                if ($structuredData) {
-                    $seoTags[] = '<script type="application/ld+json">' . json_encode($structuredData, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) . '</script>';
+            if ($bookingData) {
+                // Fetch tour data for this booking (with all SEO fields)
+                $stmt = $pdo->prepare("
+                    SELECT t.*, 
+                        u.firstname as creator_firstname, 
+                        u.lastname as creator_lastname
+                    FROM tours t
+                    LEFT JOIN users u ON t.created_by = u.id
+                    WHERE t.booking_id = :booking_id
+                    ORDER BY t.created_at DESC
+                    LIMIT 1
+                ");
+                $stmt->execute(['booking_id' => $bookingData['id']]);
+                $tourData = $stmt->fetch();
+                
+                // Get base URL from booking
+                $baseUrl = $bookingData['base_url'] ?? '';
+                
+                // Generate SEO meta tags if tour data exists
+                $metaTitle = $metaDescription = $metaKeywords = $metaRobots = $canonicalUrl = $ogTitle = $ogDescription = $twitterTitle = $twitterDescription = '';
+                $gtmCode = '';
+
+                if ($tourData) {
+                    $seoTags = [];
+                    
+                    // Basic Meta Tags
+                    if (!empty($tourData['meta_title'])) {
+                        $seoTags[] = '<title id="pageTitle">' . escAttr($tourData['meta_title']) . '</title>';
+                        $metaTitle = $tourData['meta_title'];
+                    }
+                    if (!empty($tourData['meta_description'])) {
+                        $seoTags[] = '<meta name="description" id="metaDescription" content="' . escAttr($tourData['meta_description']) . '" />';
+                    }
+                    if (!empty($tourData['meta_keywords'])) {
+                        $seoTags[] = '<meta name="keywords" content="' . escAttr($tourData['meta_keywords']) . '" />';
+                    }
+                    if (!empty($tourData['meta_robots'])) {
+                        $seoTags[] = '<meta name="robots" content="' . escAttr($tourData['meta_robots']) . '" />';
+                    }
+                    if (!empty($tourData['canonical_url'])) {
+                        $seoTags[] = '<link rel="canonical" href="' . escAttr($tourData['canonical_url']) . '" />';
+                    }
+                    
+                    // Open Graph Tags (fallback to meta title/description when OG specific fields are empty)
+                    $ogTitle = $tourData['og_title'] ?? $tourData['meta_title'] ?? '';
+                    if (!empty($ogTitle)) {
+                        $seoTags[] = '<meta property="og:title" id="ogTitle" content="' . escAttr($ogTitle) . '" />';
+                    }
+                    $ogDescription = $tourData['og_description'] ?? $tourData['meta_description'] ?? '';
+                    if (!empty($ogDescription)) {
+                        $seoTags[] = '<meta property="og:description" id="ogDescription" content="' . escAttr($ogDescription) . '" />';
+                    }
+                    if (!empty($tourData['og_image'])) {
+                        $seoTags[] = '<meta property="og:image" content="' . escAttr($tourData['og_image']) . '" />';
+                        $seoTags[] = '<meta property="og:image:secure_url" content="' . escAttr($tourData['og_image']) . '" />';
+                    }
+                    $seoTags[] = '<meta property="og:type" content="website" />';
+                    $seoTags[] = '<meta property="og:url" content="' . escAttr($_SERVER['REQUEST_URI'] ?? '') . '" />';
+                    
+                    // Twitter Card Tags (fallback to meta title/description)
+                    $seoTags[] = '<meta name="twitter:card" content="summary_large_image" />';
+                    $twitterTitle = $tourData['twitter_title'] ?? $ogTitle ?? $tourData['meta_title'] ?? '';
+                    if (!empty($twitterTitle)) {
+                        $seoTags[] = '<meta name="twitter:title" content="' . escAttr($twitterTitle) . '" />';
+                    }
+                    $twitterDescription = $tourData['twitter_description'] ?? $ogDescription ?? $tourData['meta_description'] ?? '';
+                    if (!empty($twitterDescription)) {
+                        $seoTags[] = '<meta name="twitter:description" content="' . escAttr($twitterDescription) . '" />';
+                    }
+                    if (!empty($tourData['twitter_image'])) {
+                        $seoTags[] = '<meta name="twitter:image" content="' . escAttr($tourData['twitter_image']) . '" />';
+                    }
+                    
+                    // Structured Data (JSON-LD)
+                    if (!empty($tourData['structured_data'])) {
+                        $structuredData = json_decode($tourData['structured_data'], true);
+                        if ($structuredData) {
+                            $seoTags[] = '<script type="application/ld+json">' . json_encode($structuredData, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) . '</script>';
+                        }
+                    }
+                    
+                    $seoMetaTags = implode("\n    ", $seoTags);
+                    
+                    // Get custom header and footer code
+                    $headerCode = $tourData['header_code'] ?? '';
+                    $footerCode = $tourData['footer_code'] ?? '';
+                    $gtmCode = $tourData['gtm_tag'] ?? '';
                 }
             }
             
-            $seoMetaTags = implode("\n    ", $seoTags);
-            
-            // Get custom header and footer code
-            $headerCode = $tourData['header_code'] ?? '';
-            $footerCode = $tourData['footer_code'] ?? '';
+        } catch (PDOException $e) {
+            // Log error but don't break the page
+            error_log("Database error in tour index.php: " . $e->getMessage());
+            $tourData = null;
+            $bookingData = null;
         }
-    }
-    
-} catch (PDOException $e) {
-    // Log error but don't break the page
-    error_log("Database error in tour index.php: " . $e->getMessage());
-    $tourData = null;
-    $bookingData = null;
-}
 
-// Make data available as JSON for JavaScript
-$tourDataJson = json_encode($tourData);
-$bookingDataJson = json_encode($bookingData);
-$baseUrlJson = json_encode($baseUrl);
+        // Make data available as JSON for JavaScript
+        $tourDataJson = json_encode($tourData);
+        $bookingDataJson = json_encode($bookingData);
+        $baseUrlJson = json_encode($baseUrl);
 
-// Start output buffering to modify HTML
-ob_start();
-?>
-PHP;
+        // Start output buffering to modify HTML
+        ob_start();
+        ?>
+        PHP;
     }
 
     /**
@@ -1629,24 +1729,24 @@ PHP;
     {
         return <<<'JS'
     
-    <!-- Dynamic SEO Meta Tags from Database -->
-    <?php if (!empty($seoMetaTags)) echo $seoMetaTags; ?>
-    
-    <!-- Custom Header Code from Tour -->
-    <?php if (!empty($headerCode)) echo $headerCode; ?>
-    
-    <!-- Tour and Booking Data from Database -->
-    <script>
-      // Make PHP data available to JavaScript
-      window.tourData = <?php echo $tourDataJson; ?>;
-      window.bookingData = <?php echo $bookingDataJson; ?>;
-      window.baseUrl = <?php echo $baseUrlJson; ?>;
-      
-      console.log('Tour Data:', window.tourData);
-      console.log('Booking Data:', window.bookingData);
-      console.log('Base URL:', window.baseUrl);
-    </script>
-JS;
+            <!-- Dynamic SEO Meta Tags from Database -->
+            <?php if (!empty($seoMetaTags)) echo $seoMetaTags; ?>
+            
+            <!-- Custom Header Code from Tour -->
+            <?php if (!empty($headerCode)) echo $headerCode; ?>
+            
+            <!-- Tour and Booking Data from Database -->
+            <script>
+            // Make PHP data available to JavaScript
+            window.tourData = <?php echo $tourDataJson; ?>;
+            window.bookingData = <?php echo $bookingDataJson; ?>;
+            window.baseUrl = <?php echo $baseUrlJson; ?>;
+            
+            console.log('Tour Data:', window.tourData);
+            console.log('Booking Data:', window.bookingData);
+            console.log('Base URL:', window.baseUrl);
+            </script>
+        JS;
     }
     
     /**
@@ -1656,14 +1756,14 @@ JS;
     {
         return <<<'JS'
     
-    <!-- Custom Footer Code from Tour -->
-    <?php if (!empty($footerCode)) echo $footerCode; ?>
-    
-    <?php
-    // End output buffering and send
-    ob_end_flush();
-    ?>
-JS;
+            <!-- Custom Footer Code from Tour -->
+            <?php if (!empty($footerCode)) echo $footerCode; ?>
+            
+            <?php
+            // End output buffering and send
+            ob_end_flush();
+            ?>
+        JS;
     }
 
     /**
