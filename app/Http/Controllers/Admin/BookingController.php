@@ -282,6 +282,22 @@ class BookingController extends Controller
 
         $booking = Booking::create($validated);
 
+        // Create initial booking history entry
+        BookingHistory::create([
+            'booking_id' => $booking->id,
+            'from_status' => null,
+            'to_status' => $validated['status'],
+            'changed_by' => auth()->id(),
+            'notes' => 'Booking created',
+            'metadata' => [
+                'initial_creation' => true,
+                'payment_status' => $validated['payment_status'],
+                'booking_date' => $validated['booking_date'] ?? null,
+            ],
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
+
         // Generate unique QR code and create QR record for this booking
         $qrCode = $this->generateUniqueQrCode();
 
@@ -755,8 +771,48 @@ class BookingController extends Controller
         $qr->save();
 
         // Update booking's tour_code with QR code
+        $oldTourCode = $booking->tour_code;
         $booking->tour_code = $qr->code;
         $booking->save();
+
+        // Log QR assignment
+        BookingHistory::create([
+            'booking_id' => $booking->id,
+            'from_status' => $booking->status,
+            'to_status' => $booking->status,
+            'changed_by' => auth()->id(),
+            'notes' => 'QR code assigned to booking',
+            'metadata' => [
+                'qr_id' => $qr->id,
+                'qr_code' => $qr->code,
+                'old_qr_code' => $oldTourCode,
+                'old_booking_id' => $oldBookingId,
+                'action' => 'qr_assigned'
+            ],
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
+
+        activity('bookings')
+            ->performedOn($booking)
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'event' => 'qr_assigned',
+                'qr_id' => $qr->id,
+                'qr_code' => $qr->code,
+                'old_tour_code' => $oldTourCode,
+            ])
+            ->log('QR code assigned to booking');
+
+        activity('qr_code')
+            ->performedOn($qr)
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'event' => 'assigned_to_booking',
+                'booking_id' => $booking->id,
+                'old_booking_id' => $oldBookingId,
+            ])
+            ->log('QR code assigned to booking #' . $booking->id);
 
         return response()->json([
             'success' => true,
@@ -787,11 +843,24 @@ class BookingController extends Controller
                 'notes' => ['nullable', 'string', 'max:500'],
             ]);
 
+            $oldStatus = $booking->status;
+
             $booking->changeStatus(
                 $request->status,
                 auth()->id(),
                 $request->notes ?? 'Status updated via AJAX'
             );
+
+            activity('bookings')
+                ->performedOn($booking)
+                ->causedBy(auth()->user())
+                ->withProperties([
+                    'event' => 'status_updated_ajax',
+                    'old_status' => $oldStatus,
+                    'new_status' => $request->status,
+                    'notes' => $request->notes
+                ])
+                ->log('Booking status updated via AJAX');
 
             return response()->json([
                 'success' => true,
@@ -876,7 +945,37 @@ class BookingController extends Controller
         ]);
 
         $oldData = $booking->toArray();
+        $oldStatus = $booking->status;
+        $oldPaymentStatus = $booking->payment_status;
+        
         $booking->update($validated);
+
+        // Create booking history for full update
+        $changes = [];
+        foreach ($validated as $key => $value) {
+            if (isset($oldData[$key]) && $oldData[$key] != $value) {
+                $changes[$key] = [
+                    'old' => $oldData[$key],
+                    'new' => $value
+                ];
+            }
+        }
+
+        BookingHistory::create([
+            'booking_id' => $booking->id,
+            'from_status' => $oldStatus,
+            'to_status' => $validated['status'] ?? $oldStatus,
+            'changed_by' => auth()->id(),
+            'notes' => 'Booking updated via AJAX',
+            'metadata' => [
+                'changes' => $changes,
+                'full_update' => true,
+                'old_payment_status' => $oldPaymentStatus,
+                'new_payment_status' => $validated['payment_status'] ?? $oldPaymentStatus,
+            ],
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
 
         activity('bookings')
             ->performedOn($booking)
@@ -884,6 +983,7 @@ class BookingController extends Controller
             ->withProperties([
                 'old' => $oldData,
                 'attributes' => $booking->toArray(),
+                'changes' => $changes,
             ])
             ->log('Booking updated via AJAX');
 

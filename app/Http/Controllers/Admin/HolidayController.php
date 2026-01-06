@@ -91,7 +91,8 @@ class HolidayController extends Controller
             ->causedBy($request->user())
             ->withProperties([
                 'event' => 'created',
-                'data' => $holiday->toArray()
+                'data' => $holiday->toArray(),
+                'after' => $holiday->toArray()
             ])
             ->log('Holiday created');
         return redirect()->route('admin.holidays.index')->with('success', 'Holiday created successfully.');

@@ -21,18 +21,18 @@ moment.locale('en');
 // Make moment available globally before daterangepicker loads
 window.moment = moment;
 import 'daterangepicker/daterangepicker.css';
-// Use static import instead of dynamic import to avoid code-splitting issues
-// daterangepicker needs moment to be available globally
-import daterangepicker from 'daterangepicker';
-// Attach daterangepicker to jQuery if available
-if (typeof window.$ !== 'undefined' && window.$.fn) {
-    window.$.fn.daterangepicker = daterangepicker;
+// Import daterangepicker for its side effects so it can properly attach itself to jQuery
+import 'daterangepicker';
+
+// Expose the jQuery plugin on window (if initialized by the library)
+if (typeof $.fn.daterangepicker !== 'undefined') {
+    window.daterangepicker = $.fn.daterangepicker;
 }
-window.daterangepicker = daterangepicker;
+
 // Keep the promise-based loader for backward compatibility
 const loadDateRangePicker = () => {
     if (!window.__daterangepickerPromise) {
-        window.__daterangepickerPromise = Promise.resolve(daterangepicker);
+        window.__daterangepickerPromise = Promise.resolve($.fn.daterangepicker);
     }
     return window.__daterangepickerPromise;
 };
@@ -67,6 +67,7 @@ import {
 import 'iconify-icon';
 import 'simplebar'
 
+console.log('Prop pik Admin - Main JS Loaded ./app.js');
 // Components
 class Components {
     initBootstrapComponents() {

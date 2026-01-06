@@ -49,7 +49,7 @@
     </div>
     <div class="row">
         <div class="col-12">
-            <div class="card">
+            <div class="card panel-card border-primary border-top">
                 <div class="card-body">
                     <div class="row">
                         <!-- Filter => Photographer,status -->
