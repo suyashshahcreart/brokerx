@@ -118,7 +118,7 @@ Route::middleware('auth')->group(function () {
 
 // Optional dashboard alias (to avoid Route [dashboard] not defined errors)
 Route::middleware('auth')->get('/dashboard', function () {
-    return redirect()->route('root');
+    return redirect()->route('admin.index');
 })->name('dashboard');
 
 // Broker routes (protected by auth middleware)
@@ -128,17 +128,18 @@ Route::middleware('auth')->group(function () {
 
 
 
-Route::group(['prefix' => 'themes', 'middleware' => 'auth'], function () {
-    Route::get('', [RoutingController::class, 'index'])->name('root');
-    Route::get('{first}/{second}/{third}', [RoutingController::class, 'thirdLevel'])->name('third');
-    Route::get('{first}/{second}', [RoutingController::class, 'secondLevel'])->name('second');
-    Route::get('{any}', [RoutingController::class, 'root'])->name('any');
-});
+// Route::group(['prefix' => 'themes', 'middleware' => 'auth'], function () {
+//     Route::get('', [RoutingController::class, 'index'])->name('root');
+//     Route::get('{first}/{second}/{third}', [RoutingController::class, 'thirdLevel'])->name('third');
+//     Route::get('{first}/{second}', [RoutingController::class, 'secondLevel'])->name('second');
+//     Route::get('{any}', [RoutingController::class, 'root'])->name('any');
+// });
 
 
 
 Route::group(['prefix' => 'admin', 'as' => 'admin.', 'middleware' => ['web', 'auth', 'not.customer']], function () {
     Route::get('/', [AdminDashboardController::class, 'index'])->name('index');
+    
     
     // Profile routes
     Route::get('profile', [ProfileController::class, 'index'])->name('profile.index');
@@ -266,7 +267,7 @@ Route::group(['prefix' => 'photo', 'as' => 'photographer.', 'middleware' => ['we
 });
 
 // Public frontend routes
-Route::get('/', [FrontendController::class, 'index'])->name('frontend.index');
+Route::get('/', [FrontendController::class, 'login'])->name('frontend.index');
 Route::get('/login', [FrontendController::class, 'login'])->name('frontend.login');
 Route::get('/setup', [FrontendController::class, 'setup'])->name('frontend.setup');
 Route::post('/setup', [FrontendController::class, 'storeBooking'])->name('frontend.setup.store');

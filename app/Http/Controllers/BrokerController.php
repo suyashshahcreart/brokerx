@@ -26,7 +26,7 @@ class BrokerController extends Controller
     {
         // Check if user already has a broker profile
         if (Auth::user()->broker) {
-            return redirect()->route('root')->with('info', 'You already have a broker account.');
+            return redirect()->route('admin.index')->with('info', 'You already have a broker account.');
         }
         return view('broker.create');
     }
@@ -60,7 +60,7 @@ class BrokerController extends Controller
 
         // Prevent duplicate creation
         if ($user->broker) {
-            return redirect()->route('root')->with('info', 'You already have a broker profile.');
+            return redirect()->route('admin.index')->with('info', 'You already have a broker profile.');
         }
 
         // Handle profile image upload
@@ -78,7 +78,7 @@ class BrokerController extends Controller
 
         $user->broker()->create($validated);
 
-    return redirect()->route('root')->with('success', 'Broker account created successfully!');
+    return redirect()->route('admin.index')->with('success', 'Broker account created successfully!');
     }
 
     /**
@@ -102,7 +102,7 @@ class BrokerController extends Controller
     {
         // Authorization: only the broker owner can edit
         // if (Auth::id() !== $broker->user_id) {
-        //     return redirect()->route('root')->with('error', 'Unauthorized access.');
+        //     return redirect()->route('admin.index')->with('error', 'Unauthorized access.');
         // }
 
         return view('brokers.edit', compact('broker'));
@@ -115,7 +115,7 @@ class BrokerController extends Controller
     {
         // Authorization: only the broker owner can update
         if (Auth::id() !== $broker->user_id) {
-            return redirect()->route('root')->with('error', 'Unauthorized access.');
+            return redirect()->route('admin.index')->with('error', 'Unauthorized access.');
         }
 
         $validated = $request->validate([
@@ -169,7 +169,7 @@ class BrokerController extends Controller
     {
         // Authorization: only the broker owner or admin can delete
         if (Auth::id() !== $broker->user_id) {
-            return redirect()->route('root')->with('error', 'Unauthorized access.');
+            return redirect()->route('admin.index')->with('error', 'Unauthorized access.');
         }
 
         // Delete associated images
@@ -183,6 +183,6 @@ class BrokerController extends Controller
 
         $broker->delete();
 
-    return redirect()->route('root')->with('success', 'Broker account deleted successfully!');
+    return redirect()->route('admin.index')->with('success', 'Broker account deleted successfully!');
     }
 }

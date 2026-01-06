@@ -256,7 +256,7 @@
             <div>
                 <nav aria-label="breadcrumb" class="mb-0">
                     <ol class="breadcrumb mb-0">
-                        <li class="breadcrumb-item"><a href="{{ route('root') }}">Home</a></li>
+                        <li class="breadcrumb-item"><a href="{{ route('admin.index') }}">Home</a></li>
                         <li class="breadcrumb-item"><a href="{{ route('admin.bookings.index') }}">Bookings</a></li>
                         <li class="breadcrumb-item active" aria-current="page">Create</li>
                     </ol>
@@ -321,16 +321,16 @@
                     <div class="row">
                         <div class="col-4">
                             <div class="mb-1">
-                                <label class="form-label" for="user_id">Select User <span class="text-danger">*</span></label>
+                                <label class="form-label" for="user_id">Select Customer <span class="text-danger">*</span></label>
                                 <select name="user_id" id="user_id" data-choices class="form-select @error('user_id') is-invalid @enderror" required>
-                                    <option value="">Choose a user...</option>
+                                    <option value="">Choose a customer...</option>
                                     @foreach($users as $u)
                                         <option value="{{ $u->id }}" @selected(old('user_id')==$u->id)>
                                             {{ $u->firstname }} {{ $u->lastname }} | {{ $u->mobile }}@if($u->email) | {{ $u->email }}@endif
                                         </option>
                                     @endforeach
                                 </select>
-                                <div class="invalid-feedback">@error('user_id'){{ $message }}@else Please select a user.@enderror</div>
+                                <div class="invalid-feedback">@error('user_id'){{ $message }}@else Please select a customer.@enderror</div>
                             </div>
                         </div>
                         <div class="col-4">

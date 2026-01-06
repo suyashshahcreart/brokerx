@@ -418,6 +418,7 @@ class TourController extends Controller
             'footer_brand_text' => ['nullable', 'string'],
             'footer_brand_mobile' => ['nullable', 'string'],
             'footer_name' => ['nullable', 'string'],
+            'footer_subtitle' => ['nullable', 'string'],
             'footer_email' => ['nullable', 'string'],
             'footer_mobile' => ['nullable', 'string'],
             'footer_decription' => ['nullable', 'string'],
@@ -465,10 +466,11 @@ class TourController extends Controller
         $finalJson['sidebarConfig']['footerButton']['show'] = $validated['sidebar_footer_link_show'];
         // footer data update in json
         // $finalJson['bottomMarker']
-        $finalJson['bottomMarker']['agentName'] = $validated['footer_name'];
-        $finalJson['bottomMarker']['companyName'] = $validated['footer_decription'];
+        $finalJson['bottomMarker']['topTitle'] = $validated['footer_name'];
+        $finalJson['bottomMarker']['topSubTitle'] = $validated['footer_subtitle'];
+        $finalJson['bottomMarker']['topDescription'] = $validated['footer_decription'];
         $finalJson['bottomMarker']['contactNumber'] = $validated['footer_mobile'];
-        $finalJson['bottomMarker']['services'] = 'Not added Yest! working on it';
+        $finalJson['bottomMarker']['contactEmail'] = $validated['footer_email'];
 
         // footer brand info update in json
         $finalJson['bottomMarker']['tourContactText'] = $validated['footer_brand_text'];
@@ -500,7 +502,7 @@ class TourController extends Controller
             $footerContent = file_get_contents($logoFooterFile->getRealPath());
             $footerMime = $logoFooterFile->getMimeType();
             $uploaded = Storage::disk('s3')->put($footerPath, $footerContent, ['ContentType' => $footerMime]);
-            $finalJson['bottomMarker']['profilePicture'] = 'assets/' . $footerFilename;
+            $finalJson['bottomMarker']['topImage'] = 'assets/' . $footerFilename;
             if ($uploaded) {
                 $updateData['footer_logo'] = $footerPath;
             }
@@ -533,7 +535,7 @@ class TourController extends Controller
 
         // If final_json was empty originally, only persist DB changes and skip S3
         if ($finalJsonWasEmpty) {
-            return redirect()->back()->with('warning', 'Tour updated, but files were not uploaded to S3 because final JSON was empty.');
+            return redirect()->back()->with(['warning' => 'Tour updated, but files were not uploaded to S3 because final JSON was empty.', 'active_tab' => 'tour']);
         }
 
         //  create a new js file with updated final json
@@ -585,7 +587,7 @@ class TourController extends Controller
         // update the json file of virtual-tour-nodes.json
         Storage::disk('s3')->put('tours/' . $qr_code . '/virtual-tour-nodes.json', $jsonString, ['ContentType' => 'application/json']);
         
-        return redirect()->back()->with('success', 'Tour updated successfully from booking edit.');
+        return redirect()->back()->with(['success' => 'Tour updated successfully from booking edit.', 'active_tab' => 'tour']);
     }
 
     /**
@@ -641,7 +643,7 @@ class TourController extends Controller
             'gtm_tag' => $validated['gtm_tag'] ?? null,
         ]);
 
-        return redirect()->back()->with('success', 'SEO details updated successfully.');
+        return redirect()->back()->with(['success' => 'SEO details updated successfully.', 'active_tab' => 'seo']);
     }
 
     /**
