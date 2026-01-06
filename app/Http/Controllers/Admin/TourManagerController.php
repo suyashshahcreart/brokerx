@@ -574,14 +574,14 @@ class TourManagerController extends Controller{
                 
                 
                 $indexHtmlContent = preg_replace(
-                    '/<meta\\s+property="twitter:title"[^>]*content=".*?"[^>]*>/is',
-                    '<meta property="twitter:title" id="twitterTitle" content="<?php echo $twitterTitle; ?>" />',
+                    '/<meta\\s+(?:name|property)="twitter:title"[^>]*content=".*?"[^>]*>/is',
+                    '<meta name="twitter:title" id="twitterTitle" content="<?php echo $twitterTitle; ?>" />',
                     $indexHtmlContent,
                     1
                 );
                 $indexHtmlContent = preg_replace(
-                    '/<meta\\s+property="twitter:description"[^>]*content=".*?"[^>]*>/is',
-                    '<meta property="twitter:description" id="twitterDescription" content="<?php echo $twitterDescription; ?>" />',
+                    '/<meta\\s+(?:name|property)="twitter:description"[^>]*content=".*?"[^>]*>/is',
+                    '<meta name="twitter:description" id="twitterDescription" content="<?php echo $twitterDescription; ?>" />',
                     $indexHtmlContent,
                     1
                 );
@@ -1559,7 +1559,7 @@ class TourManagerController extends Controller{
             
             // Fetch booking data by tour slug (matches tours.slug)
             $stmt = $pdo->prepare("
-                SELECT b.id,b.base_url, 
+                SELECT b.id,b.base_url, b.status,
                     u.firstname, u.lastname, u.mobile, u.email,
                     pt.name as property_type_name,
                     pst.name as property_sub_type_name,
@@ -1601,15 +1601,11 @@ class TourManagerController extends Controller{
                         .btn { display:inline-block; padding:12px 20px; background:#2563eb; color:#fff; border-radius:8px; text-decoration:none; font-weight:600; }
                         .btn:hover { background:#1d4ed8; }
                     </style>
-                </head>
-                <body>
                     <div class="card">
                         <h1>Tour Expired</h1>
                         <p>This virtual tour is no longer available. Please visit our site to explore more experiences.</p>
                         <a class="btn" href="{$redirectUrl}">Go to PROP PIK</a>
                     </div>
-                </body>
-                </html>
                 HTML;
                 exit;
             }
