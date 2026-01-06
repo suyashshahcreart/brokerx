@@ -176,7 +176,7 @@
 
                 <div class="col-md-12 d-flex gap-3 align-items-center mb-3">
                     <div class="col-md-4">
-                        <label for="sidebar_footer_link_show" class="form-label">Sidebar Footer Link Show</label>
+                        <label for="sidebar_footer_link_show" class="form-label">Footer button Show</label>
                         <select name="sidebar_footer_link_show" id="sidebar_footer_link_show" class="form-select">
                             <option value="1"
                                 {{ old('sidebar_footer_link_show', $tour->sidebar_footer_link_show) == 1 ? 'selected' : '' }}>
@@ -190,14 +190,14 @@
                     <div class="col-md-8" id="sidebar-footer-fields" style="display: none;">
                         <div class="row">
                             <div class="col-md-6">
-                                <label for="sidebar_footer_text" class="form-label">Sidebar Footer Text</label>
+                                <label for="sidebar_footer_text" class="form-label">Footer button Text</label>
                                 <input type="text" name="sidebar_footer_text" id="sidebar_footer_text"
                                     class="form-control"
                                     value="{{ old('sidebar_footer_text', $tour->sidebar_footer_text) }}">
                                 @error('sidebar_footer_text')<div class="text-danger">{{ $message }}</div>@enderror
                             </div>
                             <div class="col-md-6">
-                                <label for="sidebar_footer_link" class="form-label">Sidebar Footer Link</label>
+                                <label for="sidebar_footer_link" class="form-label">Footer button Link</label>
                                 <input type="text" name="sidebar_footer_link" id="sidebar_footer_link"
                                     class="form-control"
                                     value="{{ old('sidebar_footer_link', $tour->sidebar_footer_link) }}">
@@ -213,7 +213,7 @@
     <!-- footer section -->
     <div class="card panel-card border-info border-top mt-3">
         <div class="card-header bg-warning-subtle border-warning">
-            <h4 class="card-title mb-1"> <i class="ri-layout-row-line"></i> footer Section</h4>
+            <h4 class="card-title mb-1"> <i class="ri-layout-row-line"></i> Bottom Mark: Top section</h4>
         </div>
         <div class="card-body">
             <div class="row">
@@ -230,14 +230,14 @@
                             @endif
                         </div>
                         <div>
-                            <label class="form-label" for="footer_logo">Footer Logo</label>
+                            <label class="form-label" for="footer_logo">Top Image</label>
                             <input type="file" name="footer_logo" id="footer_logo" @if (!$qr_code) disabled @endif
                                 class="form-control" accept="image/*">
                         </div>
                         @error('footer_logo')<div class="text-danger">{{ $message }}</div>@enderror
                     </div>
                 </div>
-                <div class="col-md-6">
+                <!-- <div class="col-md-6">
                     <div class="mb-3">
                         <label for="footer_info_type" class="form-label">Footer Info Type</label>
                         <select name="footer_info_type" id="footer_info_type" class="form-select">
@@ -250,10 +250,10 @@
                         </select>
                         @error('footer_info_type')<div class="text-danger">{{ $message }}</div>@enderror
                     </div>
-                </div>
+                </div> -->
                 <div class="col-md-6">
                     <div class="mb-3">
-                        <label for="footer_name" class="form-label">Footer Name</label>
+                        <label for="footer_name" class="form-label">Top Title</label>
                         <input type="text" name="footer_name" id="footer_name" class="form-control"
                             value="{{ old('footer_name', $tour->footer_name) }}">
                         @error('footer_name')<div class="text-danger">{{ $message }}</div>@enderror
@@ -261,7 +261,15 @@
                 </div>
                 <div class="col-md-6">
                     <div class="mb-3">
-                        <label for="footer_email" class="form-label">Footer Email</label>
+                        <label for="footer_subtitle" class="form-label">Top Subtitle</label>
+                        <input type="text" name="footer_subtitle" id="footer_subtitle" class="form-control"
+                            value="{{ old('footer_subtitle', $tour->footer_subtitle) }}">
+                        @error('footer_subtitle')<div class="text-danger">{{ $message }}</div>@enderror
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="footer_email" class="form-label">Contact Email</label>
                         <input type="email" name="footer_email" id="footer_email" class="form-control"
                             value="{{ old('footer_email', $tour->footer_email) }}">
                         @error('footer_email')<div class="text-danger">{{ $message }}</div>@enderror
@@ -269,7 +277,7 @@
                 </div>
                 <div class="col-md-6">
                     <div class="mb-3">
-                        <label for="footer_mobile" class="form-label">Footer Mobile</label>
+                        <label for="footer_mobile" class="form-label">Contact Mobile</label>
                         <input type="number" name="footer_mobile" id="footer_mobile" class="form-control"
                             value="{{ old('footer_mobile', $tour->footer_mobile) }}">
                         @error('footer_mobile')<div class="text-danger">{{ $message }}</div>@enderror
@@ -277,7 +285,7 @@
                 </div>
                 <div class="col-md-12">
                     <div class="mb-3">
-                        <label for="footer_decription" class="form-label">Footer Description</label>
+                        <label for="footer_decription" class="form-label">Top Description</label>
                         <textarea name="footer_decription" id="footer_decription" class="form-control"
                             rows="2">{{ old('footer_decription', $tour->footer_decription) }}</textarea>
                         @error('footer_decription')<div class="text-danger">{{ $message }}</div>@enderror
@@ -290,7 +298,7 @@
     <!-- Footer Brand section -->
     <div class="card panel-card border-info border-top mt-3">
         <div class="card-header bg-secondary-subtle border-secondary">
-            <h4 class="card-title mb-1"> <i class="ri-cash-line"></i> Footer Brand</h4>
+            <h4 class="card-title mb-1"> <i class="ri-cash-line"></i> Bottom Mark: Bottom section</h4>
         </div>
         <div class="card-body">
             <div class="row">
@@ -309,7 +317,7 @@
                             @endif
                         </div>
                         <div>
-                            <label class="form-label" for="footer_brand_logo">Footer Brand Logo</label>
+                            <label class="form-label" for="footer_brand_logo">Brand Logo (Bottom) </label>
                             <input type="file" name="footer_brand_logo" id="footer_brand_logo" @if (!$qr_code) disabled @endif 
                             class="form-control" accept="image/*">
                         </div>
@@ -317,13 +325,13 @@
                     </div>
                 </div>
                 <div class="col-md-4">
-                    <label for="footer_brand_text" class="form-label">Footer Brand Text</label>
+                    <label for="footer_brand_text" class="form-label">Contact Text</label>
                     <input type="text" name="footer_brand_text" id="footer_brand_text" class="form-control"
                         value="{{ old('footer_brand_text', $tour->footer_brand_text) }}">
                     @error('footer_brand_text')<div class="text-danger">{{ $message }}</div>@enderror
                 </div>
                 <div class="col-md-4">
-                    <label for="footer_brand_mobile" class="form-label">Footer Brand Mobile</label>
+                    <label for="footer_brand_mobile" class="form-label">Contact Number</label>
                     <input type="number" name="footer_brand_mobile" id="footer_brand_mobile" class="form-control"
                         value="{{ old('footer_brand_mobile', $tour->footer_brand_mobile) }}">
                     @error('footer_brand_mobile')<div class="text-danger">{{ $message }}</div>@enderror
