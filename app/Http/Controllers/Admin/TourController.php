@@ -436,9 +436,28 @@ class TourController extends Controller
             }
         }
 
-        //  update the final json according to the new fields
-        $finalJson = $tour->final_json ? json_encode($tour->final_json, true) : [];
-        $finalJson = json_decode($finalJson, true);
+        // Normalize final_json from DB (can be array, JSON string, or empty)
+        $rawFinalJson = $tour->final_json;
+        $finalJson = [];
+
+        if (is_array($rawFinalJson)) {
+            $finalJson = $rawFinalJson;
+        } elseif (is_string($rawFinalJson) && trim($rawFinalJson) !== '') {
+            $decoded = json_decode($rawFinalJson, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                $finalJson = $decoded;
+            }
+        } elseif (is_object($rawFinalJson)) {
+            $decoded = json_decode(json_encode($rawFinalJson), true);
+            $finalJson = is_array($decoded) ? $decoded : [];
+        }
+
+        $finalJsonWasEmpty = empty($finalJson);
+
+        // Ensure expected structure exists before updates
+        $finalJson['sidebarConfig'] = $finalJson['sidebarConfig'] ?? [];
+        $finalJson['sidebarConfig']['footerButton'] = $finalJson['sidebarConfig']['footerButton'] ?? [];
+        $finalJson['bottomMarker'] = $finalJson['bottomMarker'] ?? [];
 
         // update the sidebar data in json;
         $finalJson['sidebarConfig']['footerButton']['text'] = $validated['sidebar_footer_text'];
@@ -503,7 +522,19 @@ class TourController extends Controller
         if ($request->has('footer_brand_logo_text')) {
             $updateData['footer_brand_logo_text'] = $request->input('footer_brand_logo_text');
         }
-        $updateData['final_json'] = $finalJson;
+        
+        // Only save final_json to DB if it was not empty originally
+        if (!$finalJsonWasEmpty) {
+            $updateData['final_json'] = $finalJson;
+        }
+        
+        // Update the tour with new data DB
+        $tour->update($updateData);
+
+        // If final_json was empty originally, only persist DB changes and skip S3
+        if ($finalJsonWasEmpty) {
+            return redirect()->back()->with('warning', 'Tour updated, but files were not uploaded to S3 because final JSON was empty.');
+        }
 
         //  create a new js file with updated final json
         $jsonString = json_encode(
@@ -554,8 +585,6 @@ class TourController extends Controller
         // update the json file of virtual-tour-nodes.json
         Storage::disk('s3')->put('tours/' . $qr_code . '/virtual-tour-nodes.json', $jsonString, ['ContentType' => 'application/json']);
         
-        // Update the tour with new data DB
-        $tour->update($updateData);
         return redirect()->back()->with('success', 'Tour updated successfully from booking edit.');
     }
 
@@ -592,13 +621,6 @@ class TourController extends Controller
             }
         }
 
-        //  update the final json according to the new fields
-        $finalJson = $tour->final_json ? json_encode($tour->final_json, true) : [];
-        $finalJson = json_decode($finalJson, true);
-
-        //GTM tag update in json
-        $finalJson['googleTagManagerId'] = $validated['gtm_tag'] ?? '';
-
         // Update all SEO fields in the database
         $tour->update([
             'meta_title' => $validated['meta_title'] ?? null,
@@ -617,7 +639,6 @@ class TourController extends Controller
             'header_code' => $validated['header_code'] ?? null,
             'footer_code' => $validated['footer_code'] ?? null,
             'gtm_tag' => $validated['gtm_tag'] ?? null,
-            'final_json' => $finalJson,
         ]);
 
         return redirect()->back()->with('success', 'SEO details updated successfully.');

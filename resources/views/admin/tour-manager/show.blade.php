@@ -67,15 +67,7 @@
                                                 </button>
                                             </div>
                                             <code class="d-block mt-1 small text-break p-2 bg-light rounded" id="ftp-full-url-text">
-                                                @if($tour->location === 'creart_qr')
-                                                    http://creart.in/qr/{{ $tour->slug ?? 'N/A' }}/index.php
-                                                @elseif($tour->location === 'tours' && $tour->slug)
-                                                    https://tour.proppik.in/{{ $tour->slug }}/index.php
-                                                @elseif($tour->location && $tour->slug)
-                                                    https://{{ $tour->location }}.proppik.com/{{ $tour->slug }}/index.php
-                                                @else
-                                                    N/A
-                                                @endif
+                                                {{ $tour->getTourLiveUrl() !== '#' ? $tour->getTourLiveUrl() : 'N/A' }}
                                             </code>
                                             <small class="text-muted d-block mt-1">The converted index.php file will be uploaded to this FTP URL.</small>
                                         </div>

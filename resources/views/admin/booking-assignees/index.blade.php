@@ -202,15 +202,7 @@
 
 @section('scripts')
     <script>
-        // Wait for all external libraries to load, then initialize DataTable
-        document.addEventListener('DOMContentLoaded', function () {
-            // Ensure jQuery and DataTables are available
-            if (typeof jQuery !== 'undefined' && typeof $.fn.DataTable !== 'undefined') {
-                console.log('jQuery and DataTables are loaded, initializing...');
-            } else {
-                console.warn('jQuery or DataTables not fully loaded yet');
-            }
-        });
+        
     </script>
     @vite(['resources/js/pages/booking-assignees-index.js'])
 @endsection

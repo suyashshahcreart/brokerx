@@ -7,6 +7,7 @@ use App\Models\Booking;
 use App\Models\BookingHistory;
 use App\Services\SmsService;
 use Illuminate\Http\Request;
+use Spatie\Activitylog\Models\Activity;
 
 class PendingScheduleController extends Controller
 {
@@ -104,6 +105,9 @@ class PendingScheduleController extends Controller
 
         $isReschedule = $booking->status === 'reschedul_pending';
         $oldStatus = $booking->status;
+        
+        // Capture before state for activity log
+        $before = $booking->toArray();
 
         // Change status using the booking model method
         $newStatus = $isReschedule ? 'reschedul_accepted' : 'schedul_accepted';
@@ -121,6 +125,33 @@ class PendingScheduleController extends Controller
                 return !is_null($value) && $value !== '';
             })
         );
+        
+        // Capture after state and calculate changes
+        $booking->refresh();
+        $after = $booking->toArray();
+        $changes = [];
+        foreach ($after as $key => $value) {
+            if (!isset($before[$key]) || $before[$key] !== $value) {
+                $changes[$key] = [
+                    'old' => $before[$key] ?? null,
+                    'new' => $value
+                ];
+            }
+        }
+        
+        // Log activity
+        activity('bookings')
+            ->performedOn($booking)
+            ->causedBy($request->user())
+            ->withProperties([
+                'event' => 'schedule_accepted',
+                'before' => $before,
+                'after' => $after,
+                'changes' => $changes,
+                'is_reschedule' => $isReschedule,
+                'admin_notes' => $request->notes,
+            ])
+            ->log($isReschedule ? 'Reschedule approved' : 'Schedule approved');
 
         // Send SMS notification to customer when schedule is accepted
         if ($booking->user && $booking->user->mobile && $booking->booking_date) {
@@ -210,6 +241,9 @@ class PendingScheduleController extends Controller
         $isReschedule = $booking->status === 'reschedul_pending';
         $oldStatus = $booking->status;
         $requestedDate = $booking->booking_date?->format('Y-m-d');
+        
+        // Capture before state for activity log
+        $before = $booking->toArray();
 
         // Clear booking date when declined
         $booking->booking_date = null;
@@ -230,6 +264,34 @@ class PendingScheduleController extends Controller
                 'scheduled_date_requested' => $requestedDate,
             ]
         );
+        
+        // Capture after state and calculate changes
+        $booking->refresh();
+        $after = $booking->toArray();
+        $changes = [];
+        foreach ($after as $key => $value) {
+            if (!isset($before[$key]) || $before[$key] !== $value) {
+                $changes[$key] = [
+                    'old' => $before[$key] ?? null,
+                    'new' => $value
+                ];
+            }
+        }
+        
+        // Log activity
+        activity('bookings')
+            ->performedOn($booking)
+            ->causedBy($request->user())
+            ->withProperties([
+                'event' => 'schedule_declined',
+                'before' => $before,
+                'after' => $after,
+                'changes' => $changes,
+                'is_reschedule' => $isReschedule,
+                'decline_reason' => $request->reason,
+                'requested_date' => $requestedDate,
+            ])
+            ->log($isReschedule ? 'Reschedule declined' : 'Schedule declined');
 
         return response()->json([
             'success' => true,

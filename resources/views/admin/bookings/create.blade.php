@@ -338,8 +338,9 @@
                                 <label class="form-label" for="status">Status <span class="text-danger">*</span></label>
                                 <select name="status" id="status" class="form-select @error('status') is-invalid @enderror" required>
                                     <option value="">Select status...</option>
+                                    @php $defaultStatus = old('status', 'confirmed'); @endphp
                                     @foreach($statuses as $status)
-                                        <option value="{{ $status }}" @selected(old('status')==$status)>{{ ucfirst($status) }}</option>
+                                        <option value="{{ $status }}" @selected($defaultStatus==$status)>{{ ucfirst($status) }}</option>
                                     @endforeach
                                 </select>
                                 <div class="invalid-feedback">@error('status'){{ $message }}@else Please select a status.@enderror</div>
@@ -350,8 +351,9 @@
                                 <label class="form-label" for="payment_status">Payment Status <span class="text-danger">*</span></label>
                                 <select name="payment_status" id="payment_status" class="form-select @error('payment_status') is-invalid @enderror" required>
                                     <option value="">Select payment status...</option>
+                                    @php $defaultPaymentStatus = old('payment_status', 'paid'); @endphp
                                     @foreach($paymentStatuses as $ps)
-                                        <option value="{{ $ps }}" @selected(old('payment_status')==$ps)>{{ ucfirst($ps) }}</option>
+                                        <option value="{{ $ps }}" @selected($defaultPaymentStatus==$ps)>{{ ucfirst($ps) }}</option>
                                     @endforeach
                                 </select>
                                 <div class="invalid-feedback">@error('payment_status'){{ $message }}@else Please select a payment status.@enderror</div>

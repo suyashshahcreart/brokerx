@@ -434,7 +434,6 @@ class BookingAssigneeController extends Controller
 
 
         if ($activeVisit) {
-            
             return redirect()->route('admin.photographer-visits.index')->with('error', 'This booking is already checked in. Please check out the current visit before starting a new one.');
         }
 
@@ -462,9 +461,8 @@ class BookingAssigneeController extends Controller
             // Prevent double check-in: if a visit for this booking is already checked in, block
             $activeVisit = PhotographerVisit::where('booking_id', $bookingAssignee->booking_id)
                 ->where('status', 'checked_in')
-                ->orderByDesc('id')
                 ->first();
-
+            
             if ($activeVisit) {
                 return redirect()->back()->with('error', 'This booking is already checked in. Please check out the current visit before starting a new one.');
             }
@@ -518,15 +516,40 @@ class BookingAssigneeController extends Controller
             // Update booking status to shedul_inproccess (as requested)
             $booking = $bookingAssignee->booking;
             if ($booking) {
+                $oldStatus = $booking->status;
+                
                 $booking->update([
                     'status' => 'schedul_inprogress',
                     'updated_by' => auth()->id(),
+                ]);
+               // Create booking history entry for check-in
+               BookingHistory::create([
+                    'booking_id' => $booking->id,
+                    'from_status' => $oldStatus,
+                    'to_status' => 'schedul_inprogress',
+                    'changed_by' => auth()->id(),
+                    'notes' => 'Photographer checked in for the booking',
+                    'metadata' => [
+                        'photographer_id' => auth()->id(),
+                        'photographer_name' => auth()->user()->name ?? null,
+                        'assignee_id' => $bookingAssignee->id,
+                        'visit_id' => $photographerVisit->id,
+                        'check_in_location' => $validated['location'] ?? null,
+                        'check_in_time' => $checkedAt->toDateTimeString(),
+                        'check_in_photo' => $photoPath,
+                        'check_in_remarks' => $validated['remarks'] ?? null,
+                        'location_accuracy' => $validated['location_accuracy'] ?? null,
+                        'location_source' => $validated['location_source'] ?? null,
+                    ],
+                    'ip_address' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
                 ]);
             }
 
             activity('booking_assignees')
                 ->performedOn($bookingAssignee)
                 ->causedBy(auth()->user())
+                ->event('photographer_checked_in')
                 ->withProperties(['event' => 'checked_in', 'visit_id' => $photographerVisit->id])
                 ->log('Photographer checked in for booking assignee');
 
@@ -576,6 +599,7 @@ class BookingAssigneeController extends Controller
      */
     public function checkOut(Request $request, BookingAssignee $bookingAssignee)
     {
+       
         $validated = $request->validate([
             'location' => 'required|string|max:255',
             'location_timestamp' => 'nullable|date',
@@ -586,7 +610,7 @@ class BookingAssigneeController extends Controller
             'work_summary' => 'nullable|string|max:1000',
             'photo' => 'required|image|max:5120', // 5MB max
         ]);
-
+        
         try {
             // Ensure the authenticated user is the assigned photographer
             if ((int)$bookingAssignee->user_id !== (int)auth()->id()) {
@@ -596,10 +620,10 @@ class BookingAssigneeController extends Controller
             // Require an active check-in before check-out
             $activeVisit = PhotographerVisit::where('booking_id', $bookingAssignee->booking_id)
                 ->where('status', 'checked_in')
-                ->orderByDesc('id')
                 ->first();
-
+            
             if (!$activeVisit) {
+                dd($validated,$activeVisit);
                 return redirect()->back()->with('error', 'No active check-in found for this booking. Please check in first.');
             }
             // Check if job can be checked out
@@ -668,10 +692,36 @@ class BookingAssigneeController extends Controller
 
             // Update booking status to shedule_complete
             $booking = $bookingAssignee->booking;
+           
             if ($booking) {
+                $oldStatus = $booking->status;
                 $booking->update([
                     'status' => 'schedul_completed',
                     'updated_by' => auth()->id(),
+                ]);
+                // Create booking history entry for check-out
+                BookingHistory::create([
+                    'booking_id' => $booking->id,
+                    'from_status' => $oldStatus,
+                    'to_status' => 'schedul_completed',
+                    'changed_by' => auth()->id(),
+                    'notes' => 'Photographer checked out from the booking',
+                    'metadata' => [
+                        'photographer_id' => auth()->id(),
+                        'photographer_name' => auth()->user()->name ?? null,
+                        'assignee_id' => $bookingAssignee->id,
+                        'visit_id' => $visit->id ?? null,
+                        'check_out_location' => $validated['location'] ?? null,
+                        'check_out_time' => $checkedAt->toDateTimeString(),
+                        'check_out_photo' => $photoPath,
+                        'check_out_remarks' => $validated['remarks'] ?? null,
+                        'photos_taken' => $validated['photos_taken'] ?? 0,
+                        'work_summary' => $validated['work_summary'] ?? null,
+                        'location_accuracy' => $validated['location_accuracy'] ?? null,
+                        'location_source' => $validated['location_source'] ?? null,
+                    ],
+                    'ip_address' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
                 ]);
             }
 
@@ -681,7 +731,7 @@ class BookingAssigneeController extends Controller
                 ->withProperties(['event' => 'checked_out'])
                 ->log('Photographer checked out from booking assignee');
 
-            return redirect()->route('admin.photographer-visits.show', $visit ?? null)
+            return redirect()->route('admin.photographer-visits.show', $visit->id ?? null)
                 ->with('success', 'Successfully checked out from the job.');
 
         } catch (\Exception $e) {
@@ -694,4 +744,3 @@ class BookingAssigneeController extends Controller
         }
     }
 }
-

@@ -191,6 +191,7 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'middleware' => ['web', 'au
     Route::post('booking-assignees/{bookingAssignee}/check-in', [BookingAssigneeController::class, 'checkIn'])->name('booking-assignees.check-in');
     Route::get('booking-assignees/{bookingAssignee}/check-out', [BookingAssigneeController::class, 'checkOutForm'])->name('booking-assignees.check-out-form');
     Route::post('booking-assignees/{bookingAssignee}/check-out', [BookingAssigneeController::class, 'checkOut'])->name('booking-assignees.check-out');
+    
     Route::post('bookings/{booking}/reschedule', [BookingController::class, 'reschedule'])->name('admin.bookings.reschedule');
     Route::post('bookings/{booking}/update-ajax', [BookingController::class, 'updateAjax'])->name('admin.bookings.update-ajax');
 
@@ -199,11 +200,6 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'middleware' => ['web', 'au
 
     // PHOTOGRAPHER VISITS
     Route::resource('photographer-visits', PhotographerVisitController::class);
-    // Legacy job-based check-in/out retained for backward compatibility
-    Route::get('photographer-visit-jobs/{photographerVisitJob}/check-in', [PhotographerVisitController::class, 'checkInForm'])->name('photographer-visit-jobs.check-in-form');
-    Route::post('photographer-visit-jobs/{photographerVisitJob}/check-in', [PhotographerVisitController::class, 'checkIn'])->name('photographer-visit-jobs.check-in');
-    Route::get('photographer-visit-jobs/{photographerVisitJob}/check-out', [PhotographerVisitController::class, 'checkOutForm'])->name('photographer-visit-jobs.check-out-form');
-    Route::post('photographer-visit-jobs/{photographerVisitJob}/check-out', [PhotographerVisitController::class, 'checkOut'])->name('photographer-visit-jobs.check-out');
     // Portfolios
     Route::resource('portfolios', AdminPortfolioController::class);
     Route::resource('holidays', HolidayController::class);

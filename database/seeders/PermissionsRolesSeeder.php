@@ -149,7 +149,6 @@ class PermissionsRolesSeeder extends Seeder
         $photographerPermissions = Permission::whereIn('name', [
             'photographer_visit_view',
             'photographer_visit_create',
-            'photographer_visit_edit',
             'booking_view',
         ])->get();
 
@@ -162,6 +161,7 @@ class PermissionsRolesSeeder extends Seeder
             'tour_notification_view',
             'tour_view',
             'booking_view',
+            'booking_manage_assignees'
         ])->get();
 
         $seoManagerPermissions = Permission::whereIn('name', [

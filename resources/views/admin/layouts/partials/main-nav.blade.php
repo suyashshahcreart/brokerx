@@ -2,13 +2,13 @@
      <!-- Sidebar Logo -->
      <div class="logo-box">
           <a href="{{ route('admin.index') }}" class="logo-dark">
-               <img src="{{ asset('images/proppik-logo-sm.png') }}" class="logo-sm" alt="logo sm">
-               <img src="{{ asset('images/proppik-logo.jpg') }}" class="logo-lg" alt="logo dark">
+               <img src="{{ asset('proppik/assets/logo/logo-sm-1.svg') }}" class="logo-sm" alt="logo sm" style="height: 100% !important;">
+               <img src="{{ asset('proppik/assets/logo/logo.svg') }}" class="logo-lg" alt="logo dark" style="height: 100% !important;">
           </a>
 
           <a href="{{ route('admin.index') }}" class="logo-light">
-               <img src="{{ asset('images/proppik-logo-sm.png') }}" class="logo-sm" alt="logo sm">
-               <img src="{{ asset('images/proppik-logo-light.png') }}" class="logo-lg" alt="logo light">
+               <img src="{{ asset('proppik/assets/logo/w-logo-sm-1.svg') }}" class="logo-sm" alt="logo sm" style="height: 100% !important;">
+               <img src="{{ asset('proppik/assets/logo/w-logo.svg') }}" class="logo-lg" alt="logo light" style="height: 100% !important;">
           </a>
      </div>
 

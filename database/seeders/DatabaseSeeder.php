@@ -40,7 +40,8 @@ class DatabaseSeeder extends Seeder
         // Seed settings
         $this->call(SettingsSeeder::class);
 
-        
+
+        // ftp seeder
         $this->call(FtpConfigurationSeeder::class);
 
         $user = User::updateOrCreate(
