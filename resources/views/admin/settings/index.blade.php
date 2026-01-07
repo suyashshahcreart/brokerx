@@ -75,6 +75,13 @@
                                             <span>Booking Schedule Date</span>
                                         </a>
                                     @endif
+
+                                    @if($canFtpConfiguration)
+                                        <a class="nav-link {{ ($firstActiveTab === 'vl-pills-ftp') ? 'active show' : '' }}" id="vl-pills-tour-tab" data-bs-toggle="pill" href="#vl-pills-tour" role="tab" aria-controls="vl-pills-tour" aria-selected="{{ ($firstActiveTab === 'vl-pills-tour') ? 'true' : 'false' }}">
+                                            <i class="ri-home-office-line me-2"></i>
+                                            <span>Tour Default Settings</span>
+                                        </a>
+                                    @endif
                                     
                                     @if($canPhotographer)
                                         <a class="nav-link {{ ($firstActiveTab === 'vl-pills-photographer') ? 'active show' : '' }}" id="vl-pills-photographer-tab" data-bs-toggle="pill" href="#vl-pills-photographer" role="tab" aria-controls="vl-pills-photographer" aria-selected="{{ ($firstActiveTab === 'vl-pills-photographer') ? 'true' : 'false' }}">
@@ -108,13 +115,6 @@
                                         <a class="nav-link {{ ($firstActiveTab === 'vl-pills-ftp') ? 'active show' : '' }}" id="vl-pills-ftp-tab" data-bs-toggle="pill" href="#vl-pills-ftp" role="tab" aria-controls="vl-pills-ftp" aria-selected="{{ ($firstActiveTab === 'vl-pills-ftp') ? 'true' : 'false' }}">
                                             <i class="ri-server-line me-2"></i>
                                             <span>FTP Configuration</span>
-                                        </a>
-                                    @endif
-                                    
-                                    @if($canFtpConfiguration)
-                                        <a class="nav-link {{ ($firstActiveTab === 'vl-pills-ftp') ? 'active show' : '' }}" id="vl-pills-tour-tab" data-bs-toggle="pill" href="#vl-pills-tour" role="tab" aria-controls="vl-pills-tour" aria-selected="{{ ($firstActiveTab === 'vl-pills-tour') ? 'true' : 'false' }}">
-                                            <i class="ri-home-office-line me-2"></i>
-                                            <span>Tour Default Settings</span>
                                         </a>
                                     @endif
                                 </div>
@@ -690,7 +690,7 @@
                                                                 <label for="tour_bottommark_logo" class="form-label">Bottom mark Logo</label>
                                                                 <div class="mb-2">
                                                                     @if(!empty($settings['tour_bottommark_logo']))
-                                                                        <img src="{{ $settings['tour_bottommark_logo'] }}" alt="bottom mark Logo" class="img-thumbnail" style="max-width: 150px; max-height: 100px;">
+                                                                        <img src="{{ Storage::disk('s3')->url($settings['tour_bottommark_logo']) }}" alt="bottom mark Logo" class="img-thumbnail" style="max-width: 150px; max-height: 100px;">
                                                                     @else
                                                                         <div class="border rounded p-3 text-center text-muted" style="width: 150px; height: 100px; display: flex; align-items: center; justify-content: center;">
                                                                             <small>No logo uploaded</small>

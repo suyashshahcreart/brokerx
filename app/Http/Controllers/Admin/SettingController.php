@@ -650,16 +650,19 @@ class SettingController extends Controller
 
             try {
                 // Store in local public disk
-                $localPath = $file->storeAs('public/settings/logo', $filename);
-                if (!$localPath) {
+                $brandFilename = 'tour_bottommark_logo_' . time() . '_' . \Illuminate\Support\Str::random(8) . '.' . $ext;
+                $brandPath = 'settings/tour-bottommark/' . $brandFilename;
+                $brandContent = file_get_contents($file->getRealPath());
+                $brandMime = $file->getMimeType();
+                $uploaded = Storage::disk('s3')->put($brandPath, $brandContent, ['ContentType' => $brandMime]);
+                if (!$uploaded) {
                     return response()->json([
                         'success' => false,
-                        'message' => 'Failed to upload logo to local storage.'
+                        'message' => 'Failed to upload logo to S3 storage.'
                     ], 500);
                 }
+                $settingsData['tour_bottommark_logo'] = $brandPath;
 
-                // Save public URL so it can be used directly
-                $settingsData['tour_bottommark_logo'] = Storage::url($localPath);
             } catch (\Exception $e) {
                 return response()->json([
                     'success' => false,
