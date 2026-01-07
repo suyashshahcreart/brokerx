@@ -687,7 +687,7 @@
                                                         </div>
                                                         <div class="card-body">
                                                             <div class="mb-3">
-                                                                <label for="tour_bottommark_logo" class="form-label">Watermark Logo</label>
+                                                                <label for="tour_bottommark_logo" class="form-label">Bottom mark Logo</label>
                                                                 <div class="mb-2">
                                                                     @if(!empty($settings['tour_bottommark_logo']))
                                                                         <img src="{{ $settings['tour_bottommark_logo'] }}" alt="bottom mark Logo" class="img-thumbnail" style="max-width: 150px; max-height: 100px;">
@@ -725,7 +725,7 @@
                                                 <a href="{{ route('admin.settings.index') }}" class="btn btn-outline-secondary">
                                                     <i class="ri-close-line me-1"></i> Cancel
                                                 </a>
-                                                <button type="submit" class="btn btn-primary" id="updateSettingsBtn">
+                                                <button type="submit" class="btn btn-primary" id="saveTourSettingsBtn">
                                                     <i class="ri-save-line me-1"></i> Update Settings
                                                 </button>
                                             </div>
