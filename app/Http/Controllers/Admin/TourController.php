@@ -422,6 +422,13 @@ class TourController extends Controller
             'footer_email' => ['nullable', 'string'],
             'footer_mobile' => ['nullable', 'string'],
             'footer_decription' => ['nullable', 'string'],
+            'is_active' => ['nullable', 'boolean'],
+            'is_credentials' => ['nullable', 'boolean'],
+            'credentials' => ['nullable', 'array'],
+            'credentials.*.id' => ['nullable', 'integer'],
+            'credentials.*.user_name' => ['required_with:credentials', 'string', 'max:255'],
+            'credentials.*.password' => ['required_with:credentials', 'string', 'max:255'],
+            'credentials.*.is_active' => ['boolean'],
         ]);
 
         $qr_code = QR::where('booking_id', $tour->booking_id)->value('code');
@@ -530,6 +537,55 @@ class TourController extends Controller
             $updateData['final_json'] = $finalJson;
         }
         
+        // Update new boolean fields
+        $updateData['is_active'] = $request->has('is_active');
+        $updateData['is_credentials'] = $request->has('is_credentials');
+
+        // Manage Credentials
+        if ($request->has('credentials')) {
+            $inputCredentials = $request->input('credentials', []);
+            $existingCredentialIds = $tour->credentials()->pluck('id')->toArray();
+            $processedIds = [];
+
+            foreach ($inputCredentials as $credentialData) {
+                if (isset($credentialData['id']) && in_array($credentialData['id'], $existingCredentialIds)) {
+                    // Update existing
+                    $credential = \App\Models\TourCredential::find($credentialData['id']);
+                    $credential->update([
+                        'user_name' => $credentialData['user_name'],
+                        'password' => $credentialData['password'],
+                        'is_active' => $credentialData['is_active'] ?? true,
+                    ]);
+                    $processedIds[] = $credentialData['id'];
+                } else {
+                    // Create new
+                    $tour->credentials()->create([
+                        'user_name' => $credentialData['user_name'],
+                        'password' => $credentialData['password'],
+                        'is_active' => $credentialData['is_active'] ?? true,
+                    ]);
+                }
+            }
+
+            // Delete removed credentials
+            $idsToDelete = array_diff($existingCredentialIds, $processedIds);
+            if (!empty($idsToDelete)) {
+                \App\Models\TourCredential::destroy($idsToDelete);
+            }
+        } elseif (!$request->has('is_credentials') || !$request->input('is_credentials')) {
+            // If credentials are not required, or the array is empty but we want to be safe, 
+            // you might choose to keep them or delete them. 
+            // User requirement implies "if is_credentials is on that time below add credentials data".
+            // Implementation choice: if is_credentials turned OFF, maybe keep them but they are hidden?
+            // Or if the array is not sent (empty form), we might need to check if we should delete all.
+            // The form sends 'credentials' array only if rows exist. 
+            // If user deletes all rows in UI, 'credentials' might be missing or empty.
+            if ($request->filled('is_credentials') && empty($request->input('credentials'))) {
+                 // User selected "Required" but provided no credentials -> could mean delete all if list was cleared
+                //  $tour->credentials()->delete();
+            }
+        }
+
         // Update the tour with new data DB
         $tour->update($updateData);
 

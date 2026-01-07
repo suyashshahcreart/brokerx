@@ -72,6 +72,8 @@ class Tour extends Model
         'footer_brand_mobile',
         'gtm_tag',
         'footer_subtitle',
+        'is_active',
+        'is_credentials',
     ];
 
     /**
@@ -92,6 +94,8 @@ class Tour extends Model
             'updated_at' => 'datetime',
             'deleted_at' => 'datetime',
             'sidebar_footer_link_show' => 'boolean',
+            'is_active' => 'boolean',
+            'is_credentials' => 'boolean',
         ];
     }
 
@@ -101,6 +105,14 @@ class Tour extends Model
     public function booking()
     {
         return $this->belongsTo(\App\Models\Booking::class);
+    }
+
+    /**
+     * Get the credentials for the tour.
+     */
+    public function credentials()
+    {
+        return $this->hasMany(TourCredential::class);
     }
 
 
