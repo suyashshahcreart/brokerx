@@ -75,6 +75,13 @@
                                             <span>Booking Schedule Date</span>
                                         </a>
                                     @endif
+
+                                    @if($canFtpConfiguration)
+                                        <a class="nav-link {{ ($firstActiveTab === 'vl-pills-ftp') ? 'active show' : '' }}" id="vl-pills-tour-tab" data-bs-toggle="pill" href="#vl-pills-tour" role="tab" aria-controls="vl-pills-tour" aria-selected="{{ ($firstActiveTab === 'vl-pills-tour') ? 'true' : 'false' }}">
+                                            <i class="ri-home-office-line me-2"></i>
+                                            <span>Tour Default Settings</span>
+                                        </a>
+                                    @endif
                                     
                                     @if($canPhotographer)
                                         <a class="nav-link {{ ($firstActiveTab === 'vl-pills-photographer') ? 'active show' : '' }}" id="vl-pills-photographer-tab" data-bs-toggle="pill" href="#vl-pills-photographer" role="tab" aria-controls="vl-pills-photographer" aria-selected="{{ ($firstActiveTab === 'vl-pills-photographer') ? 'true' : 'false' }}">
@@ -595,13 +602,143 @@
                                         </div>
                                     </div>
                                     @endif
+                                    <!-- tour configration Model -->
+                                    @if($canBookingSchedule)
+                                    <div class="tab-pane fade {{ ($firstActiveTab === 'vl-pills-tour') ? 'active show' : '' }}" id="vl-pills-tour" role="tabpanel" aria-labelledby="vl-pills-tour-tab">
+                                        <form id="tourForm" action="{{ route('admin.api.settings.update') }}" method="POST" enctype="multipart/form-data"
+                                            class="needs-validation" novalidate data-csrf="{{ csrf_token() }}">
+                                            @csrf
+                                            <div class="mb-3">
+                                                <label for="tour_barcode_url" class="form-label">Barcode URL<span
+                                                        class="text-danger">*</span></label>
+                                                <input type="text" name="tour_barcode_url" id="tour_barcode_url"
+                                                    value="{{ $settings['tour_barcode_url'] ?? '' }}" class="form-control"
+                                                    placeholder="https://www.proppik.com/" required minlength="1" maxlength="255">
+                                                <small class="form-text text-muted">This URL will be use to generate QR code in the Gallery. For example.</small>
+                                            </div>
+                                            <div class="row g-4">
+                                                <!-- Sidebar configration -->
+                                                <div class="col-md-6 col-lg-4">
+                                                    <div class="card border">
+                                                        <div class="card-header border-2 border-bottom">
+                                                          <h4 class="card-title mb-0"><i class="ri-layout-left-line"></i> Sidebar config</h4>              
+                                                        </div>
+                                                        <div class="card-body">
+                                                            <div class="mb-3">
+                                                                <div class="form-check form-switch">
+                                                                    <input class="form-check-input" type="checkbox" id="tour_footer_link_show" 
+                                                                        name="tour_footer_link_show" value="1" 
+                                                                        {{ ($settings['tour_footer_link_show'] ?? '0') == '1' ? 'checked' : '' }}>
+                                                                    <label class="form-check-label" for="tour_footer_link_show">
+                                                                        Show Footer Link
+                                                                    </label>
+                                                                </div>
+                                                                <small class="form-text text-muted">Enable to display footer link in tour sidebar</small>
+                                                            </div>
+
+                                                            <div class="mb-3">
+                                                                <label for="tour_footer_button_text" class="form-label">Footer Button Text</label>
+                                                                <input type="text" name="tour_footer_button_text" id="tour_footer_button_text"
+                                                                    value="{{ $settings['tour_footer_button_text'] ?? 'Contact Us' }}" class="form-control"
+                                                                    placeholder="e.g., Contact Us" maxlength="50">
+                                                                <small class="form-text text-muted">Text displayed on footer button</small>
+                                                            </div>
+
+                                                            <div class="mb-3">
+                                                                <label for="tour_footer_button_link" class="form-label">Footer Button Link</label>
+                                                                <input type="url" name="tour_footer_button_link" id="tour_footer_button_link"
+                                                                    value="{{ $settings['tour_footer_button_link'] ?? '' }}" class="form-control"
+                                                                    placeholder="https://example.com" maxlength="255">
+                                                                <small class="form-text text-muted">URL for footer button link</small>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <!-- SEO meta Tag confgration -->
+                                                <div class="col-md-6 col-lg-4">
+                                                    <div class="card border">
+                                                        <div class="card-header border-2 border-bottom">
+                                                            <h4 class="card-title mb-0"><i class="ri-seo-line"></i> SEO Meta Tags</h4>              
+                                                        </div>
+                                                        <div class="card-body">
+                                                            <div class="mb-3">
+                                                                <label for="tour_meta_title" class="form-label">Meta Title</label>
+                                                                <input type="text" name="tour_meta_title" id="meta_title"
+                                                                    value="{{ $settings['tour_meta_title'] ?? '' }}" class="form-control"
+                                                                    placeholder="e.g., PROP PIK: Next-Generation AI Web Virtual Reality" maxlength="255">
+                                                                <small class="form-text text-muted">Final title (editable). Use "|" to separate prepend from main title.</small>
+                                                            </div>
+
+                                                            <div class="mb-3">
+                                                                <label for="tour_meta_description" class="form-label">Meta Description</label>
+                                                                <textarea name="tour_meta_description" id="meta_description" 
+                                                                    class="form-control" rows="3"
+                                                                    placeholder="Explore next-gen Web Virtual Reality powered by AI...">{{ $settings['tour_meta_description'] ?? '' }}</textarea>
+                                                                <small class="form-text text-muted">Used for og:description and twitter:description</small>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <!-- Bottom mark configration  -->
+                                                <div class="col-md-6 col-lg-4">
+                                                    <div class="card border">
+                                                        <div class="card-header border-2 border-bottom">
+                                                            <h4 class="card-title mb-0"><i class="ri-price-tag-3-line"></i> Bottommark Config</h4>              
+                                                        </div>
+                                                        <div class="card-body">
+                                                            <div class="mb-3">
+                                                                <label for="tour_bottommark_logo" class="form-label">Bottom mark Logo</label>
+                                                                <div class="mb-2">
+                                                                    @if(!empty($settings['tour_bottommark_logo']))
+                                                                        <img src="{{ Storage::disk('s3')->url($settings['tour_bottommark_logo']) }}" alt="bottom mark Logo" class="img-thumbnail" style="max-width: 150px; max-height: 100px;">
+                                                                    @else
+                                                                        <div class="border rounded p-3 text-center text-muted" style="width: 150px; height: 100px; display: flex; align-items: center; justify-content: center;">
+                                                                            <small>No logo uploaded</small>
+                                                                        </div>
+                                                                    @endif
+                                                                </div>
+                                                                <input type="file" name="tour_bottommark_logo" id="tour_bottommark_logo" class="form-control" accept="image/*">
+                                                                <small class="form-text text-muted">Upload watermark logo image (PNG, JPG, GIF). Max size: 2MB</small>
+                                                            </div>
+
+                                                            <div class="mb-3">
+                                                                <label for="tour_bottommark_contact_text" class="form-label">Contact Text</label>
+                                                                <input type="text" name="tour_bottommark_contact_text" id="contact_text"
+                                                                    value="{{ $settings['tour_bottommark_contact_text'] ?? 'Contact Us' }}" class="form-control"
+                                                                    placeholder="e.g., Contact Us" maxlength="50">
+                                                                <small class="form-text text-muted">Text to display for contact</small>
+                                                            </div>
+
+                                                            <div class="mb-3">
+                                                                <label for="tour_bottommark_contact_mobile" class="form-label">Contact Number</label>
+                                                                <input type="tel" name="tour_bottommark_contact_mobile" id="contact_mobile"
+                                                                    value="{{ $settings['tour_bottommark_contact_mobile'] ?? '' }}" class="form-control"
+                                                                    placeholder="e.g., +91 98765 43210" maxlength="20">
+                                                                <small class="form-text text-muted">Contact mobile number for watermark</small>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <!-- // submit buttons -->
+                                            <div class="d-flex gap-2 justify-content-end pt-4">
+                                                <a href="{{ route('admin.settings.index') }}" class="btn btn-outline-secondary">
+                                                    <i class="ri-close-line me-1"></i> Cancel
+                                                </a>
+                                                <button type="submit" class="btn btn-primary" id="saveTourSettingsBtn">
+                                                    <i class="ri-save-line me-1"></i> Update Settings
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                    @endif
                                 </div>
                             </div>
                         </div>
                         
                         <!-- MSG91 Templates Management Modal -->
                         <div class="modal fade" id="msg91TemplatesModal" tabindex="-1" aria-labelledby="msg91TemplatesModalLabel" aria-hidden="true">
-                            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                            <div class="modal-dialog modal-lg">
                                 <div class="modal-content">
                                     <div class="modal-header">
                                         <h5 class="modal-title" id="msg91TemplatesModalLabel">
@@ -675,7 +812,7 @@
 
                         <!-- FTP Configuration Modal -->
                         <div class="modal fade" id="ftpConfigModal" tabindex="-1">
-                            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                            <div class="modal-dialog modal-lg">
                                 <div class="modal-content">
                                     <div class="modal-header">
                                         <h5 class="modal-title" id="ftpConfigModalTitle">Add FTP Configuration</h5>
@@ -799,7 +936,6 @@
                             </div>
                         </div>
 
-                        
                     </div>
                 </div>
             </div>
