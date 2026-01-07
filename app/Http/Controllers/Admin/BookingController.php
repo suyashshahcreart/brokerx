@@ -11,6 +11,7 @@ use App\Models\City;
 use App\Models\PropertySubType;
 use App\Models\PropertyType;
 use App\Models\QR;
+use App\Models\Setting;
 use App\Models\State;
 use App\Models\Tour;
 use App\Models\User;
@@ -142,7 +143,7 @@ class BookingController extends Controller
         $canSchedule = $request->user()->can('booking_schedule');
 
         //dd($canCreate, $canEdit, $canDelete, $canSchedule, $states, $cities);
-        
+
         return view('admin.bookings.index', compact('canCreate', 'canEdit', 'canDelete', 'canSchedule', 'states', 'cities'));
     }
     /**
@@ -300,6 +301,17 @@ class BookingController extends Controller
             'user_agent' => $request->userAgent(),
         ]);
 
+        // Log activity
+        activity('bookings')
+            ->performedOn($booking)
+            ->causedBy($request->user())
+            ->withProperties([
+                'event' => 'created',
+                'after' => $booking->toArray()
+            ])
+            ->log('Booking created');
+
+
         // Generate unique QR code and create QR record for this booking
         $qrCode = $this->generateUniqueQrCode();
 
@@ -331,24 +343,38 @@ class BookingController extends Controller
             ])
             ->log('QR code auto-created for new booking');
 
-        // Create a tour for this booking with unique slug
+        //Get tour settings from database
+        $tourSettings = Setting::whereIn('name', [
+            'tour_bottommark_logo',
+            'tour_bottommark_contact_text',
+            'tour_bottommark_contact_mobile',
+            'tour_footer_button_text',
+            'tour_footer_button_link',
+            'tour_footer_link_show',
+            'tour_meta_title',
+            'tour_meta_description',
+        ])->pluck('value', 'name')->toArray();
+
+        // Create a tour for this booking with settings
         $tour = Tour::create([
             'booking_id' => $booking->id,
-            'name' => 'Tour for Booking #' . $booking->id,
-            'title' => 'Property Tour - Booking #' . $booking->id,
-            'slug' => 'tour-booking-' . $booking->id . '-' . time(),
+            'name' => "Tour for Booking #{$booking->id}",
+            'title' => 'Property Tour - ' . ($validated['name'] ?? 'Property'),
+            'slug' => "tour-{$booking->id}-" . time(),
             'status' => 'draft',
             'revision' => 1,
-        ]);
 
-        activity('bookings')
-            ->performedOn($booking)
-            ->causedBy($request->user())
-            ->withProperties([
-                'event' => 'created',
-                'after' => $booking->toArray()
-            ])
-            ->log('Booking created');
+            'sidebar_footer_text' => $tourSettings['tour_footer_button_text'] ?? null,
+            'sidebar_footer_link' => $tourSettings['tour_footer_button_link'] ?? null,
+            'sidebar_footer_link_show' => $tourSettings['tour_footer_link_show'] ?? 1,
+
+            'footer_brand_logo' => $tourSettings['tour_bottommark_logo'] ?? null,
+            'footer_brand_text' => $tourSettings['tour_bottommark_contact_text'] ?? null,
+            'footer_brand_mobile' => $tourSettings['tour_bottommark_contact_mobile'] ?? null,
+
+            'meta_title' => $tourSettings['tour_meta_title'] ?? null,
+            'meta_description' => $tourSettings['tour_meta_description'] ?? null,
+        ]);
 
         activity('tours')
             ->performedOn($tour)
@@ -413,18 +439,18 @@ class BookingController extends Controller
         // Manage assignees only counts if booking is accepted
         $hasApprovalPermission = $canApproval && in_array($booking->status, ['schedul_pending', 'reschedul_pending']);
         $hasManageAssigneesPermission = $canManageAssignees && in_array($booking->status, ['schedul_accepted', 'reschedul_accepted']);
-        
-        $hasAnyQuickActionPermission = $canSchedule || 
-                                       $canUpdatePaymentStatus || 
-                                       $canUpdateStatus || 
-                                       $canAssignQR || 
-                                       $hasApprovalPermission || 
-                                       $hasManageAssigneesPermission || 
-                                       $canEdit || 
-                                       $canDelete;
+
+        $hasAnyQuickActionPermission = $canSchedule ||
+            $canUpdatePaymentStatus ||
+            $canUpdateStatus ||
+            $canAssignQR ||
+            $hasApprovalPermission ||
+            $hasManageAssigneesPermission ||
+            $canEdit ||
+            $canDelete;
 
         return view('admin.bookings.show', compact(
-            'booking', 
+            'booking',
             'photographers',
             'canSchedule',
             'canUpdatePaymentStatus',
@@ -477,15 +503,15 @@ class BookingController extends Controller
         // Manage assignees only counts if booking is accepted
         $hasApprovalPermission = $canApproval && in_array($booking->status, ['schedul_pending', 'reschedul_pending']);
         $hasManageAssigneesPermission = $canManageAssignees && in_array($booking->status, ['schedul_accepted', 'reschedul_accepted']);
-        
-        $hasAnyQuickActionPermission = $canSchedule || 
-                                       $canUpdatePaymentStatus || 
-                                       $canUpdateStatus || 
-                                       $canAssignQR || 
-                                       $hasApprovalPermission || 
-                                       $hasManageAssigneesPermission || 
-                                       $canEdit || 
-                                       $canDelete;
+
+        $hasAnyQuickActionPermission = $canSchedule ||
+            $canUpdatePaymentStatus ||
+            $canUpdateStatus ||
+            $canAssignQR ||
+            $hasApprovalPermission ||
+            $hasManageAssigneesPermission ||
+            $canEdit ||
+            $canDelete;
 
         return view('admin.bookings.edit', compact(
             'booking',
@@ -688,7 +714,7 @@ class BookingController extends Controller
                 BookingHistory::create([
                     'booking_id' => $booking->id,
                     'from_status' => $oldStatus,
-                    'to_status' => $newStatus   , // Status will be updated separately if needed
+                    'to_status' => $newStatus, // Status will be updated separately if needed
                     'changed_by' => auth()->id(),
                     'notes' => 'Booking date changed by admin - Photographer assignment removed (Photographer: ' . $photographerName . ')',
                     'metadata' => [
@@ -740,7 +766,7 @@ class BookingController extends Controller
                 $changes[$key] = ['old' => $oldValue, 'new' => $value];
             }
         }
-        
+
         activity('bookings')
             ->performedOn($booking)
             ->causedBy($request->user())
@@ -879,7 +905,7 @@ class BookingController extends Controller
                     'message' => 'You do not have permission to update booking status.'
                 ], 403);
             }
-            
+
             // Status-only update - use changeStatus method
             $request->validate([
                 'status' => ['required', 'in:' . implode(',', Booking::getAvailableStatuses())],
@@ -922,7 +948,7 @@ class BookingController extends Controller
                     'message' => 'You do not have permission to update payment status.'
                 ], 403);
             }
-            
+
             $request->validate([
                 'payment_status' => ['required', 'in:unpaid,pending,paid,failed,refunded'],
                 'notes' => ['nullable', 'string', 'max:500'],
@@ -990,7 +1016,7 @@ class BookingController extends Controller
         $oldData = $booking->toArray();
         $oldStatus = $booking->status;
         $oldPaymentStatus = $booking->payment_status;
-        
+
         $booking->update($validated);
 
         // Create booking history for full update

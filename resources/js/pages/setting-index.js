@@ -84,6 +84,8 @@ import '../../css/pages/setting-index.css';
                     'X-Requested-With': 'XMLHttpRequest',
                     'Accept': 'application/json'
                 },
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+                encription: 'multipart/form-data',
                 credentials: 'same-origin'
             })
             .then(async response => {
@@ -402,6 +404,11 @@ import '../../css/pages/setting-index.css';
         const photographerForm = document.getElementById('photographerSettingsForm');
         const savePhotographerBtn = document.getElementById('savePhotographerSettingsBtn');
         if (photographerForm && savePhotographerBtn) handleFormSubmit(photographerForm, savePhotographerBtn);
+
+        // Tour settings form
+        const tourForm = document.getElementById('tourForm');
+        const saveTourBtn = document.getElementById('saveTourSettingsBtn');
+        if (tourForm && saveTourBtn) handleFormSubmit(tourForm, saveTourBtn);
 
         // Payment gateway logic
         const cashfreeForm = document.getElementById('cashfreeForm');
