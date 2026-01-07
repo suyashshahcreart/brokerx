@@ -738,7 +738,7 @@
                         
                         <!-- MSG91 Templates Management Modal -->
                         <div class="modal fade" id="msg91TemplatesModal" tabindex="-1" aria-labelledby="msg91TemplatesModalLabel" aria-hidden="true">
-                            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                            <div class="modal-dialog modal-lg">
                                 <div class="modal-content">
                                     <div class="modal-header">
                                         <h5 class="modal-title" id="msg91TemplatesModalLabel">
@@ -812,7 +812,7 @@
 
                         <!-- FTP Configuration Modal -->
                         <div class="modal fade" id="ftpConfigModal" tabindex="-1">
-                            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                            <div class="modal-dialog modal-lg">
                                 <div class="modal-content">
                                     <div class="modal-header">
                                         <h5 class="modal-title" id="ftpConfigModalTitle">Add FTP Configuration</h5>
