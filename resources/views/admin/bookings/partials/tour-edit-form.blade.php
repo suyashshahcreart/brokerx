@@ -82,6 +82,64 @@
                 </div>
             </div>
 
+            <div class="row">
+                 <div class="col-lg-4">
+                    <div class="mb-3">
+                         <label class="form-label" for="is_active">Tour Active</label>
+                         <div class="form-check form-switch form-switch-lg" dir="ltr">
+                             <input type="checkbox" class="form-check-input" id="is_active" name="is_active" value="1" {{ old('is_active', $tour->is_active) ? 'checked' : '' }}>
+                             <label class="form-check-label" for="is_active">Active</label>
+                         </div>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="mb-3">
+                         <label class="form-label" for="is_credentials">Credentials Required</label>
+                         <div class="form-check form-switch form-switch-lg" dir="ltr">
+                             <input type="checkbox" class="form-check-input" id="is_credentials" name="is_credentials" value="1" {{ old('is_credentials', $tour->is_credentials) ? 'checked' : '' }}>
+                             <label class="form-check-label" for="is_credentials">Required</label>
+                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Credentials Section -->
+            <div id="credentials-section" class="mt-3 {{ old('is_credentials', $tour->is_credentials) ? '' : 'd-none' }}">
+                <h6 class="mb-3">Credentials Management</h6>
+                <div id="credentials-container">
+                    @php
+                        $credentials = old('credentials', $tour->credentials->toArray() ?? []);
+                    @endphp
+                    
+                    @foreach($credentials as $index => $credential)
+                        <div class="credential-row row mb-2 align-items-end">
+                            <input type="hidden" name="credentials[{{ $index }}][id]" value="{{ $credential['id'] ?? '' }}">
+                            <div class="col-md-3">
+                                <label class="form-label">Username</label>
+                                <input type="text" name="credentials[{{ $index }}][user_name]" class="form-control" value="{{ $credential['user_name'] }}" required>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Password</label>
+                                <input type="text" name="credentials[{{ $index }}][password]" class="form-control" value="{{ $credential['password'] }}" required>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">Status</label>
+                                <select name="credentials[{{ $index }}][is_active]" class="form-select">
+                                    <option value="1" {{ ($credential['is_active'] ?? true) ? 'selected' : '' }}>Active</option>
+                                    <option value="0" {{ !($credential['is_active'] ?? true) ? 'selected' : '' }}>Inactive</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <button type="button" class="btn btn-danger remove-credential"><i class="ri-delete-bin-line"></i></button>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+                <button type="button" class="btn btn-sm btn-success mt-2" id="add-credential-btn">
+                    <i class="ri-add-line"></i> Add Credential
+                </button>
+            </div>
+
             <div class="d-none mb-3">
                 <label class="form-label" for="tour_description">Short Description</label>
                 <textarea name="description" id="tour_description" class="form-control"
@@ -351,3 +409,58 @@
     </div>
 
 </form>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Toggle credentials section
+        const isCredentials = document.getElementById('is_credentials');
+        const credentialsSection = document.getElementById('credentials-section');
+        
+        isCredentials.addEventListener('change', function() {
+            if(this.checked) {
+                credentialsSection.classList.remove('d-none');
+            } else {
+                credentialsSection.classList.add('d-none');
+            }
+        });
+
+        // Add credential row
+        const container = document.getElementById('credentials-container');
+        const addBtn = document.getElementById('add-credential-btn');
+        let credentialIndex = {{ count(old('credentials', $tour->credentials ?? [])) }};
+
+        addBtn.addEventListener('click', function() {
+            const row = document.createElement('div');
+            row.className = 'credential-row row mb-2 align-items-end';
+            row.innerHTML = `
+                <div class="col-md-3">
+                    <label class="form-label">Username</label>
+                    <input type="text" name="credentials[${credentialIndex}][user_name]" class="form-control" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Password</label>
+                    <input type="text" name="credentials[${credentialIndex}][password]" class="form-control" required>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Status</label>
+                    <select name="credentials[${credentialIndex}][is_active]" class="form-select">
+                        <option value="1" selected>Active</option>
+                        <option value="0">Inactive</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="button" class="btn btn-danger remove-credential"><i class="ri-delete-bin-line"></i></button>
+                </div>
+            `;
+            container.appendChild(row);
+            credentialIndex++;
+        });
+
+        // Remove credential row
+        container.addEventListener('click', function(e) {
+            if (e.target.closest('.remove-credential')) {
+                e.target.closest('.credential-row').remove();
+            }
+        });
+    });
+</script>

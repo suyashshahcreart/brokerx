@@ -26,6 +26,11 @@ Route::get('/tour-manager/customers', [TourManagerController::class, 'getCustome
 Route::get('/tour-manager/tours-by-customer', [TourManagerController::class, 'getToursByCustomer']);
 Route::put('/tour-manager/working_json/{tour_id}', [TourManagerController::class, 'updateWorkingJson']);
 
+// Tour Access APIs
+Route::get('/tour/is_active/{tour_code}', [\App\Http\Controllers\Api\TourAccessController::class, 'checkIsActive']);
+Route::get('/tour/tour_credentials/{tour_code}', [\App\Http\Controllers\Api\TourAccessController::class, 'checkIsCredentials']);
+Route::post('/tour/login', [\App\Http\Controllers\Api\TourAccessController::class, 'login']);
+
 // Route::middleware('auth')->group(function () {
 // });
 
