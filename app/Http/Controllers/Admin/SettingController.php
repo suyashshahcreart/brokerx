@@ -8,6 +8,8 @@ use App\Models\FtpConfiguration;
 use App\Services\Sms\SmsGatewayManager;
 use Illuminate\Http\Request;
 use Yajra\DataTables\Facades\DataTables;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 
 class SettingController extends Controller
 {
@@ -412,11 +414,11 @@ class SettingController extends Controller
     {
         // Get all request data except system fields
         $settingsData = $request->except(['_token', '_method', 'csrf_token']);
-        
         // Define settings fields for each tab
         $bookingScheduleFields = ['avaliable_days', 'per_day_booking', 'customer_attempt', 'customer_attempt_note'];
         $photographerFields = ['photographer_available_from', 'photographer_available_to', 'photographer_working_duration'];
         $basePriceFields = ['base_price', 'base_area', 'extra_area', 'extra_area_price'];
+        $tourDefayltsFields = ['tour_meta_title', 'tour_meta_description', 'tour_bottommark_logo', 'tour_bottommark_contact_text', 'tour_bottommark_contact_mobile'];
         $paymentGatewayFields = ['cashfree_status', 'cashfree_app_id', 'cashfree_secret_key', 'cashfree_env', 'cashfree_base_url', 'cashfree_return_url', 
                                   'payu_status', 'payu_merchant_key', 'payu_merchant_salt', 'payu_mode', 
                                   'razorpay_status', 'razorpay_key', 'razorpay_secret', 'razorpay_mode', 'active_payment_gateway'];
@@ -432,6 +434,16 @@ class SettingController extends Controller
                 return response()->json([
                     'success' => false,
                     'message' => 'You do not have permission to update Booking Schedule settings.'
+                ], 403);
+            }
+        }
+
+        // tour Defaults permissions
+        if (array_intersect($fieldsToCheck, $tourDefayltsFields)) {
+            if (!$request->user()->can('setting_booking_schedule')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You do not have permission to update Tour Defaults settings.'
                 ], 403);
             }
         }
@@ -606,6 +618,55 @@ class SettingController extends Controller
         }
 
         $updatedSettings = [];
+        // Handle tour bottommark logo upload to S3
+        if ($request->hasFile('tour_bottommark_logo')) {
+            $file = $request->file('tour_bottommark_logo');
+            
+            // Validate file
+            if (!$file->isValid()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid file upload.'
+                ], 400);
+            }
+            
+            // Validate file type and size
+            $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+            $ext = strtolower($file->getClientOriginalExtension());
+            if (!in_array($ext, $allowed)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid file type. Allowed: ' . implode(', ', $allowed)
+                ], 400);
+            }
+            if ($file->getSize() > 5 * 1024 * 1024) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'File size exceeds 5MB limit.'
+                ], 400);
+            }
+
+            $filename = 'bottommark_' . time() . '.' . $ext;
+
+            try {
+                // Store in local public disk
+                $localPath = $file->storeAs('public/settings/logo', $filename);
+                if (!$localPath) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Failed to upload logo to local storage.'
+                    ], 500);
+                }
+
+                // Save public URL so it can be used directly
+                $settingsData['tour_bottommark_logo'] = Storage::url($localPath);
+            } catch (\Exception $e) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Upload error: ' . $e->getMessage()
+                ], 500);
+            }
+        }
 
         // Loop through each setting and update/create
         foreach ($settingsData as $key => $value) {
