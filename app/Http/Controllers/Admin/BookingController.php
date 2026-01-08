@@ -656,10 +656,10 @@ class BookingController extends Controller
         $statusChanged = false;
 
         // If date changed, remove photographer assignments (same logic as frontend)
-        if ($dateChanged) {
+        if ($dateChanged || $oldDateStr === null) {
             // Check if status should change when date is updated
             if (in_array($oldStatus, ['schedul_assign', 'reschedul_assign', 'schedul_completed', 'pending', 'confirmed', 'completed'])) {
-
+            
                 // udpate status to reschedul_accepted or shedul_accepted
                 if ($oldStatus === 'schedul_assign') {
                     $newStatus = 'schedul_accepted';
