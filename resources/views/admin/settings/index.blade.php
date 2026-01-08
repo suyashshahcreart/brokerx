@@ -187,18 +187,18 @@
 
                                     @if($canBookingSchedule)
                                     <div class="tab-pane fade {{ ($firstActiveTab === 'vl-pills-contact-info') ? 'active show' : '' }}" id="vl-pills-contact-info" role="tabpanel" aria-labelledby="vl-pills-contact-info-tab">
-                                        <form id="settingsForm" action="{{ route('admin.api.settings.update') }}" method="POST"
+                                        <form id="settingscontactForm" action="{{ route('admin.api.settings.update') }}" method="POST"
                                             class="needs-validation" novalidate data-csrf="{{ csrf_token() }}">
                                             @csrf
                                             <!-- company_name -->
-                                            <div class="mb-3">
+                                            <!-- <div class="mb-3">
                                                 <label for="company_name" class="form-label">Company Name<span
                                                         class="text-danger">*</span></label>
                                                 <input type="text" name="company_name" id="company_name"
                                                     value="{{ $settings['company_name'] ?? '' }}" class="form-control"
                                                     placeholder="e.g. Prop Pik" required minlength="1" maxlength="255">
                                                 <small class="form-text text-muted">This is The Company name Display On Frontend and User.</small>
-                                            </div>
+                                            </div> -->
 
                                             <!-- Support Email -->
                                             <div class="mb-3">
@@ -221,14 +221,14 @@
                                             </div>
 
                                             <!-- WhatsApp Number -->
-                                            <div class="mb-3">
+                                            <!-- <div class="mb-3">
                                                 <label for="whatsapp_number" class="form-label">WhatsApp Number<span
                                                         class="text-danger">*</span></label>
                                                 <input type="text" name="whatsapp_number" id="whatsapp_number"
                                                     value="{{ $settings['whatsapp_number'] ?? '' }}" class="form-control"
                                                     placeholder="e.g. 9898656532" required minlength="1" maxlength="255">
                                                 <small class="form-text text-muted">This is The WhatsApp Number Display On Frontend and User.</small>
-                                            </div>
+                                            </div> -->
 
 
 
@@ -238,7 +238,7 @@
                                                 <a href="{{ route('admin.settings.index') }}" class="btn btn-outline-secondary">
                                                     <i class="ri-close-line me-1"></i> Cancel
                                                 </a>
-                                                <button type="submit" class="btn btn-primary" id="updateSettingsBtn">
+                                                <button type="submit" class="btn btn-primary" id="updatecontactSettingsBtn">
                                                     <i class="ri-save-line me-1"></i> Update Settings
                                                 </button>
                                             </div>
