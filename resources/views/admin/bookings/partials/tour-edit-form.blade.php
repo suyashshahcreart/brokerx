@@ -199,6 +199,30 @@
                 </div>
             </div>
 
+            <!-- Tour Thumbnail Upload -->
+            <div class="row">
+                <div class="col-lg-12">
+                    <div class="mb-3">
+                        <label class="form-label" for="tour_thumbnail">Tour Thumbnail <span class="text-muted">(Image file, max 5MB)</span></label>
+                        <div class="mt-2 mb-3">
+                            @if($tour->tour_thumbnail)
+                                <div>
+                                    <small class="text-muted d-block mb-2">Current thumbnail:</small>
+                                    <img src="{{ Storage::disk('s3')->url($tour->tour_thumbnail) }}" alt="Tour Thumbnail"
+                                        style="max-width: 200px; max-height: 200px; border:1px solid #ddd; padding:5px; border-radius: 4px;">
+                                </div>
+                            @endif
+                        </div>
+                        <input type="file" name="tour_thumbnail" id="tour_thumbnail" class="form-control"
+                            accept="image/*">
+                        <small class="text-muted d-block mt-2">Recommended size: 400x300px. Uploaded to S3 in settings/tour_thumbnails/</small>
+                        @error('tour_thumbnail')<div class="text-danger mt-2">{{ $message }}</div>@enderror
+                    </div>
+                </div>
+            </div>
+
+
+
         </div>
     </div>
 
