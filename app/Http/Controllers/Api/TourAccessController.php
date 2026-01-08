@@ -101,6 +101,48 @@ class TourAccessController extends Controller{
     }
 
     /**
+     * Check if mobile validation is required based on tour_code.
+     *
+     * @param string $tour_code
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function checkIsMobileValidation($tour_code)
+    {
+        $booking = Booking::where('tour_code', $tour_code)->first();
+        
+         if (!$booking) {
+             // Fallback: Check if it's a QR code linked to a booking
+             $qr = \App\Models\QR::where('code', $tour_code)->first();
+             if ($qr) {
+                 $booking = $qr->booking;
+             }
+        }
+
+        if (!$booking) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tour code not found',
+                'is_mobile_validation' => false
+            ], 404);
+        }
+
+        $tour = $booking->tours()->latest()->first();
+
+        if (!$tour) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tour not found',
+                'is_mobile_validation' => false
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'is_mobile_validation' => (bool) $tour->is_mobile_validation
+        ]);
+    }
+
+    /**
      * specific tour login.
      *
      * @param Request $request
@@ -180,11 +222,158 @@ class TourAccessController extends Controller{
             }
         }
 
-        // If credentials are NOT required but user tried to login
         return response()->json([
             'success' => true,
             'message' => 'Login successful (No credentials required)',
              'tour_id' => $tour->id
         ]);
+    }
+
+    /**
+     * Send OTP for mobile validation.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function sendOtp(Request $request)
+    {
+        $request->validate([
+            'tour_code' => 'required|string',
+            'mobile' => 'required|string', // Basic validation, add regex if needed
+        ]);
+
+        $tour_code = $request->input('tour_code');
+        $mobile = $request->input('mobile');
+
+        $booking = Booking::where('tour_code', $tour_code)->first();
+        
+        if (!$booking) {
+             $qr = \App\Models\QR::where('code', $tour_code)->first();
+             if ($qr) {
+                 $booking = $qr->booking;
+             }
+        }
+
+        if (!$booking) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tour code not found'
+            ], 404);
+        }
+
+        $tour = $booking->tours()->latest()->first();
+
+        if (!$tour) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tour not found'
+            ], 404);
+        }
+
+        if (!$tour->is_mobile_validation) {
+             return response()->json([
+                'success' => false,
+                'message' => 'Mobile validation is not required for this tour'
+            ], 400);
+        }
+
+        // Generate OTP (e.g., 4 digits)
+        $otp = rand(1000, 9999);
+        
+        // Save to DB
+        // Check if entry exists for this tour and mobile
+        $validation = \App\Models\TourMobileValidation::where('tour_id', $tour->id)
+            ->where('mobile', $mobile)
+            ->first();
+
+        if ($validation) {
+            $validation->update([
+                'otp' => $otp,
+                'otp_expired_at' => now()->addMinutes(10),
+            ]);
+        } else {
+            \App\Models\TourMobileValidation::create([
+                'tour_id' => $tour->id,
+                'mobile' => $mobile,
+                'otp' => $otp,
+                'otp_expired_at' => now()->addMinutes(10),
+            ]);
+        }
+
+        // TODO: Integrate SMS gateway here to send OTP
+
+        return response()->json([
+            'success' => true,
+            'message' => 'OTP sent successfully',
+            'debug_otp' => $otp // REMOVE IN PRODUCTION
+        ]);
+    }
+
+    /**
+     * Verify OTP for mobile validation.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function verifyOtp(Request $request)
+    {
+        $request->validate([
+            'tour_code' => 'required|string',
+            'mobile' => 'required|string',
+            'otp' => 'required|string',
+        ]);
+
+        $tour_code = $request->input('tour_code');
+        $mobile = $request->input('mobile');
+        $otp = $request->input('otp');
+
+        $booking = Booking::where('tour_code', $tour_code)->first();
+        
+        if (!$booking) {
+             $qr = \App\Models\QR::where('code', $tour_code)->first();
+             if ($qr) {
+                 $booking = $qr->booking;
+             }
+        }
+
+        if (!$booking) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tour code not found'
+            ], 404);
+        }
+
+        $tour = $booking->tours()->latest()->first();
+
+        if (!$tour) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tour not found'
+            ], 404);
+        }
+
+        $validation = \App\Models\TourMobileValidation::where('tour_id', $tour->id)
+            ->where('mobile', $mobile)
+            ->where('otp', $otp)
+            ->where('otp_expired_at', '>', now())
+            ->first();
+
+        if ($validation) {
+             // Clear OTP after successful verification? 
+             // Or keep it to allow re-entry for a session duration?
+             // Usually we generate a token. But for now just success.
+             $validation->update(['otp' => null, 'otp_expired_at' => null]);
+
+             return response()->json([
+                'success' => true,
+                'message' => 'OTP verified successfully',
+                'tour_id' => $tour->id
+            ]);
+        } else {
+             return response()->json([
+                'success' => false,
+                'message' => 'Invalid or expired OTP'
+            ], 400);
+        }
     }
 }

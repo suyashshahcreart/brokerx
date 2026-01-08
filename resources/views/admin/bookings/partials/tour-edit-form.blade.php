@@ -101,6 +101,15 @@
                          </div>
                     </div>
                 </div>
+                <div class="col-lg-4">
+                    <div class="mb-3">
+                         <label class="form-label" for="is_mobile_validation">Mobile Validation</label>
+                         <div class="form-check form-switch form-switch-lg" dir="ltr">
+                             <input type="checkbox" class="form-check-input" id="is_mobile_validation" name="is_mobile_validation" value="1" {{ old('is_mobile_validation', $tour->is_mobile_validation) ? 'checked' : '' }}>
+                             <label class="form-check-label" for="is_mobile_validation">Required</label>
+                         </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Credentials Section -->
