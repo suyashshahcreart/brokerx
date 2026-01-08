@@ -115,7 +115,10 @@
     </div>
     <!-- Assignment Modal -->
     <div class="modal fade" id="assignBookingModal" tabindex="-1" aria-labelledby="assignBookingModalLabel"
-        aria-hidden="true" data-photographer-from="{{ \App\Models\Setting::where('name','photographer_available_from')->value('value') ?? '08:00' }}" data-photographer-to="{{ \App\Models\Setting::where('name','photographer_available_to')->value('value') ?? '21:00' }}" data-photographer-duration="{{ \App\Models\Setting::where('name','photographer_working_duration')->value('value') ?? '60' }}">
+        aria-hidden="true"
+        data-photographer-from="{{ \App\Models\Setting::where('name', 'photographer_available_from')->value('value') ?? '08:00' }}"
+        data-photographer-to="{{ \App\Models\Setting::where('name', 'photographer_available_to')->value('value') ?? '21:00' }}"
+        data-photographer-duration="{{ \App\Models\Setting::where('name', 'photographer_working_duration')->value('value') ?? '60' }}">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
@@ -178,16 +181,20 @@
                                 </select>
                                 <div class="mt-2">
                                     <div class="form-check form-check-inline">
-                                        <input class="form-check-input" type="radio" name="slotMode" id="slotModeAvailable" value="available" checked>
-                                        <label class="form-check-label" for="slotModeAvailable">Available slots (default)</label>
+                                        <input class="form-check-input" type="radio" name="slotMode" id="slotModeAvailable"
+                                            value="available" checked>
+                                        <label class="form-check-label" for="slotModeAvailable">Available slots
+                                            (default)</label>
                                     </div>
                                     <div class="form-check form-check-inline">
-                                        <input class="form-check-input" type="radio" name="slotMode" id="slotModeAny" value="any">
+                                        <input class="form-check-input" type="radio" name="slotMode" id="slotModeAny"
+                                            value="any">
                                         <label class="form-check-label" for="slotModeAny">Pick any</label>
                                     </div>
                                 </div>
-                                <div id="assignTimeHelper" class="form-text text-muted small">Select a photographer first to see available slots from the API, or choose "Pick any" to ignore conflicts.</div>
-                            </div> 
+                                <div id="assignTimeHelper" class="form-text text-muted small">Select a photographer first to
+                                    see available slots from the API, or choose "Pick any" to ignore conflicts.</div>
+                            </div>
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -202,7 +209,7 @@
 
 @section('scripts')
     <script>
-        
+
     </script>
     @vite(['resources/js/pages/booking-assignees-index.js'])
 @endsection
