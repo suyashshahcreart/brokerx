@@ -440,6 +440,8 @@ class TourController extends Controller
             'is_active' => ['nullable', 'boolean'],
             'is_credentials' => ['nullable', 'boolean'],
             'is_mobile_validation' => ['nullable', 'boolean'],
+            'is_hosted' => ['nullable', 'boolean'],
+            'hosted_link' => ['nullable', 'string', 'max:500'],
             'credentials' => ['nullable', 'array'],
             'credentials.*.id' => ['nullable', 'integer'],
             'credentials.*.user_name' => ['required_with:credentials', 'string', 'max:255'],
@@ -570,6 +572,8 @@ class TourController extends Controller
         $updateData['is_active'] = $request->has('is_active');
         $updateData['is_credentials'] = $request->has('is_credentials');
         $updateData['is_mobile_validation'] = $request->has('is_mobile_validation');
+        $updateData['is_hosted'] = $request->has('is_hosted');
+        $updateData['hosted_link'] = $request->input('hosted_link');
 
         // Manage Credentials
         if ($request->has('credentials')) {

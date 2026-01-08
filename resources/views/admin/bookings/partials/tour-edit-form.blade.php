@@ -83,7 +83,7 @@
             </div>
 
             <div class="row">
-                 <div class="col-lg-4">
+                 <div class="col-lg-3">
                     <div class="mb-3">
                          <label class="form-label" for="is_active">Tour Active</label>
                          <div class="form-check form-switch form-switch-lg" dir="ltr">
@@ -92,7 +92,7 @@
                          </div>
                     </div>
                 </div>
-                <div class="col-lg-4">
+                <div class="col-lg-3">
                     <div class="mb-3">
                          <label class="form-label" for="is_credentials">Credentials Required</label>
                          <div class="form-check form-switch form-switch-lg" dir="ltr">
@@ -101,13 +101,32 @@
                          </div>
                     </div>
                 </div>
-                <div class="col-lg-4">
+                <div class="col-lg-3">
                     <div class="mb-3">
                          <label class="form-label" for="is_mobile_validation">Mobile Validation</label>
                          <div class="form-check form-switch form-switch-lg" dir="ltr">
                              <input type="checkbox" class="form-check-input" id="is_mobile_validation" name="is_mobile_validation" value="1" {{ old('is_mobile_validation', $tour->is_mobile_validation) ? 'checked' : '' }}>
                              <label class="form-check-label" for="is_mobile_validation">Required</label>
                          </div>
+                    </div>
+                </div>
+                <div class="col-lg-3">
+                    <div class="mb-3">
+                         <label class="form-label" for="is_hosted">Is Hosted</label>
+                         <div class="form-check form-switch form-switch-lg" dir="ltr">
+                             <input type="checkbox" class="form-check-input" id="is_hosted" name="is_hosted" value="1" {{ old('is_hosted', $tour->is_hosted) ? 'checked' : '' }}>
+                             <label class="form-check-label" for="is_hosted">Hosted</label>
+                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row {{ old('is_hosted', $tour->is_hosted) ? '' : 'd-none' }}" id="hosted-link-container">
+                <div class="col-lg-12">
+                    <div class="mb-3">
+                        <label class="form-label" for="hosted_link">Hosted Link</label>
+                        <input type="url" name="hosted_link" id="hosted_link" class="form-control" placeholder="https://example.com" value="{{ old('hosted_link', $tour->hosted_link) }}">
+                        @error('hosted_link')<div class="text-danger">{{ $message }}</div>@enderror
                     </div>
                 </div>
             </div>
@@ -459,6 +478,18 @@
                 credentialsSection.classList.remove('d-none');
             } else {
                 credentialsSection.classList.add('d-none');
+            }
+        });
+
+        // Toggle hosted link section
+        const isHosted = document.getElementById('is_hosted');
+        const hostedLinkContainer = document.getElementById('hosted-link-container');
+
+        isHosted.addEventListener('change', function() {
+            if(this.checked) {
+                hostedLinkContainer.classList.remove('d-none');
+            } else {
+                hostedLinkContainer.classList.add('d-none');
             }
         });
 
