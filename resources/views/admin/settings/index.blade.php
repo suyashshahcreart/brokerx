@@ -121,7 +121,7 @@
                                     @if($canFtpConfiguration)
                                         <a class="nav-link {{ ($firstActiveTab === 'vl-pills-contact-info') ? 'active show' : '' }}" id="vl-pills-contact-info-tab" data-bs-toggle="pill" href="#vl-pills-contact-info" role="tab" aria-controls="vl-pills-contact-info" aria-selected="{{ ($firstActiveTab === 'vl-pills-contact-info') ? 'true' : 'false' }}">
                                             <i class="ri-contacts-book-line me-2"></i>
-                                            <span>Contact & Business Info</span>
+                                            <span>General Settings</span>
                                         </a>
                                     @endif
                                 </div>
@@ -185,50 +185,72 @@
                                     </div>
                                     @endif
 
-                                    @if($canBookingSchedule)
+                                    @if($canFtpConfiguration)
                                     <div class="tab-pane fade {{ ($firstActiveTab === 'vl-pills-contact-info') ? 'active show' : '' }}" id="vl-pills-contact-info" role="tabpanel" aria-labelledby="vl-pills-contact-info-tab">
                                         <form id="settingscontactForm" action="{{ route('admin.api.settings.update') }}" method="POST"
                                             class="needs-validation" novalidate data-csrf="{{ csrf_token() }}">
                                             @csrf
                                             <!-- company_name -->
                                             <!-- <div class="mb-3">
-                                                <label for="company_name" class="form-label">Company Name<span
-                                                        class="text-danger">*</span></label>
+                                                <label for="company_name" class="form-label">Company Name</label>
                                                 <input type="text" name="company_name" id="company_name"
                                                     value="{{ $settings['company_name'] ?? '' }}" class="form-control"
-                                                    placeholder="e.g. Prop Pik" required minlength="1" maxlength="255">
+                                                    placeholder="e.g. Prop Pik" maxlength="255">
                                                 <small class="form-text text-muted">This is The Company name Display On Frontend and User.</small>
                                             </div> -->
 
                                             <!-- Support Email -->
                                             <div class="mb-3">
-                                                <label for="support_email" class="form-label">Support Email<span
-                                                        class="text-danger">*</span></label>
+                                                <label for="support_email" class="form-label">Support Email</label>
                                                 <input type="text" name="support_email" id="support_email"
                                                     value="{{ $settings['support_email'] ?? '' }}" class="form-control"
-                                                    placeholder="e.g. Support@proppik.com" required minlength="1" maxlength="255">
+                                                    placeholder="e.g. Support@proppik.com" maxlength="255">
                                                 <small class="form-text text-muted">This is The Support Email Display On Frontend and User.</small>
                                             </div>
                                             
                                             <!-- Support Phone -->
                                             <div class="mb-3">
-                                                <label for="support_phone" class="form-label">Support Phone<span
-                                                        class="text-danger">*</span></label>
+                                                <label for="support_phone" class="form-label">Support Phone</label>
                                                 <input type="text" name="support_phone" id="support_phone"
                                                     value="{{ $settings['support_phone'] ?? '' }}" class="form-control"
-                                                    placeholder="e.g. 9898656532" required minlength="1" maxlength="255">
+                                                    placeholder="e.g. 9898656532" maxlength="255">
                                                 <small class="form-text text-muted">This is The Support Phone Display On Frontend and User.</small>
+                                            </div>
+
+                                            <div class="mb-3">
+                                                <label for="api_base_url" class="form-label">Api Base URL</label>
+                                                <input type="text" name="api_base_url" id="api_base_url"
+                                                    value="{{ $settings['api_base_url'] ?? '' }}" class="form-control"
+                                                    placeholder="e.g. https://api.proppik.com" maxlength="255">
+                                                <small class="form-text text-muted">This is The Api Base URL Use For Api Integration.</small>
                                             </div>
 
                                             <!-- WhatsApp Number -->
                                             <!-- <div class="mb-3">
-                                                <label for="whatsapp_number" class="form-label">WhatsApp Number<span
-                                                        class="text-danger">*</span></label>
+                                                <label for="whatsapp_number" class="form-label">WhatsApp Number</label>
                                                 <input type="text" name="whatsapp_number" id="whatsapp_number"
                                                     value="{{ $settings['whatsapp_number'] ?? '' }}" class="form-control"
-                                                    placeholder="e.g. 9898656532" required minlength="1" maxlength="255">
+                                                    placeholder="e.g. 9898656532" maxlength="255">
                                                 <small class="form-text text-muted">This is The WhatsApp Number Display On Frontend and User.</small>
                                             </div> -->
+
+                                            <!-- QR Link Base -->
+                                            <div class="mb-3">
+                                                <label for="qr_link_base" class="form-label">QR Link Base</label>
+                                                <input type="text" name="qr_link_base" id="qr_link_base"
+                                                    value="{{ $settings['qr_link_base'] ?? '' }}" class="form-control"
+                                                    placeholder="e.g. https://qr.proppik.com/" maxlength="255">
+                                                <small class="form-text text-muted">Base URL for QR codes. Should end with /</small>
+                                            </div>
+
+                                            <!-- S3 Link Base -->
+                                            <div class="mb-3">
+                                                <label for="s3_link_base" class="form-label">S3 Link Base</label>
+                                                <input type="text" name="s3_link_base" id="s3_link_base"
+                                                    value="{{ $settings['s3_link_base'] ?? '' }}" class="form-control"
+                                                    placeholder="e.g. https://creartimages.s3.ap-south-1.amazonaws.com/tours/" maxlength="255">
+                                                <small class="form-text text-muted">Base URL for S3 tour storage. Should end with /</small>
+                                            </div>
 
 
 
@@ -255,21 +277,21 @@
                                             <div class="mb-3">
                                                 <label for="photographer_available_from" class="form-label">Daily Available From</label>
                                                 <input type="time" name="photographer_available_from" id="photographer_available_from"
-                                                    value="{{ $settings['photographer_available_from'] ?? '08:00' }}" class="form-control" required>
+                                                    value="{{ $settings['photographer_available_from'] ?? '08:00' }}" class="form-control">
                                                 <small class="form-text text-muted">Start time for photographers (e.g., 08:00 for 8 AM).</small>
                                             </div>
 
                                             <div class="mb-3">
                                                 <label for="photographer_available_to" class="form-label">Daily Available To</label>
                                                 <input type="time" name="photographer_available_to" id="photographer_available_to"
-                                                    value="{{ $settings['photographer_available_to'] ?? '21:00' }}" class="form-control" required>
+                                                    value="{{ $settings['photographer_available_to'] ?? '21:00' }}" class="form-control">
                                                 <small class="form-text text-muted">End time for photographers (e.g., 21:00 for 9 PM).</small>
                                             </div>
 
                                             <div class="mb-3">
                                                 <label for="photographer_working_duration" class="form-label">Working Duration (minutes)</label>
                                                 <input type="number" name="photographer_working_duration" id="photographer_working_duration"
-                                                    value="{{ $settings['photographer_working_duration'] ?? '60' }}" min="1" class="form-control" required>
+                                                    value="{{ $settings['photographer_working_duration'] ?? '60' }}" min="1" class="form-control">
                                                 <small class="form-text text-muted">Duration of each working slot in minutes (e.g., 60).</small>
                                             </div>
 
@@ -678,11 +700,10 @@
                                             class="needs-validation" novalidate data-csrf="{{ csrf_token() }}">
                                             @csrf
                                             <div class="mb-3">
-                                                <label for="tour_barcode_url" class="form-label">Barcode URL<span
-                                                        class="text-danger">*</span></label>
+                                                <label for="tour_barcode_url" class="form-label">Barcode URL</label>
                                                 <input type="text" name="tour_barcode_url" id="tour_barcode_url"
                                                     value="{{ $settings['tour_barcode_url'] ?? '' }}" class="form-control"
-                                                    placeholder="https://www.proppik.com/" required minlength="1" maxlength="255">
+                                                    placeholder="https://www.proppik.com/" maxlength="255">
                                                 <small class="form-text text-muted">This URL will be use to generate QR code in the Gallery. For example.</small>
                                             </div>
                                             <div class="row g-4">

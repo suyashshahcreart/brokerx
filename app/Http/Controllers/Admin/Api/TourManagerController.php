@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Admin\Api;
 use App\Models\Booking;
 use App\Models\Tour;
 use App\Models\User;
+use App\Models\Setting;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Hash;
@@ -73,14 +74,17 @@ class TourManagerController extends Controller
         ]);
         // Get bookings for this user
         $bookingIds = Booking::where('user_id', $data['user_id'])->pluck('id');
-        // Get tours for these bookings
-        $tours = Tour::whereIn('booking_id', $bookingIds)->with('booking')->get();
+        // Get API, QR, and S3 base URLs from settings
+        $apiBaseUrl = Setting::where('name', 'api_base_url')->value('value') ?? 'https://dev.proppik.in/api/';
+        $qrLinkBase = Setting::where('name', 'qr_link_base')->value('value') ?? 'https://qr.proppik.com/';
+        $s3LinkBase = Setting::where('name', 's3_link_base')->value('value') ?? 'https://creartimages.s3.ap-south-1.amazonaws.com/tours/';
+        
         // Map tours to include full logo URLs
-        $tours = $tours->map(function ($tour) {
+        $tours = $tours->map(function ($tour) use ($apiBaseUrl, $qrLinkBase, $s3LinkBase) {
             // QR Code
             $tour->qr_code = $tour->booking ? $tour->booking->tour_code : null;
-            $tour->qr_link = $tour->booking ? $tour->booking->tour_code ? "https://qr.proppik.com/" . $tour->qr_code : null : null;
-            $tour->s3_link = $tour->booking ? $tour->booking->tour_code ? "https://creartimages.s3.ap-south-1.amazonaws.com/tours/" . $tour->qr_code . "/" : null : null;
+            $tour->qr_link = $tour->booking ? $tour->booking->tour_code ? $qrLinkBase . $tour->qr_code : null : null;
+            $tour->s3_link = $tour->booking ? $tour->booking->tour_code ? $s3LinkBase . $tour->qr_code . "/" : null : null;
             
             $tour->top_image = $tour->footer_logo;
             $tour->contact_number  = $tour->footer_mobile;
@@ -91,7 +95,7 @@ class TourManagerController extends Controller
 
             $tour->is_hosted = $tour->is_hosted ?? false;
             $tour->hosted_link = $tour->hosted_link ?? null;
-            $tour->api_link = "https://dev.proppik.in/api/";
+            $tour->api_link = $apiBaseUrl;
             
             
             $tour->makeHidden(['booking']);
