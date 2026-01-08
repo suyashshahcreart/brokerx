@@ -79,6 +79,9 @@ class TourManagerController extends Controller
         $qrLinkBase = Setting::where('name', 'qr_link_base')->value('value') ?? 'https://qr.proppik.com/';
         $s3LinkBase = Setting::where('name', 's3_link_base')->value('value') ?? 'https://creartimages.s3.ap-south-1.amazonaws.com/';
         
+        // Get tours for these bookings
+        $tours = Tour::whereIn('booking_id', $bookingIds)->with('booking')->get();
+
         // Map tours to include full logo URLs
         $tours = $tours->map(function ($tour) use ($apiBaseUrl, $qrLinkBase, $s3LinkBase) {
 
