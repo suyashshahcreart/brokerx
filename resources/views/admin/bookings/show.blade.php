@@ -667,6 +667,12 @@
                                                                         <small
                                                                             class="text-muted ms-1">({{ $booking->booking_date->format('l') }})</small>
                                                                     </div>
+                                                                    <div>
+                                                                        <small class="text-muted d-block"
+                                                                            style="font-size: 10px;">STATUS</small>
+                                                                        <strong
+                                                                            class="text-dark">{{ $booking->status }}</strong>
+                                                                    </div>
                                                                     @if($booking->booking_time)
                                                                         <div class="vr"></div>
                                                                         <div>
