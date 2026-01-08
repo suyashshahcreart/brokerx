@@ -122,9 +122,74 @@ class TourManagerController extends Controller
     }
 
     /**
-     * Update working_json field for a specific tour (stores as JSON)
+     * Get details for a specific tour via tour_code
      */
-    public function updateWorkingJson(Request $request, $tour_id)
+    public function getTourDetails(Request $request, $tour_code)
+    {
+        $booking = Booking::where('tour_code', $tour_code)->first();
+        
+        if (!$booking) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tour code not found'
+            ], 404);
+        }
+
+        $tour = $booking->tours()->latest()->first();
+        
+        if (!$tour) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tour configuration not found for this code'
+            ], 404);
+        }
+
+        // Re-attach booking for mapping logic compatibility
+        $tour->setRelation('booking', $booking);
+
+        // Get API, QR, and S3 base URLs from settings
+        $apiBaseUrl = Setting::where('name', 'api_base_url')->value('value') ?? 'https://dev.proppik.in/api/';
+        $qrLinkBase = Setting::where('name', 'qr_link_base')->value('value') ?? 'https://qr.proppik.com/';
+        $s3LinkBase = Setting::where('name', 's3_link_base')->value('value') ?? 'https://creartimages.s3.ap-south-1.amazonaws.com/';
+
+        // Format tour details (matching mapping logic in getToursByCustomer)
+        $tour->footer_brand_logo = $tour->footer_brand_logo ? $s3LinkBase . $tour->footer_brand_logo : null;
+        $tour->footer_logo = $tour->footer_logo ? $s3LinkBase . $tour->footer_logo : null;
+        $tour->sidebar_logo = $tour->sidebar_logo ? $s3LinkBase . $tour->sidebar_logo : null;
+
+        $tour->qr_code = $tour->booking ? $tour->booking->tour_code : null;
+        $tour->qr_link = $tour->booking ? $tour->booking->tour_code ? $qrLinkBase . $tour->qr_code : null : null;
+        $tour->s3_link = $tour->booking ? $tour->booking->tour_code ? $s3LinkBase . 'tours/' . $tour->qr_code . "/" : null : null;
+        
+        $tour->top_image = $tour->footer_logo ? $s3LinkBase . $tour->footer_logo : null;
+        $tour->top_number  = $tour->footer_mobile;
+        $tour->top_title  = $tour->footer_name;
+        $tour->top_email  = $tour->footer_email;
+        $tour->top_sub_title  = $tour->footer_subtitle;
+        $tour->top_description  = $tour->footer_decription;
+
+        $tour->is_hosted = $tour->is_hosted ?? false;
+        $tour->hosted_link = $tour->hosted_link ?? null;
+        $tour->api_link = $apiBaseUrl;
+
+        $tour->makeHidden(['booking']);
+        $tour->makeVisible(['qr_code']);
+        
+        $tourData = $tour->toArray();
+        // Add full URLs for custom logos
+        $tourData['custom_logo_sidebar_url'] = $tour->custom_logo_sidebar ? Storage::disk('s3')->url($tour->custom_logo_sidebar) : null;
+        $tourData['custom_logo_footer_url'] = $tour->custom_logo_footer ? Storage::disk('s3')->url($tour->custom_logo_footer) : null;
+
+        return response()->json([
+            'success' => true,
+            'tour' => $tourData
+        ]);
+    }
+
+    /**
+     * Update working_json field for a specific tour via tour_code (stores as JSON)
+     */
+    public function updateWorkingJson(Request $request, $tour_code)
     {
         // Read raw content and parse JSON
         $rawContent = $request->getContent();
@@ -175,9 +240,17 @@ class TourManagerController extends Controller
                 ]
             ], 422);
         }
-        
-        // Find tour
-        $tour = Tour::find($tour_id);
+        // Find booking first to get the tour
+        $booking = Booking::where('tour_code', $tour_code)->first();
+        if (!$booking) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tour code not found'
+            ], 404);
+        }
+
+        // Find latest tour for this booking
+        $tour = $booking->tours()->latest()->first();
         if (!$tour) {
             return response()->json([
                 'success' => false,

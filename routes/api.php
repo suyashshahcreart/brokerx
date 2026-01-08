@@ -24,7 +24,8 @@ use App\Http\Controllers\Admin\Api\TourManagerController;
 Route::post('/tour-manager/login', [TourManagerController::class, 'login']);
 Route::get('/tour-manager/customers', [TourManagerController::class, 'getCustomers']);
 Route::get('/tour-manager/tours-by-customer', [TourManagerController::class, 'getToursByCustomer']);
-Route::put('/tour-manager/working_json/{tour_id}', [TourManagerController::class, 'updateWorkingJson']);
+Route::get('/tour-manager/tour/{tour_code}', [TourManagerController::class, 'getTourDetails']);
+Route::put('/tour-manager/working_json/{tour_code}', [TourManagerController::class, 'updateWorkingJson']);
 
 // Tour Access APIs
 Route::get('/tour/is_active/{tour_code}', [\App\Http\Controllers\Api\TourAccessController::class, 'checkIsActive']);
