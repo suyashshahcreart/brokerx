@@ -243,11 +243,11 @@
                                 </div>
                                 @if($booking->qr->qr_link)
                                     <div class="col-6 mb-2">
-                                        <label class="form-label fw-bold text-muted small">QR Link Redirect Link</label>
+                                        <label class="form-label fw-bold text-muted small">QR Live Link</label>
                                         <p class="mb-0">
-                                            <a href="{{ $booking->qr->qr_link }}" target="_blank" class="text-truncate d-block"
+                                            <a href="{{ $booking->getTourLiveUrl() }}" target="_blank" class="text-truncate d-block"
                                                 style="max-width: 100%;">
-                                                {{ Str::limit($booking->qr->qr_link, 40) }}
+                                                {{ Str::limit($booking->getTourLiveUrl(), 40) }}
                                                 <i class="ri-external-link-line ms-1"></i>
                                             </a>
                                         </p>

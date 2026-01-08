@@ -1558,10 +1558,10 @@
                                     </div>
                                     @if($booking->qr->qr_link)
                                         <div class="col-12 mb-2">
-                                            <small class="text-muted d-block" style="font-size: 10px;">REDIRECT LINK</small>
-                                            <a href="{{ $booking->qr->qr_link }}" target="_blank" class="text-truncate d-block small"
+                                            <small class="text-muted d-block" style="font-size: 10px;">LIVE LINK</small>
+                                            <a href="{{ $booking->getTourLiveUrl() }}" target="_blank" class="text-truncate d-block small"
                                                 style="max-width: 100%;">
-                                                <code>{{ Str::limit($booking->qr->qr_link, 50) }}</code>
+                                                <code>{{ Str::limit($booking->getTourLiveUrl(), 50) }}</code>
                                                 <i class="ri-external-link-line ms-1"></i>
                                             </a>
                                         </div>

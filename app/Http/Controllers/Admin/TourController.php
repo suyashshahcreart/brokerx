@@ -108,6 +108,7 @@ class TourController extends Controller
             'description' => ['nullable', 'string'],
             'content' => ['nullable', 'string'],
             'featured_image' => ['nullable', 'string', 'max:255'],
+            'tour_thumbnail' => ['nullable', 'file', 'image', 'max:5120'],
             'price' => ['nullable', 'numeric', 'min:0'],
             'duration_days' => ['nullable', 'integer', 'min:1'],
             'location' => ['nullable', 'string', 'max:255'],
@@ -165,71 +166,84 @@ class TourController extends Controller
                 $validated['slug'] = $originalSlug . '-' . $counter;
                 $counter++;
             }
-        }
 
 
-        // Temporarily remove logo fields for file upload
-        $logoSidebarFile = $request->file('sidebar_logo');
-        $logoFooterFile = $request->file('footer_logo');
-        $logoBrandFile = $request->file('footer_brand_logo');
-        unset($validated['sidebar_logo'], $validated['footer_logo'], $validated['footer_brand_logo']);
+            // Temporarily remove logo fields for file upload
+            $logoSidebarFile = $request->file('sidebar_logo');
+            $logoFooterFile = $request->file('footer_logo');
+            $logoBrandFile = $request->file('footer_brand_logo');
+            $tourThumbnailFile = $request->file('tour_thumbnail');
+            unset($validated['sidebar_logo'], $validated['footer_logo'], $validated['footer_brand_logo'], $validated['tour_thumbnail']);
 
-        $tour = Tour::create($validated);
-        try {
+            $tour = Tour::create($validated);
+            try {
 
-            $updateData = [];
-            if ($logoSidebarFile) {
-                $sidebarFilename = 'logo_sidebar_' . time() . '_' . Str::random(8) . '.' . $logoSidebarFile->getClientOriginalExtension();
-                $sidebarPath = 'tours_logo/' . $tour->id . '/' . $sidebarFilename;
-                $sidebarContent = file_get_contents($logoSidebarFile->getRealPath());
-                $sidebarMime = $logoSidebarFile->getMimeType();
-                $uploaded = Storage::disk('s3')->put($sidebarPath, $sidebarContent, ['ContentType' => $sidebarMime]);
-                if ($uploaded) {
-                    $updateData['sidebar_logo'] = $sidebarPath;
+                $updateData = [];
+                if ($logoSidebarFile) {
+                    $sidebarFilename = 'logo_sidebar_' . time() . '_' . Str::random(8) . '.' . $logoSidebarFile->getClientOriginalExtension();
+                    $sidebarPath = 'tours_logo/' . $tour->id . '/' . $sidebarFilename;
+                    $sidebarContent = file_get_contents($logoSidebarFile->getRealPath());
+                    $sidebarMime = $logoSidebarFile->getMimeType();
+                    $uploaded = Storage::disk('s3')->put($sidebarPath, $sidebarContent, ['ContentType' => $sidebarMime]);
+                    if ($uploaded) {
+                        $updateData['sidebar_logo'] = $sidebarPath;
+                    }
                 }
-            }
-            if ($logoFooterFile) {
-                $footerFilename = 'logo_footer_' . time() . '_' . Str::random(8) . '.' . $logoFooterFile->getClientOriginalExtension();
-                $footerPath = 'tours_logo/' . $tour->id . '/' . $footerFilename;
-                $footerContent = file_get_contents($logoFooterFile->getRealPath());
-                $footerMime = $logoFooterFile->getMimeType();
-                $uploaded = Storage::disk('s3')->put($footerPath, $footerContent, ['ContentType' => $footerMime]);
-                if ($uploaded) {
-                    $updateData['footer_logo'] = $footerPath;
+                if ($logoFooterFile) {
+                    $footerFilename = 'logo_footer_' . time() . '_' . Str::random(8) . '.' . $logoFooterFile->getClientOriginalExtension();
+                    $footerPath = 'tours_logo/' . $tour->id . '/' . $footerFilename;
+                    $footerContent = file_get_contents($logoFooterFile->getRealPath());
+                    $footerMime = $logoFooterFile->getMimeType();
+                    $uploaded = Storage::disk('s3')->put($footerPath, $footerContent, ['ContentType' => $footerMime]);
+                    if ($uploaded) {
+                        $updateData['footer_logo'] = $footerPath;
+                    }
                 }
-            }
-            if ($logoBrandFile) {
-                $brandFilename = 'footer_brand_logo_' . time() . '_' . Str::random(8) . '.' . $logoBrandFile->getClientOriginalExtension();
-                $brandPath = 'tours_logo/' . $tour->id . '/' . $brandFilename;
-                $brandContent = file_get_contents($logoBrandFile->getRealPath());
-                $brandMime = $logoBrandFile->getMimeType();
-                $uploaded = Storage::disk('s3')->put($brandPath, $brandContent, ['ContentType' => $brandMime]);
-                if ($uploaded) {
-                    $updateData['footer_brand_logo'] = $brandPath;
+                if ($logoBrandFile) {
+                    $brandFilename = 'footer_brand_logo_' . time() . '_' . Str::random(8) . '.' . $logoBrandFile->getClientOriginalExtension();
+                    $brandPath = 'tours_logo/' . $tour->id . '/' . $brandFilename;
+                    $brandContent = file_get_contents($logoBrandFile->getRealPath());
+                    $brandMime = $logoBrandFile->getMimeType();
+                    $uploaded = Storage::disk('s3')->put($brandPath, $brandContent, ['ContentType' => $brandMime]);
+                    if ($uploaded) {
+                        $updateData['footer_brand_logo'] = $brandPath;
+                    }
                 }
+                // Handle tour thumbnail upload
+                if ($tourThumbnailFile) {
+                    $thumbnailFilename = 'tour_thumbnail_' . time() . '_' . Str::random(8) . '.' . $tourThumbnailFile->getClientOriginalExtension();
+                    $thumbnailPath = 'settings/tour_thumbnails/' . $thumbnailFilename;
+                    $thumbnailContent = file_get_contents($tourThumbnailFile->getRealPath());
+                    $thumbnailMime = $tourThumbnailFile->getMimeType();
+                    $uploaded = Storage::disk('s3')->put($thumbnailPath, $thumbnailContent, ['ContentType' => $thumbnailMime]);
+                    if ($uploaded) {
+                        $updateData['tour_thumbnail'] = $thumbnailPath;
+                    }
+                }
+                if (!empty($updateData)) {
+                    $tour->update($updateData);
+                }
+
+            } catch (\Exception $e) {
+                return back()->withInput()->withErrors(['general' => 'An error occurred while saving the tour: ' . $e->getMessage()]);
             }
-            if (!empty($updateData)) {
-                $tour->update($updateData);
+
+            activity('tours')
+                ->performedOn($tour)
+                ->causedBy($request->user())
+                ->withProperties([
+                    'event' => 'created',
+                    'after' => $tour->toArray()
+                ])
+                ->log('Tour created');
+
+            // If created from booking page, redirect back to booking edit
+            if ($request->has('booking_id') && $request->booking_id) {
+                return redirect()->route('admin.bookings.edit', $request->booking_id)->with('success', 'Tour created and linked to booking successfully.');
             }
 
-        } catch (\Exception $e) {
-            return back()->withInput()->withErrors(['general' => 'An error occurred while saving the tour: ' . $e->getMessage()]);
+            return redirect()->route('admin.tours.index')->with('success', 'Tour created successfully.');
         }
-        activity('tours')
-            ->performedOn($tour)
-            ->causedBy($request->user())
-            ->withProperties([
-                'event' => 'created',
-                'after' => $tour->toArray()
-            ])
-            ->log('Tour created');
-
-        // If created from booking page, redirect back to booking edit
-        if ($request->has('booking_id') && $request->booking_id) {
-            return redirect()->route('admin.bookings.edit', $request->booking_id)->with('success', 'Tour created and linked to booking successfully.');
-        }
-
-        return redirect()->route('admin.tours.index')->with('success', 'Tour created successfully.');
     }
 
     /**
@@ -402,6 +416,7 @@ class TourController extends Controller
             'description' => ['nullable', 'string'],
             'content' => ['nullable', 'string'],
             'featured_image' => ['nullable', 'string', 'max:255'],
+            'tour_thumbnail' => ['nullable', 'file', 'image', 'max:5120'],
             'price' => ['nullable', 'numeric', 'min:0'],
             'duration_days' => ['nullable', 'integer', 'min:1'],
             'location' => ['nullable', 'string', 'max:255'],
@@ -528,16 +543,29 @@ class TourController extends Controller
             }
         }
 
+        // Handle tour thumbnail upload
+        $tourThumbnailFile = $request->file('tour_thumbnail');
+        if ($tourThumbnailFile) {
+            $thumbnailFilename = 'tour_thumbnail_' . time() . '_' . Str::random(8) . '.' . $tourThumbnailFile->getClientOriginalExtension();
+            $thumbnailPath = 'settings/tour_thumbnails/' . $thumbnailFilename;
+            $thumbnailContent = file_get_contents($tourThumbnailFile->getRealPath());
+            $thumbnailMime = $tourThumbnailFile->getMimeType();
+            $uploaded = Storage::disk('s3')->put($thumbnailPath, $thumbnailContent, ['ContentType' => $thumbnailMime]);
+            if ($uploaded) {
+                $updateData['tour_thumbnail'] = $thumbnailPath;
+            }
+        }
+
         // If footer_brand_logo_text is present, update it as a text field
         if ($request->has('footer_brand_logo_text')) {
             $updateData['footer_brand_logo_text'] = $request->input('footer_brand_logo_text');
         }
-        
+
         // Only save final_json to DB if it was not empty originally
         if (!$finalJsonWasEmpty) {
             $updateData['final_json'] = $finalJson;
         }
-        
+
         // Update new boolean fields
         $updateData['is_active'] = $request->has('is_active');
         $updateData['is_credentials'] = $request->has('is_credentials');
@@ -583,7 +611,7 @@ class TourController extends Controller
             // The form sends 'credentials' array only if rows exist. 
             // If user deletes all rows in UI, 'credentials' might be missing or empty.
             if ($request->filled('is_credentials') && empty($request->input('credentials'))) {
-                 // User selected "Required" but provided no credentials -> could mean delete all if list was cleared
+                // User selected "Required" but provided no credentials -> could mean delete all if list was cleared
                 //  $tour->credentials()->delete();
             }
         }
@@ -603,7 +631,7 @@ class TourController extends Controller
         );
 
         $jsFileContent = '
-        window.EMBEDDED_TOUR_DATA= '.$jsonString.'
+        window.EMBEDDED_TOUR_DATA= ' . $jsonString . '
         // Helper function to extract YouTube video ID from URL
         window.extractYouTubeVideoId = function(url) {
         if (!url) return null;
@@ -635,16 +663,16 @@ class TourController extends Controller
         iframe.setAttribute("allowfullscreen", "true");
         return iframe;
         };';
-        
+
         // encript the js code and testing things.
         $obfuscatedJs = obfuscateJs($jsFileContent);
-        
+
         // Upload the JS file to S3
         Storage::disk('s3')->put($jsPath, $obfuscatedJs, ['ContentType' => 'application/javascript']);
-        
+
         // update the json file of virtual-tour-nodes.json
         Storage::disk('s3')->put('tours/' . $qr_code . '/virtual-tour-nodes.json', $jsonString, ['ContentType' => 'application/json']);
-        
+
         return redirect()->back()->with(['success' => 'Tour updated successfully from booking edit.', 'active_tab' => 'tour']);
     }
 

@@ -26,6 +26,7 @@ class Tour extends Model
         'description',
         'content',
         'featured_image',
+        'tour_thumbnail',
         'price',
         'duration_days',
         'location',
@@ -120,6 +121,11 @@ class Tour extends Model
     public function mobileValidations()
     {
         return $this->hasMany(TourMobileValidation::class);
+    }
+
+    public function validationHistories()
+    {
+        return $this->hasMany(TourMobileValidationHistory::class);
     }
 
 
