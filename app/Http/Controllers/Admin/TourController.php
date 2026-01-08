@@ -424,6 +424,7 @@ class TourController extends Controller
             'footer_decription' => ['nullable', 'string'],
             'is_active' => ['nullable', 'boolean'],
             'is_credentials' => ['nullable', 'boolean'],
+            'is_mobile_validation' => ['nullable', 'boolean'],
             'credentials' => ['nullable', 'array'],
             'credentials.*.id' => ['nullable', 'integer'],
             'credentials.*.user_name' => ['required_with:credentials', 'string', 'max:255'],
@@ -540,6 +541,7 @@ class TourController extends Controller
         // Update new boolean fields
         $updateData['is_active'] = $request->has('is_active');
         $updateData['is_credentials'] = $request->has('is_credentials');
+        $updateData['is_mobile_validation'] = $request->has('is_mobile_validation');
 
         // Manage Credentials
         if ($request->has('credentials')) {

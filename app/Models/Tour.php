@@ -74,6 +74,7 @@ class Tour extends Model
         'footer_subtitle',
         'is_active',
         'is_credentials',
+        'is_mobile_validation',
     ];
 
     /**
@@ -96,6 +97,7 @@ class Tour extends Model
             'sidebar_footer_link_show' => 'boolean',
             'is_active' => 'boolean',
             'is_credentials' => 'boolean',
+            'is_mobile_validation' => 'boolean',
         ];
     }
 
@@ -113,6 +115,11 @@ class Tour extends Model
     public function credentials()
     {
         return $this->hasMany(TourCredential::class);
+    }
+
+    public function mobileValidations()
+    {
+        return $this->hasMany(TourMobileValidation::class);
     }
 
 
