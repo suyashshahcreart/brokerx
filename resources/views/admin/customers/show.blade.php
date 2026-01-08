@@ -41,10 +41,19 @@
                         </div>
                         <div class="col-10">
                             <div class="row">
-                                <div class="col-6"><P class="mb-1"><strong>Id:</strong>{{ $customer->id }}</P></div>
-                                <div class="col-6"><p class="mb-1"><strong>Name:</strong> {{ $customer->firstname }} {{ $customer->lastname }}</p></div>
-                                <div class="col-6"><p class="mb-1"><strong>Email:</strong> {{ $customer->email }}</p></div>
-                                <div class="col-6"><p class="mb-1"><strong>mobile:</strong> {{ $customer->mobile }}</p></div>
+                                <div class="col-6">
+                                    <P class="mb-1"><strong>Id:</strong>{{ $customer->id }}</P>
+                                </div>
+                                <div class="col-6">
+                                    <p class="mb-1"><strong>Name:</strong> {{ $customer->firstname }}
+                                        {{ $customer->lastname }}</p>
+                                </div>
+                                <div class="col-6">
+                                    <p class="mb-1"><strong>Email:</strong> {{ $customer->email }}</p>
+                                </div>
+                                <div class="col-6">
+                                    <p class="mb-1"><strong>mobile:</strong> {{ $customer->mobile }}</p>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -88,14 +97,16 @@
                             <thead>
                                 <tr>
                                     <th>ID</th>
+                                    <th>User</th>
+                                    <th>Type / Subtype</th>
+                                    <th>BHK</th>
+                                    <th>City / State</th>
+                                    <th>Area</th>
+                                    <th>Price</th>
                                     <th>Date</th>
-                                    <th>Address</th>
-                                    <th>City</th>
-                                    <th>State</th>
-                                    <th>Property Type</th>
                                     <th>Status</th>
-                                    <th>Amount</th>
-                                    <th>Action</th>
+                                    <th>Payment</th>
+                                    <th class="text-end">Actions</th>
                                 </tr>
                             </thead>
                             <tbody></tbody>
