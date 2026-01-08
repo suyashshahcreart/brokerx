@@ -584,7 +584,7 @@
                                             <!-- Price, Dates, Status (Always Visible) -->
                                             <div class="mb-1">
                                                 <label class="form-label fw-semibold mb-0" for="price">Price (₹) <span class="text-danger">*</span> <small class="text-muted">(Auto-calculated)</small></label>
-                                                <input type="number" name="price" id="price" class="form-control bg-light @error('price') is-invalid @enderror" value="{{ old('price') }}" placeholder="Enter area to calculate" readonly required min="0">
+                                                <input type="number" name="price" id="price" class="form-control bg-light @error('price') is-invalid @enderror" value="{{ old('price') }}" placeholder="Enter area to calculate" required min="0">
                                                 <div class="invalid-feedback">@error('price'){{ $message }}@else Please enter a valid price.@enderror</div>
                                             </div>
                                         </div>

@@ -1,25 +1,25 @@
 @extends('admin.layouts.vertical', ['title' => 'Bookings', 'subTitle' => 'Property'])
 
 @section('css')
-<style>
-    /* Schedule Modal Input Styling */
-    #scheduleModal .input-group-text {
-        border-radius: 0.375rem 0 0 0.375rem;
-    }
-    
-    #scheduleModal .input-group .form-control {
-        border-left: 0;
-    }
-    
-    #scheduleModal .input-group .form-control:focus {
-        border-color: #0d6efd;
-        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
-    }
-    
-    #scheduleModal .input-group-text:hover {
-        background-color: #0b5ed7 !important;
-    }
-</style>
+    <style>
+        /* Schedule Modal Input Styling */
+        #scheduleModal .input-group-text {
+            border-radius: 0.375rem 0 0 0.375rem;
+        }
+
+        #scheduleModal .input-group .form-control {
+            border-left: 0;
+        }
+
+        #scheduleModal .input-group .form-control:focus {
+            border-color: #0d6efd;
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+        }
+
+        #scheduleModal .input-group-text:hover {
+            background-color: #0b5ed7 !important;
+        }
+    </style>
 @endsection
 
 @section('content')
@@ -40,9 +40,9 @@
                     <x-admin.back-button :classes="['btn', 'btn-soft-secondary']" :merge="false"
                         icon="ri-arrow-go-back-line" />
                     @can('booking_create')
-                    <a href="{{ route('admin.bookings.create') }}" class="btn btn-primary">
-                        <i class="ri-add-line me-1"></i> New Booking
-                    </a>
+                        <a href="{{ route('admin.bookings.create') }}" class="btn btn-primary">
+                            <i class="ri-add-line me-1"></i> New Booking
+                        </a>
                     @endcan
                 </div>
             </div>
@@ -65,8 +65,8 @@
                             <i class="ri-fullscreen-line"></i>
                         </button>
                         <!-- <button type="button" class="btn btn-light border" data-panel-action="close" title="Close">
-                            <i class="ri-close-line"></i>
-                        </button> -->
+                                <i class="ri-close-line"></i>
+                            </button> -->
                     </div>
                 </div>
                 <div class="card-body">
@@ -153,26 +153,39 @@
                                     <form id="scheduleForm">
                                         <div class="mb-3">
                                             <label class="form-label">Current Booking Date</label>
-                                            <div id="current-booking-date" class="form-control-plaintext text-primary mb-2"></div>
+                                            <div id="current-booking-date" class="form-control-plaintext text-primary mb-2">
+                                            </div>
                                             <div class="mb-2">
                                                 <label class="form-label">Schedule Mode</label>
                                                 <div>
                                                     <div class="form-check form-check-inline">
-                                                        <input class="form-check-input" type="radio" name="schedule_mode" id="schedule-mode-default" value="default" checked>
-                                                        <label class="form-check-label" for="schedule-mode-default">Default</label>
+                                                        <input class="form-check-input" type="radio" name="schedule_mode"
+                                                            id="schedule-mode-default" value="default" checked>
+                                                        <label class="form-check-label"
+                                                            for="schedule-mode-default">Default</label>
+                                                        <span class="fs-6 text-muted">calender Disable the Leave days and
+                                                            Holiday.</span>
                                                     </div>
                                                     <div class="form-check form-check-inline">
-                                                        <input class="form-check-input" type="radio" name="schedule_mode" id="schedule-mode-any" value="any">
-                                                        <label class="form-check-label" for="schedule-mode-any">Pick Any Day</label>
+                                                        <input class="form-check-input" type="radio" name="schedule_mode"
+                                                            id="schedule-mode-any" value="any">
+                                                        <label class="form-check-label" for="schedule-mode-any">Pick Any
+                                                            Day</label>
+                                                        <span class="fs-6 text-muted">you can Select any Date in the
+                                                            calender.</span>
                                                     </div>
                                                 </div>
                                             </div>
                                             <label for="schedule-date" class="form-label">Select Date</label>
                                             <div class="input-group">
-                                                <span class="input-group-text bg-primary text-white" id="calendar-icon-trigger" style="cursor: pointer;" title="Open calendar">
+                                                <span class="input-group-text bg-primary text-white"
+                                                    id="calendar-icon-trigger" style="cursor: pointer;"
+                                                    title="Open calendar">
                                                     <i class="ri-calendar-line"></i>
                                                 </span>
-                                                <input type="text" class="form-control" id="schedule-date" name="schedule_date" placeholder="Click to select date" required autocomplete="off">
+                                                <input type="text" class="form-control" id="schedule-date"
+                                                    name="schedule_date" placeholder="Click to select date" required
+                                                    autocomplete="off">
                                             </div>
                                         </div>
                                         <input type="hidden" id="schedule-booking-id" name="booking_id">
@@ -192,12 +205,12 @@
 @endsection
 
 @section('script')
-<script>
-    // Set base URL and API routes for JavaScript
-    window.appBaseUrl = '{{ url("/") }}';
-    window.apiBaseUrl = '{{ url("/api") }}';
-    window.bookingIndexUrl = '{{ route("admin.bookings.index") }}';
-    window.bookingCsrfToken = '{{ csrf_token() }}';
-</script>
-@vite(['resources/js/pages/booking-index.js'])
+    <script>
+        // Set base URL and API routes for JavaScript
+        window.appBaseUrl = '{{ url("/") }}';
+        window.apiBaseUrl = '{{ url("/api") }}';
+        window.bookingIndexUrl = '{{ route("admin.bookings.index") }}';
+        window.bookingCsrfToken = '{{ csrf_token() }}';
+    </script>
+    @vite(['resources/js/pages/booking-index.js'])
 @endsection

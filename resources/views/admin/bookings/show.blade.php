@@ -667,6 +667,12 @@
                                                                         <small
                                                                             class="text-muted ms-1">({{ $booking->booking_date->format('l') }})</small>
                                                                     </div>
+                                                                    <div>
+                                                                        <small class="text-muted d-block"
+                                                                            style="font-size: 10px;">STATUS</small>
+                                                                        <strong
+                                                                            class="text-dark">{{ $booking->status }}</strong>
+                                                                    </div>
                                                                     @if($booking->booking_time)
                                                                         <div class="vr"></div>
                                                                         <div>
@@ -1670,7 +1676,10 @@
 
     <!-- Assign Booking to Photographer Modal -->
     <div class="modal fade" id="assignBookingModal" tabindex="-1" aria-labelledby="assignBookingModalLabel"
-        aria-hidden="true">
+        aria-hidden="true"
+        data-photographer-from="{{ \App\Models\Setting::where('name', 'photographer_available_from')->value('value') ?? '08:00' }}"
+        data-photographer-to="{{ \App\Models\Setting::where('name', 'photographer_available_to')->value('value') ?? '21:00' }}"
+        data-photographer-duration="{{ \App\Models\Setting::where('name', 'photographer_working_duration')->value('value') ?? '60' }}">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
@@ -1679,7 +1688,6 @@
                 </div>
                 <form id="assignBookingForm" method="POST" action="{{ route('admin.booking-assignees.store') }}">
                     @csrf
-                    <input type="hidden" name="booking_id" value="{{ $booking->id }}">
                     <div class="modal-body">
                         <!-- Booking Details Section -->
                         <div class="alert alert-info mb-3">
@@ -1687,45 +1695,28 @@
                             <div class="row g-2 small">
                                 <div class="col-md-6">
                                     <strong>Customer Name:</strong>
-                                    <p id="modalCustomer" class="mb-1">{{ $booking->user->firstname }}
-                                        {{ $booking->user->lastname }}</p>
+                                    <p id="modalCustomer" class="mb-1">-</p>
                                 </div>
                                 <div class="col-md-6">
                                     <strong>Pin Code:</strong>
-                                    <p id="modalPincode" class="mb-1">{{ $booking->pin_code ?? '-' }}</p>
+                                    <p id="modalPincode" class="mb-1">-</p>
                                 </div>
                                 <div class="col-md-12">
                                     <strong>Address:</strong>
-                                    <p id="modalAddress" class="mb-1">
-                                        {{ $booking->full_address ?? ($booking->house_no . ', ' . $booking->building . ', ' . ($booking->society_name ?? '') . ', ' . ($booking->address_area ?? '')) }}
-                                    </p>
+                                    <p id="modalAddress" class="mb-1">-</p>
                                 </div>
                                 <div class="col-md-6">
                                     <strong>City:</strong>
-                                    <p id="modalCity" class="mb-0">{{ $booking->city?->name ?? '-' }}</p>
+                                    <p id="modalCity" class="mb-0">-</p>
                                 </div>
                                 <div class="col-md-6">
                                     <strong>State:</strong>
-                                    <p id="modalState" class="mb-0">{{ $booking->state?->name ?? '-' }}</p>
+                                    <p id="modalState" class="mb-0">-</p>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Assignment Details Section -->
-                        <div class="row">
-                            <div class="col-md-6">
-                                <label for="modalDate" class="form-label">Booking Date</label>
-                                <input type="date" id="modalDate" class="form-control"
-                                    value="{{ $booking->booking_date ? $booking->booking_date->format('Y-m-d') : '' }}"
-                                    disabled>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="assignTime" class="form-label">Assign Time <span
-                                        class="text-danger">*</span></label>
-                                <input type="time" id="assignTime" name="time" class="form-control" required>
-                            </div>
-                        </div>
-
+                        <!-- Photographer Select -->
                         <div class="mb-3 mt-3">
                             <label for="assignPhotographer" class="form-label">Select Photographer <span
                                     class="text-danger">*</span></label>
@@ -1735,6 +1726,36 @@
                                     <option value="{{ $photographer->id }}">{{ $photographer->name }}</option>
                                 @endforeach
                             </select>
+                        </div>
+
+                        <!-- Assignment Details Section -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label for="modalDate" class="form-label">Booking Date</label>
+                                <input type="date" id="modalDate" class="form-control" disabled>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="assignTime" class="form-label">Assign Time <span
+                                        class="text-danger">*</span></label>
+                                <select id="assignTime" name="time" class="form-select" disabled required>
+                                    <option value="">Select a time</option>
+                                </select>
+                                <div class="mt-2">
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="slotMode" id="slotModeAvailable"
+                                            value="available" checked>
+                                        <label class="form-check-label" for="slotModeAvailable">Available slots
+                                            (default)</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="slotMode" id="slotModeAny"
+                                            value="any">
+                                        <label class="form-check-label" for="slotModeAny">Pick any</label>
+                                    </div>
+                                </div>
+                                <div id="assignTimeHelper" class="form-text text-muted small">Select a photographer first to
+                                    see available slots from the API, or choose "Pick any" to ignore conflicts.</div>
+                            </div>
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -2348,6 +2369,7 @@
                 assignForm.addEventListener('submit', function (e) {
                     e.preventDefault();
 
+                    const bookingId = {{ $booking->id }};
                     const userId = document.getElementById('assignPhotographer').value;
                     const time = document.getElementById('assignTime').value;
 
@@ -2360,14 +2382,50 @@
                         return;
                     }
 
+                    // Client-side double check: ensure selected time is within allowed range and aligned to slots
+                    const assignTimeInput = document.getElementById('assignTime');
+                    const modalEl = document.getElementById('assignBookingModal');
+                    const availableFrom = modalEl?.dataset?.photographerFrom || '08:00';
+                    const availableTo = modalEl?.dataset?.photographerTo || '21:00';
+                    const workingDuration = parseInt(modalEl?.dataset?.photographerDuration || '60', 10);
+
+                    function toMinutesLocal(t) {
+                        const parts = (t || '').split(':'); if (parts.length < 2) return null; return parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
+                    }
+
+                    const timeMins = toMinutesLocal(time);
+                    const fromMins = toMinutesLocal(availableFrom);
+                    const toMins = toMinutesLocal(availableTo);
+
+                    if (timeMins === null) {
+                        Swal.fire({ icon: 'warning', title: 'Invalid Time', text: 'Please choose a valid time.' });
+                        return;
+                    }
+
+                    if (toMins < fromMins) {
+                        Swal.fire({ icon: 'warning', title: 'No Available Slot', text: 'No available slots configured. Please update settings.' });
+                        return;
+                    }
+
+                    if (timeMins < fromMins || timeMins > toMins) {
+                        Swal.fire({ icon: 'warning', title: 'Time Not Allowed', text: `Selected time is outside allowed photographer availability (${availableFrom} — ${availableTo}).` });
+                        return;
+                    }
+
                     // Disable submit button to prevent double submission
                     const submitBtn = this.querySelector('button[type="submit"]');
                     submitBtn.disabled = true;
                     submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Assigning...';
 
-                    const formData = new FormData(this);
+                    const formData = new FormData();
+                    formData.append('booking_id', bookingId);
+                    formData.append('user_id', userId);
+                    formData.append('time', time);
+                    formData.append('_token', csrfToken);
 
-                    fetch(this.action, {
+                    const storeUrl = this.getAttribute('action');
+
+                    fetch(storeUrl, {
                         method: 'POST',
                         headers: {
                             'X-Requested-With': 'XMLHttpRequest',
@@ -2422,6 +2480,197 @@
                             submitBtn.disabled = false;
                             submitBtn.innerHTML = 'Assign';
                         });
+                });
+            }
+
+            // Assign Booking to Photographer Modal - Slot loading functionality
+            function initializeAssignModal() {
+                const assignPhotographerEl = document.getElementById('assignPhotographer');
+                const assignTimeEl = document.getElementById('assignTime');
+                const helper = document.getElementById('assignTimeHelper');
+                const slotModeAvailable = document.getElementById('slotModeAvailable');
+                const slotModeAny = document.getElementById('slotModeAny');
+
+                const setHelper = (msg) => { if (helper) helper.textContent = msg; };
+                const resetSelect = () => { assignTimeEl.disabled = true; assignTimeEl.innerHTML = '<option value="">Select a time</option>'; assignTimeEl.value = ''; };
+
+                setHelper('Select a photographer first to see available slots from the API, or choose "Pick any" to ignore conflicts.');
+                resetSelect();
+                if (slotModeAvailable) slotModeAvailable.checked = true;
+                if (slotModeAny) slotModeAny.checked = false;
+
+                const modalEl = document.getElementById('assignBookingModal');
+                const availableFrom = modalEl?.dataset?.photographerFrom || '08:00';
+                const availableTo = modalEl?.dataset?.photographerTo || '21:00';
+                const workingDuration = parseInt(modalEl?.dataset?.photographerDuration || '60', 10);
+
+                function toMinutes(t) {
+                    const parts = (t || '').split(':');
+                    if (parts.length < 2) return null;
+                    return parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
+                }
+
+                function formatHM(m) {
+                    const h = Math.floor(m / 60).toString().padStart(2, '0');
+                    const mm = (m % 60).toString().padStart(2, '0');
+                    return `${h}:${mm}`;
+                }
+
+                function formatDisplay(m) {
+                    const hours = Math.floor(m / 60);
+                    const minutes = m % 60;
+                    const period = hours >= 12 ? 'PM' : 'AM';
+                    let h12 = hours % 12;
+                    if (h12 === 0) h12 = 12;
+                    return `${h12}:${minutes.toString().padStart(2, '0')} ${period}`;
+                }
+
+                const fromM = toMinutes(availableFrom);
+                const toM = toMinutes(availableTo);
+                const slotStep = 15;
+
+                const getSlotMode = () => (slotModeAny?.checked ? 'any' : 'available');
+
+                function buildAllSlots() {
+                    assignTimeEl.innerHTML = '<option value="">Select a time</option>';
+                    if (toM < fromM) return;
+                    for (let t = fromM; t <= toM; t += slotStep) {
+                        const candidateEnd = t + (workingDuration || 60);
+                        if (candidateEnd > toM) continue;
+                        const opt = document.createElement('option');
+                        opt.value = formatHM(t);
+                        opt.textContent = formatDisplay(t);
+                        assignTimeEl.appendChild(opt);
+                    }
+                    if (assignTimeEl.options.length > 1) {
+                        assignTimeEl.disabled = false;
+                        assignTimeEl.value = assignTimeEl.options[1].value;
+                    } else {
+                        assignTimeEl.disabled = true;
+                    }
+                }
+
+                function loadSlots() {
+                    if (!assignPhotographerEl.value) {
+                        resetSelect();
+                        setHelper('Select a photographer first to see available slots from the API, or choose "Pick any" to ignore conflicts.');
+                        return;
+                    }
+
+                    if (toM < fromM) {
+                        resetSelect();
+                        setHelper('No available slots for photographers. Please update settings.');
+                        return;
+                    }
+
+                    const dateVal = document.getElementById('modalDate').value;
+                    if (!dateVal) {
+                        resetSelect();
+                        setHelper('Please select a booking date first.');
+                        return;
+                    }
+
+                    if (getSlotMode() === 'any') {
+                        buildAllSlots();
+                        setHelper(`Pick any slot between ${formatDisplay(fromM)} — ${formatDisplay(toM)} (every ${slotStep} min)`);
+                        return;
+                    }
+
+                    setHelper('Loading photographer slots...');
+                    assignTimeEl.disabled = true;
+                    assignTimeEl.innerHTML = '<option value="">Loading...</option>';
+
+                    fetch(`${apiBaseUrl}/booking-assignees/slots?date=${encodeURIComponent(dateVal)}&user_id=${encodeURIComponent(assignPhotographerEl.value)}`, {
+                        method: 'GET',
+                        credentials: 'same-origin',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'Accept': 'application/json'
+                        }
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            if (response.status === 403) {
+                                setHelper('Forbidden to view slots for selected user.');
+                                resetSelect();
+                                return Promise.reject({ message: 'Forbidden' });
+                            }
+                            return response.json().then(err => Promise.reject(err));
+                        }
+                        return response.json();
+                    })
+                    .then(json => {
+                        if (!json || json.success === false) {
+                            setHelper(json?.message || 'Failed to load slots');
+                            resetSelect();
+                            return;
+                        }
+
+                        const duration = workingDuration || 60;
+                        const occupiedIntervals = [];
+
+                        (json.data || []).forEach(s => {
+                            if (!s.time) return;
+                            const parts = s.time.split(':');
+                            if (parts.length < 2) return;
+                            const start = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
+                            const end = start + duration;
+                            occupiedIntervals.push({ start, end });
+                        });
+
+                        assignTimeEl.innerHTML = '<option value="">Select a time</option>';
+                        for (let t = fromM; t <= toM; t += slotStep) {
+                            const candidateStart = t;
+                            const candidateEnd = t + duration;
+                            if (candidateEnd > toM) continue;
+
+                            let overlaps = false;
+                            for (const occ of occupiedIntervals) {
+                                if (candidateStart < occ.end && candidateEnd > occ.start) {
+                                    overlaps = true;
+                                    break;
+                                }
+                            }
+
+                            if (overlaps) continue;
+
+                            const opt = document.createElement('option');
+                            opt.value = formatHM(t);
+                            opt.textContent = formatDisplay(t);
+                            assignTimeEl.appendChild(opt);
+                        }
+
+                        if (assignTimeEl.options.length <= 1) {
+                            resetSelect();
+                            setHelper('No available slots on this date for selected photographer.');
+                        } else {
+                            assignTimeEl.disabled = false;
+                            if (!assignTimeEl.value && assignTimeEl.options.length > 1) {
+                                assignTimeEl.value = assignTimeEl.options[1].value;
+                            }
+                            assignTimeEl.focus();
+                            setHelper(`Available slots: ${formatDisplay(fromM)} — ${formatDisplay(toM)} (every ${slotStep} min)`);
+                        }
+                    })
+                    .catch(err => {
+                        console.error('Error loading slots:', err);
+                        setHelper(err?.message || 'Failed to load slots.');
+                        resetSelect();
+                    });
+                }
+
+                assignPhotographerEl.onchange = loadSlots;
+                if (slotModeAvailable) slotModeAvailable.onchange = loadSlots;
+                if (slotModeAny) slotModeAny.onchange = loadSlots;
+            }
+
+            // Initialize when modal is shown
+            const assignModalEl = document.getElementById('assignBookingModal');
+            if (assignModalEl) {
+                assignModalEl.addEventListener('show.bs.modal', function () {
+                    const dateInput = document.getElementById('modalDate');
+                    dateInput.value = '{{ $booking->booking_date ? $booking->booking_date->format("Y-m-d") : "" }}';
+                    initializeAssignModal();
                 });
             }
         });
