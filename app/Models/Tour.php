@@ -122,6 +122,11 @@ class Tour extends Model
         return $this->hasMany(TourMobileValidation::class);
     }
 
+    public function validationHistories()
+    {
+        return $this->hasMany(TourMobileValidationHistory::class);
+    }
+
 
     /**
      * Get the activity log options.
