@@ -77,19 +77,25 @@ class TourManagerController extends Controller
         // Get API, QR, and S3 base URLs from settings
         $apiBaseUrl = Setting::where('name', 'api_base_url')->value('value') ?? 'https://dev.proppik.in/api/';
         $qrLinkBase = Setting::where('name', 'qr_link_base')->value('value') ?? 'https://qr.proppik.com/';
-        $s3LinkBase = Setting::where('name', 's3_link_base')->value('value') ?? 'https://creartimages.s3.ap-south-1.amazonaws.com/tours/';
+        $s3LinkBase = Setting::where('name', 's3_link_base')->value('value') ?? 'https://creartimages.s3.ap-south-1.amazonaws.com/';
         
         // Map tours to include full logo URLs
         $tours = $tours->map(function ($tour) use ($apiBaseUrl, $qrLinkBase, $s3LinkBase) {
+
+            $tour->footer_brand_logo = $tour->footer_brand_logo ? $s3LinkBase . $tour->footer_brand_logo : null;
+
+            $tour->footer_logo = $tour->footer_logo ? $s3LinkBase . $tour->footer_logo : null;
+            $tour->sidebar_logo = $tour->sidebar_logo ? $s3LinkBase . $tour->sidebar_logo : null;
+
             // QR Code
             $tour->qr_code = $tour->booking ? $tour->booking->tour_code : null;
             $tour->qr_link = $tour->booking ? $tour->booking->tour_code ? $qrLinkBase . $tour->qr_code : null : null;
-            $tour->s3_link = $tour->booking ? $tour->booking->tour_code ? $s3LinkBase . $tour->qr_code . "/" : null : null;
+            $tour->s3_link = $tour->booking ? $tour->booking->tour_code ? $s3LinkBase . 'tours/' . $tour->qr_code . "/" : null : null;
             
-            $tour->top_image = $tour->footer_logo;
-            $tour->contact_number  = $tour->footer_mobile;
+            $tour->top_image = $tour->footer_logo ? $s3LinkBase . $tour->footer_logo : null;
+            $tour->top_number  = $tour->footer_mobile;
             $tour->top_title  = $tour->footer_name;
-            $tour->contact_email  = $tour->footer_email;
+            $tour->top_email  = $tour->footer_email;
             $tour->top_sub_title  = $tour->footer_subtitle;
             $tour->top_description  = $tour->footer_decription;
 
