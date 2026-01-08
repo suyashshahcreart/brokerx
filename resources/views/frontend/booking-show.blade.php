@@ -477,8 +477,8 @@
                                 $assignedDate = $photographerAssignee?->date ? \Carbon\Carbon::parse($photographerAssignee->date)->format('F d, Y') : ($booking->booking_date ? \Carbon\Carbon::parse($booking->booking_date)->format('F d, Y') : null);
                                 
                                 // Get support contact info
-                                $supportEmail = \App\Models\Setting::where('name', 'support_email')->value('value') ?? 'support@proppik.in';
-                                $supportPhone = \App\Models\Setting::where('name', 'support_phone')->value('value') ?? '+91-XXXXXXXXXX';
+                                $supportEmail = \App\Models\Setting::where('name', 'support_email')->value('value') ?? 'contact@proppik.com';
+                                $supportPhone = \App\Models\Setting::where('name', 'support_phone')->value('value') ?? '+91-9876543210';
                             @endphp
                             
                             @if($isPhotographerAssigned)
@@ -842,8 +842,8 @@
                 @php
                     $status = $booking->status ?? 'pending';
                     $isBlocked = $isBlocked || ($attemptCount >= $maxAttempts);
-                    $adminEmail = \App\Models\Setting::where('name', 'support_email')->value('value') ?? 'support@proppik.in';
-                    $adminPhone = \App\Models\Setting::where('name', 'support_phone')->value('value') ?? '+91-XXXXXXXXXX';
+                    $adminEmail = \App\Models\Setting::where('name', 'support_email')->value('value') ?? 'contact@proppik.com';
+                    $adminPhone = \App\Models\Setting::where('name', 'support_phone')->value('value') ?? '+91-9898363026';
                 @endphp
                 @if($isBlocked)
                     <div class="alert alert-danger py-3 mb-3 pp-alert pp-alert--danger" role="alert">

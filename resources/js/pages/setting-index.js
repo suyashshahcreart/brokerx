@@ -396,6 +396,10 @@ import '../../css/pages/setting-index.css';
         const updateBtn = document.getElementById('updateSettingsBtn');
         if (settingsForm && updateBtn) handleFormSubmit(settingsForm, updateBtn);
 
+        const settingscontactForm = document.getElementById('settingscontactForm');
+        const updatecontactBtn = document.getElementById('updatecontactSettingsBtn');
+        if (settingscontactForm && updatecontactBtn) handleFormSubmit(settingscontactForm, updatecontactBtn);
+
         const basePriceForm = document.getElementById('basePriceForm');
         const updateBasePriceBtn = document.getElementById('updateBasePriceBtn');
         if (basePriceForm && updateBasePriceBtn) handleFormSubmit(basePriceForm, updateBasePriceBtn);
