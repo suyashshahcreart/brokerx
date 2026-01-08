@@ -112,7 +112,7 @@
     </div>
 
     <!-- Structured Data -->
-    <div class="card mb-3">
+    <div class="card mb-3 d-none">
         <div class="card-header bg-success-subtle border-success">
             <h5 class="card-title mb-0"> <i class="ri-file-code-line"></i> Structured Data (JSON-LD)</h5>
         </div>
