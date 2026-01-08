@@ -35,6 +35,7 @@ Route::post('/tour/login', [\App\Http\Controllers\Api\TourAccessController::clas
 Route::get('/tour/is_mobile_validation/{tour_code}', [\App\Http\Controllers\Api\TourAccessController::class, 'checkIsMobileValidation']);
 Route::post('/tour/mobile/send-otp', [\App\Http\Controllers\Api\TourAccessController::class, 'sendOtp']);
 Route::post('/tour/mobile/verify-otp', [\App\Http\Controllers\Api\TourAccessController::class, 'verifyOtp']);
+Route::get('/tour/mobile/history/{tour_code}', [\App\Http\Controllers\Api\TourAccessController::class, 'getMobileHistory']);
 
 // Route::middleware('auth')->group(function () {
 // });

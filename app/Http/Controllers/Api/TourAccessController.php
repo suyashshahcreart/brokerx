@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\Tour;
+use App\Models\TourMobileValidationHistory;
 use Illuminate\Http\Request;
 use App\Services\SmsService;
 
@@ -231,6 +232,15 @@ class TourAccessController extends Controller{
             ]);
         }
 
+        // Log history: sent
+        TourMobileValidationHistory::create([
+            'tour_id' => $tour->id,
+            'mobile' => $mobile,
+            'action' => 'sent',
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
+
         // Send OTP via SMS
         $mobileWithCountryCode = '91' . $mobile;
         $templateKey = 'login_otp'; // Using login_otp template as preferred for tour access
@@ -297,16 +307,68 @@ class TourAccessController extends Controller{
              // Usually we generate a token. But for now just success.
              $validation->update(['otp' => null, 'otp_expired_at' => null]);
 
+             // Log history: verified
+             TourMobileValidationHistory::create([
+                 'tour_id' => $tour->id,
+                 'mobile' => $mobile,
+                 'action' => 'verified',
+                 'ip_address' => $request->ip(),
+                 'user_agent' => $request->userAgent(),
+             ]);
+
              return response()->json([
                 'success' => true,
                 'message' => 'OTP verified successfully',
                 'tour_id' => $tour->id
             ]);
         } else {
+             // Log history: failed
+             TourMobileValidationHistory::create([
+                 'tour_id' => $tour->id,
+                 'mobile' => $mobile,
+                 'action' => 'failed',
+                 'ip_address' => $request->ip(),
+                 'user_agent' => $request->userAgent(),
+             ]);
+
              return response()->json([
                 'success' => false,
                 'message' => 'Invalid or expired OTP'
             ], 400);
         }
+    }
+
+    /**
+     * Get mobile validation history for a tour.
+     *
+     * @param string $tour_code
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getMobileHistory($tour_code)
+    {
+        [$booking, $tour, $error] = $this->getBookingAndTour($tour_code);
+
+        if ($error) {
+            return response()->json(['success' => false, 'message' => $error], 404);
+        }
+
+        // Detailed grouping
+        $detailedHistory = TourMobileValidationHistory::where('tour_id', $tour->id)
+            ->select(
+                'mobile',
+                \Illuminate\Support\Facades\DB::raw("COUNT(CASE WHEN action = 'sent' THEN 1 END) as sent_count"),
+                \Illuminate\Support\Facades\DB::raw("COUNT(CASE WHEN action = 'verified' THEN 1 END) as verified_count"),
+                \Illuminate\Support\Facades\DB::raw("COUNT(CASE WHEN action = 'failed' THEN 1 END) as failed_count"),
+                \Illuminate\Support\Facades\DB::raw("MAX(created_at) as last_action_at")
+            )
+            ->groupBy('mobile')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'tour_id' => $tour->id,
+            'tour_code' => $tour_code,
+            'history' => $detailedHistory
+        ]);
     }
 }
