@@ -28,8 +28,13 @@ Route::put('/tour-manager/working_json/{tour_id}', [TourManagerController::class
 
 // Tour Access APIs
 Route::get('/tour/is_active/{tour_code}', [\App\Http\Controllers\Api\TourAccessController::class, 'checkIsActive']);
+
 Route::get('/tour/tour_credentials/{tour_code}', [\App\Http\Controllers\Api\TourAccessController::class, 'checkIsCredentials']);
 Route::post('/tour/login', [\App\Http\Controllers\Api\TourAccessController::class, 'login']);
+
+Route::get('/tour/is_mobile_validation/{tour_code}', [\App\Http\Controllers\Api\TourAccessController::class, 'checkIsMobileValidation']);
+Route::post('/tour/mobile/send-otp', [\App\Http\Controllers\Api\TourAccessController::class, 'sendOtp']);
+Route::post('/tour/mobile/verify-otp', [\App\Http\Controllers\Api\TourAccessController::class, 'verifyOtp']);
 
 // Route::middleware('auth')->group(function () {
 // });
