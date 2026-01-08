@@ -261,14 +261,18 @@ class BookingController extends Controller
     {
         $validated = $request->validate([
             'user_id' => ['required', 'exists:users,id'],
+            'owner_type' => ['required', 'in:Owner,Broker,Agent'],
             'property_type_id' => ['required', 'exists:property_types,id'],
             'property_sub_type_id' => ['required', 'exists:property_sub_types,id'],
+            'other_option_details' => ['nullable', 'string', 'max:255'],
             'bhk_id' => ['nullable', 'exists:b_h_k_s,id'],
-            'city_id' => ['nullable', 'exists:cities,id'],
-            'state_id' => ['nullable', 'exists:states,id'],
+            'city_id' => ['required', 'exists:cities,id'],
+            'state_id' => ['required', 'exists:states,id'],
             'furniture_type' => ['nullable', 'string', 'max:255'],
             'area' => ['required', 'integer', 'min:0'],
             'price' => ['required', 'integer', 'min:0'],
+            'firm_name' => ['nullable', 'string', 'max:255'],
+            'gst_no' => ['nullable', 'string', 'max:255'],
             'house_no' => ['nullable', 'string', 'max:255'],
             'building' => ['nullable', 'string', 'max:255'],
             'society_name' => ['nullable', 'string', 'max:255'],
@@ -542,14 +546,18 @@ class BookingController extends Controller
     {
         $validated = $request->validate([
             'user_id' => ['required', 'exists:users,id'],
+            'owner_type' => ['required', 'in:Owner,Broker,Agent'],
             'property_type_id' => ['required', 'exists:property_types,id'],
             'property_sub_type_id' => ['required', 'exists:property_sub_types,id'],
+            'other_option_details' => ['nullable', 'string', 'max:255'],
             'bhk_id' => ['nullable', 'exists:b_h_k_s,id'],
-            'city_id' => ['nullable', 'exists:cities,id'],
-            'state_id' => ['nullable', 'exists:states,id'],
+            'city_id' => ['required', 'exists:cities,id'],
+            'state_id' => ['required', 'exists:states,id'],
             'furniture_type' => ['nullable', 'string', 'max:255'],
             'area' => ['required', 'integer', 'min:0'],
             'price' => ['required', 'integer', 'min:0'],
+            'firm_name' => ['nullable', 'string', 'max:255'],
+            'gst_no' => ['nullable', 'string', 'max:255'],
             'house_no' => ['nullable', 'string', 'max:255'],
             'building' => ['nullable', 'string', 'max:255'],
             'society_name' => ['nullable', 'string', 'max:255'],
@@ -648,10 +656,10 @@ class BookingController extends Controller
         $statusChanged = false;
 
         // If date changed, remove photographer assignments (same logic as frontend)
-        if ($dateChanged) {
+        if ($dateChanged || $oldDateStr === null) {
             // Check if status should change when date is updated
             if (in_array($oldStatus, ['schedul_assign', 'reschedul_assign', 'schedul_completed', 'pending', 'confirmed', 'completed'])) {
-
+            
                 // udpate status to reschedul_accepted or shedul_accepted
                 if ($oldStatus === 'schedul_assign') {
                     $newStatus = 'schedul_accepted';
