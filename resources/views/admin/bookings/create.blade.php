@@ -687,11 +687,27 @@
                                                 <div class="col-12">
                                                     <!-- State -->
                                                     <div class="mb-1">
+                                                        @php
+                                                            // Determine default State and City when no old values are present
+                                                            $defaultStateId = old('state_id');
+                                                            $defaultCityId = old('city_id');
+                                                            if (!$defaultStateId) {
+                                                                $gujarat = collect($states ?? [])->first(function($st){
+                                                                    return strcasecmp($st->name, 'Gujarat') === 0 || strcasecmp($st->name, 'Gujrat') === 0;
+                                                                });
+                                                                $defaultStateId = $gujarat->id ?? null;
+                                                            }
+                                                            if (!$defaultCityId) {
+                                                                $defaultCityId = optional(collect($cities ?? [])->first(function($city){
+                                                                    return strcasecmp($city->name, 'Ahmedabad') === 0;
+                                                                }))->id;
+                                                            }
+                                                        @endphp
                                                         <label class="form-label fw-semibold mb-0" for="state_id">State</label>
                                                         <select name="state_id" id="state_id" class="form-select">
                                                             <option value="">Select state</option>
                                                             @foreach($states as $s)
-                                                                <option value="{{ $s->id }}" @selected(old('state_id')==$s->id)>{{ $s->name }}</option>
+                                                                <option value="{{ $s->id }}" @selected(($defaultStateId)==$s->id)>{{ $s->name }}</option>
                                                             @endforeach
                                                         </select>
                                                     </div>
@@ -703,7 +719,7 @@
                                                         <select name="city_id" id="city_id" class="form-select">
                                                             <option value="">Select city</option>
                                                             @foreach($cities as $c)
-                                                                <option value="{{ $c->id }}" data-state-id="{{ $c->state_id }}" @selected(old('city_id')==$c->id)>{{ $c->name }}</option>
+                                                                <option value="{{ $c->id }}" data-state-id="{{ $c->state_id }}" @selected(($defaultCityId)==$c->id)>{{ $c->name }}</option>
                                                             @endforeach
                                                         </select>
                                                     </div>
@@ -771,8 +787,8 @@
             property_sub_type_id: '{{ old("property_sub_type_id") }}',
             furniture_type: '{{ old("furniture_type") }}',
             bhk_id: '{{ old("bhk_id") }}',
-            state_id: '{{ old("state_id") }}',
-            city_id: '{{ old("city_id") }}',
+            state_id: '{{ $defaultStateId ?? '' }}',
+            city_id: '{{ $defaultCityId ?? '' }}',
             different_billing_name: '{{ old("different_billing_name") }}',
             has_old_data: {{ old('owner_type') || old('main_property_type') ? 'true' : 'false' }}
         };
