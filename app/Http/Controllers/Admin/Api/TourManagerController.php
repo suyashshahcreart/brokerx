@@ -91,6 +91,7 @@ class TourManagerController extends Controller
 
             $tour->is_hosted = $tour->is_hosted ?? false;
             $tour->hosted_link = $tour->hosted_link ?? null;
+            $tour->api_link = "https://dev.proppik.in/api/";
             
             
             $tour->makeHidden(['booking']);
