@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\HolidayController;
 use App\Http\Controllers\Api\BookingApiController;
+use App\Http\Controllers\Api\TourApiController;
 use App\Http\Controllers\Admin\ajax\BookingAssigneController;
 use App\Http\Controllers\Admin\Api\TourManagerController;
 /*
@@ -65,6 +66,7 @@ Route::middleware(['web', 'auth'])->group(function () {
     // Bookings API
     Route::get('/bookings', [BookingApiController::class, 'index'])->name('api.bookings.index');
     Route::get('/bookings/by-date-range', [BookingApiController::class, 'getByDateRange'])->name('api.bookings.by-date-range');
+    Route::get('/tours', [TourApiController::class, 'index'])->name('api.tours.index');
 
     // Booking assignee slots for photographers 
     Route::get('/booking-assignees/slots', [BookingAssigneController::class, 'slots'])->name('api.booking-assignees.slots');
