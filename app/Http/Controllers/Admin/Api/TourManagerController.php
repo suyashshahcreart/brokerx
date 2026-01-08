@@ -81,6 +81,18 @@ class TourManagerController extends Controller
             $tour->qr_code = $tour->booking ? $tour->booking->tour_code : null;
             $tour->qr_link = $tour->booking ? $tour->booking->tour_code ? "https://qr.proppik.com/" . $tour->qr_code : null : null;
             $tour->s3_link = $tour->booking ? $tour->booking->tour_code ? "https://creartimages.s3.ap-south-1.amazonaws.com/tours/" . $tour->qr_code . "/" : null : null;
+            
+            $tour->top_image = $tour->footer_logo;
+            $tour->contact_number  = $tour->footer_mobile;
+            $tour->top_title  = $tour->footer_name;
+            $tour->contact_email  = $tour->footer_email;
+            $tour->top_sub_title  = $tour->footer_subtitle;
+            $tour->top_description  = $tour->footer_decription;
+
+            $tour->is_hosted = $tour->is_hosted ?? false;
+            $tour->hosted_link = $tour->hosted_link ?? null;
+            
+            
             $tour->makeHidden(['booking']);
             $tour->makeVisible(['qr_code']);
             $tourArr = $tour->toArray();
