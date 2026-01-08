@@ -699,8 +699,8 @@
             }
             
             if (isBlocked) {
-                const adminEmail = '{{ \App\Models\Setting::where("name", "support_email")->value("value") ?? "support@proppik.in" }}';
-                const adminPhone = '{{ \App\Models\Setting::where("name", "support_phone")->value("value") ?? "+91-XXXXXXXXXX" }}';
+                const adminEmail = '{{ \App\Models\Setting::where("name", "support_email")->value("value") ?? "contact@proppik.com" }}';
+                const adminPhone = '{{ \App\Models\Setting::where("name", "support_phone")->value("value") ?? "9898363026" }}';
                 
                 const blockedHTML = `
                     <div class="alert alert-danger py-3 mb-3" role="alert">
