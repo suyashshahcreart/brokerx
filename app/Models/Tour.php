@@ -75,6 +75,8 @@ class Tour extends Model
         'is_active',
         'is_credentials',
         'is_mobile_validation',
+        'is_hosted',
+        'hosted_link',
     ];
 
     /**
@@ -98,6 +100,7 @@ class Tour extends Model
             'is_active' => 'boolean',
             'is_credentials' => 'boolean',
             'is_mobile_validation' => 'boolean',
+            'is_hosted' => 'boolean',
         ];
     }
 
