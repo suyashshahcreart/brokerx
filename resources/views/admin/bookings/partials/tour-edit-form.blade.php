@@ -208,6 +208,30 @@
                 </div>
             </div>
 
+            <!-- Tour Thumbnail Upload -->
+            <div class="row">
+                <div class="col-lg-12">
+                    <div class="mb-3">
+                        <label class="form-label" for="tour_thumbnail">Tour Thumbnail <span class="text-muted">(Image file, max 5MB)</span></label>
+                        <div class="mt-2 mb-3">
+                            @if($tour->tour_thumbnail)
+                                <div>
+                                    <small class="text-muted d-block mb-2">Current thumbnail:</small>
+                                    <img src="{{ Storage::disk('s3')->url($tour->tour_thumbnail) }}" alt="Tour Thumbnail"
+                                        style="max-width: 200px; max-height: 200px; border:1px solid #ddd; padding:5px; border-radius: 4px;">
+                                </div>
+                            @endif
+                        </div>
+                        <input type="file" name="tour_thumbnail" id="tour_thumbnail" class="form-control"
+                            accept="image/*">
+                        <small class="text-muted d-block mt-2">Recommended size: 400x300px. Uploaded to S3 in settings/tour_thumbnails/</small>
+                        @error('tour_thumbnail')<div class="text-danger mt-2">{{ $message }}</div>@enderror
+                    </div>
+                </div>
+            </div>
+
+
+
         </div>
     </div>
 
@@ -259,14 +283,14 @@
                             <div class="col-md-6">
                                 <label for="sidebar_footer_text" class="form-label">Footer button Text</label>
                                 <input type="text" name="sidebar_footer_text" id="sidebar_footer_text"
-                                    class="form-control"
+                                    class="form-control" placeholder="e.g, Designed By Prop Pik"
                                     value="{{ old('sidebar_footer_text', $tour->sidebar_footer_text) }}">
                                 @error('sidebar_footer_text')<div class="text-danger">{{ $message }}</div>@enderror
                             </div>
                             <div class="col-md-6">
                                 <label for="sidebar_footer_link" class="form-label">Footer button Link</label>
                                 <input type="text" name="sidebar_footer_link" id="sidebar_footer_link"
-                                    class="form-control"
+                                    class="form-control" placeholder="e.g, https://www.proppik.com/contact.html"
                                     value="{{ old('sidebar_footer_link', $tour->sidebar_footer_link) }}">
                                 @error('sidebar_footer_link')<div class="text-danger">{{ $message }}</div>@enderror
                             </div>
@@ -321,7 +345,7 @@
                 <div class="col-md-6">
                     <div class="mb-3">
                         <label for="footer_name" class="form-label">Top Title</label>
-                        <input type="text" name="footer_name" id="footer_name" class="form-control"
+                        <input type="text" name="footer_name" id="footer_name" class="form-control" placeholder="e.g, Ramesh Mehta"
                             value="{{ old('footer_name', $tour->footer_name) }}">
                         @error('footer_name')<div class="text-danger">{{ $message }}</div>@enderror
                     </div>
@@ -329,7 +353,7 @@
                 <div class="col-md-6">
                     <div class="mb-3">
                         <label for="footer_subtitle" class="form-label">Top Subtitle</label>
-                        <input type="text" name="footer_subtitle" id="footer_subtitle" class="form-control"
+                        <input type="text" name="footer_subtitle" id="footer_subtitle" class="form-control" placeholder="e.g, JK Real Estate"
                             value="{{ old('footer_subtitle', $tour->footer_subtitle) }}">
                         @error('footer_subtitle')<div class="text-danger">{{ $message }}</div>@enderror
                     </div>
@@ -338,7 +362,7 @@
                     <div class="mb-3">
                         <label for="footer_email" class="form-label">Contact Email</label>
                         <input type="email" name="footer_email" id="footer_email" class="form-control"
-                            value="{{ old('footer_email', $tour->footer_email) }}">
+                            value="{{ old('footer_email', $tour->footer_email) }}" placeholder="e.g, Contact@example.com">
                         @error('footer_email')<div class="text-danger">{{ $message }}</div>@enderror
                     </div>
                 </div>
@@ -346,7 +370,7 @@
                     <div class="mb-3">
                         <label for="footer_mobile" class="form-label">Contact Mobile</label>
                         <input type="number" name="footer_mobile" id="footer_mobile" class="form-control"
-                            value="{{ old('footer_mobile', $tour->footer_mobile) }}">
+                            value="{{ old('footer_mobile', $tour->footer_mobile) }}" placeholder="eg.+91 9898 363026">
                         @error('footer_mobile')<div class="text-danger">{{ $message }}</div>@enderror
                     </div>
                 </div>
@@ -354,6 +378,7 @@
                     <div class="mb-3">
                         <label for="footer_decription" class="form-label">Top Description</label>
                         <textarea name="footer_decription" id="footer_decription" class="form-control"
+                        placeholder="e.g, For Reant / For Sell / For Lease"
                             rows="2">{{ old('footer_decription', $tour->footer_decription) }}</textarea>
                         @error('footer_decription')<div class="text-danger">{{ $message }}</div>@enderror
                     </div>
@@ -394,13 +419,17 @@
                 <div class="col-md-4">
                     <label for="footer_brand_text" class="form-label">Contact Text</label>
                     <input type="text" name="footer_brand_text" id="footer_brand_text" class="form-control"
-                        value="{{ old('footer_brand_text', $tour->footer_brand_text) }}">
+                        value="{{ old('footer_brand_text', $tour->footer_brand_text) }}"
+                        placeholder="Designed By Prop pik"
+                        >
                     @error('footer_brand_text')<div class="text-danger">{{ $message }}</div>@enderror
                 </div>
                 <div class="col-md-4">
                     <label for="footer_brand_mobile" class="form-label">Contact Number</label>
                     <input type="number" name="footer_brand_mobile" id="footer_brand_mobile" class="form-control"
-                        value="{{ old('footer_brand_mobile', $tour->footer_brand_mobile) }}">
+                        value="{{ old('footer_brand_mobile', $tour->footer_brand_mobile) }}"
+                        placeholder="eg.+91 9898 363026"
+                        >
                     @error('footer_brand_mobile')<div class="text-danger">{{ $message }}</div>@enderror
                 </div>
             </div>

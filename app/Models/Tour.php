@@ -26,6 +26,7 @@ class Tour extends Model
         'description',
         'content',
         'featured_image',
+        'tour_thumbnail',
         'price',
         'duration_days',
         'location',
