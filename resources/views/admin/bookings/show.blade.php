@@ -220,10 +220,10 @@
                         <ol class="breadcrumb mb-0">
                             <li class="breadcrumb-item"><a href="{{ route('admin.index') }}">Home</a></li>
                             <li class="breadcrumb-item"><a href="{{ route('admin.bookings.index') }}">Bookings</a></li>
-                            <li class="breadcrumb-item active" aria-current="page">#{{ $booking->id }}</li>
+                            <li class="breadcrumb-item active" aria-current="page">#{{ $booking->id }} </li>
                         </ol>
                     </nav>
-                    <h3 class="mb-0">Booking #{{ $booking->id }}</h3>
+                    <h3 class="mb-0">Booking #{{ $booking->id }} ({{ $booking->tour_code }})</h3>
                 </div>
                 <div class="d-flex align-items-center gap-2">
                     <x-admin.back-button :fallback="route('admin.bookings.index')" :classes="['btn', 'btn-soft-secondary']"

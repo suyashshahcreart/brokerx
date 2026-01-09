@@ -269,7 +269,13 @@ class Tour extends Model
         //     return '#';
         // }
 
-        // Check if tour has required data
+        // If tour is hosted and hosted_link is not null, return hosted_link
+        if ($this->is_hosted && !empty($this->hosted_link)) {
+            return $this->hosted_link;
+        }
+
+        // Otherwise, use FTP URL logic
+        // Check if tour has required data for FTP URL
         if (!$this->location || !$this->slug || !$booking->user_id) {
             return '#';
         }   
