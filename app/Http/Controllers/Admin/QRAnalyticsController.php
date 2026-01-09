@@ -78,10 +78,10 @@ class QRAnalyticsController extends Controller
                     return $analytics->created_at ? $analytics->created_at->format('d M Y H:i') : '-';
                 })
                 ->addColumn('actions', function (QRAnalytics $analytics) {
-                    return '<button type="button" class="btn btn-light btn-sm border view-analytics" 
+                    return '<button type="button" class="btn btn-soft-primary btn-sm view-analytics" 
                         data-id="' . $analytics->id . '" 
-                        title="View Details">
-                        <i class="ri-eye-line"></i>
+                        data-bs-toggle="tooltip" data-bs-placement="top" title="View Full Scan Details">
+                        <iconify-icon icon="solar:eye-broken" class="align-middle fs-18"></iconify-icon>
                     </button>';
                 })
                 ->filter(function ($query) use ($request) {

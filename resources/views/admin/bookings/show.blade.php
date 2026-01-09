@@ -227,9 +227,15 @@
                 </div>
                 <div class="d-flex align-items-center gap-2">
                     <x-admin.back-button :fallback="route('admin.bookings.index')" :classes="['btn', 'btn-soft-secondary']"
-                        :merge="false" icon="ri-arrow-go-back-line" />
-                    <a href="{{ route('admin.bookings.edit', $booking) }}" class="btn btn-primary"><i
-                            class="ri-edit-line me-1"></i> Edit</a>
+                        :merge="false" icon="solar:arrow-left-broken" />
+                    
+                    @if($booking->tours()->exists() && auth()->user()->can('tour_manager_edit'))
+                        <a href="{{ route('admin.tour-manager.upload', $booking) }}" class="btn btn-warning" data-bs-toggle="tooltip" title="Upload & Manage Tour Assets">
+                            <iconify-icon icon="solar:upload-minimalistic-broken" class="align-middle me-1"></iconify-icon> Upload Tour
+                        </a>
+                    @endif
+
+                    <a href="{{ route('admin.bookings.edit', $booking) }}" class="btn btn-primary"><iconify-icon icon="solar:pen-2-broken" class="align-middle me-1"></iconify-icon> Edit</a>
                 </div>
             </div>
 

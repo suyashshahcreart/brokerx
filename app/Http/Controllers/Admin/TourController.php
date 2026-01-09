@@ -60,17 +60,19 @@ class TourController extends Controller
                     $csrf = csrf_field();
                     $method = method_field('DELETE');
 
-                    $actions = '<a href="' . $view . '" class="btn btn-light btn-sm border" title="View"><i class="ri-eye-line"></i></a>';
+                    $actions = '<div class="d-flex gap-1">';
+                    $actions .= '<a href="' . $view . '" class="btn btn-soft-primary btn-sm" data-bs-toggle="tooltip" data-bs-placement="top" title="View Tour Public Page"><iconify-icon icon="solar:eye-broken" class="align-middle fs-18"></iconify-icon></a>';
 
                     if (auth()->user()->can('tour_edit')) {
-                        $actions .= ' <a href="' . $edit . '" class="btn btn-soft-primary btn-sm" title="Edit"><i class="ri-edit-line"></i></a>';
+                        $actions .= ' <a href="' . $edit . '" class="btn btn-soft-info btn-sm" data-bs-toggle="tooltip" data-bs-placement="top" title="Edit Tour Details"><iconify-icon icon="solar:pen-2-broken" class="align-middle fs-18"></iconify-icon></a>';
                     }
 
                     if (auth()->user()->can('tour_delete')) {
                         $actions .= ' <form action="' . $delete . '" method="POST" class="d-inline">' . $csrf . $method .
-                            '<button type="submit" class="btn btn-soft-danger btn-sm" onclick="return confirm(\'Delete this tour?\')"><i class="ri-delete-bin-line"></i></button></form>';
+                            '<button type="submit" class="btn btn-soft-danger btn-sm" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete Tour" onclick="return confirm(\'Delete this tour?\')"><iconify-icon icon="solar:trash-bin-minimalistic-2-broken" class="align-middle fs-18"></iconify-icon></button></form>';
                     }
 
+                    $actions .= '</div>';
                     return $actions;
                 })
                 ->rawColumns(['dates', 'status', 'actions'])

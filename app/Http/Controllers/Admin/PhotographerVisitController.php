@@ -92,16 +92,16 @@ class PhotographerVisitController extends Controller
                         return '<span class="badge bg-' . $color . '">' . $statusText . '</span>';
                     })
                     ->addColumn('actions', function (PhotographerVisit $visit) {
-                        $actions = '<div class=\"btn-group\" role=\"group\">';
+                        $actions = '<div class="d-flex gap-1">';
 
                         // View button
                         $view = route('admin.photographer-visits.show', $visit);
-                        $actions .= '<a href="' . $view . '" class="btn btn-sm btn-primary" title="View Details"><i class="ri-eye-line"></i></a>';
+                        $actions .= '<a href="' . $view . '" class="btn btn-sm btn-soft-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="View Visit Details"><iconify-icon icon="solar:eye-broken" class="align-middle fs-18"></iconify-icon></a>';
 
                         // Check-out button (only for checked_in visits that have a job_id)
                         if ($visit->status === 'checked_in' && $visit->job_id) {
                             $checkoutUrl = route('admin.photographer-visit-jobs.check-out-form', $visit->job_id);
-                            $actions .= ' <a href="' . $checkoutUrl . '" class="btn btn-sm btn-warning" title="Check Out"><i class="ri-logout-circle-line"></i></a>';
+                            $actions .= ' <a href="' . $checkoutUrl . '" class="btn btn-sm btn-soft-warning" data-bs-toggle="tooltip" data-bs-placement="top" title="Check Out"><iconify-icon icon="solar:logout-broken" class="align-middle fs-18"></iconify-icon></a>';
                         }
 
                         // Delete button (only for pending visits)
@@ -110,7 +110,7 @@ class PhotographerVisitController extends Controller
                             $csrf = csrf_field();
                             $method = method_field('DELETE');
                             $actions .= ' <form action="' . $delete . '" method="POST" class="d-inline" onsubmit="return confirm(\'Are you sure you want to delete this visit?\');">' . $csrf . $method .
-                                '<button type="submit" class="btn btn-sm btn-danger" title="Delete"><i class="ri-delete-bin-line"></i></button></form>';
+                                '<button type="submit" class="btn btn-sm btn-soft-danger" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete Visit"><iconify-icon icon="solar:trash-bin-minimalistic-2-broken" class="align-middle fs-18"></iconify-icon></button></form>';
                         }
 
                         $actions .= '</div>';
@@ -122,7 +122,7 @@ class PhotographerVisitController extends Controller
                         }
 
                         $assignee = $visit->booking->assignees->first();
-                        $actions = '<div class="btn-group" role="group">';
+                        $actions = '<div class="d-flex gap-1">';
 
                         // Check if there's a completed visit for this booking
                         $completedVisit = PhotographerVisit::where('booking_id', $visit->booking_id)
@@ -131,7 +131,7 @@ class PhotographerVisitController extends Controller
 
                         if ($completedVisit) {
                             // Show TOUR COMPLETE badge
-                            $actions .= '<span class="badge bg-success"><i class="ri-check-double-line me-1"></i>Tour Complete</span>';
+                            $actions .= '<span class="badge bg-soft-success text-success px-2 py-1"><iconify-icon icon="solar:double-alt-arrow-right-broken" class="align-middle me-1"></iconify-icon>Tour Complete</span>';
                         } else {
                             // Check if there's an active checked-in visit for this booking
                             $activeCheckedIn = PhotographerVisit::where('booking_id', $visit->booking_id)
@@ -141,11 +141,11 @@ class PhotographerVisitController extends Controller
                             if ($activeCheckedIn) {
                                 // Show CHECK-OUT button
                                 $checkoutUrl = route('admin.booking-assignees.check-out-form', $assignee);
-                                $actions .= '<a href="' . $checkoutUrl . '" class="btn btn-sm btn-warning" title="Check Out"><i class="ri-logout-circle-line me-1"></i>Check Out</a>';
+                                $actions .= '<a href="' . $checkoutUrl . '" class="btn btn-sm btn-soft-warning" data-bs-toggle="tooltip" data-bs-placement="top" title="Perform Operator Check Out"><iconify-icon icon="solar:logout-broken" class="align-middle me-1"></iconify-icon>Check Out</a>';
                             } else {
                                 // Show CHECK-IN button
                                 $checkinUrl = route('admin.booking-assignees.check-in-form', $assignee);
-                                $actions .= '<a href="' . $checkinUrl . '" class="btn btn-sm btn-success" title="Check In"><i class="ri-login-circle-line me-1"></i>Check In</a>';
+                                $actions .= '<a href="' . $checkinUrl . '" class="btn btn-sm btn-soft-success" data-bs-toggle="tooltip" data-bs-placement="top" title="Perform Operator Check In"><iconify-icon icon="solar:login-broken" class="align-middle me-1"></iconify-icon>Check In</a>';
                             }
                         }
 

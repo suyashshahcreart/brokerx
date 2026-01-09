@@ -1,11 +1,11 @@
-$(document).ready(function() {
+$(document).ready(function () {
     // Initialize DataTable
     let table = $('#bookings-table').DataTable({
         processing: true,
         serverSide: true,
         ajax: {
             url: window.location.href,
-            data: function(d) {
+            data: function (d) {
                 d.status = $('#filter-status').val();
                 d.payment_status = $('#filter-payment-status').val();
                 d.date_from = $('#filter-date-from').val();
@@ -31,16 +31,23 @@ $(document).ready(function() {
                 previous: "<i class='ri-arrow-left-s-line'></i>",
                 next: "<i class='ri-arrow-right-s-line'></i>"
             }
+        },
+        drawCallback: function () {
+            // Re-initialize tooltips
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
         }
     });
 
     // Apply filters
-    $('#apply-filters').on('click', function() {
+    $('#apply-filters').on('click', function () {
         table.draw();
     });
 
     // Reset filters
-    $('#reset-filters').on('click', function() {
+    $('#reset-filters').on('click', function () {
         $('#filter-status').val('');
         $('#filter-payment-status').val('');
         $('#filter-date-from').val('');
@@ -49,10 +56,10 @@ $(document).ready(function() {
     });
 
     // Schedule tour modal
-    $(document).on('click', '.schedule-tour-btn', function() {
+    $(document).on('click', '.schedule-tour-btn', function () {
         let bookingId = $(this).data('id');
         $('#booking-id').val(bookingId);
-        
+
         // Use Bootstrap 5 modal API
         const modalElement = document.getElementById('scheduleTourModal');
         if (modalElement) {
@@ -62,18 +69,18 @@ $(document).ready(function() {
     });
 
     // Handle schedule tour form submission
-    $('#schedule-tour-form').on('submit', function(e) {
+    $('#schedule-tour-form').on('submit', function (e) {
         e.preventDefault();
-        
+
         let formData = new FormData(this);
-        
+
         $.ajax({
             url: '/admin/tour-manager/schedule-tour',
             method: 'POST',
             data: formData,
             processData: false,
             contentType: false,
-            success: function(response) {
+            success: function (response) {
                 if (response.success) {
                     // Use Bootstrap 5 modal API to hide
                     const modalElement = document.getElementById('scheduleTourModal');
@@ -85,7 +92,7 @@ $(document).ready(function() {
                     }
                     $('#schedule-tour-form')[0].reset();
                     table.draw();
-                    
+
                     // Show success message
                     if (typeof Swal !== 'undefined') {
                         Swal.fire({
@@ -100,13 +107,13 @@ $(document).ready(function() {
                     }
                 }
             },
-            error: function(xhr) {
+            error: function (xhr) {
                 let errorMessage = 'An error occurred while scheduling the tour.';
-                
+
                 if (xhr.responseJSON && xhr.responseJSON.message) {
                     errorMessage = xhr.responseJSON.message;
                 }
-                
+
                 // Show error message
                 if (typeof Swal !== 'undefined') {
                     Swal.fire({

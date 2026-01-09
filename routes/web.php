@@ -128,12 +128,12 @@ Route::middleware('auth')->group(function () {
 
 
 
-// Route::group(['prefix' => 'themes', 'middleware' => 'auth'], function () {
-//     Route::get('', [RoutingController::class, 'index'])->name('root');
-//     Route::get('{first}/{second}/{third}', [RoutingController::class, 'thirdLevel'])->name('third');
-//     Route::get('{first}/{second}', [RoutingController::class, 'secondLevel'])->name('second');
-//     Route::get('{any}', [RoutingController::class, 'root'])->name('any');
-// });
+Route::group(['prefix' => 'themes', 'middleware' => 'auth'], function () {
+    Route::get('', [RoutingController::class, 'index'])->name('root');
+    Route::get('{first}/{second}/{third}', [RoutingController::class, 'thirdLevel'])->name('third');
+    Route::get('{first}/{second}', [RoutingController::class, 'secondLevel'])->name('second');
+    Route::get('{any}', [RoutingController::class, 'root'])->name('any');
+});
 
 
 
@@ -217,7 +217,7 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'middleware' => ['web', 'au
     // Tour Manager routes
     Route::get('tour-manager', [TourManagerController::class, 'index'])->name('tour-manager.index');
     Route::get('tour-manager/{booking}', [TourManagerController::class, 'show'])->name('tour-manager.show');
-    Route::get('tour-manager/{booking}/edit', [TourManagerController::class, 'edit'])->name('tour-manager.edit');
+    Route::get('tour-manager/{booking}/upload', [TourManagerController::class, 'edit'])->name('tour-manager.upload');
     Route::put('tour-manager/{booking}', [TourManagerController::class, 'update'])->name('tour-manager.update');
     Route::post('tour-manager/upload-file', [TourManagerController::class, 'uploadFile'])->name('tour-manager.upload-file');
     Route::post('tour-manager/schedule-tour', [TourManagerController::class, 'scheduleTour'])->name('tour-manager.schedule-tour');
