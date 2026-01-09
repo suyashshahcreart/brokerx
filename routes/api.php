@@ -30,6 +30,7 @@ Route::put('/tour-manager/working_json/{tour_code}', [TourManagerController::cla
 
 // Tour Access APIs
 Route::get('/tour/is_active/{tour_code}', [\App\Http\Controllers\Api\TourAccessController::class, 'checkIsActive']);
+Route::get('/tour/page_data/{tour_code}', [\App\Http\Controllers\Api\TourAccessController::class, 'getTourPageData']);
 
 Route::get('/tour/tour_credentials/{tour_code}', [\App\Http\Controllers\Api\TourAccessController::class, 'checkIsCredentials']);
 Route::post('/tour/login', [\App\Http\Controllers\Api\TourAccessController::class, 'login']);
