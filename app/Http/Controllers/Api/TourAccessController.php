@@ -371,4 +371,75 @@ class TourAccessController extends Controller{
             'history' => $detailedHistory
         ]);
     }
+
+    /**
+     * Get all necessary data for the tour index.php page (SEO, GTM, JSON, etc.)
+     *
+     * @param string $tour_code
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getTourPageData(Request $request, $tour_code)
+    {
+        [$booking, $tour, $error] = $this->getBookingAndTour($tour_code);
+
+        if ($error || !$tour) {
+            return response()->json([
+                'success' => false,
+                'message' => $error ?: 'Tour not found'
+            ], 404);
+        }
+
+        // Basic Security Check: Verify token
+        // Token is generated based on tour slug and created_at timestamp
+        $providedToken = $request->get('token');
+        $expectedToken = md5($tour->slug . $tour->created_at . 'tour_secret_2026');
+
+        if ($providedToken !== $expectedToken) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized access'
+            ], 403);
+        }
+
+        // Return a structured response optimized for the remote index.php
+        return response()->json([
+            'success'       => true,
+            'bookingStatus' => $booking->status,
+            'baseUrl'       => $booking->base_url,
+            'tourData'      => [
+                'id' => $tour->id,
+                'slug' => $tour->slug,
+                'is_active' => $tour->is_active,
+                'gtm_tag' => $tour->gtm_tag,
+                'structured_data' => $tour->structured_data,
+                'header_code' => $tour->header_code,
+                'footer_code' => $tour->footer_code,
+            ],
+            'bookingData'   => [
+                'id' => $booking->id,
+                'status' => $booking->status,
+                'base_url' => $booking->base_url,
+                'firstname' => $booking->user->firstname ?? '',
+                'lastname' => $booking->user->lastname ?? '',
+                'qr_code' => $booking->qr->code ?? '',
+            ],
+            'meta' => [
+                'title'       => $tour->meta_title,
+                'description' => $tour->meta_description,
+                'keywords'    => $tour->meta_keywords,
+                'robots'      => $tour->meta_robots,
+                'canonical'   => $tour->canonical_url,
+                'ogTitle'     => $tour->og_title ?: $tour->meta_title,
+                'ogDesc'      => $tour->og_description ?: $tour->meta_description,
+                'ogImage'     => $tour->og_image,
+                'twitterTitle'=> $tour->twitter_title ?: ($tour->og_title ?: $tour->meta_title),
+                'twitterDesc' => $tour->twitter_description ?: ($tour->og_description ?: $tour->meta_description),
+                'twitterImage'=> $tour->twitter_image ?: $tour->og_image,
+                'gtmCode'     => $tour->gtm_tag,
+                'headerCode'  => $tour->header_code,
+                'footerCode'  => $tour->footer_code
+            ]
+        ]);
+    }
 }

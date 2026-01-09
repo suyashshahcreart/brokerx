@@ -87,7 +87,7 @@ class TourManagerController extends Controller
 
             $tour->footer_brand_logo = $tour->footer_brand_logo ? $s3LinkBase . $tour->footer_brand_logo : null;
 
-            $tour->footer_logo = $tour->footer_logo ? $s3LinkBase . $tour->footer_logo : null;
+            $tour->footer_logo = $tour->footer_logo ? $tour->footer_logo : null;
             $tour->sidebar_logo = $tour->sidebar_logo ? $s3LinkBase . $tour->sidebar_logo : null;
 
             // QR Code
@@ -95,7 +95,7 @@ class TourManagerController extends Controller
             $tour->qr_link = $tour->booking ? $tour->booking->tour_code ? $qrLinkBase . $tour->qr_code : null : null;
             $tour->s3_link = $tour->booking ? $tour->booking->tour_code ? $s3LinkBase . 'tours/' . $tour->qr_code . "/" : null : null;
             
-            $tour->top_image = $tour->footer_logo ? $s3LinkBase . $tour->footer_logo : null;
+            $tour->top_image = $tour->footer_logo ? $tour->footer_logo : null;
             $tour->top_number  = $tour->footer_mobile;
             $tour->top_title  = $tour->footer_name;
             $tour->top_email  = $tour->footer_email;
