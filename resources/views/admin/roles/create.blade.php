@@ -46,7 +46,7 @@
                         <label for="name" class="form-label">Name <span class="text-danger">*</span></label>
                         <input type="text" name="name" id="name" value="{{ old('name') }}" 
                             class="form-control @error('name') is-invalid @enderror" 
-                            placeholder="role_name" required minlength="2" maxlength="255" 
+                            placeholder="e.g, role_name" required minlength="2" maxlength="255" 
                             pattern="[A-Za-z0-9_-]+" title="Role name may contain letters, numbers, underscores or hyphens (e.g., Admin_User, broker-role)">
                         <div class="invalid-feedback">
                             @error('name')

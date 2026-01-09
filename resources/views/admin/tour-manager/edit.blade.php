@@ -17,11 +17,11 @@
                     <h3 class="mb-0">Tour Management ({{$booking->tour_code}}) </h3>
                 </div>
                 <div class="d-flex gap-2">
-                    <a href="{{ route('admin.tour-manager.index') }}" class="btn btn-secondary" data-bs-toggle="tooltip" title="Back to Tour Management">
+                    <a href="{{ route('admin.tour-manager.index') }}" class="btn btn-soft-primary" data-bs-toggle="tooltip" title="Back to Tour Management">
                         <i class="ri-arrow-left-line me-1"></i> Back
                     </a>
                     @can('booking_edit')
-                        <a href="{{ route('admin.bookings.edit', $booking->id) }}" class="btn btn-info" data-bs-toggle="tooltip" title="Edit Booking Info">
+                        <a href="{{ route('admin.bookings.edit', $booking->id) }}" class="btn btn-primary" data-bs-toggle="tooltip" title="Edit Booking Info">
                             <i class="ri-edit-box-line me-1"></i> Edit Booking
                         </a>
                     @endcan
