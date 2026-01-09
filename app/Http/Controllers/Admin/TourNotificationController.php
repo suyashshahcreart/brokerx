@@ -54,10 +54,10 @@ class TourNotificationController extends Controller
                     return $notification->notified_at ? $notification->notified_at->format('d M Y H:i') : '<span class="text-muted">-</span>';
                 })
                 ->addColumn('actions', function (TourNotification $notification) {
-                    return '<button type="button" class="btn btn-light btn-sm border view-notification" 
+                    return '<button type="button" class="btn btn-soft-primary btn-sm view-notification" 
                         data-id="' . $notification->id . '" 
-                        title="View Details">
-                        <i class="ri-eye-line"></i>
+                        data-bs-toggle="tooltip" data-bs-placement="top" title="View Notification Details">
+                        <iconify-icon icon="solar:eye-broken" class="align-middle fs-18"></iconify-icon>
                     </button>';
                 })
                 ->filter(function ($query) use ($request) {

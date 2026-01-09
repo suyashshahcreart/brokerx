@@ -128,16 +128,20 @@ class TourManagerController extends Controller{
                     return '₹' . number_format($booking->price, 2);
                 })
                 ->addColumn('actions', function (Booking $booking) use ($request) {
-                    $actions = '<div class="btn-group" role="group">';
+                    $actions = '<div class="d-flex gap-1">';
 
                     // View button
-                    $actions .= '<a href="' . route('admin.tour-manager.show', $booking) . '" class="btn btn-sm btn-primary" title="View Details"><i class="ri-eye-line"></i></a>';
+                    $actions .= '<a href="' . route('admin.tour-manager.show', $booking) . '" class="btn btn-sm btn-soft-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="View Tour Public Page"><iconify-icon icon="solar:eye-broken" class="align-middle fs-18"></iconify-icon></a>';
 
-                    // Edit tour button (only if booking has tours AND user has edit permission)
-                    if ($booking->tours()->exists() && $request->user()->can('tour_manager_edit')) {
-                        $actions .= ' <a href="' . route('admin.tour-manager.edit', $booking) . '" class="btn btn-sm btn-warning" title="Edit Tour"><i class="ri-edit-line"></i></a>';
+                    // Edit booking button (Main booking edit)
+                    if ($request->user()->can('booking_edit')) {
+                        $actions .= ' <a href="' . route('admin.bookings.edit', $booking->id) . '" class="btn btn-sm btn-soft-info" data-bs-toggle="tooltip" data-bs-placement="top" title="Edit Booking Info"><iconify-icon icon="solar:pen-new-square-broken" class="align-middle fs-18"></iconify-icon></a>';
                     }
 
+                    // Edit tour button (Upload Tour)
+                    if ($booking->tours()->exists() && $request->user()->can('tour_manager_edit')) {
+                        $actions .= ' <a href="' . route('admin.tour-manager.upload', $booking) . '" class="btn btn-sm btn-soft-warning" data-bs-toggle="tooltip" data-bs-placement="top" title="Upload & Manage Tour Assets"><iconify-icon icon="solar:upload-minimalistic-broken" class="align-middle fs-18"></iconify-icon></a>';
+                    }
 
                     $actions .= '</div>';
                     return $actions;
@@ -1719,9 +1723,9 @@ class TourManagerController extends Controller{
         }
 
         // Make data available as JSON for JavaScript
-        \$tourDataJson = json_encode(\$tourData);
-        \$bookingDataJson = json_encode(\$bookingData);
-        \$baseUrlJson = json_encode(\$baseUrl);
+        // \$tourDataJson = json_encode(\$tourData);
+        // \$bookingDataJson = json_encode(\$bookingData);
+        // \$baseUrlJson = json_encode(\$baseUrl);
 
         // Start output buffering to modify HTML
         ob_start();
@@ -1745,13 +1749,13 @@ PHP;
             <!-- Tour and Booking Data from Database -->
             <script>
             // Make PHP data available to JavaScript
-            window.tourData = <?php echo $tourDataJson; ?>;
-            window.bookingData = <?php echo $bookingDataJson; ?>;
-            window.baseUrl = <?php echo $baseUrlJson; ?>;
+            // window.tourData = <?php echo $tourDataJson; ?>;
+            // window.bookingData = <?php echo $bookingDataJson; ?>;
+            // window.baseUrl = <?php echo $baseUrlJson; ?>;
             
-            console.log('Tour Data:', window.tourData);
-            console.log('Booking Data:', window.bookingData);
-            console.log('Base URL:', window.baseUrl);
+            // console.log('Tour Data:', window.tourData);
+            // console.log('Booking Data:', window.bookingData);
+            // console.log('Base URL:', window.baseUrl);
             </script>
         JS;
     }

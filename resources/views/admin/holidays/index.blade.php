@@ -44,7 +44,7 @@
                 <div class="d-flex align-items-center gap-2">
                     <a href="{{ route('admin.holidays.create') }}" class="btn btn-primary" title="Add Holiday"
                         data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Add Holiday">
-                        <i class="ri-add-line me-1"></i> New Holiday
+                        <iconify-icon icon="solar:add-circle-broken" class="align-middle fs-18 me-1"></iconify-icon> New Holiday
                     </a>
                 </div>
             </div>
@@ -64,7 +64,7 @@
                                         <th>Name</th>
                                         <th>Date</th>
                                         <th>Created By</th>
-                                        <th>Actions</th>
+                                        <th class="text-end">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -74,12 +74,18 @@
                                             <td>{{ $holiday->date }}</td>
                                             <td>{{ $holiday->creator?->name ?? '-' }}</td>
                                             <td>
-                                                <a href="{{ route('admin.holidays.edit', $holiday) }}" class="btn btn-sm btn-warning">Edit</a>
-                                                <form action="{{ route('admin.holidays.destroy', $holiday) }}" method="POST" style="display:inline-block;">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure?')">Delete</button>
-                                                </form>
+                                                <div class="d-flex justify-content-end gap-1">
+                                                    <a href="{{ route('admin.holidays.edit', $holiday) }}" class="btn btn-sm btn-soft-info" data-bs-toggle="tooltip" data-bs-placement="top" title="Edit Holiday Info">
+                                                        <iconify-icon icon="solar:pen-2-broken" class="align-middle fs-18"></iconify-icon>
+                                                    </a>
+                                                    <form action="{{ route('admin.holidays.destroy', $holiday) }}" method="POST" class="d-inline">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <button type="submit" class="btn btn-sm btn-soft-danger" onclick="return confirm('Are you sure?')" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete Holiday">
+                                                            <iconify-icon icon="solar:trash-bin-minimalistic-2-broken" class="align-middle fs-18"></iconify-icon>
+                                                        </button>
+                                                    </form>
+                                                </div>
                                             </td>
                                         </tr>
                                     @empty

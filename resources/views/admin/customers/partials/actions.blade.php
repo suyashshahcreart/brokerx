@@ -7,13 +7,13 @@
 @if($canShow || $canEdit || $canDelete)
     <div class="d-flex justify-content-end gap-1">
         @if($canShow)
-            <a href="{{ route('admin.customer.show', $user) }}" class="btn btn-sm btn-soft-secondary" title="View Customer">
-                <i class="ri-eye-line"></i>
+            <a href="{{ route('admin.customer.show', $user) }}" class="btn btn-sm btn-soft-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="View Customer Profile">
+                <iconify-icon icon="solar:eye-broken" class="align-middle fs-18"></iconify-icon>
             </a>
         @endif
         @if($canEdit)
-            <a href="{{ route('admin.customer.edit', $user) }}" class="btn btn-sm btn-soft-primary" title="Edit Customer">
-                <i class="ri-pencil-line"></i>
+            <a href="{{ route('admin.customer.edit', $user) }}" class="btn btn-sm btn-soft-info" data-bs-toggle="tooltip" data-bs-placement="top" title="Edit Customer Details">
+                <iconify-icon icon="solar:pen-2-broken" class="align-middle fs-18"></iconify-icon>
             </a>
         @endif
         @if($canDelete)
@@ -21,8 +21,8 @@
                 @csrf
                 @method('DELETE')
                 <button type="button" class="btn btn-sm btn-soft-danger btn-delete-user" data-user-name="{{ $user->name }}"
-                    data-has-admin-role="{{ $user->hasRole('admin') ? '1' : '0' }}" title="Delete Customer">
-                    <i class="ri-delete-bin-line"></i>
+                    data-has-admin-role="{{ $user->hasRole('admin') ? '1' : '0' }}" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete Customer">
+                    <iconify-icon icon="solar:trash-bin-minimalistic-2-broken" class="align-middle fs-18"></iconify-icon>
                 </button>
             </form>
         @endif
