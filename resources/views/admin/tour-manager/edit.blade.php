@@ -14,7 +14,7 @@
                             <li class="breadcrumb-item active" aria-current="page">{{ $booking->id }}</li>
                         </ol>
                     </nav>
-                    <h3 class="mb-0">Tour Management</h3>
+                    <h3 class="mb-0">Tour Management ({{$booking->tour_code}}) </h3>
                 </div>
                 <div class="d-flex gap-2">
                     <a href="{{ route('admin.tour-manager.index') }}" class="btn btn-secondary" data-bs-toggle="tooltip" title="Back to Tour Management">
