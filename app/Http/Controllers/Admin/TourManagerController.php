@@ -212,7 +212,7 @@ class TourManagerController extends Controller{
         $validLocations = FtpConfiguration::active()->pluck('category_name')->toArray();
         
         $validated = $request->validate([
-            'slug' => 'required|string|max:255|regex:/^[a-z0-9-]+$/',
+            'slug' => 'required|string|max:255|regex:/^[a-zA-Z0-9\/\-_]+$/',
             'location' => ['required', 'string', Rule::in($validLocations)],
             'files.*' => 'nullable|file|max:512000', // 500MB for zip files - single file only
         ]);
@@ -354,9 +354,10 @@ class TourManagerController extends Controller{
 
         return redirect()->route('admin.tour-manager.show', $booking)
             ->with('success', 'Tour updated successfully!');
-    }    /**
-         * Process and validate zip file containing tour assets
-         */
+    }    
+    /**
+     * Process and validate zip file containing tour assets
+     */
     private function processZipFile($zipFile, Tour $tour, $uniqueCode)
     {
         try {
@@ -550,76 +551,110 @@ class TourManagerController extends Controller{
                 // Prepare PHP echo snippet for GTM code replacement
                 $gtmPhpEcho = '<?php echo escAttr($gtmCode); ?>';
 
-                // Replace static SEO tags in the extracted HTML with dynamic PHP echoes
-                $indexHtmlContent = preg_replace(
-                    '/<title>.*?<\\/title>/is',
-                    '<title><?php echo $metaTitle; ?></title>',
-                    $indexHtmlContent,
-                    1
-                );
+                // Tracker for replaced tags and improved transformation logic
+                $replacedTags = [];
                 
+                // Unified meta/link replacement helper with fallback to original content
+                $metaReplace = function($attrName, $attrValue, $key, $phpVarName) use (&$indexHtmlContent, &$replacedTags) {
+                    $found = false;
+                    $callback = function($matches) use ($phpVarName, &$found) {
+                        $found = true;
+                        $prefix = $matches[1] . $matches[2];
+                        $originalValue = $matches[3];
+                        $suffix = $matches[2] . $matches[4];
+                        $fallback = var_export($originalValue, true);
+                        return $prefix . '<?php echo (!empty($' . $phpVarName . ') ? escAttr($' . $phpVarName . ') : ' . $fallback . '); ?>' . $suffix;
+                    };
 
-                $indexHtmlContent = preg_replace(
-                    '/<meta\\s+property="og:title"[^>]*content=".*?"[^>]*>/is',
-                    '<meta property="og:title" id="ogTitle" content="<?php echo $ogTitle; ?>" />',
-                    $indexHtmlContent,
-                    1
-                );
-                $indexHtmlContent = preg_replace(
-                    '/<meta\\s+property="og:description"[^>]*content=".*?"[^>]*>/is',
-                    '<meta property="og:description" id="ogDescription" content="<?php echo $ogDescription; ?>" />',
-                    $indexHtmlContent,
-                    1
-                );
-                
-                
-                $indexHtmlContent = preg_replace(
-                    '/<meta\\s+(?:name|property)="twitter:title"[^>]*content=".*?"[^>]*>/is',
-                    '<meta name="twitter:title" id="twitterTitle" content="<?php echo $twitterTitle; ?>" />',
-                    $indexHtmlContent,
-                    1
-                );
-                $indexHtmlContent = preg_replace(
-                    '/<meta\\s+(?:name|property)="twitter:description"[^>]*content=".*?"[^>]*>/is',
-                    '<meta name="twitter:description" id="twitterDescription" content="<?php echo $twitterDescription; ?>" />',
-                    $indexHtmlContent,
-                    1
-                );
+                    // Match meta tag regardless of attribute order
+                    $pattern = '/(<meta[^>]*?' . $attrName . '\s*=\s*["\']' . preg_quote($attrValue, '/') . '["\'][^>]*?content\s*=\s*)(["\'])(.*?)\2([^>]*?>)/is';
+                    $patternAlt = '/(<meta[^>]*?content\s*=\s*)(["\'])(.*?)\2([^>]*?' . $attrName . '\s*=\s*["\']' . preg_quote($attrValue, '/') . '["\'][^>]*?>)/is';
 
-                // Replace Google Tag Manager occurrences with dynamic GTM code
+                    $indexHtmlContent = preg_replace_callback($pattern, $callback, $indexHtmlContent, 1, $count);
+                    if ($count === 0) {
+                        $indexHtmlContent = preg_replace_callback($patternAlt, $callback, $indexHtmlContent, 1, $count);
+                    }
+                    
+                    if ($found) $replacedTags[$key] = true;
+                    return $found;
+                };
+
+                // Link tag replacement helper
+                $linkReplace = function($relValue, $key, $phpVarName) use (&$indexHtmlContent, &$replacedTags) {
+                    $found = false;
+                    $callback = function($matches) use ($phpVarName, &$found) {
+                        $found = true;
+                        $prefix = $matches[1] . $matches[2];
+                        $originalValue = $matches[3];
+                        $suffix = $matches[2] . $matches[4];
+                        $fallback = var_export($originalValue, true);
+                        return $prefix . '<?php echo (!empty($' . $phpVarName . ') ? escAttr($' . $phpVarName . ') : ' . $fallback . '); ?>' . $suffix;
+                    };
+
+                    $pattern = '/(<link[^>]*?rel\s*=\s*["\']' . preg_quote($relValue, '/') . '["\'][^>]*?href\s*=\s*)(["\'])(.*?)\2([^>]*?>)/is';
+                    $patternAlt = '/(<link[^>]*?href\s*=\s*)(["\'])(.*?)\2([^>]*?rel\s*=\s*["\']' . preg_quote($relValue, '/') . '["\'][^>]*?>)/is';
+
+                    $indexHtmlContent = preg_replace_callback($pattern, $callback, $indexHtmlContent, 1, $count);
+                    if ($count === 0) {
+                        $indexHtmlContent = preg_replace_callback($patternAlt, $callback, $indexHtmlContent, 1, $count);
+                    }
+                    
+                    if ($found) $replacedTags[$key] = true;
+                    return $found;
+                };
+
+                // 1. Title (preserves attributes like id)
+                $indexHtmlContent = preg_replace_callback('/(<title[^>]*>)(.*?)(<\/title>)/is', function($matches) use (&$replacedTags) {
+                    $replacedTags['title'] = true;
+                    $fallback = var_export($matches[2], true);
+                    return $matches[1] . '<?php echo (!empty($metaTitle) ? escAttr($metaTitle) : ' . $fallback . '); ?>' . $matches[3];
+                }, $indexHtmlContent, 1);
+
+                // 2. Canonical
+                $linkReplace('canonical', 'canonical', 'canonicalUrl');
+
+                // 3. SEO Meta Tags
+                $metaReplace('name', 'description', 'description', 'metaDescription');
+                $metaReplace('name', 'keywords', 'keywords', 'metaKeywords');
+                $metaReplace('name', 'robots', 'robots', 'metaRobots');
+
+                // 4. Open Graph Tags
+                $metaReplace('property', 'og:title', 'og:title', 'ogTitle');
+                $metaReplace('property', 'og:description', 'og:description', 'ogDescription');
+                $metaReplace('property', 'og:image', 'og:image', 'ogImage');
+                $metaReplace('property', 'og:image:secure_url', 'og:image:secure_url', 'ogImage');
+                $metaReplace('property', 'og:url', 'og:url', 'ogUrl');
+
+                // 5. Twitter Card Tags
+                $metaReplace('name', 'twitter:title', 'twitter:title', 'twitterTitle');
+                $metaReplace('name', 'twitter:description', 'twitter:description', 'twitterDescription');
+                $metaReplace('name', 'twitter:image', 'twitter:image', 'twitterImage');
+                $metaReplace('name', 'twitter:image:src', 'twitter:image:src', 'twitterImage');
+
+                // 6. Replace Google Tag Manager occurrences with dynamic GTM code (All occurrences)
                 $indexHtmlContent = preg_replace(
-                    '/https:\\/\\/www\\.googletagmanager\\.com\\/gtm\\.js\\?id=[^"\'\\s)]+/i',
+                    '/https:\/\/www\.googletagmanager\.com\/gtm\.js\?id=[^"\'\s)]+/i',
                     'https://www.googletagmanager.com/gtm.js?id=' . $gtmPhpEcho,
-                    $indexHtmlContent,
-                    1
+                    $indexHtmlContent
                 );
                 $indexHtmlContent = preg_replace(
-                    '/https:\\/\\/www\\.googletagmanager\\.com\\/ns\\.html\\?id=[^"\'\\s)]+/i',
+                    '/https:\/\/www\.googletagmanager\.com\/ns\.html\?id=[^"\'\s)]+/i',
                     'https://www.googletagmanager.com/ns.html?id=' . $gtmPhpEcho,
-                    $indexHtmlContent,
-                    1
+                    $indexHtmlContent
                 );
                 $indexHtmlContent = preg_replace(
                     '/["\']GTM-[A-Z0-9]+["\']/i',
                     '"' . $gtmPhpEcho . '"',
-                    $indexHtmlContent,
-                    1
+                    $indexHtmlContent
                 );
+                // Prepend flags and fetch script to the content
+                $phpScript = $this->generateDatabaseFetchScript($tour);
+                $flagsScript = "<?php \$replacedTags = " . var_export($replacedTags, true) . "; ?>";
+                $indexPhpContent = $flagsScript . "\n" . $phpScript . "\n" . $indexHtmlContent;
 
-                // Prepend PHP script to fetch tour and booking data
-                $phpScript = $this->generateDatabaseFetchScript();
-
-                // Inject JavaScript and SEO meta tags
-                $jsDataScript = $this->generateJavaScriptDataScript();
-                
-                // Inject footer code
-                $footerScript = $this->generateFooterCodeScript();
-
-                // Insert PHP at the beginning
-                $indexPhpContent = $phpScript . "\n" . $indexHtmlContent;
-
-                // Inject SEO meta tags, header code, and JavaScript data before </head>
+                // Inject JavaScript, SEO meta tags, and header code before </head>
                 if (preg_match('/<\/head>/i', $indexPhpContent)) {
+                    $jsDataScript = $this->generateJavaScriptDataScript();
                     $indexPhpContent = preg_replace(
                         '/<\/head>/i',
                         $jsDataScript . "\n</head>",
@@ -630,6 +665,7 @@ class TourManagerController extends Controller{
                 
                 // Inject footer code before </body>
                 if (preg_match('/<\/body>/i', $indexPhpContent)) {
+                    $footerScript = $this->generateFooterCodeScript();
                     $indexPhpContent = preg_replace(
                         '/<\/body>/i',
                         $footerScript . "\n</body>",
@@ -637,7 +673,6 @@ class TourManagerController extends Controller{
                         1
                     );
                 }
-
                 // Save index.php LOCALLY
                 file_put_contents($rootTourDirectory . '/index.php', $indexPhpContent);
                     \Log::info("Successfully created index.php from index.html");
@@ -1516,206 +1551,182 @@ class TourManagerController extends Controller{
         }
     }
 
-    /**
-     * Generate PHP script to fetch tour and booking data from database
-     */
-    private function generateDatabaseFetchScript()
+    private function generateDatabaseFetchScript(Tour $tour)
     {
-        return <<<'PHP'
+        $apiUrlBase = url('/api/tour/page_data');
+        $token = md5($tour->slug . $tour->created_at . 'tour_secret_2026');
+        
+        return <<<PHP
         <?php
         // Helper function to escape HTML attributes
-        function escAttr($str) {
-            return htmlspecialchars($str ?? '', ENT_QUOTES, 'UTF-8');
+        if (!function_exists('escAttr')) {
+            function escAttr(\$str) {
+                return htmlspecialchars(\$str ?? '', ENT_QUOTES, 'UTF-8');
+            }
         }
 
         // Get the current tour code from the URL path
-        $currentPath = dirname($_SERVER['SCRIPT_NAME']);
-        $tourCode = basename($currentPath);
+        \$currentPath = dirname(\$_SERVER['SCRIPT_NAME']);
+        \$tourCode = basename(\$currentPath);
 
-        // Static database configuration (no .env read)
-        $dbHost = '127.0.0.1';
-        $dbPort = '3306';
-        $dbName = 'proppik_dev';
-        $dbUser = 'proppik_dev';
-        $dbPass = 'PropPik@2026@';
+        // API Endpoint for fetching tour data
+        \$apiUrl = "{$apiUrlBase}/" . \$tourCode . "?token={$token}";
 
         // Initialize variables
-        $tourData = null;
-        $bookingData = null;
-        $baseUrl = '';
-        $seoMetaTags = '';
-        $headerCode = '';
-        $footerCode = '';
-        $gtmCode = '';
+        \$tourData = null;
+        \$bookingData = null;
+        \$baseUrl = '';
+        \$seoMetaTags = '';
+        \$headerCode = '';
+        \$footerCode = '';
+        \$gtmCode = '';
+        \$replacedTags = isset(\$replacedTags) ? \$replacedTags : [];
 
-        try {
-            // Create database connection
-            $dsn = "mysql:host=$dbHost;port=$dbPort;dbname=$dbName;charset=utf8mb4";
-            $pdo = new PDO($dsn, $dbUser, $dbPass, [
-                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                PDO::ATTR_EMULATE_PREPARES => false,
-            ]);
+        // Dynamic variables for HTML placeholders (placeholders used by transformation logic)
+        \$metaTitle = '';
+        \$metaDescription = '';
+        \$metaKeywords = '';
+        \$metaRobots = '';
+        \$canonicalUrl = '';
+        \$ogTitle = '';
+        \$ogDescription = '';
+        \$ogImage = '';
+        \$ogUrl = '';
+        \$twitterTitle = '';
+        \$twitterDescription = '';
+        \$twitterImage = '';
+
+        // Fetch data from API
+        \$ctx = stream_context_create(['http' => ['timeout' => 5]]);
+        \$response = @file_get_contents(\$apiUrl, false, \$ctx);
+        
+        if (\$response) {
+            \$data = json_decode(\$response, true);
             
-            // Fetch booking data by tour slug (matches tours.slug)
-            $stmt = $pdo->prepare("
-                SELECT b.id,b.base_url, b.status,
-                    u.firstname, u.lastname, u.mobile, u.email,
-                    pt.name as property_type_name,
-                    pst.name as property_sub_type_name,
-                    bhk.name as bhk_name,
-                    c.name as city_name,
-                    s.name as state_name,
-                    qr.code as qr_code
-                FROM bookings b
-                LEFT JOIN users u ON b.user_id = u.id
-                LEFT JOIN property_types pt ON b.property_type_id = pt.id
-                LEFT JOIN property_sub_types pst ON b.property_sub_type_id = pst.id
-                LEFT JOIN b_h_k_s bhk ON b.bhk_id = bhk.id
-                LEFT JOIN cities c ON b.city_id = c.id
-                LEFT JOIN states s ON b.state_id = s.id
-                LEFT JOIN qr_code qr ON b.id = qr.booking_id
-                INNER JOIN tours t ON t.booking_id = b.id
-                WHERE t.slug = :tour_slug
-                ORDER BY t.created_at DESC
-                LIMIT 1
-            ");
-            $stmt->execute(['tour_slug' => $tourCode]);
-            $bookingData = $stmt->fetch();
+            if (isset(\$data['success']) && \$data['success']) {
+                // Check for expired status
+                if (isset(\$data['bookingStatus']) && \$data['bookingStatus'] === 'expired') {
+                    \$redirectUrl = 'https://www.proppik.com/';
+                    echo <<<HTML
+                    <!DOCTYPE html>
+                    <html lang="en">
+                    <head>
+                        <meta charset="UTF-8" />
+                        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+                        <title>Tour Expired</title>
+                        <style>
+                            body { margin:0; padding:0; font-family: Arial, sans-serif; background:#f6f7fb; color:#1f2933; display:flex; align-items:center; justify-content:center; min-height:100vh; }
+                            .card { background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:32px; box-shadow:0 10px 30px rgba(0,0,0,0.08); max-width:420px; text-align:center; }
+                            h1 { margin:0 0 12px; font-size:24px; color:#111827; }
+                            p { margin:0 0 20px; line-height:1.5; }
+                            .btn { display:inline-block; padding:12px 20px; background:#2563eb; color:#fff; border-radius:8px; text-decoration:none; font-weight:600; }
+                            .btn:hover { background:#1d4ed8; }
+                        </style>
+                        <div class="card">
+                            <h1>Tour Expired</h1>
+                            <p>This virtual tour is no longer available. Please visit our site to explore more experiences.</p>
+                            <a class="btn" href="{\$redirectUrl}">Go to PROP PIK</a>
+                        </div>
+                    HTML;
+                    exit;
+                }
 
-            // If booking is expired, show a simple message and stop further execution
-            if ($bookingData && isset($bookingData['status']) && $bookingData['status'] === 'expired') {
-                $redirectUrl = 'https://www.proppik.com/';
-                echo <<<HTML
-                <!DOCTYPE html>
-                <html lang="en">
-                <head>
-                    <meta charset="UTF-8" />
-                    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-                    <title>Tour Expired</title>
-                    <style>
-                        body { margin:0; padding:0; font-family: Arial, sans-serif; background:#f6f7fb; color:#1f2933; display:flex; align-items:center; justify-content:center; min-height:100vh; }
-                        .card { background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:32px; box-shadow:0 10px 30px rgba(0,0,0,0.08); max-width:420px; text-align:center; }
-                        h1 { margin:0 0 12px; font-size:24px; color:#111827; }
-                        p { margin:0 0 20px; line-height:1.5; }
-                        .btn { display:inline-block; padding:12px 20px; background:#2563eb; color:#fff; border-radius:8px; text-decoration:none; font-weight:600; }
-                        .btn:hover { background:#1d4ed8; }
-                    </style>
-                    <div class="card">
-                        <h1>Tour Expired</h1>
-                        <p>This virtual tour is no longer available. Please visit our site to explore more experiences.</p>
-                        <a class="btn" href="{$redirectUrl}">Go to PROP PIK</a>
-                    </div>
-                HTML;
-                exit;
-            }
-            
-            if ($bookingData) {
-                // Fetch tour data for this booking (with all SEO fields)
-                $stmt = $pdo->prepare("
-                    SELECT t.*, 
-                        u.firstname as creator_firstname, 
-                        u.lastname as creator_lastname
-                    FROM tours t
-                    LEFT JOIN users u ON t.created_by = u.id
-                    WHERE t.booking_id = :booking_id
-                    ORDER BY t.created_at DESC
-                    LIMIT 1
-                ");
-                $stmt->execute(['booking_id' => $bookingData['id']]);
-                $tourData = $stmt->fetch();
+                // Map data
+                \$tourData = \$data['tourData'] ?? null;
+                \$bookingData = \$data['bookingData'] ?? null;
+                \$baseUrl = \$data['baseUrl'] ?? '';
                 
-                // Get base URL from booking
-                $baseUrl = $bookingData['base_url'] ?? '';
+                \$meta = \$data['meta'] ?? [];
+                \$metaTitle = \$meta['title'] ?? '';
+                \$metaDescription = \$meta['description'] ?? '';
+                \$metaKeywords = \$meta['keywords'] ?? '';
+                \$metaRobots = \$meta['robots'] ?? '';
+                \$canonicalUrl = \$meta['canonical'] ?? '';
+                \$ogTitle = \$meta['ogTitle'] ?? \$metaTitle;
+                \$ogDescription = \$meta['ogDesc'] ?? \$metaDescription;
+                \$ogImage = \$meta['ogImage'] ?? '';
                 
-                // Generate SEO meta tags if tour data exists
-                $metaTitle = $metaDescription = $metaKeywords = $metaRobots = $canonicalUrl = $ogTitle = $ogDescription = $twitterTitle = $twitterDescription = '';
-                $gtmCode = '';
+                \$protocol = (!empty(\$_SERVER['HTTPS']) && \$_SERVER['HTTPS'] !== 'off' || (\$_SERVER['SERVER_PORT'] ?? '') == 443) ? "https://" : "http://";
+                \$ogUrl = \$protocol . (\$_SERVER['HTTP_HOST'] ?? '') . (\$_SERVER['REQUEST_URI'] ?? '');
+                
+                \$twitterTitle = \$meta['twitterTitle'] ?? \$ogTitle;
+                \$twitterDescription = \$meta['twitterDesc'] ?? \$ogDescription;
+                \$twitterImage = \$meta['twitterImage'] ?? \$ogImage;
+                \$gtmCode = \$meta['gtmCode'] ?? '';
+                \$headerCode = \$meta['headerCode'] ?? '';
+                \$footerCode = \$meta['footerCode'] ?? '';
 
-                if ($tourData) {
-                    $seoTags = [];
+                if (\$tourData) {
+                    \$seoTags = [];
                     
-                    // Basic Meta Tags
-                    if (!empty($tourData['meta_title'])) {
-                        $seoTags[] = '<title id="pageTitle">' . escAttr($tourData['meta_title']) . '</title>';
-                        $metaTitle = $tourData['meta_title'];
+                    // Basic Meta Tags (Only add if NOT already replaced in HTML)
+                    if (!empty(\$metaTitle) && !isset(\$replacedTags['title'])) {
+                        \$seoTags[] = '<title id="pageTitle">' . escAttr(\$metaTitle) . '</title>';
                     }
-                    if (!empty($tourData['meta_description'])) {
-                        $seoTags[] = '<meta name="description" id="metaDescription" content="' . escAttr($tourData['meta_description']) . '" />';
+                    if (!empty(\$metaDescription) && !isset(\$replacedTags['description'])) {
+                        \$seoTags[] = '<meta name="description" id="metaDescription" content="' . escAttr(\$metaDescription) . '" />';
                     }
-                    if (!empty($tourData['meta_keywords'])) {
-                        $seoTags[] = '<meta name="keywords" content="' . escAttr($tourData['meta_keywords']) . '" />';
+                    if (!empty(\$metaKeywords) && !isset(\$replacedTags['keywords'])) {
+                        \$seoTags[] = '<meta name="keywords" content="' . escAttr(\$metaKeywords) . '" />';
                     }
-                    if (!empty($tourData['meta_robots'])) {
-                        $seoTags[] = '<meta name="robots" content="' . escAttr($tourData['meta_robots']) . '" />';
+                    if (!empty(\$metaRobots) && !isset(\$replacedTags['robots'])) {
+                        \$seoTags[] = '<meta name="robots" content="' . escAttr(\$metaRobots) . '" />';
                     }
-                    if (!empty($tourData['canonical_url'])) {
-                        $seoTags[] = '<link rel="canonical" href="' . escAttr($tourData['canonical_url']) . '" />';
+                    if (!empty(\$canonicalUrl) && !isset(\$replacedTags['canonical'])) {
+                        \$seoTags[] = '<link rel="canonical" href="' . escAttr(\$canonicalUrl) . '" />';
                     }
                     
-                    // Open Graph Tags (fallback to meta title/description when OG specific fields are empty)
-                    $ogTitle = $tourData['og_title'] ?? $tourData['meta_title'] ?? '';
-                    if (!empty($ogTitle)) {
-                        $seoTags[] = '<meta property="og:title" id="ogTitle" content="' . escAttr($ogTitle) . '" />';
+                    // Open Graph Tags
+                    if (!empty(\$ogTitle) && !isset(\$replacedTags['og:title'])) {
+                        \$seoTags[] = '<meta property="og:title" id="ogTitle" content="' . escAttr(\$ogTitle) . '" />';
                     }
-                    $ogDescription = $tourData['og_description'] ?? $tourData['meta_description'] ?? '';
-                    if (!empty($ogDescription)) {
-                        $seoTags[] = '<meta property="og:description" id="ogDescription" content="' . escAttr($ogDescription) . '" />';
+                    if (!empty(\$ogDescription) && !isset(\$replacedTags['og:description'])) {
+                        \$seoTags[] = '<meta property="og:description" id="ogDescription" content="' . escAttr(\$ogDescription) . '" />';
                     }
-                    if (!empty($tourData['og_image'])) {
-                        $seoTags[] = '<meta property="og:image" content="' . escAttr($tourData['og_image']) . '" />';
-                        $seoTags[] = '<meta property="og:image:secure_url" content="' . escAttr($tourData['og_image']) . '" />';
+                    if (!empty(\$ogImage) && !isset(\$replacedTags['og:image'])) {
+                        \$seoTags[] = '<meta property="og:image" content="' . escAttr(\$ogImage) . '" />';
+                        \$seoTags[] = '<meta property="og:image:secure_url" content="' . escAttr(\$ogImage) . '" />';
                     }
-                    $seoTags[] = '<meta property="og:type" content="website" />';
-                    $seoTags[] = '<meta property="og:url" content="' . escAttr($_SERVER['REQUEST_URI'] ?? '') . '" />';
+                    if (!isset(\$replacedTags['og:url'])) {
+                        \$seoTags[] = '<meta property="og:url" content="' . escAttr(\$ogUrl) . '" />';
+                    }
+                    \$seoTags[] = '<meta property="og:type" content="website" />';
+                    \$seoTags[] = '<meta property="og:site_name" content="PROP PIK" />';
                     
-                    // Twitter Card Tags (fallback to meta title/description)
-                    $seoTags[] = '<meta name="twitter:card" content="summary_large_image" />';
-                    $twitterTitle = $tourData['twitter_title'] ?? $ogTitle ?? $tourData['meta_title'] ?? '';
-                    if (!empty($twitterTitle)) {
-                        $seoTags[] = '<meta name="twitter:title" content="' . escAttr($twitterTitle) . '" />';
+                    // Twitter Card Tags
+                    if (!empty(\$twitterTitle) && !isset(\$replacedTags['twitter:title'])) {
+                        \$seoTags[] = '<meta name="twitter:title" content="' . escAttr(\$twitterTitle) . '" />';
                     }
-                    $twitterDescription = $tourData['twitter_description'] ?? $ogDescription ?? $tourData['meta_description'] ?? '';
-                    if (!empty($twitterDescription)) {
-                        $seoTags[] = '<meta name="twitter:description" content="' . escAttr($twitterDescription) . '" />';
+                    if (!empty(\$twitterDescription) && !isset(\$replacedTags['twitter:description'])) {
+                        \$seoTags[] = '<meta name="twitter:description" content="' . escAttr(\$twitterDescription) . '" />';
                     }
-                    if (!empty($tourData['twitter_image'])) {
-                        $seoTags[] = '<meta name="twitter:image" content="' . escAttr($tourData['twitter_image']) . '" />';
+                    if (!empty(\$twitterImage) && !isset(\$replacedTags['twitter:image'])) {
+                        \$seoTags[] = '<meta name="twitter:image" content="' . escAttr(\$twitterImage) . '" />';
                     }
+                    \$seoTags[] = '<meta name="twitter:card" content="summary_large_image" />';
                     
                     // Structured Data (JSON-LD)
-                    if (!empty($tourData['structured_data'])) {
-                        $structuredData = json_decode($tourData['structured_data'], true);
-                        if ($structuredData) {
-                            $seoTags[] = '<script type="application/ld+json">' . json_encode($structuredData, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) . '</script>';
+                    if (!empty(\$tourData['structured_data'])) {
+                        \$structuredData = json_decode(\$tourData['structured_data'], true);
+                        if (\$structuredData) {
+                            \$seoTags[] = '<script type="application/ld+json">' . json_encode(\$structuredData, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) . '</script>';
                         }
                     }
                     
-                    $seoMetaTags = implode("\n    ", $seoTags);
-                    
-                    // Get custom header and footer code
-                    $headerCode = $tourData['header_code'] ?? '';
-                    $footerCode = $tourData['footer_code'] ?? '';
-                    $gtmCode = $tourData['gtm_tag'] ?? '';
+                    \$seoMetaTags = implode("\\n    ", \$seoTags);
                 }
             }
-            
-        } catch (PDOException $e) {
-            // Log error but don't break the page
-            error_log("Database error in tour index.php: " . $e->getMessage());
-            $tourData = null;
-            $bookingData = null;
         }
 
         // Make data available as JSON for JavaScript
-        $tourDataJson = json_encode($tourData);
-        $bookingDataJson = json_encode($bookingData);
-        $baseUrlJson = json_encode($baseUrl);
+        \$tourDataJson = json_encode(\$tourData);
+        \$bookingDataJson = json_encode(\$bookingData);
+        \$baseUrlJson = json_encode(\$baseUrl);
 
         // Start output buffering to modify HTML
         ob_start();
         ?>
-        PHP;
+PHP;
     }
 
     /**
@@ -1977,12 +1988,20 @@ class TourManagerController extends Controller{
                 \Log::info("Using native PHP FTP functions for upload...");
                 try {
                     $host = preg_replace('#^ftps?://#', '', $ftpConfig->host);
+                    
+                    // Prepend root if defined in FTP configuration for native call
+                    $root = trim($ftpConfig->root ?? '', '/');
+                    $remotePathWithRoot = $ftpRemotePath;
+                    if (!empty($root)) {
+                        $remotePathWithRoot = $root . '/' . ltrim($ftpRemotePath, '/');
+                    }
+                    
                     $uploaded = $this->uploadToFtpNative(
                         $host,
                         $ftpConfig->port,
                         $ftpConfig->username,
                         $ftpConfig->password,
-                        $ftpRemotePath,
+                        $remotePathWithRoot,
                         $localIndexPhpPath,
                         $ftpConfig->passive
                     );
@@ -2099,40 +2118,41 @@ class TourManagerController extends Controller{
             // Create directory structure if needed
             $directoryPath = dirname($remotePath);
             if ($directoryPath !== '.' && $directoryPath !== '') {
-                \Log::info("Creating directory structure: {$directoryPath}");
-                $pathParts = explode('/', $directoryPath);
+                \Log::info("Creating/Verifying directory structure: {$directoryPath}");
+                
+                // Ensure we start from root
+                @ftp_chdir($connection, '/');
+                
+                $pathParts = explode('/', ltrim($directoryPath, '/'));
                 $currentPath = '';
                 foreach ($pathParts as $part) {
                     if (empty($part)) continue;
                     $currentPath .= ($currentPath ? '/' : '') . $part;
-                    // Check if directory exists
+                    
+                    // Check if directory exists by trying to change into it
                     $exists = @ftp_chdir($connection, $currentPath);
                     if (!$exists) {
                         // Directory doesn't exist, create it
                         $created = @ftp_mkdir($connection, $currentPath);
                         if ($created) {
                             \Log::info("✓ Created directory: {$currentPath}");
-                            // Try to chmod directory to 0777
-                            if (function_exists('ftp_chmod')) {
-                                $chmodDirResult = @ftp_chmod($connection, 0777, $currentPath);
-                                if ($chmodDirResult === false) {
-                                    \Log::warning("Failed to chmod directory to 0777: {$currentPath}");
-                                } else {
-                                    \Log::info("✓ Set directory permissions to 0777 for {$currentPath}");
-                                }
-                            } else {
-                                \Log::warning("ftp_chmod not available; cannot set permissions for directory {$currentPath}");
-                            }
                         } else {
                             $error = error_get_last();
                             \Log::warning("Failed to create directory {$currentPath}: " . ($error['message'] ?? 'Unknown error'));
-                            // Try to continue anyway
                         }
                     } else {
                         \Log::info("Directory already exists: {$currentPath}");
-                        // Change back to root
-                        @ftp_chdir($connection, '/');
                     }
+                    
+                    // Always try to set permissions to 0777 for the folder
+                    if (function_exists('ftp_chmod')) {
+                        if (@ftp_chmod($connection, 0777, $currentPath) !== false) {
+                            \Log::info("✓ Set permissions 0777 for {$currentPath}");
+                        }
+                    }
+                    
+                    // Always return to root for the next check if using cumulative currentPath
+                    @ftp_chdir($connection, '/');
                 }
             }
             

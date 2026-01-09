@@ -801,7 +801,7 @@
 
                                                             <div class="mb-3">
                                                                 <label for="tour_bottommark_contact_mobile" class="form-label">Contact Number</label>
-                                                                <input type="tel" name="tour_bottommark_contact_mobile" id="contact_mobile"
+                                                                <input type="text" name="tour_bottommark_contact_mobile" id="contact_mobile"
                                                                     value="{{ $settings['tour_bottommark_contact_mobile'] ?? '' }}" class="form-control"
                                                                     placeholder="e.g., +91 98765 43210" maxlength="20">
                                                                 <small class="form-text text-muted">Contact mobile number for watermark</small>
