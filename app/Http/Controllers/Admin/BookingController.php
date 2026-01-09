@@ -114,14 +114,14 @@ class BookingController extends Controller
                     $schedule = '';
                     if (auth()->user()->can('booking_schedule')) {
                         if ($booking->status != 'tour_live') {
-                            $schedule = '<a href="#" class="btn btn-soft-warning btn-sm me-1 schedule-booking-btn" data-booking-id="' . $booking->id . '" data-booking-date="' . ($booking->booking_date ? $booking->booking_date->format('Y-m-d') : '') . '" title="Schedule"><i class="ri-calendar-line"></i></a>';
+                            $schedule = '<a href="#" class="btn btn-soft-warning btn-sm schedule-booking-btn" data-booking-id="' . $booking->id . '" data-booking-date="' . ($booking->booking_date ? $booking->booking_date->format('Y-m-d') : '') . '" data-bs-toggle="tooltip" data-bs-placement="top" title="Schedule"><iconify-icon icon="solar:calendar-broken" class="align-middle fs-18"></iconify-icon></a>';
                         }
                     }
-                    return $schedule .
-                        '<a href="' . $view . '" class="btn btn-light btn-sm border" title="View"><i class="ri-eye-line"></i></a>' .
-                        ' <a href="' . $edit . '" class="btn btn-soft-primary btn-sm border" title="Edit"><i class="ri-edit-line"></i></a>' .
-                        ' <form action="' . $delete . '" method="POST" class="d-inline">' . $csrf . $method .
-                        '<button type="submit" class="btn btn-soft-danger btn-sm border" onclick="return confirm(\'Delete this booking?\')"><i class="ri-delete-bin-line"></i></button></form>';
+                    return '<div class="d-flex gap-1">' . $schedule .
+                        '<a href="' . $view . '" class="btn btn-soft-primary btn-sm" data-bs-toggle="tooltip" data-bs-placement="top" title="View Booking Details"><iconify-icon icon="solar:eye-broken" class="align-middle fs-18"></iconify-icon></a>' .
+                        '<a href="' . $edit . '" class="btn btn-soft-info btn-sm" data-bs-toggle="tooltip" data-bs-placement="top" title="Edit Booking Info"><iconify-icon icon="solar:pen-2-broken" class="align-middle fs-18"></iconify-icon></a>' .
+                        '<form action="' . $delete . '" method="POST" class="d-inline">' . $csrf . $method .
+                        '<button type="submit" class="btn btn-soft-danger btn-sm" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete Booking" onclick="return confirm(\'Delete this booking?\')"><iconify-icon icon="solar:trash-bin-minimalistic-2-broken" class="align-middle fs-18"></iconify-icon></button></form></div>';
                 })
                 ->rawColumns(['type_subtype', 'city_state', 'status', 'payment_status', 'actions', 'schedule'])
                 ->toJson();

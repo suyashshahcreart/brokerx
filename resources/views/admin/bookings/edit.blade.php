@@ -275,11 +275,16 @@
                 <div class="d-flex align-items-center gap-2">
                     <x-admin.back-button :fallback="route('admin.bookings.index')" :classes="['btn', 'btn-soft-secondary']" :merge="false" icon="ri-arrow-go-back-line" />
 
-                <a href="{{ route('admin.bookings.show', $booking->id) }}" class="btn btn-primary" title="View Booking" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="View Booking">
-                    <i class="ri-eye-line"></i>
-                    <span>View</span>
-                </a>
-                    
+                    @if($booking->tours()->exists() && auth()->user()->can('tour_manager_edit'))
+                        <a href="{{ route('admin.tour-manager.upload', $booking) }}" class="btn btn-warning" data-bs-toggle="tooltip" title="Upload & Manage Tour Assets">
+                            <i class="ri-upload-2-line me-1"></i> Upload Tour
+                        </a>
+                    @endif
+
+                    <a href="{{ route('admin.bookings.show', $booking->id) }}" class="btn btn-primary" title="View Booking" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="View Booking">
+                        <i class="ri-eye-line"></i>
+                        <span>View</span>
+                    </a>
                 </div>
             </div>
             
