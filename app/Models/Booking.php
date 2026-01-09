@@ -518,8 +518,19 @@ class Booking extends Model
             ->orderBy('created_at', 'desc')
             ->first();
 
-        // Check if tour exists and has required data
-        if (!$tour || !$tour->location || !$tour->slug || !$this->user_id) {
+        // Check if tour exists
+        if (!$tour) {
+            return '#';
+        }
+
+        // If tour is hosted and hosted_link is not null, return hosted_link
+        if ($tour->is_hosted && !empty($tour->hosted_link)) {
+            return $tour->hosted_link;
+        }
+
+        // Otherwise, use FTP URL logic
+        // Check if tour has required data for FTP URL
+        if (!$tour->location || !$tour->slug || !$this->user_id) {
             return '#';
         }   
 
