@@ -89,7 +89,7 @@
                     </div>
 
                     <div class="table-responsive">
-                        <table id="bookingAssigneesTable" class="table table-hover table-bordered dt-responsive nowrap w-100">
+                        <table id="bookingAssigneesTable" class="table table-hover dt-responsive nowrap w-100">
                             <thead class="table-light">
                                 <tr>
                                     <th>ID</th>
