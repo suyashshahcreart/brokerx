@@ -20,6 +20,8 @@ const totalRevenueCardDiv = document.getElementById('total_revenue_card');
 // sales_analytic and Revenue Chart section;
 const salesAnalyticDiv = document.getElementById('sales_analytic');
 
+const TourLiveCardDiv = document.getElementById('tour_live_card');
+
 var totalPropertyCardOptions = {
     chart: {
         height: 95,
@@ -54,13 +56,13 @@ var totalPropertyCardOptions = {
     },
     series: [{
         name: 'Property Listing',
-        data: [40, 50, 65, 40, 40, 65, 40]
+        data: window.weeklyProperties || [0,0,0,0,0,0,0]
     }],
     legend: {
         show: !1
     },
     xaxis: {
-        categories: ['S', 'M', 'T', 'W', 'T', 'F', 'S'],
+        categories: window.weeklyLabels || ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],
         axisBorder: {
             show: !1
         },
@@ -121,14 +123,14 @@ var liveToursCardOptions = {
         enabled: !1
     },
     series: [{
-        name: 'New Agents',
-        data: [40, 50, 65, 40, 40, 65, 40]
+        name: 'Live Tours',
+        data: window.weeklyTours || [0,0,0,0,0,0,0]
     }],
     legend: {
         show: !1
     },
     xaxis: {
-        categories: ['S', 'M', 'T', 'W', 'T', 'F', 'S'],
+        categories: window.weeklyLabels || ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],
         axisBorder: {
             show: !1
         },
@@ -189,14 +191,14 @@ var totalCustomerCardOptions = {
         enabled: !1
     },
     series: [{
-        name: 'New Customers',
-        data: [40, 50, 65, 40, 40, 65, 40]
+        name: 'Customers',
+        data: window.weeklyCustomers || [0,0,0,0,0,0,0]
     }],
     legend: {
         show: !1
     },
     xaxis: {
-        categories: ['S', 'M', 'T', 'W', 'T', 'F', 'S'],
+        categories: window.weeklyLabels || ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],
         axisBorder: {
             show: !1
         },
@@ -258,13 +260,13 @@ var totalRevenueCardOptions = {
     },
     series: [{
         name: 'Revenue',
-        data: [40, 50, 65, 40, 40, 65, 40]
+        data: window.weeklyRevenue || [0,0,0,0,0,0,0]
     }],
     legend: {
         show: !1
     },
     xaxis: {
-        categories: ['S', 'M', 'T', 'W', 'T', 'F', 'S'],
+        categories: window.weeklyLabels || ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],
         axisBorder: {
             show: !1
         },
@@ -277,13 +279,13 @@ var totalRevenueCardOptions = {
             show: !1
         }
     },
-    tooltip: {
-        y: {
-          formatter: function (val) {
-            return "$" + val + " thousands"
-          }
-        }
-    },
+        tooltip: {
+                y: {
+                    formatter: function (val) {
+                        return "₹" + (val/100).toFixed(2);
+                    }
+                }
+        },
     responsive: [{
         breakpoint: 1025,
         options: {
@@ -295,8 +297,6 @@ var totalRevenueCardOptions = {
 };
 var totalRevenueCard = new ApexCharts(totalRevenueCardDiv, totalRevenueCardOptions);
 totalRevenueCard.render();
-
-
 
 // sales_analytic
 
@@ -423,7 +423,7 @@ function fetchAndRenderSalesAnalytic(type = 'week') {
 fetchAndRenderSalesAnalytic('week');
 
 // sales_funnel
-var options = {
+var TourLiveCardOptions = {
     chart: {
         height: 120,
         parentHeightOffset: 0,
@@ -489,10 +489,8 @@ var options = {
     }],
 };
 
-var chart = new ApexCharts(document.querySelector("#sales_funnel"), options);
-chart.render();
-
-
+var TourLiveCard = new ApexCharts(TourLiveCardDiv, TourLiveCardOptions);
+TourLiveCard.render();
 
 //
 // GRADIENT CIRCULAR CHART

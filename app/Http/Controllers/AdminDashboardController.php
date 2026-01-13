@@ -24,32 +24,45 @@ class AdminDashboardController extends Controller
         })->count();
         $liveTours = Booking::whereNotNull('tour_final_link')->count();
         $totalRevenue = PaymentHistory::where('status', 'completed')->sum('amount');
-        
-        // Fetch monthly data for this month (current month)
+
+        // Weekly frequency data (Sunday to Saturday)
+        $startOfWeek = now()->startOfWeek();
+        $weekLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+        $weeklyProperties = [];
+        $weeklyCustomers = [];
+        $weeklyTours = [];
+        $weeklyRevenue = [];
+        for ($i = 0; $i < 7; $i++) {
+            $date = $startOfWeek->copy()->addDays($i)->format('Y-m-d');
+            $weeklyProperties[] = Booking::whereDate('created_at', $date)->count();
+            $weeklyCustomers[] = User::whereHas('roles', function($q){
+                $q->where('name', 'customer');
+            })->whereDate('created_at', $date)->count();
+            $weeklyTours[] = Booking::whereNotNull('tour_final_link')->whereDate('created_at', $date)->count();
+            $weeklyRevenue[] = PaymentHistory::where('status', 'completed')->whereDate('created_at', $date)->sum('amount');
+        }
+
+        // Calculate monthly data for this month (current month)
         $currentMonth = now()->month;
         $currentYear = now()->year;
-        $currentWeek = now()->weekOfMonth;
         $daysInMonth = now()->daysInMonth;
-        
-        // Get daily bookings for current month
+
         $monthlyBookings = [];
         $monthlyCustomers = [];
-        
         for ($day = 1; $day <= $daysInMonth; $day++) {
             $date = sprintf('%04d-%02d-%02d', $currentYear, $currentMonth, $day);
-            
             $monthlyBookings[] = Booking::whereDate('created_at', $date)->count();
             $monthlyCustomers[] = User::whereHas('roles', function($q){
                 $q->where('name', 'customer');
             })->whereDate('created_at', $date)->count();
         }
-        
+
         // Calculate total earning for this month
         $monthlyEarning = PaymentHistory::where('status', 'completed')
             ->whereMonth('created_at', $currentMonth)
             ->whereYear('created_at', $currentYear)
             ->sum('amount');
-        
+
         // Fetch latest transactions
         $latestTransactions = PaymentHistory::with(['user', 'booking'])
             ->whereMonth('created_at', $currentMonth)
@@ -57,14 +70,19 @@ class AdminDashboardController extends Controller
             ->orderBy('created_at', 'desc')
             ->limit(7)
             ->get();
-        
-        // response fofr admin user    
+
         return view('admin.dashboard',[
             'title' => $title,
             'totalProperties' => $totalProperties,
             'totalCustomers' => $totalCustomers,
             'liveTours' => $liveTours,
             'totalRevenue' => $totalRevenue,
+
+            'weeklyLabels' => $weekLabels,
+            'weeklyProperties' => $weeklyProperties,
+            'weeklyCustomers' => $weeklyCustomers,
+            'weeklyTours' => $weeklyTours,
+            'weeklyRevenue' => $weeklyRevenue,
 
             'monthlyBookings' => $monthlyBookings,
             'monthlyCustomers' => $monthlyCustomers,
@@ -95,30 +113,46 @@ class AdminDashboardController extends Controller
         })->count();
         $liveTours = Booking::whereNotNull('tour_final_link')->count();
         $totalRevenue = PaymentHistory::where('status', 'success')->sum('amount');
-        
+
+        // Weekly frequency data (Sunday to Saturday)
+        $startOfWeek = now()->startOfWeek();
+        $weekLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        $weeklyProperties = [];
+        $weeklyCustomers = [];
+        $weeklyTours = [];
+        $weeklyRevenue = [];
+        for ($i = 0; $i < 7; $i++) {
+            $date = $startOfWeek->copy()->addDays($i)->format('Y-m-d');
+            $weeklyProperties[] = Booking::whereDate('created_at', $date)->count();
+            $weeklyCustomers[] = User::whereHas('roles', function($q){
+                $q->where('name', 'customer');
+            })->whereDate('created_at', $date)->count();
+            $weeklyTours[] = Booking::whereNotNull('tour_final_link')->whereDate('created_at', $date)->count();
+            $weeklyRevenue[] = PaymentHistory::where('status', 'success')->whereDate('created_at', $date)->sum('amount');
+        }
+
         // Fetch monthly data for this month (current month)
         $currentMonth = now()->month;
         $currentYear = now()->year;
         $daysInMonth = now()->daysInMonth;
-        
+
         // Get daily bookings for current month
         $monthlyBookings = [];
         $monthlyCustomers = [];
         for ($day = 1; $day <= $daysInMonth; $day++) {
             $date = sprintf('%04d-%02d-%02d', $currentYear, $currentMonth, $day);
-            
             $monthlyBookings[] = Booking::whereDate('created_at', $date)->count();
             $monthlyCustomers[] = User::whereHas('roles', function($q){
                 $q->where('name', 'customer');
             })->whereDate('created_at', $date)->count();
         }
-        
+
         // Calculate total earning for this month
         $monthlyEarning = PaymentHistory::where('status', 'success')
             ->whereMonth('created_at', $currentMonth)
             ->whereYear('created_at', $currentYear)
             ->sum('amount');
-        
+
         // Fetch latest transactions
         $latestTransactions = PaymentHistory::with(['user', 'booking'])
             ->whereMonth('created_at', $currentMonth)
@@ -126,7 +160,7 @@ class AdminDashboardController extends Controller
             ->orderBy('created_at', 'desc')
             ->limit(7)
             ->get();
-        
+
         // All other roles (admin, tour_manager, seo_manager, etc.) can access admin dashboard
         return view('admin.dashboard',[
             'title' => $title,
@@ -134,6 +168,13 @@ class AdminDashboardController extends Controller
             'totalCustomers' => $totalCustomers,
             'liveTours' => $liveTours,
             'totalRevenue' => $totalRevenue,
+
+            'weeklyLabels' => $weekLabels,
+            'weeklyProperties' => $weeklyProperties,
+            'weeklyCustomers' => $weeklyCustomers,
+            'weeklyTours' => $weeklyTours,
+            'weeklyRevenue' => $weeklyRevenue,
+
             'monthlyBookings' => $monthlyBookings,
             'monthlyCustomers' => $monthlyCustomers,
             'monthlyEarning' => $monthlyEarning,

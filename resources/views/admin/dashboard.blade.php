@@ -271,7 +271,7 @@
                         </button>
                     </div>
 
-                    <div id="sales_funnel" class="apex-charts mt-4"></div>
+                    <div id="tour_live_card" class="apex-charts mt-4"></div>
                 </div>
                 <div class="card-footer border-top d-flex align-items-center justify-content-between">
                     <p class="text-muted fw-medium fs-15 mb-0"><span
@@ -500,6 +500,11 @@
 
 @section('script')
     <script>
+        window.weeklyLabels = @json($weeklyLabels);
+        window.weeklyProperties = @json($weeklyProperties);
+        window.weeklyCustomers = @json($weeklyCustomers);
+        window.weeklyTours = @json($weeklyTours);
+        window.weeklyRevenue = @json($weeklyRevenue);
         window.monthlyBookings = @json($monthlyBookings);
         window.monthlyCustomers = @json($monthlyCustomers);
         window.daysInMonth = {{ $daysInMonth }};
