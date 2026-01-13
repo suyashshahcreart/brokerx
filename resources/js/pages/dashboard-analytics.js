@@ -5,18 +5,22 @@
  */
 
 import ApexCharts from "apexcharts/dist/apexcharts";
-import { event } from "jquery";
-
 window.ApexCharts = ApexCharts
-
 import jsVectorMap from 'jsvectormap'
 import 'jsvectormap/dist/maps/world-merc.js'
 import 'jsvectormap/dist/maps/world.js'
 
 
+// top section details booking, tours, customer, revenue  ->  CARDS;
+const totalPropertyDiv = document.getElementById('total_property_card'); 
+const liveTrousCardDiv = document.getElementById('live_tours_card');
+const totalcustomerCardDiv = document.getElementById('total_customer_card');
+const totalRevenueCardDiv = document.getElementById('total_revenue_card');
+
+// sales_analytic and Revenue Chart section;
 const salesAnalyticDiv = document.getElementById('sales_analytic');
-// total_customers
-var options = {
+
+var totalPropertyCardOptions = {
     chart: {
         height: 95,
         parentHeightOffset: 0,
@@ -81,11 +85,10 @@ var options = {
         }
     }],
 };
-var chart = new ApexCharts(document.querySelector("#total_customers"), options);
-chart.render();
+var totalPropertyCard = new ApexCharts(totalPropertyDiv, totalPropertyCardOptions);
+totalPropertyCard.render();
 
-// invoiced_customers
-var options = {
+var liveToursCardOptions = {
     chart: {
         height: 95,
         parentHeightOffset: 0,
@@ -150,11 +153,10 @@ var options = {
         }
     }],
 };
-var chart = new ApexCharts(document.querySelector("#invoiced_customers"), options);
-chart.render();
+var liveToursCard = new ApexCharts(liveTrousCardDiv, liveToursCardOptions);
+liveToursCard.render();
 
-// new_sale
-var options = {
+var totalCustomerCardOptions = {
     chart: {
         height: 95,
         parentHeightOffset: 0,
@@ -219,12 +221,10 @@ var options = {
         }
     }],
 };
-var chart = new ApexCharts(document.querySelector("#new_sale"), options);
-chart.render();
+var totalCustomerCard = new ApexCharts(totalcustomerCardDiv, totalCustomerCardOptions);
+totalCustomerCard.render();
 
-// invoiced_sales
-
-var options = {
+var totalRevenueCardOptions = {
     chart: {
         height: 95,
         parentHeightOffset: 0,
@@ -293,8 +293,8 @@ var options = {
         }
     }],
 };
-var chart = new ApexCharts(document.querySelector("#invoiced_sales"), options);
-chart.render();
+var totalRevenueCard = new ApexCharts(totalRevenueCardDiv, totalRevenueCardOptions);
+totalRevenueCard.render();
 
 
 

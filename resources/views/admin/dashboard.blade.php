@@ -2,6 +2,7 @@
 
 @section('content')
     <div class="row">
+        <!-- propert count caard -->
         <div class="col-md-6 col-xl-3">
             <div class="card">
                 <div class="card-body">
@@ -15,12 +16,13 @@
                             <h3 class="text-dark fw-bold d-flex align-items-center gap-2 mb-0">{{ number_format($totalProperties) }}</h3>
                         </div> <!-- end col -->
                         <div class="col-6">
-                            <div id="total_customers" class="apex-charts"></div>
+                            <div id="total_property_card" class="apex-charts" ></div>
                         </div> <!-- end col -->
                     </div> <!-- end row-->
                 </div> <!-- end card body -->
             </div> <!-- end card -->
         </div> <!-- end col -->
+        <!-- live tour count card -->
         <div class="col-md-6 col-xl-3">
             <div class="card">
                 <div class="card-body">
@@ -34,12 +36,13 @@
                             <h3 class="text-dark fw-bold d-flex align-items-center gap-2 mb-0">{{ number_format($liveTours) }}</h3>
                         </div> <!-- end col -->
                         <div class="col-6 text-end">
-                            <div id="invoiced_customers" class="apex-charts"></div>
+                            <div id="live_tours_card" class="apex-charts"></div>
                         </div> <!-- end col -->
                     </div> <!-- end row-->
                 </div> <!-- end card body -->
             </div> <!-- end card -->
         </div> <!-- end col -->
+        <!-- total customer card -->
         <div class="col-md-6 col-xl-3">
             <div class="card">
                 <div class="card-body">
@@ -53,12 +56,13 @@
                             <h3 class="text-dark fw-bold d-flex align-items-center gap-2 mb-0">{{ number_format($totalCustomers) }}</h3>
                         </div> <!-- end col -->
                         <div class="col-6 text-end">
-                            <div id="new_sale" class="apex-charts"></div>
+                            <div id="total_customer_card" class="apex-charts"></div>
                         </div> <!-- end col -->
                     </div> <!-- end row-->
                 </div> <!-- end card body -->
             </div> <!-- end card -->
         </div> <!-- end col -->
+        <!-- total revenue -->
         <div class="col-md-6 col-xl-3">
             <div class="card">
                 <div class="card-body">
@@ -72,7 +76,7 @@
                             <h3 class="text-dark fw-bold d-flex align-items-center gap-2 mb-0">₹{{ number_format($totalRevenue / 100, 2) }}</h3>
                         </div> <!-- end col -->
                         <div class="col-6 text-end">
-                            <div id="invoiced_sales" class="apex-charts"></div>
+                            <div id="total_revenue_card" class="apex-charts"></div>
                         </div> <!-- end col -->
                     </div> <!-- end row-->
                 </div> <!-- end card body -->
@@ -234,7 +238,7 @@
          <div class="col-xl-4 col-lg-6">
             <div class="card">
                 <div class="card-header">
-                    <h4 class="card-title">Weekly Sales</h4>
+                    <h4 class="card-title">Tours Live</h4>
                 </div>
                 <div class="card-body">
                     <div id="carouselExampleCaptions" class="carousel slide" data-bs-ride="carousel">
@@ -271,7 +275,7 @@
                 </div>
                 <div class="card-footer border-top d-flex align-items-center justify-content-between">
                     <p class="text-muted fw-medium fs-15 mb-0"><span
-                            class="text-dark me-1">Total Property Seals : </span>5,746</p>
+                            class="text-dark me-1">Total Property Seals : </span>{{ number_format($liveTours) }}</p>
                     <div>
                         <a href="#!" class="btn btn-primary btn-sm">View More</a>
                     </div>
