@@ -5,6 +5,7 @@
  */
 
 import ApexCharts from "apexcharts/dist/apexcharts";
+import { event } from "jquery";
 
 window.ApexCharts = ApexCharts
 
@@ -12,8 +13,9 @@ import jsVectorMap from 'jsvectormap'
 import 'jsvectormap/dist/maps/world-merc.js'
 import 'jsvectormap/dist/maps/world.js'
 
-// total_customers
 
+const salesAnalyticDiv = document.getElementById('sales_analytic');
+// total_customers
 var options = {
     chart: {
         height: 95,
@@ -79,12 +81,10 @@ var options = {
         }
     }],
 };
-
 var chart = new ApexCharts(document.querySelector("#total_customers"), options);
 chart.render();
 
 // invoiced_customers
-
 var options = {
     chart: {
         height: 95,
@@ -154,7 +154,6 @@ var chart = new ApexCharts(document.querySelector("#invoiced_customers"), option
 chart.render();
 
 // new_sale
-
 var options = {
     chart: {
         height: 95,
@@ -301,140 +300,127 @@ chart.render();
 
 // sales_analytic
 
-var options = {
-    chart: {
-        height: 341,
-        type: "area",
+// Fetch and render sales analytic chart data from API
+function fetchAndRenderSalesAnalytic(type = 'week') {
+    const apiUrl = salesAnalyticDiv.dataset.apiUrl + '?type=' + type;
+    fetch(apiUrl)
+        .then(response => response.json())
+        .then(res => {
+            if (!res.success || !res.date) return;
+            const data = res.date;
+            const salesChartOptions = {
+                chart: {
+                    height: 420,
+                    type: "area",
+                    dropShadow: {
+                        enabled: true,
+                        opacity: 0.2,
+                        blur: 10,
+                        left: -7,
+                        top: 22,
+                    },
+                    toolbar: {
+                        show: false,
+                    },
+                },
+                colors: ["#604ae3", "#47ad94"],
+                dataLabels: {
+                    enabled: false,
+                },
+                stroke: {
+                    show: true,
+                    curve: "smooth",
+                    width: 2,
+                    lineCap: "square",
+                },
+                series: data.series,
+                labels: data.categories,
+                xaxis: {
+                    axisBorder: {
+                        show: false,
+                    },
+                    axisTicks: {
+                        show: false,
+                    },
+                    crosshairs: {
+                        show: true,
+                    },
+                    labels: {
+                        offsetX: 0,
+                        offsetY: 5,
+                        style: {
+                            fontSize: "12px",
+                            cssClass: "apexcharts-xaxis-title",
+                        },
+                    },
+                },
+                yaxis: {
+                    labels: {
+                        formatter: function (value, index) {
+                            return value >= 1000 ? (value / 1000).toFixed(1) + "K" : value.toFixed(0);
+                        },
+                        offsetX: -15,
+                        offsetY: 0,
+                        style: {
+                            fontSize: "12px",
+                            cssClass: "apexcharts-yaxis-title",
+                        },
+                    },
+                },
+                grid: {
+                    borderColor: "#191e3a",
+                    strokeDashArray: 5,
+                    xaxis: {
+                        lines: {
+                            show: true,
+                        },
+                    },
+                    yaxis: {
+                        lines: {
+                            show: false,
+                        },
+                    },
+                    padding: {
+                        top: 0,
+                        right: 0,
+                        bottom: 0,
+                        left: 5,
+                    },
+                },
+                legend: {
+                    show: false,
+                },
+                fill: {
+                    type: "gradient",
+                    gradient: {
+                        type: "vertical",
+                        shadeIntensity: 1,
+                        inverseColors: !1,
+                        opacityFrom: 0.12,
+                        opacityTo: 0.1,
+                        stops: [100, 100],
+                    },
+                },
+                responsive: [{
+                    breakpoint: 575,
+                    options: {
+                        legend: {
+                            offsetY: -50,
+                        },
+                    },
+                }],
+            };
+            if (window.salesAnalyticesChat) {
+                window.salesAnalyticesChat.updateOptions(salesChartOptions);
+            } else {
+                window.salesAnalyticesChat = new ApexCharts(salesAnalyticDiv, salesChartOptions);
+                window.salesAnalyticesChat.render();
+            }
+        });
+}
 
-        dropShadow: {
-            enabled: true,
-            opacity: 0.2,
-            blur: 10,
-            left: -7,
-            top: 22,
-        },
-        toolbar: {
-            show: false,
-        },
-    },
-    colors: ["#47ad94", "#604ae3"],
-    dataLabels: {
-        enabled: false,
-    },
-
-    stroke: {
-        show: true,
-        curve: "smooth",
-        width: 2,
-        lineCap: "square",
-    },
-    series: [{
-            name: "Expenses",
-            data: [
-                16800, 16800, 15500, 17000, 14800, 15500, 19000, 16000, 15000, 17000,
-                14000, 17000,
-            ],
-        },
-        {
-            name: "Income",
-            data: [
-                16500, 17500, 16200, 21500, 17300, 16000, 16000, 17000, 16000, 19000,
-                18000, 19000,
-            ],
-        },
-    ],
-    labels: [
-        "Jan",
-        "Feb",
-        "Mar",
-        "Apr",
-        "May",
-        "Jun",
-        "Jul",
-        "Aug",
-        "Sep",
-        "Oct",
-        "Nov",
-        "Dec",
-    ],
-    xaxis: {
-        axisBorder: {
-            show: false,
-        },
-        axisTicks: {
-            show: false,
-        },
-        crosshairs: {
-            show: true,
-        },
-        labels: {
-            offsetX: 0,
-            offsetY: 5,
-            style: {
-                fontSize: "12px",
-                cssClass: "apexcharts-xaxis-title",
-            },
-        },
-    },
-    yaxis: {
-        labels: {
-            formatter: function (value, index) {
-                return value / 1000 + "K";
-            },
-            offsetX: -15,
-            offsetY: 0,
-            style: {
-                fontSize: "12px",
-                cssClass: "apexcharts-yaxis-title",
-            },
-        },
-    },
-    grid: {
-        borderColor: "#191e3a",
-        strokeDashArray: 5,
-        xaxis: {
-            lines: {
-                show: true,
-            },
-        },
-        yaxis: {
-            lines: {
-                show: false,
-            },
-        },
-        padding: {
-            top: -50,
-            right: 0,
-            bottom: 0,
-            left: 5,
-        },
-    },
-    legend: {
-        show: false,
-    },
-
-    fill: {
-        type: "gradient",
-        gradient: {
-            type: "vertical",
-            shadeIntensity: 1,
-            inverseColors: !1,
-            opacityFrom: 0.12,
-            opacityTo: 0.1,
-            stops: [100, 100],
-        },
-    },
-    responsive: [{
-        breakpoint: 575,
-        options: {
-            legend: {
-                offsetY: -50,
-            },
-        },
-    }, ],
-};
-var chart = new ApexCharts(document.querySelector("#sales_analytic"), options);
-chart.render();
+// Initial load
+fetchAndRenderSalesAnalytic('week');
 
 // sales_funnel
 var options = {
@@ -619,6 +605,10 @@ class VectorMap {
                     name: "United States",
                     coords: [37.0902, -95.7129]
                 },
+                {
+                    name: "Ahmedabad",
+                    coords: [23.03,	72.58]
+                },
             ],
             markerStyle: {
                 initial: {
@@ -650,3 +640,14 @@ class VectorMap {
 document.addEventListener("DOMContentLoaded", function (e) {
     new VectorMap().init();
 });
+
+// sales_analytic
+const salesAnaliticDropdown = document.getElementById('sales-analytic-dropdown');
+salesAnaliticDropdown.addEventListener('click', function(event) {
+    const target = event.target;
+    if (target.classList.contains('dropdown-item')) {
+        event.preventDefault();
+        let type = target.dataset.type || 'week';
+        fetchAndRenderSalesAnalytic(type);
+    }
+})
