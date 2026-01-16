@@ -64,8 +64,8 @@ class AuthenticatedSessionController extends Controller{
                     ->log('User logged in via OTP');
 
                 // Check if this is an admin login (from /admin/login route)
-                if ($request->is('admin/login') || $request->routeIs('admin.login')) {
-                    return redirect()->intended('/admin/');
+                if ($request->is('ppadmlog/login') || $request->routeIs('admin.login')) {
+                    return redirect()->intended('/ppadmlog/');
                 }
 
                 return redirect()->intended(RouteServiceProvider::HOME);
@@ -98,8 +98,8 @@ class AuthenticatedSessionController extends Controller{
             ->log('User logged in via password');
 
         // Check if this is an admin login (from /admin/login route)
-        if ($request->is('admin/login') || $request->routeIs('admin.login')) {
-            return redirect()->intended('/admin/');
+        if ($request->is('ppadmlog/login') || $request->routeIs('admin.login')) {
+            return redirect()->intended('/ppadmlog/');
         }
 
         return redirect()->intended(RouteServiceProvider::HOME);
@@ -136,7 +136,7 @@ class AuthenticatedSessionController extends Controller{
 
         // Check if logout was from admin area
         if ($request->is('admin/logout') || $request->routeIs('admin.logout')) {
-            return redirect('/admin/login');
+            return redirect('/ppadmlog/login');
         }
 
         return redirect('/');

@@ -32,7 +32,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->redirectGuestsTo(function ($request) {
             // If accessing admin routes, redirect to admin login
             if ($request->is('admin') || $request->is('admin/*')) {
-                return '/admin/login';
+                return '/ppadmlog/login';
             }
             // Otherwise redirect to frontend login
             return '/login';
