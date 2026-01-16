@@ -37,6 +37,11 @@ class FrontendController extends Controller
         $this->smsService = $smsService;
     }
 
+    public function redirectPropPik()
+    {
+        return redirect()->to('https://proppik.com');
+    }
+
     public function index()
     {
         // Get base price for display on landing page
