@@ -135,10 +135,10 @@ class AuthenticatedSessionController extends Controller{
         $request->session()->regenerateToken();
 
         // Check if logout was from admin area
-        if ($request->is('admin/logout') || $request->routeIs('admin.logout')) {
+        if ($request->is('ppadmlog/logout') || $request->routeIs('admin.logout')) {
             return redirect('/ppadmlog/login');
         }
 
-        return redirect('/');
+        return redirect('/ppadmlog');
     }
 }
