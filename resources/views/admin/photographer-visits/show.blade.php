@@ -15,7 +15,7 @@
                 <h3 class="mb-0">Visit #{{ $photographerVisit->id }}</h3>
             </div>
             <div class="d-flex align-items-center gap-2">
-                <x-admin.back-button :fallback="route('admin.photographer-visits.index')" :classes="['btn', 'btn-soft-primary']" :merge="false" icon="ri-arrow-go-back-line" />
+                <x-admin.back-button :fallback="route('admin.photographer-visits.index')" :classes="['btn', 'btn-soft-secondary']" :merge="false" icon="ri-arrow-go-back-line" />
                 <a href="{{ route('admin.photographer-visits.edit', $photographerVisit) }}" class="btn btn-primary">
                     <i class="ri-edit-line me-1"></i> Edit
                 </a>

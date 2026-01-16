@@ -226,11 +226,11 @@
                     <h3 class="mb-0">Booking #{{ $booking->id }} ({{ $booking->tour_code }})</h3>
                 </div>
                 <div class="d-flex align-items-center gap-2">
-                    <x-admin.back-button :fallback="route('admin.bookings.index')" :classes="['btn', 'btn-soft-primary']"
+                    <x-admin.back-button :fallback="route('admin.bookings.index')" :classes="['btn', 'btn-soft-secondary']"
                         :merge="false" icon="solar:arrow-left-broken" />
                     
                     @if($booking->tours()->exists() && auth()->user()->can('tour_manager_edit'))
-                        <a href="{{ route('admin.tour-manager.upload', $booking) }}" class="btn btn-primary" data-bs-toggle="tooltip" title="Upload & Manage Tour Assets">
+                        <a href="{{ route('admin.tour-manager.upload', $booking) }}" class="btn btn-warning" data-bs-toggle="tooltip" title="Upload & Manage Tour Assets">
                             <iconify-icon icon="solar:upload-minimalistic-broken" class="align-middle me-1"></iconify-icon> Upload Tour
                         </a>
                     @endif

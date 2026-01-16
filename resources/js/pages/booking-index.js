@@ -140,14 +140,7 @@ document.addEventListener('DOMContentLoaded', function () {
 			}
 		},
 		lengthMenu: [10, 25, 50, 100],
-		responsive: true,
-		drawCallback: function () {
-			// Re-initialize Bootstrap tooltips for dynamically loaded buttons
-			const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-			tooltipTriggerList.map(function (tooltipTriggerEl) {
-				return new bootstrap.Tooltip(tooltipTriggerEl);
-			});
-		}
+		responsive: true
 	});
 
 	// Bind filter buttons

@@ -1,5 +1,5 @@
 <?php
-
+use App\Http\Controllers\Admin\Api\AdminDashboardController;
 use App\Http\Controllers\Admin\BookingController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -57,6 +57,13 @@ Route::get('/booking/tour-code/{tour_code}', [\App\Http\Controllers\Api\TourAcce
 Route::middleware('auth')->get('/user', function (Request $request) {
     return $request->user();
 });
+
+// admim dashboard chart data
+Route::group(['prefix' => 'admin/dashboard', 'middleware' => ['auth','web','role:admin']], function () {
+    Route::get('/Booking-Analytic-chart-data', [AdminDashboardController::class, 'BookingsAnalyticChartData'])->name('admin.dashboard.booking-chart-data');
+    Route::get('/Sales-Analytic-chart-data', [AdminDashboardController::class, 'SalesAnalyticChartData'])->name('admin.dashboard.sales-chart-data');
+});
+
 
 // Protected Settings API routes - using web auth for same-origin requests
 Route::middleware(['web', 'auth'])->group(function () {

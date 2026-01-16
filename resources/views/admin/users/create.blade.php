@@ -46,7 +46,6 @@
                             <div class="mb-3">
                                 <label for="firstname" class="form-label">First Name <span class="text-danger">*</span></label>
                                 <input type="text" name="firstname" id="firstname" value="{{ old('firstname') }}"
-                                    placeholder="e.g, Deepesh"
                                     class="form-control @error('firstname') is-invalid @enderror"
                                     required minlength="2" maxlength="255">
                                 <div class="invalid-feedback">
@@ -65,7 +64,6 @@
                             <div class="mb-3">
                                 <label for="lastname" class="form-label">Last Name <span class="text-danger">*</span></label>
                                 <input type="text" name="lastname" id="lastname" value="{{ old('lastname') }}"
-                                    placeholder="e.g, Singh"
                                     class="form-control @error('lastname') is-invalid @enderror"
                                     required minlength="2" maxlength="255">
                                 <div class="invalid-feedback">
@@ -86,7 +84,7 @@
                             <div class="mb-3">
                                 <label for="mobile" class="form-label">Mobile <span class="text-danger">*</span></label>
                                 <input type="tel" name="mobile" id="mobile" value="{{ old('mobile') }}"
-                                    class="form-control @error('mobile') is-invalid @enderror" placeholder="e.g, 9876543210"
+                                    class="form-control @error('mobile') is-invalid @enderror"
                                     required inputmode="numeric" pattern="[0-9]{10}" minlength="10" maxlength="10">
                                 <div class="invalid-feedback">
                                     @error('mobile')
@@ -104,7 +102,7 @@
                             <div class="mb-3">
                                 <label for="email" class="form-label">Email <span class="text-danger">*</span></label>
                                 <input type="email" name="email" id="email" value="{{ old('email') }}"
-                                    class="form-control @error('email') is-invalid @enderror" placeholder="e.g, example@email.com"
+                                    class="form-control @error('email') is-invalid @enderror"
                                     required maxlength="255">
                                 <div class="invalid-feedback">
                                     @error('email')
@@ -122,7 +120,7 @@
                     <div class="mb-3">
                         <label for="password" class="form-label">Password <span class="text-danger">*</span></label>
                         <input type="password" name="password" id="password" 
-                            class="form-control @error('password') is-invalid @enderror" placeholder="e.g, Pass@123#"
+                            class="form-control @error('password') is-invalid @enderror" 
                             required minlength="6">
                         <div class="invalid-feedback">
                             @error('password')
@@ -137,7 +135,7 @@
                     </div>
                     @if($canManageRoles)
                     <div class="mb-3">
-                        <label class="form-label">Roles:<span class="mt-1 fs-6 text-muted" >Assigne Role to the User.</span></label>
+                        <label class="form-label">Roles</label>
                         <div class="row g-2">
                             @forelse($roles as $role)
                                 <div class="col-lg-4">

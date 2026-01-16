@@ -1,99 +1,94 @@
 @extends('admin.layouts.vertical', ['title' => 'Roles', 'subTitle' => 'System'])
 
 @section('content')
-    <div class="row">
-        <div class="col-12">
-            @if(session('role_delete_warning'))
-                @php $warning = session('role_delete_warning'); @endphp
-                <div class="alert alert-warning alert-dismissible fade show" role="alert">
-                    <div class="d-flex flex-column gap-2">
-                        <div>
-                            <strong>{{ $warning['role_name'] }}</strong> is currently assigned to
-                            <strong>{{ $warning['user_count'] }}</strong> user(s).
-                            Please reassign or remove the role from those users before deleting, or proceed to delete and
-                            automatically reassign those users to the <strong>broker</strong> role.
-                        </div>
-                        <div class="d-flex gap-2">
-                            <form method="POST" action="{{ route('admin.roles.destroy', $warning['role_id']) }}">
-                                @csrf
-                                @method('DELETE')
-                                <input type="hidden" name="force" value="1">
-                                <button type="submit" class="btn btn-danger btn-sm">
-                                    <i class="ri-delete-bin-line me-1"></i>Delete Anyway
-                                </button>
-                            </form>
-                            <a href="{{ route('admin.roles.index') }}" class="btn btn-outline-secondary btn-sm">
-                                Cancel
-                            </a>
-                        </div>
+<div class="row">
+    <div class="col-12">
+        @if(session('role_delete_warning'))
+            @php $warning = session('role_delete_warning'); @endphp
+            <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                <div class="d-flex flex-column gap-2">
+                    <div>
+                        <strong>{{ $warning['role_name'] }}</strong> is currently assigned to <strong>{{ $warning['user_count'] }}</strong> user(s).
+                        Please reassign or remove the role from those users before deleting, or proceed to delete and automatically reassign those users to the <strong>broker</strong> role.
                     </div>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            @endif
-
-            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
-                <div>
-                    <nav aria-label="breadcrumb" class="mb-0">
-                        <ol class="breadcrumb mb-0">
-                            <li class="breadcrumb-item"><a href="{{ route('admin.index') }}">Home</a></li>
-                            <li class="breadcrumb-item"><a href="#">System</a></li>
-                            <li class="breadcrumb-item active" aria-current="page">Roles</li>
-                        </ol>
-                    </nav>
-                    <h3 class="mb-0">Roles Management</h3>
-                </div>
-                <div class="d-flex align-items-center gap-2">
-                    <x-admin.back-button :classes="['btn', 'btn-soft-secondary']" :merge="false"
-                        icon="ri-arrow-go-back-line" />
-                    @if(!empty($canCreate) && $canCreate)
-                        <a href="{{ route('admin.roles.create') }}" class="btn btn-primary" title="Add Role"
-                            data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Add Role">
-                            <i class="ri-shield-user-line me-1"></i> New Role
+                    <div class="d-flex gap-2">
+                        <form method="POST" action="{{ route('admin.roles.destroy', $warning['role_id']) }}">
+                            @csrf
+                            @method('DELETE')
+                            <input type="hidden" name="force" value="1">
+                            <button type="submit" class="btn btn-danger btn-sm">
+                                <i class="ri-delete-bin-line me-1"></i>Delete Anyway
+                            </button>
+                        </form>
+                        <a href="{{ route('admin.roles.index') }}" class="btn btn-outline-secondary btn-sm">
+                            Cancel
                         </a>
-                    @endif
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        @endif
+
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+            <div>
+                <nav aria-label="breadcrumb" class="mb-0">
+                    <ol class="breadcrumb mb-0">
+                        <li class="breadcrumb-item"><a href="{{ route('admin.index') }}">Home</a></li>
+                        <li class="breadcrumb-item"><a href="#">System</a></li>
+                        <li class="breadcrumb-item active" aria-current="page">Roles</li>
+                    </ol>
+                </nav>
+                <h3 class="mb-0">Roles Management</h3>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <x-admin.back-button :classes="['btn', 'btn-soft-secondary']" :merge="false" icon="ri-arrow-go-back-line" />
+                @if(!empty($canCreate) && $canCreate)
+                    <a href="{{ route('admin.roles.create') }}" class="btn btn-primary" title="Add Role" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Add Role">
+                        <i class="ri-shield-user-line me-1"></i> New Role
+                    </a>
+                @endif
+            </div>
+        </div>
+
+        <div class="card panel-card border-primary border-top" data-panel-card>
+            <div class="card-header d-flex justify-content-between align-items-start flex-wrap gap-2">
+                <div>
+                    <h4 class="card-title mb-1">Roles List</h4>
+                    <p class="text-muted mb-0">Review roles, assigned permissions, and user counts</p>
+                </div>
+                <div class="panel-actions d-flex gap-2">
+                    <button type="button" class="btn btn-light border" data-panel-action="refresh" title="Refresh">
+                        <i class="ri-refresh-line"></i>
+                    </button>
+                    <button type="button" class="btn btn-light border" data-panel-action="collapse" title="Collapse">
+                        <i class="ri-arrow-up-s-line"></i>
+                    </button>
+                    <button type="button" class="btn btn-light border" data-panel-action="fullscreen" title="Fullscreen">
+                        <i class="ri-fullscreen-line"></i>
+                    </button>
+                    <button type="button" class="btn btn-light border" data-panel-action="close" title="Close">
+                        <i class="ri-close-line"></i>
+                    </button>
                 </div>
             </div>
-
-            <div class="card panel-card border-primary border-top" data-panel-card>
-                <div class="card-header d-flex justify-content-between align-items-start flex-wrap gap-2">
-                    <div>
-                        <h4 class="card-title mb-1">Roles List</h4>
-                        <p class="text-muted mb-0">Review roles, assigned permissions, and user counts</p>
-                    </div>
-                    <div class="panel-actions d-flex gap-2">
-                        <button type="button" class="btn btn-light border" data-panel-action="refresh" title="Refresh">
-                            <i class="ri-refresh-line"></i>
-                        </button>
-                        <button type="button" class="btn btn-light border" data-panel-action="collapse" title="Collapse">
-                            <i class="ri-arrow-up-s-line"></i>
-                        </button>
-                        <button type="button" class="btn btn-light border" data-panel-action="fullscreen"
-                            title="Fullscreen">
-                            <i class="ri-fullscreen-line"></i>
-                        </button>
-                        <button type="button" class="btn btn-light border" data-panel-action="close" title="Close">
-                            <i class="ri-close-line"></i>
-                        </button>
-                    </div>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0" id="roles-table">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Name</th>
-                                    <th>Permissions</th>
-                                    <th>Users</th>
-                                    <th class="text-end">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody></tbody>
-                        </table>
-                    </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" id="roles-table">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Name</th>
+                                <th>Permissions</th>
+                                <th>Users</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
                 </div>
             </div>
         </div>
     </div>
+</div>
 @endsection
 
 @section('script')
@@ -129,14 +124,7 @@
                     searchPlaceholder: 'Search roles...'
                 },
                 lengthMenu: [10, 25, 50, 100],
-                responsive: true,
-                drawCallback: function () {
-                    // Re-initialize tooltips for dynamically rendered action buttons
-                    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-                    tooltipTriggerList.map(function (tooltipTriggerEl) {
-                        return new bootstrap.Tooltip(tooltipTriggerEl);
-                    });
-                }
+                responsive: true
             });
 
             table.on('click', '.btn-delete-role', function (event) {
@@ -249,3 +237,5 @@
         });
     </script>
 @endsection
+
+

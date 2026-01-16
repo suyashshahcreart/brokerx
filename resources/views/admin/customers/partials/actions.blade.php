@@ -13,7 +13,7 @@
         @endif
         @if($canEdit)
             <a href="{{ route('admin.customer.edit', $user) }}" class="btn btn-sm btn-soft-info" data-bs-toggle="tooltip" data-bs-placement="top" title="Edit Customer Details">
-                <iconify-icon icon="solar:pen-new-square-broken" class="align-middle fs-18"></iconify-icon>
+                <iconify-icon icon="solar:pen-2-broken" class="align-middle fs-18"></iconify-icon>
             </a>
         @endif
         @if($canDelete)
@@ -22,7 +22,7 @@
                 @method('DELETE')
                 <button type="button" class="btn btn-sm btn-soft-danger btn-delete-user" data-user-name="{{ $user->name }}"
                     data-has-admin-role="{{ $user->hasRole('admin') ? '1' : '0' }}" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete Customer">
-                    <iconify-icon icon="solar:trash-bin-minimalistic-broken" class="align-middle fs-18"></iconify-icon>
+                    <iconify-icon icon="solar:trash-bin-minimalistic-2-broken" class="align-middle fs-18"></iconify-icon>
                 </button>
             </form>
         @endif

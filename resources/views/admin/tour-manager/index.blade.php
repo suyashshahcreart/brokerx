@@ -68,7 +68,7 @@
 
                         <!-- DataTable -->
                         <div class="table-responsive">
-                            <table id="bookings-table" class="table table-hover dt-responsive nowrap w-100">
+                            <table id="bookings-table" class="table table-hover table-bordered dt-responsive nowrap w-100">
                                 <thead class="table-light">
                                     <tr>
                                         <th>Booking</th>
