@@ -63,9 +63,18 @@ class AuthenticatedSessionController extends Controller{
                     ])
                     ->log('User logged in via OTP');
 
-                // Check if this is an admin login (from /admin/login route)
-                if ($request->is('ppadmlog/login') || $request->routeIs('admin.login')) {
-                    return redirect()->intended('/ppadmlog/');
+                // Check if this is an admin login (from /login or /ppadmlog/login route)
+                $referer = $request->header('referer', '');
+                $isAdminLogin = $request->is('ppadmlog/login') 
+                    || $request->is('login')
+                    || $request->routeIs('admin.login') 
+                    || $request->path() === 'ppadmlog/login'
+                    || $request->path() === 'login'
+                    || str_contains($referer, 'ppadmlog/login')
+                    || (str_contains($referer, '/login') && !str_contains($referer, 'photographer'));
+                
+                if ($isAdminLogin) {
+                    return redirect()->intended('/ppadmlog');
                 }
 
                 return redirect()->intended(RouteServiceProvider::HOME);
@@ -97,9 +106,18 @@ class AuthenticatedSessionController extends Controller{
             ])
             ->log('User logged in via password');
 
-        // Check if this is an admin login (from /admin/login route)
-        if ($request->is('ppadmlog/login') || $request->routeIs('admin.login')) {
-            return redirect()->intended('/ppadmlog/');
+        // Check if this is an admin login (from /login or /ppadmlog/login route)
+        $referer = $request->header('referer', '');
+        $isAdminLogin = $request->is('ppadmlog/login') 
+            || $request->is('login')
+            || $request->routeIs('admin.login') 
+            || $request->path() === 'ppadmlog/login'
+            || $request->path() === 'login'
+            || str_contains($referer, 'ppadmlog/login')
+            || (str_contains($referer, '/login') && !str_contains($referer, 'photographer'));
+        
+        if ($isAdminLogin) {
+            return redirect()->intended('/ppadmlog');
         }
 
         return redirect()->intended(RouteServiceProvider::HOME);
