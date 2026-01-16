@@ -1,6 +1,6 @@
 /**
- * Theme: Lahomes - Real Estate Admin Dashboard Template
- * Author: Techzaa
+ * Theme: PROP PIK - Virtual Web Reality Admin Dashboard
+ * Author: CreArt Solutions Pvt Ltd
  * Module/App: Dashboard
  */
 
@@ -455,16 +455,17 @@ function fetchAndRenderSalesAnalytic(type = 'week') {
                         show: false,
                     },
                 },
-                colors: ["#47ad94"],
-                dataLabels: {
+                colors: ["#47ad94","#604ae3"],
+                dataLabels: {   
                     enabled: false,
                 },
                 stroke: {
                     show: true,
                     curve: "smooth",
-                    width: 2,
+                    width: [2, 2],
                     lineCap: "round",
                     lineJoin: "round",
+                    dashArray: [0, 5],
                 },
                 series: data.series,
                 labels: data.categories,
@@ -496,7 +497,7 @@ function fetchAndRenderSalesAnalytic(type = 'week') {
                 yaxis: {
                     labels: {
                         formatter: function (value, index) {
-                            return "₹" + (value >= 100000 ? (value / 100000).toFixed(0) + "L" : (value / 1000) + "K");
+                            return "₹" + (value >= 100000 ? (value / 100000).toFixed(0) + "L" : (value / 1000).toFixed(1) + "K");
                         },
                         offsetX: -15,
                         offsetY: 0,
@@ -527,7 +528,9 @@ function fetchAndRenderSalesAnalytic(type = 'week') {
                     },
                 },
                 legend: {
-                    show: false,
+                    show: true,
+                    position: 'top',
+                    horizontalAlign: 'right',
                 },
                 fill: {
                     type: "gradient",
@@ -544,7 +547,7 @@ function fetchAndRenderSalesAnalytic(type = 'week') {
                     theme: "light",
                     y: {
                         formatter: function (value) {
-                            return "₹" + (value).toFixed(2);
+                            return "₹" + (value).toFixed(0);
                         }
                     }
                 },

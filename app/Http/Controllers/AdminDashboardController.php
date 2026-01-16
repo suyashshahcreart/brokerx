@@ -27,7 +27,7 @@ class AdminDashboardController extends Controller
 
         // Weekly frequency data (Sunday to Saturday)
         $startOfWeek = now()->startOfWeek();
-        $weekLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+        $weekLabels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
         $weeklyProperties = [];
         $weeklyCustomers = [];
         $weeklyTours = [];

@@ -17,7 +17,7 @@ class AdminDashboardController extends Controller
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
-    public function BookingsAnalyticChartData(Request $request)
+public function BookingsAnalyticChartData(Request $request)
     {
         $type = $request->get('type', 'week');
 
@@ -180,34 +180,55 @@ class AdminDashboardController extends Controller
     }
 
     /**
-     * WEEK → group by day for sales
+     * WEEK → last 6 days + today for sales (with previous week comparison)
      */
     private function weekSalesData()
     {
-        $start = now()->startOfWeek();
-        $end = now()->endOfWeek();
+        // Current week: last 6 days + today
+        $currentStart = now()->subDays(6)->startOfDay();
+        $currentEnd = now()->endOfDay();
 
-        $labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+        // Previous week: 13 days ago to 7 days ago
+        $previousStart = now()->subDays(13)->startOfDay();
+        $previousEnd = now()->subDays(7)->endOfDay();
 
-        $sales = Booking::whereBetween('created_at', [$start, $end])
-            ->selectRaw('DAYOFWEEK(created_at) as day, SUM(COALESCE(price, 0)) as total')
-            ->groupBy('day')
-            ->pluck('total', 'day');
+        // Generate labels for the last 7 days
+        $labels = [];
+        for ($i = 6; $i >= 0; $i--) {
+            $date = now()->subDays($i);
+            $labels[] = $date->format('D');
+        }
 
-        return $this->normalizeSalesWeek($labels, $sales);
+        // Get current week data
+        $currentSales = Booking::whereBetween('created_at', [$currentStart, $currentEnd])
+            ->selectRaw('DATE(created_at) as date, SUM(COALESCE(price, 0)) as total')
+            ->groupBy('date')
+            ->pluck('total', 'date');
+
+        // Get previous week data
+        $previousSales = Booking::whereBetween('created_at', [$previousStart, $previousEnd])
+            ->selectRaw('DATE(created_at) as date, SUM(COALESCE(price, 0)) as total')
+            ->groupBy('date')
+            ->pluck('total', 'date');
+
+        return $this->normalizeSalesWeekComparison($labels, $currentSales, $previousSales);
     }
 
     /**
-     * MONTH → group by week for sales
+     * MONTH → group by week for sales (with previous month comparison)
      */
     private function monthSalesData()
     {
-        $start = now()->startOfMonth();
-        $end = now()->endOfMonth();
+        $currentStart = now()->startOfMonth();
+        $currentEnd = now()->endOfMonth();
+
+        $previousStart = now()->subMonth()->startOfMonth();
+        $previousEnd = now()->subMonth()->endOfMonth();
 
         $labels = ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5'];
 
-        $sales = Booking::whereBetween('created_at', [$start, $end])
+        // Current month sales
+        $currentSales = Booking::whereBetween('created_at', [$currentStart, $currentEnd])
             ->selectRaw('
                 WEEK(created_at, 1) - 
                 WEEK(DATE_SUB(created_at, INTERVAL DAYOFMONTH(created_at)-1 DAY), 1) + 1 as week,
@@ -216,64 +237,111 @@ class AdminDashboardController extends Controller
             ->groupBy('week')
             ->pluck('total', 'week');
 
-        return $this->normalizeSalesRange($labels, $sales);
+        // Previous month sales
+        $previousSales = Booking::whereBetween('created_at', [$previousStart, $previousEnd])
+            ->selectRaw('
+                WEEK(created_at, 1) - 
+                WEEK(DATE_SUB(created_at, INTERVAL DAYOFMONTH(created_at)-1 DAY), 1) + 1 as week,
+                SUM(COALESCE(price, 0)) as total
+            ')
+            ->groupBy('week')
+            ->pluck('total', 'week');
+
+        return $this->normalizeSalesMonthComparison($labels, $currentSales, $previousSales);
     }
 
     /**
-     * YEAR → group by month for sales
+     * YEAR → group by month for sales (with previous year comparison)
      */
     private function yearSalesData()
     {
-        $year = now()->year;
+        $currentYear = now()->year;
+        $previousYear = $currentYear - 1;
 
         $labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-        $sales = Booking::whereYear('created_at', $year)
+        // Current year sales
+        $currentSales = Booking::whereYear('created_at', $currentYear)
             ->selectRaw('MONTH(created_at) as month, SUM(COALESCE(price, 0)) as total')
             ->groupBy('month')
             ->pluck('total', 'month');
 
-        return $this->normalizeSalesRange($labels, $sales, 12);
+        // Previous year sales
+        $previousSales = Booking::whereYear('created_at', $previousYear)
+            ->selectRaw('MONTH(created_at) as month, SUM(COALESCE(price, 0)) as total')
+            ->groupBy('month')
+            ->pluck('total', 'month');
+
+        return $this->normalizeSalesYearComparison($labels, $currentSales, $previousSales);
     }
 
     /**
-     * Normalize sales data for week
+     * Normalize sales data for week comparison
      */
-    private function normalizeSalesWeek($labels, $sales)
+    private function normalizeSalesWeekComparison($labels, $currentSales, $previousSales)
     {
-        $salesData = [];
+        $currentData = [];
+        $previousData = [];
 
-        // MySQL: Sunday=1 ... Saturday=7
-        // We want Monday start
-        $order = [2, 3, 4, 5, 6, 7, 1];
-
-        foreach ($order as $day) {
-            $salesData[] = ($sales[$day] ?? 0);
+        // Get dates for the last 7 days
+        for ($i = 6; $i >= 0; $i--) {
+            $date = now()->subDays($i)->toDateString();
+            $currentData[] = ($currentSales[$date] ?? 0);
+            
+            // Get previous week date
+            $prevDate = now()->subDays($i + 7)->toDateString();
+            $previousData[] = ($previousSales[$prevDate] ?? 0);
         }
 
         return [
             'categories' => $labels,
             'series' => [
-                ['name' => 'Sales', 'data' => $salesData],
+                ['name' => 'This Week', 'data' => $currentData],
+                ['name' => 'Last Week', 'data' => $previousData],
             ]
         ];
     }
 
     /**
-     * Normalize sales data for range
+     * Normalize sales data for month comparison
      */
-    private function normalizeSalesRange($labels, $sales, $limit = 5)
+    private function normalizeSalesMonthComparison($labels, $currentSales, $previousSales)
     {
-        $salesData = [];
+        $currentData = [];
+        $previousData = [];
 
-        for ($i = 1; $i <= $limit; $i++) {
-            $salesData[] = ($sales[$i] ?? 0);
+        for ($i = 1; $i <= 5; $i++) {
+            $currentData[] = ($currentSales[$i] ?? 0);
+            $previousData[] = ($previousSales[$i] ?? 0);
         }
 
         return [
             'categories' => $labels,
             'series' => [
-                ['name' => 'Sales', 'data' => $salesData],
+                ['name' => 'This Month', 'data' => $currentData],
+                ['name' => 'Last Month', 'data' => $previousData],
+            ]
+        ];
+    }
+
+    /**
+     * Normalize sales data for year comparison
+     */
+    private function normalizeSalesYearComparison($labels, $currentSales, $previousSales)
+    {
+        $currentData = [];
+        $previousData = [];
+
+        for ($i = 1; $i <= 12; $i++) {
+            $currentData[] = ($currentSales[$i] ?? 0);
+            $previousData[] = ($previousSales[$i] ?? 0);
+        }
+
+        return [
+            'categories' => $labels,
+            'series' => [
+                ['name' => 'This Year', 'data' => $currentData],
+                ['name' => 'Last Year', 'data' => $previousData],
             ]
         ];
     }

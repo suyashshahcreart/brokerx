@@ -117,12 +117,12 @@
                 <div class="card-footer p-2 bg-light-subtle text-center">
                     <div class="row g-3">
                         <div class="col-md-6 border-end">
-                            <p class="text-muted mb-1">Bookings</p>
+                            <p class="text-muted mb-1">Total Bookings</p>
                             <p class="text-dark fs-18 fw-medium d-flex align-items-center justify-content-center gap-2 mb-0">
                                 {{ array_sum($monthlyBookings) }}</p>
                         </div>
                         <div class="col-md-6">
-                            <p class="text-muted mb-1">Customers</p>
+                            <p class="text-muted mb-1">Total Customers</p>
                             <p class="text-dark fs-18 fw-medium d-flex align-items-center justify-content-center gap-2 mb-0">
                                 {{ array_sum($monthlyCustomers) }}</p>
                         </div>
@@ -156,12 +156,12 @@
                 <div class="card-footer p-2 bg-light-subtle text-center">
                     <div class="row g-3">
                         <div class="col-md-6 border-end">
-                            <p class="text-muted mb-1">Total Sales</p>
+                            <p class="text-muted mb-1">Sales</p>
                             <p class="text-dark fs-18 fw-medium d-flex align-items-center justify-content-center gap-2 mb-0">
                                 <span id="total_sales_amount">₹0.00</span></p>
                         </div>
                         <div class="col-md-6">
-                            <p class="text-muted mb-1">Total Bookings</p>
+                            <p class="text-muted mb-1">Bookings</p>
                             <p class="text-dark fs-18 fw-medium d-flex align-items-center justify-content-center gap-2 mb-0">
                                 <span id="total_bookings_count">0</span></p>
                         </div>
@@ -314,7 +314,7 @@
                 </div>
                 <div class="card-footer border-top d-flex align-items-center justify-content-between">
                     <p class="text-muted fw-medium fs-15 mb-0"><span
-                            class="text-dark me-1">Total Property Seals : </span>{{ number_format($liveTours) }}</p>
+                            class="text-dark me-1">Total Live Tour : </span>{{ number_format($liveTours) }}</p>
                     <div>
                         <a href="#!" class="btn btn-primary btn-sm">View More</a>
                     </div>

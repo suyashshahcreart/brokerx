@@ -17,6 +17,7 @@ use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Admin\ActivityLogController;
 use App\Http\Controllers\Admin\BookingController;
 use App\Http\Controllers\Admin\BookingStatusController;
+use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\PendingScheduleController;
 use App\Http\Controllers\Admin\PortfolioController as AdminPortfolioController;
 use App\Http\Controllers\Admin\PhotographerVisitController;
@@ -231,6 +232,14 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'middleware' => ['web', 'au
     Route::get('qr-analytics/{id}', [QRAnalyticsController::class, 'show'])->name('qr-analytics.show');
 
     Route::resource('settings', SettingController::class);
+
+    // Reports
+    Route::prefix('reports')->name('reports.')->group(function () {
+        Route::get('/', [ReportController::class, 'index'])->name('index');
+        Route::get('/sales', [ReportController::class, 'sales'])->name('sales');
+        Route::get('/bookings', [ReportController::class, 'bookings'])->name('bookings');
+        Route::get('/customers', [ReportController::class, 'customers'])->name('customers');
+    });
 
     // Settings AJAX/API routes
     Route::prefix('api')->name('api.')->group(function () {
