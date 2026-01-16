@@ -10,15 +10,13 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use App\Models\User;
 
-class AuthenticatedSessionController extends Controller
-{
+class AuthenticatedSessionController extends Controller{
     /**
      * Display the login view.
      *
      * @return \Illuminate\View\View
      */
-    public function create()
-    {
+    public function create(){
         return view('auth.login');
     }
 

@@ -31,6 +31,7 @@ use App\Http\Controllers\FrontendController;
 use App\Http\Controllers\PortfolioController;
 use App\Http\Controllers\BrokerX\BrokerXController;
 use App\Http\Controllers\QR\QRManageController;
+use App\Http\Controllers\Auth\AuthenticatedSessionController;
 
 /*
 |--------------------------------------------------------------------------
@@ -129,17 +130,21 @@ Route::middleware('auth')->group(function () {
 
 
 
-Route::group(['prefix' => 'themes', 'middleware' => 'auth'], function () {
-    Route::get('', [RoutingController::class, 'index'])->name('root');
-    Route::get('{first}/{second}/{third}', [RoutingController::class, 'thirdLevel'])->name('third');
-    Route::get('{first}/{second}', [RoutingController::class, 'secondLevel'])->name('second');
-    Route::get('{any}', [RoutingController::class, 'root'])->name('any');
-});
+// Route::group(['prefix' => 'themes', 'middleware' => 'auth'], function () {
+//     Route::get('', [RoutingController::class, 'index'])->name('root');
+//     Route::get('{first}/{second}/{third}', [RoutingController::class, 'thirdLevel'])->name('third');
+//     Route::get('{first}/{second}', [RoutingController::class, 'secondLevel'])->name('second');
+//     Route::get('{any}', [RoutingController::class, 'root'])->name('any');
+// });
 
 
+Route::get('/login', [AuthenticatedSessionController::class, 'create'])->middleware('guest')->name('admin.login');
 
-Route::group(['prefix' => 'admin', 'as' => 'admin.', 'middleware' => ['web', 'auth', 'not.customer']], function () {
+Route::post('/login', [AuthenticatedSessionController::class, 'store'])->middleware('guest');
+
+Route::group(['prefix' => 'ppadmlog', 'as' => 'admin.', 'middleware' => ['web', 'auth', 'not.customer']], function () {
     Route::get('/', [AdminDashboardController::class, 'index'])->name('index');
+    
     
     
     // Profile routes
@@ -276,32 +281,34 @@ Route::group(['prefix' => 'photo', 'as' => 'photographer.', 'middleware' => ['we
 });
 
 // Public frontend routes
-Route::get('/', [FrontendController::class, 'login'])->name('frontend.index');
-Route::get('/login', [FrontendController::class, 'login'])->name('frontend.login');
-Route::get('/setup', [FrontendController::class, 'setup'])->name('frontend.setup');
-Route::post('/setup', [FrontendController::class, 'storeBooking'])->name('frontend.setup.store');
-Route::get('/contact', function () {
-    return view('frontend.contact');
-})->name('frontend.contact');
+Route::get('/', [FrontendController::class, 'redirectPropPik'])->name('frontend.index');
 
-Route::post('/logout', function () {
-    \Illuminate\Support\Facades\Auth::logout();
-    request()->session()->invalidate();
-    request()->session()->regenerateToken();
-    return redirect()->route('frontend.index');
-})->name('frontend.logout');
-Route::get('/privacy-policy', [FrontendController::class, 'privacyPolicy'])->name('frontend.privacy-policy');
-Route::get('/refund-policy', [FrontendController::class, 'refundPolicy'])->name('frontend.refund-policy');
-Route::get('/terms-conditions', [FrontendController::class, 'termsConditions'])->name('frontend.terms');
+// Route::get('/', [FrontendController::class, 'login'])->name('frontend.index');
+// Route::get('/login', [FrontendController::class, 'login'])->name('frontend.login');
+// Route::get('/setup', [FrontendController::class, 'setup'])->name('frontend.setup');
+// Route::post('/setup', [FrontendController::class, 'storeBooking'])->name('frontend.setup.store');
+// Route::get('/contact', function () {
+//     return view('frontend.contact');
+// })->name('frontend.contact');
 
-// Protected frontend routes (require authentication)
-Route::middleware('auth')->group(function () {
-    Route::get('/booking-dashboard', [FrontendController::class, 'bookingDashboard'])->name('frontend.booking-dashboard');
-    Route::get('/booking-dashboard-v2', [FrontendController::class, 'bookingDashboardV2'])->name('frontend.booking-dashboard-v2');
-    Route::get('/booking/{id}', [FrontendController::class, 'showBooking'])->name('frontend.booking.show');
-    Route::get('/booking-v2/{id}', [FrontendController::class, 'showBookingV2'])->name('frontend.booking.show-v2');
-    Route::get('/profile', [FrontendController::class, 'profile'])->name('frontend.profile');
-});
+// Route::post('/logout', function () {
+//     \Illuminate\Support\Facades\Auth::logout();
+//     request()->session()->invalidate();
+//     request()->session()->regenerateToken();
+//     return redirect()->route('frontend.index');
+// })->name('frontend.logout');
+// Route::get('/privacy-policy', [FrontendController::class, 'privacyPolicy'])->name('frontend.privacy-policy');
+// Route::get('/refund-policy', [FrontendController::class, 'refundPolicy'])->name('frontend.refund-policy');
+// Route::get('/terms-conditions', [FrontendController::class, 'termsConditions'])->name('frontend.terms');
+
+// // Protected frontend routes (require authentication)
+// Route::middleware('auth')->group(function () {
+//     Route::get('/booking-dashboard', [FrontendController::class, 'bookingDashboard'])->name('frontend.booking-dashboard');
+//     Route::get('/booking-dashboard-v2', [FrontendController::class, 'bookingDashboardV2'])->name('frontend.booking-dashboard-v2');
+//     Route::get('/booking/{id}', [FrontendController::class, 'showBooking'])->name('frontend.booking.show');
+//     Route::get('/booking-v2/{id}', [FrontendController::class, 'showBookingV2'])->name('frontend.booking.show-v2');
+//     Route::get('/profile', [FrontendController::class, 'profile'])->name('frontend.profile');
+// });
 
 
 

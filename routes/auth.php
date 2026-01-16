@@ -10,56 +10,56 @@ use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\VerifyEmailController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/admin/register', [RegisteredUserController::class, 'create'])
+Route::get('/ppadmlog/register', [RegisteredUserController::class, 'create'])
     ->middleware('guest')
     ->name('admin.register');
 
-Route::post('/admin/register', [RegisteredUserController::class, 'store'])
+Route::post('/ppadmlog/register', [RegisteredUserController::class, 'store'])
     ->middleware('guest');
 
-Route::get('/admin/login', [AuthenticatedSessionController::class, 'create'])
+Route::get('/ppadmlog/login', [AuthenticatedSessionController::class, 'create'])
     ->middleware('guest')
     ->name('admin.login');
 
-Route::post('/admin/login', [AuthenticatedSessionController::class, 'store'])
+Route::post('/ppadmlog/login', [AuthenticatedSessionController::class, 'store'])
     ->middleware('guest');
 
-Route::get('/admin/forgot-password', [PasswordResetLinkController::class, 'create'])
+Route::get('/ppadmlog/forgot-password', [PasswordResetLinkController::class, 'create'])
     ->middleware('guest')
     ->name('admin.password.request');
 
-Route::post('/admin/forgot-password', [PasswordResetLinkController::class, 'store'])
+Route::post('/ppadmlog/forgot-password', [PasswordResetLinkController::class, 'store'])
     ->middleware('guest')
     ->name('admin.password.email');
 
-Route::get('/admin/reset-password/{token}', [NewPasswordController::class, 'create'])
+Route::get('/ppadmlog/reset-password/{token}', [NewPasswordController::class, 'create'])
     ->middleware('guest')
     ->name('admin.password.reset');
 
-Route::post('/admin/reset-password', [NewPasswordController::class, 'store'])
+Route::post('/ppadmlog/reset-password', [NewPasswordController::class, 'store'])
     ->middleware('guest')
     ->name('admin.password.update');
 
-Route::get('/admin/verify-email', [EmailVerificationPromptController::class, '__invoke'])
+Route::get('/ppadmlog/verify-email', [EmailVerificationPromptController::class, '__invoke'])
     ->middleware('auth')
     ->name('admin.verification.notice');
 
-Route::get('/admin/verify-email/{id}/{hash}', [VerifyEmailController::class, '__invoke'])
+Route::get('/ppadmlog/verify-email/{id}/{hash}', [VerifyEmailController::class, '__invoke'])
     ->middleware(['auth', 'signed', 'throttle:6,1'])
     ->name('admin.verification.verify');
 
-Route::post('/admin/email/verification-notification', [EmailVerificationNotificationController::class, 'store'])
+Route::post('/ppadmlog/email/verification-notification', [EmailVerificationNotificationController::class, 'store'])
     ->middleware(['auth', 'throttle:6,1'])
     ->name('admin.verification.send');
 
-Route::get('/admin/confirm-password', [ConfirmablePasswordController::class, 'show'])
+Route::get('/ppadmlog/confirm-password', [ConfirmablePasswordController::class, 'show'])
     ->middleware('auth')
     ->name('admin.password.confirm');
 
-Route::post('/admin/confirm-password', [ConfirmablePasswordController::class, 'store'])
+Route::post('/ppadmlog/confirm-password', [ConfirmablePasswordController::class, 'store'])
     ->middleware('auth');
 
-Route::post('/admin/logout', [AuthenticatedSessionController::class, 'destroy'])
+Route::post('/ppadmlog/logout', [AuthenticatedSessionController::class, 'destroy'])
     ->middleware('auth')
     ->name('admin.logout');
 
@@ -103,20 +103,20 @@ Route::post('/registration/email-otp/verify', [OtpController::class, 'verifyEmai
 // Photographer authentication routes
 use App\Http\Controllers\Admin\PhotographerAuthController;
 
-Route::get('/admin/photographer/register', [PhotographerAuthController::class, 'createRegister'])
+Route::get('/ppadmlog/photographer/register', [PhotographerAuthController::class, 'createRegister'])
     ->middleware('guest')
     ->name('admin.photographer.register');
 
-Route::post('/admin/photographer/register', [PhotographerAuthController::class, 'storeRegister'])
+Route::post('/ppadmlog/photographer/register', [PhotographerAuthController::class, 'storeRegister'])
     ->middleware('guest');
 
-Route::get('/admin/photographer/login', [PhotographerAuthController::class, 'createLogin'])
+Route::get('/ppadmlog/photographer/login', [PhotographerAuthController::class, 'createLogin'])
     ->middleware('guest')
     ->name('admin.photographer.login');
 
-Route::post('/admin/photographer/login', [PhotographerAuthController::class, 'storeLogin'])
+Route::post('/ppadmlog/photographer/login', [PhotographerAuthController::class, 'storeLogin'])
     ->middleware('guest');
 
-Route::post('/admin/photographer/logout', [PhotographerAuthController::class, 'logout'])
+Route::post('/ppadmlog/photographer/logout', [PhotographerAuthController::class, 'logout'])
     ->middleware('auth')
     ->name('admin.photographer.logout');
