@@ -89,7 +89,8 @@
                     </div>
 
                     <div class="table-responsive">
-                        <table id="bookingAssigneesTable" class="table table-hover align-middle mb-0">
+                        <table id="bookingAssigneesTable"
+                            class="table table-hover table-bordered dt-responsive nowrap w-100">
                             <thead class="table-light">
                                 <tr>
                                     <th>ID</th>
@@ -208,8 +209,5 @@
 @endsection
 
 @section('scripts')
-    <script>
-
-    </script>
     @vite(['resources/js/pages/booking-assignees-index.js'])
 @endsection

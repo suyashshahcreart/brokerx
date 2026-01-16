@@ -32,7 +32,7 @@ class BookingAssigneeController extends Controller
         $states = State::all();
         $cities = City::all();
         // Get only photographers (filter by role)
-        $users = User::whereHas('roles', function($q) {
+        $users = User::whereHas('roles', function ($q) {
             $q->where('name', 'photographer');
         })->get();
 
@@ -52,7 +52,7 @@ class BookingAssigneeController extends Controller
             if ($request->filled('status')) {
                 $query->where('status', $request->status);
             } else {
-                $query->whereIn('status', ['Schedul_accepted', 'Reschedul_accepted','Schedul_assign','Reschedul_assigned']);
+                $query->whereIn('status', ['Schedul_accepted', 'Reschedul_accepted', 'Schedul_assign', 'Reschedul_assigned']);
             }
 
             if ($request->filled('date_from') && $request->filled('date_to')) {
@@ -126,31 +126,38 @@ class BookingAssigneeController extends Controller
                 ->addColumn('assign_action', function (Booking $booking) {
                     // Don't show assign button if already assigned
                     if ($booking->status === 'schedul_assign') {
-                        return '<button class="btn btn-sm btn-success" ><i class="ri-check-line me-1"></i>Assigned</button>';
+                        return '<button class="btn btn-sm btn-soft-success" data-bs-toggle="tooltip" data-bs-placement="top" title="Already Assigned"><iconify-icon icon="solar:check-circle-broken" class="align-middle fs-18"></iconify-icon></button>';
                     }
-                    
+
                     $date = $booking->booking_date ? \Carbon\Carbon::parse($booking->booking_date)->format('Y-m-d') : '';
                     $address = htmlspecialchars($booking->full_address ?? '');
                     $city = htmlspecialchars($booking->city ? $booking->city->name : '');
                     $state = htmlspecialchars($booking->state ? $booking->state->name : '');
                     $pincode = htmlspecialchars($booking->pin_code ?? '');
                     $userName = htmlspecialchars($booking->user ? $booking->user->name : '');
-                    
-                    return '<button class="btn btn-sm btn-primary assign-btn" 
-                        data-booking-id="' . $booking->id . '" 
-                        data-booking-address="' . $address . '"
-                        data-booking-city="' . $city . '"
-                        data-booking-state="' . $state . '"
-                        data-booking-pincode="' . $pincode . '"
-                        data-booking-customer="' . $userName . '"
-                        data-booking-date="' . $date . '">
-                        <i class="ri-add-line me-1"></i>Assign
-                    </button>';
+
+                    return '<div class="d-flex justify-content-center">
+                        <button class="btn btn-sm btn-soft-success assign-btn" 
+                            data-booking-id="' . $booking->id . '" 
+                            data-booking-address="' . $address . '"
+                            data-booking-city="' . $city . '"
+                            data-booking-state="' . $state . '"
+                            data-booking-pincode="' . $pincode . '"
+                            data-booking-customer="' . $userName . '"
+                            data-booking-date="' . $date . '"
+                            data-bs-toggle="tooltip" data-bs-placement="top" title="Assign Photographer">
+                            <iconify-icon icon="solar:user-check-rounded-broken" class="align-middle fs-18"></iconify-icon>
+                        </button>
+                    </div>';
                 })
                 ->addColumn('view_action', function (Booking $booking) {
-                    return '<a href="' . route('admin.bookings.show', $booking->id) . '" class="btn btn-sm btn-info" target="_blank">
-                        <i class="ri-eye-line"></i>
-                    </a>';
+                    return '<div class="d-flex justify-content-center">
+                        <a href="' . route('admin.bookings.show', $booking->id) . '" class="btn btn-sm btn-soft-primary"
+                        data-bs-toggle="tooltip" data-bs-placement="top" title="View Booking Detail Page"
+                        target="_blank">
+                           <iconify-icon icon="solar:eye-broken" class="align-middle fs-18"></iconify-icon>
+                        </a>
+                    </div>';
                 })
                 ->rawColumns(['id', 'status', 'payment_status', 'assign_action', 'view_action'])
                 ->toJson();
@@ -190,8 +197,9 @@ class BookingAssigneeController extends Controller
 
         $toMinutes = function ($t) {
             $parts = explode(':', $t);
-            if (count($parts) < 2) return null;
-            return (int)$parts[0] * 60 + (int)$parts[1];
+            if (count($parts) < 2)
+                return null;
+            return (int) $parts[0] * 60 + (int) $parts[1];
         };
 
         $timeMins = $toMinutes($validated['time']);
@@ -245,7 +253,8 @@ class BookingAssigneeController extends Controller
             }
 
             $existingStart = $toMinutes($existingTimeStr);
-            if ($existingStart === null) continue;
+            if ($existingStart === null)
+                continue;
             $existingEnd = $existingStart + $duration;
 
             // Overlap check
@@ -421,7 +430,7 @@ class BookingAssigneeController extends Controller
     public function checkInForm(BookingAssignee $bookingAssignee)
     {
         // Ensure the authenticated user is the assigned photographer
-        if ((int)$bookingAssignee->user_id !== (int)auth()->id()) {
+        if ((int) $bookingAssignee->user_id !== (int) auth()->id()) {
             return redirect()->back()->with('error', 'You are not assigned to this booking.');
         }
 
@@ -462,11 +471,11 @@ class BookingAssigneeController extends Controller
             $activeVisit = PhotographerVisit::where('booking_id', $bookingAssignee->booking_id)
                 ->where('status', 'checked_in')
                 ->first();
-            
+
             if ($activeVisit) {
                 return redirect()->back()->with('error', 'This booking is already checked in. Please check out the current visit before starting a new one.');
             }
-            
+
             // If needed, add status checks on BookingAssignee here
 
             // Handle photo upload
@@ -517,13 +526,13 @@ class BookingAssigneeController extends Controller
             $booking = $bookingAssignee->booking;
             if ($booking) {
                 $oldStatus = $booking->status;
-                
+
                 $booking->update([
                     'status' => 'schedul_inprogress',
                     'updated_by' => auth()->id(),
                 ]);
-               // Create booking history entry for check-in
-               BookingHistory::create([
+                // Create booking history entry for check-in
+                BookingHistory::create([
                     'booking_id' => $booking->id,
                     'from_status' => $oldStatus,
                     'to_status' => 'schedul_inprogress',
@@ -573,7 +582,7 @@ class BookingAssigneeController extends Controller
     public function checkOutForm(BookingAssignee $bookingAssignee)
     {
         // Ensure the authenticated user is the assigned photographer
-        if ((int)$bookingAssignee->user_id !== (int)auth()->id()) {
+        if ((int) $bookingAssignee->user_id !== (int) auth()->id()) {
             return redirect()->back()->with('error', 'You are not assigned to this booking.');
         }
 
@@ -599,7 +608,7 @@ class BookingAssigneeController extends Controller
      */
     public function checkOut(Request $request, BookingAssignee $bookingAssignee)
     {
-       
+
         $validated = $request->validate([
             'location' => 'required|string|max:255',
             'location_timestamp' => 'nullable|date',
@@ -610,10 +619,10 @@ class BookingAssigneeController extends Controller
             'work_summary' => 'nullable|string|max:1000',
             'photo' => 'required|image|max:5120', // 5MB max
         ]);
-        
+
         try {
             // Ensure the authenticated user is the assigned photographer
-            if ((int)$bookingAssignee->user_id !== (int)auth()->id()) {
+            if ((int) $bookingAssignee->user_id !== (int) auth()->id()) {
                 return redirect()->back()->with('error', 'You are not assigned to this booking.');
             }
 
@@ -621,9 +630,9 @@ class BookingAssigneeController extends Controller
             $activeVisit = PhotographerVisit::where('booking_id', $bookingAssignee->booking_id)
                 ->where('status', 'checked_in')
                 ->first();
-            
+
             if (!$activeVisit) {
-                dd($validated,$activeVisit);
+                dd($validated, $activeVisit);
                 return redirect()->back()->with('error', 'No active check-in found for this booking. Please check in first.');
             }
             // Check if job can be checked out
@@ -692,7 +701,7 @@ class BookingAssigneeController extends Controller
 
             // Update booking status to shedule_complete
             $booking = $bookingAssignee->booking;
-           
+
             if ($booking) {
                 $oldStatus = $booking->status;
                 $booking->update([
