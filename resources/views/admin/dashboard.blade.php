@@ -515,7 +515,7 @@
                                 </td>
                                 <td>
                                     <div class="d-flex gap-2">
-                                        <a href="{{ route('admin.bookings.show' ,$transaction->booking->id ) }}" class="btn btn-light btn-sm">
+                                        <a href="{{ route('admin.bookings.show' ,$transaction->booking_id ) }}" class="btn btn-light btn-sm">
                                             <iconify-icon icon="solar:eye-broken" class="align-middle fs-18"></iconify-icon>
                                         </a>
                                     </div>
