@@ -8,6 +8,7 @@ use App\Models\Setting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Yajra\DataTables\Facades\DataTables;
 
 class HolidayController extends Controller
 {
@@ -18,10 +19,34 @@ class HolidayController extends Controller
         $this->middleware('permission:holiday_edit')->only(['edit', 'update']);
         $this->middleware('permission:holiday_delete')->only(['destroy']);
     }
-    public function index()
+    public function index(Request $request)
     {
-        $holidays = Holiday::orderBy('date', 'desc')->paginate(15);
-        return view('admin.holidays.index', compact('holidays'));
+        if ($request->ajax()) {
+            $query = Holiday::query()->with(['creator', 'updater']);
+
+            return DataTables::of($query)
+                ->addColumn('creator_name', function (Holiday $holiday) {
+                    if ($holiday->creator) {
+                        return trim($holiday->creator->firstname . ' ' . $holiday->creator->lastname);
+                    }
+                    return '-';
+                })
+                ->addColumn('actions', function (Holiday $holiday) {
+                    return view('admin.holidays.partials.actions', compact('holiday'))->render();
+                })
+                ->editColumn('date', function (Holiday $holiday) {
+                    return $holiday->date->format('Y-m-d');
+                })
+                ->filterColumn('creator_name', function($query, $keyword) {
+                    $query->whereHas('creator', function($q) use ($keyword) {
+                        $q->whereRaw("CONCAT(firstname, ' ', lastname) LIKE ?", ["%{$keyword}%"]);
+                    });
+                })
+                ->rawColumns(['actions'])
+                ->toJson();
+        }
+
+        return view('admin.holidays.index');
     }
     public function indexAPI()
     {

@@ -108,6 +108,14 @@
                 },
                 lengthMenu: [10, 25, 50, 100],
                 responsive: true
+                ,
+                drawCallback: function () {
+                    // Re-initialize tooltips for dynamically rendered action buttons
+                    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                    tooltipTriggerList.map(function (tooltipTriggerEl) {
+                        return new bootstrap.Tooltip(tooltipTriggerEl);
+                    });
+                }
             });
 
             if (!canManageActions) {

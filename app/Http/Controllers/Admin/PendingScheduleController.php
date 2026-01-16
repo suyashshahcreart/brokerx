@@ -59,13 +59,15 @@ class PendingScheduleController extends Controller
                     $decline = route('admin.pending-schedules.decline', $booking);
                     
                     return '
-                        <div class="btn-group btn-group-sm" role="group">
-                            <a href="' . $view . '" class="btn btn-light border" title="View"><i class="ri-eye-line"></i></a>
-                            <button onclick="acceptSchedule(' . $booking->id . ')" class="btn btn-success border" title="Accept">
-                                <i class="ri-check-line"></i> Accept
+                        <div class="d-flex gap-1 justify-content-end">
+                            <a href="' . $view . '" class="btn btn-sm btn-soft-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="View Booking Details">
+                                <iconify-icon icon="solar:eye-broken" class="align-middle fs-18"></iconify-icon>
+                            </a>
+                            <button onclick="acceptSchedule(' . $booking->id . ')" class="btn btn-sm btn-soft-success" data-bs-toggle="tooltip" data-bs-placement="top" title="Accept Schedule">
+                                <iconify-icon icon="solar:check-circle-broken" class="align-middle fs-18"></iconify-icon>
                             </button>
-                            <button onclick="declineSchedule(' . $booking->id . ')" class="btn btn-danger border" title="Decline">
-                                <i class="ri-close-line"></i> Decline
+                            <button onclick="declineSchedule(' . $booking->id . ')" class="btn btn-sm btn-soft-danger" data-bs-toggle="tooltip" data-bs-placement="top" title="Decline Schedule">
+                                <iconify-icon icon="solar:close-circle-broken" class="align-middle fs-18"></iconify-icon>
                             </button>
                         </div>
                     ';

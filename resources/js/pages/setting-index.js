@@ -628,15 +628,27 @@ import '../../css/pages/setting-index.css';
                         </span>
                     </td>
                     <td>
-                        <button class="btn btn-sm btn-primary me-1" onclick="window.editFtpConfig(${config.id})">
-                            <i class="ri-edit-line"></i>
-                        </button>
-                        <button class="btn btn-sm btn-danger" onclick="window.deleteFtpConfig(${config.id})">
-                            <i class="ri-delete-bin-line"></i>
-                        </button>
+                        <div class="d-flex gap-1 justify-content-center">
+                            <button class="btn btn-sm btn-soft-info" onclick="window.editFtpConfig(${config.id})"
+                                data-bs-toggle="tooltip" data-bs-placement="top" title="Edit FTP Configuration">
+                                <iconify-icon icon="solar:pen-new-square-broken" class="align-middle fs-18"></iconify-icon>
+                            </button>
+                            <button class="btn btn-sm btn-soft-danger" onclick="window.deleteFtpConfig(${config.id})"
+                                data-bs-toggle="tooltip" data-bs-placement="top" title="Delete FTP Configuration">
+                                <iconify-icon icon="solar:trash-bin-minimalistic-broken" class="align-middle fs-18"></iconify-icon>
+                            </button>
+                        </div>
                     </td>
                 </tr>
             `).join('');
+
+            // Re-initialize tooltips for the freshly rendered action buttons
+            if (typeof bootstrap !== 'undefined' && bootstrap.Tooltip) {
+                const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                tooltipTriggerList.map(function (tooltipTriggerEl) {
+                    return new bootstrap.Tooltip(tooltipTriggerEl);
+                });
+            }
         }
 
         window.editFtpConfig = function(id) {

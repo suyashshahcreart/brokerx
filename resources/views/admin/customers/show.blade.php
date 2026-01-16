@@ -93,7 +93,7 @@
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
-                        <table id="customer-bookings-table" class="table table-bordered table-hover">
+                        <table id="customer-bookings-table" class="table table-hover">
                             <thead>
                                 <tr>
                                     <th>ID</th>

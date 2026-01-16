@@ -276,7 +276,7 @@
                     <x-admin.back-button :fallback="route('admin.bookings.index')" :classes="['btn', 'btn-soft-secondary']" :merge="false" icon="ri-arrow-go-back-line" />
 
                     @if($booking->tours()->exists() && auth()->user()->can('tour_manager_edit'))
-                        <a href="{{ route('admin.tour-manager.upload', $booking) }}" class="btn btn-warning" data-bs-toggle="tooltip" title="Upload & Manage Tour Assets">
+                        <a href="{{ route('admin.tour-manager.upload', $booking) }}" class="btn btn-primary" data-bs-toggle="tooltip" title="Upload & Manage Tour Assets">
                             <i class="ri-upload-2-line me-1"></i> Upload Tour
                         </a>
                     @endif
