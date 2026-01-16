@@ -17,7 +17,7 @@ class AdminDashboardController extends Controller
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
-    public function SalesAnalyticChartData(Request $request)
+    public function BookingsAnalyticChartData(Request $request)
     {
         $type = $request->get('type', 'week');
 
@@ -29,6 +29,29 @@ class AdminDashboardController extends Controller
             'week' => $this->weekData(),
             'month' => $this->monthData(),
             'year' => $this->yearData(),
+        };
+
+        return response()->json(['success'=>true,'message'=>'Data fetched successfully','date'=>$data]);
+    }
+
+    /**
+     * Get sales data for dashboard sales chart.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function SalesAnalyticChartData(Request $request)
+    {
+        $type = $request->get('type', 'week');
+
+        if (!in_array($type, ['week', 'month', 'year'])) {
+            return response()->json(['success' => false, 'message' => 'Invalid type'], 400);
+        }
+
+        $data = match ($type) {
+            'week' => $this->weekSalesData(),
+            'month' => $this->monthSalesData(),
+            'year' => $this->yearSalesData(),
         };
 
         return response()->json(['success'=>true,'message'=>'Data fetched successfully','date'=>$data]);
@@ -152,6 +175,105 @@ class AdminDashboardController extends Controller
             'series' => [
                 ['name' => 'Customers', 'data' => $customerData],
                 ['name' => 'Bookings', 'data' => $bookingData],
+            ]
+        ];
+    }
+
+    /**
+     * WEEK → group by day for sales
+     */
+    private function weekSalesData()
+    {
+        $start = now()->startOfWeek();
+        $end = now()->endOfWeek();
+
+        $labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+        $sales = Booking::whereBetween('created_at', [$start, $end])
+            ->selectRaw('DAYOFWEEK(created_at) as day, SUM(COALESCE(price, 0)) as total')
+            ->groupBy('day')
+            ->pluck('total', 'day');
+
+        return $this->normalizeSalesWeek($labels, $sales);
+    }
+
+    /**
+     * MONTH → group by week for sales
+     */
+    private function monthSalesData()
+    {
+        $start = now()->startOfMonth();
+        $end = now()->endOfMonth();
+
+        $labels = ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5'];
+
+        $sales = Booking::whereBetween('created_at', [$start, $end])
+            ->selectRaw('
+                WEEK(created_at, 1) - 
+                WEEK(DATE_SUB(created_at, INTERVAL DAYOFMONTH(created_at)-1 DAY), 1) + 1 as week,
+                SUM(COALESCE(price, 0)) as total
+            ')
+            ->groupBy('week')
+            ->pluck('total', 'week');
+
+        return $this->normalizeSalesRange($labels, $sales);
+    }
+
+    /**
+     * YEAR → group by month for sales
+     */
+    private function yearSalesData()
+    {
+        $year = now()->year;
+
+        $labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+        $sales = Booking::whereYear('created_at', $year)
+            ->selectRaw('MONTH(created_at) as month, SUM(COALESCE(price, 0)) as total')
+            ->groupBy('month')
+            ->pluck('total', 'month');
+
+        return $this->normalizeSalesRange($labels, $sales, 12);
+    }
+
+    /**
+     * Normalize sales data for week
+     */
+    private function normalizeSalesWeek($labels, $sales)
+    {
+        $salesData = [];
+
+        // MySQL: Sunday=1 ... Saturday=7
+        // We want Monday start
+        $order = [2, 3, 4, 5, 6, 7, 1];
+
+        foreach ($order as $day) {
+            $salesData[] = ($sales[$day] ?? 0);
+        }
+
+        return [
+            'categories' => $labels,
+            'series' => [
+                ['name' => 'Sales', 'data' => $salesData],
+            ]
+        ];
+    }
+
+    /**
+     * Normalize sales data for range
+     */
+    private function normalizeSalesRange($labels, $sales, $limit = 5)
+    {
+        $salesData = [];
+
+        for ($i = 1; $i <= $limit; $i++) {
+            $salesData[] = ($sales[$i] ?? 0);
+        }
+
+        return [
+            'categories' => $labels,
+            'series' => [
+                ['name' => 'Sales', 'data' => $salesData],
             ]
         ];
     }

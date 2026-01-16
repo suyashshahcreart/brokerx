@@ -60,7 +60,8 @@ Route::middleware('auth')->get('/user', function (Request $request) {
 
 // admim dashboard chart data
 Route::group(['prefix' => 'admin/dashboard', 'middleware' => ['auth','web','role:admin']], function () {
-    Route::get('/Sales-Analytic-chart-data', [AdminDashboardController::class, 'SalesAnalyticChartData'])->name('admin.dashboard.chart-data');
+    Route::get('/Booking-Analytic-chart-data', [AdminDashboardController::class, 'BookingsAnalyticChartData'])->name('admin.dashboard.booking-chart-data');
+    Route::get('/Sales-Analytic-chart-data', [AdminDashboardController::class, 'SalesAnalyticChartData'])->name('admin.dashboard.sales-chart-data');
 });
 
 

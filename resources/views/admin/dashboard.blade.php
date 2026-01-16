@@ -89,9 +89,9 @@
             <div class="card overflow-hidden">
                 <div class="card-header d-flex justify-content-between align-items-center pb-1">
                     <div>
-                        <h4 class="card-title">Sales Analytic</h4>
+                        <h4 class="card-title">Booking Analytic</h4>
                     </div>
-                        <div class="dropdown" id="sales-analytic-dropdown">
+                        <div class="dropdown" id="booking-analytic-dropdown">
                             <a href="#" class="dropdown-toggle btn btn-sm btn-outline-light rounded" data-bs-toggle="dropdown" aria-expanded="false">
                                 Period
                             </a>
@@ -109,7 +109,7 @@
                     </div>
                     <div class="row align-items-top text-center">
                         <div class="col-lg-12">
-                                <div class="apex-charts mt-2" id="sales_analytic" data-api-url="{{ route('admin.dashboard.chart-data') }}"></div>
+                                <div class="apex-charts mt-2" id="sales_analytic" data-api-url="{{ route('admin.dashboard.booking-chart-data') }}"></div>
                         </div>
 
                     </div>
@@ -125,6 +125,45 @@
                             <p class="text-muted mb-1">Customers</p>
                             <p class="text-dark fs-18 fw-medium d-flex align-items-center justify-content-center gap-2 mb-0">
                                 {{ array_sum($monthlyCustomers) }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Sales Analytic Chart -->
+            <div class="card overflow-hidden mt-4">
+                <div class="card-header d-flex justify-content-between align-items-center pb-1">
+                    <div>
+                        <h4 class="card-title">Sales Analytic</h4>
+                    </div>
+                    <div class="dropdown" id="sales-analytic-dropdown">
+                        <a href="#" class="dropdown-toggle btn btn-sm btn-outline-light rounded" data-bs-toggle="dropdown" aria-expanded="false">
+                            Period
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-end">
+                            <a href="#" class="dropdown-item" data-type="week">This Week</a>
+                            <a href="#" class="dropdown-item" data-type="month">This Month</a>
+                            <a href="#" class="dropdown-item" data-type="year">This Year</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row align-items-top text-center">
+                        <div class="col-lg-12">
+                            <div class="apex-charts mt-2" id="sales_chart" data-api-url="{{ route('admin.dashboard.sales-chart-data') }}"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer p-2 bg-light-subtle text-center">
+                    <div class="row g-3">
+                        <div class="col-md-6 border-end">
+                            <p class="text-muted mb-1">Total Sales</p>
+                            <p class="text-dark fs-18 fw-medium d-flex align-items-center justify-content-center gap-2 mb-0">
+                                <span id="total_sales_amount">₹0.00</span></p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="text-muted mb-1">Total Bookings</p>
+                            <p class="text-dark fs-18 fw-medium d-flex align-items-center justify-content-center gap-2 mb-0">
+                                <span id="total_bookings_count">0</span></p>
                         </div>
                     </div>
                 </div>

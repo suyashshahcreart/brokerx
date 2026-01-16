@@ -12,7 +12,7 @@ import 'jsvectormap/dist/maps/world.js'
 
 
 // top section details booking, tours, customer, revenue  ->  CARDS;
-const totalPropertyDiv = document.getElementById('total_property_card'); 
+const totalPropertyDiv = document.getElementById('total_property_card');
 const liveTrousCardDiv = document.getElementById('live_tours_card');
 const totalcustomerCardDiv = document.getElementById('total_customer_card');
 const totalRevenueCardDiv = document.getElementById('total_revenue_card');
@@ -56,13 +56,13 @@ var totalPropertyCardOptions = {
     },
     series: [{
         name: 'Property Listing',
-        data: window.weeklyProperties || [0,0,0,0,0,0,0]
+        data: window.weeklyProperties || [0, 0, 0, 0, 0, 0, 0]
     }],
     legend: {
         show: !1
     },
     xaxis: {
-        categories: window.weeklyLabels || ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],
+        categories: window.weeklyLabels || ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
         axisBorder: {
             show: !1
         },
@@ -124,13 +124,13 @@ var liveToursCardOptions = {
     },
     series: [{
         name: 'Live Tours',
-        data: window.weeklyTours || [0,0,0,0,0,0,0]
+        data: window.weeklyTours || [0, 0, 0, 0, 0, 0, 0]
     }],
     legend: {
         show: !1
     },
     xaxis: {
-        categories: window.weeklyLabels || ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],
+        categories: window.weeklyLabels || ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
         axisBorder: {
             show: !1
         },
@@ -192,13 +192,13 @@ var totalCustomerCardOptions = {
     },
     series: [{
         name: 'Customers',
-        data: window.weeklyCustomers || [0,0,0,0,0,0,0]
+        data: window.weeklyCustomers || [0, 0, 0, 0, 0, 0, 0]
     }],
     legend: {
         show: !1
     },
     xaxis: {
-        categories: window.weeklyLabels || ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],
+        categories: window.weeklyLabels || ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
         axisBorder: {
             show: !1
         },
@@ -260,13 +260,13 @@ var totalRevenueCardOptions = {
     },
     series: [{
         name: 'Revenue',
-        data: window.weeklyRevenue || [0,0,0,0,0,0,0]
+        data: window.weeklyRevenue || [0, 0, 0, 0, 0, 0, 0]
     }],
     legend: {
         show: !1
     },
     xaxis: {
-        categories: window.weeklyLabels || ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],
+        categories: window.weeklyLabels || ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
         axisBorder: {
             show: !1
         },
@@ -279,13 +279,13 @@ var totalRevenueCardOptions = {
             show: !1
         }
     },
-        tooltip: {
-                y: {
-                    formatter: function (val) {
-                        return "₹" + (val/100).toFixed(2);
-                    }
-                }
-        },
+    tooltip: {
+        y: {
+            formatter: function (val) {
+                return "₹" + (val / 100).toFixed(2);
+            }
+        }
+    },
     responsive: [{
         breakpoint: 1025,
         options: {
@@ -301,7 +301,7 @@ totalRevenueCard.render();
 // sales_analytic
 
 // Fetch and render sales analytic chart data from API
-function fetchAndRenderSalesAnalytic(type = 'week') {
+function fetchAndRenderBookingAnalytic(type = 'week') {
     const apiUrl = salesAnalyticDiv.dataset.apiUrl + '?type=' + type;
     fetch(apiUrl)
         .then(response => response.json())
@@ -418,8 +418,155 @@ function fetchAndRenderSalesAnalytic(type = 'week') {
             }
         });
 }
-
 // Initial load
+fetchAndRenderBookingAnalytic('week');
+
+// Fetch and render sales analytic chart data from API
+function fetchAndRenderSalesAnalytic(type = 'week') {
+    const salesChartDiv = document.getElementById('sales_chart');
+    const apiUrl = salesChartDiv.dataset.apiUrl + '?type=' + type;
+    fetch(apiUrl)
+        .then(response => response.json())
+        .then(res => {
+            if (!res.success || !res.date) return;
+            const data = res.date;
+            // Update footer with totals
+            let totalSales = 0;
+            let totalBookings = 0;
+            if (data.series && data.series[0] && data.series[0].data) {
+                totalSales = data.series[0].data.reduce((a, b) => Number(a) + Number(b), 0);
+                totalBookings = data.series[0].data.length > 0 ? data.series[0].data.filter(x => x > 0).length : 0;
+            }
+            document.getElementById('total_sales_amount').textContent = '₹' + (totalSales).toFixed(2);
+            document.getElementById('total_bookings_count').textContent = totalBookings;
+
+            const salesChartOptions = {
+                chart: {
+                    height: 420,
+                    type: "area",
+                    dropShadow: {
+                        enabled: true,
+                        opacity: 0.2,
+                        blur: 10,
+                        left: -7,
+                        top: 22,
+                    },
+                    toolbar: {
+                        show: false,
+                    },
+                },
+                colors: ["#47ad94"],
+                dataLabels: {
+                    enabled: false,
+                },
+                stroke: {
+                    show: true,
+                    curve: "smooth",
+                    width: 2,
+                    lineCap: "round",
+                    lineJoin: "round",
+                },
+                series: data.series,
+                labels: data.categories,
+                xaxis: {
+                    axisBorder: {
+                        show: false,
+                    },
+                    axisTicks: {
+                        show: false,
+                    },
+                    crosshairs: {
+                        show: true,
+                        width: 1,
+                        position: 'front',
+                        stroke: {
+                            color: '#b6c1d5',
+                            width: 1,
+                        }
+                    },
+                    labels: {
+                        offsetX: 0,
+                        offsetY: 5,
+                        style: {
+                            fontSize: "12px",
+                            cssClass: "apexcharts-xaxis-title",
+                        },
+                    },
+                },
+                yaxis: {
+                    labels: {
+                        formatter: function (value, index) {
+                            return "₹" + (value >= 100000 ? (value / 100000).toFixed(0) + "L" : (value / 1000) + "K");
+                        },
+                        offsetX: -15,
+                        offsetY: 0,
+                        style: {
+                            fontSize: "12px",
+                            cssClass: "apexcharts-yaxis-title",
+                        },
+                    },
+                },
+                grid: {
+                    borderColor: "#e3e3e3",
+                    strokeDashArray: 3,
+                    xaxis: {
+                        lines: {
+                            show: true,
+                        },
+                    },
+                    yaxis: {
+                        lines: {
+                            show: true,
+                        },
+                    },
+                    padding: {
+                        top: 0,
+                        right: 0,
+                        bottom: 0,
+                        left: 5,
+                    },
+                },
+                legend: {
+                    show: false,
+                },
+                fill: {
+                    type: "gradient",
+                    gradient: {
+                        type: "vertical",
+                        shadeIntensity: 0.3,
+                        inverseColors: false,
+                        opacityFrom: 0.25,
+                        opacityTo: 0.05,
+                        stops: [20, 100],
+                    },
+                },
+                tooltip: {
+                    theme: "light",
+                    y: {
+                        formatter: function (value) {
+                            return "₹" + (value).toFixed(2);
+                        }
+                    }
+                },
+                responsive: [{
+                    breakpoint: 575,
+                    options: {
+                        legend: {
+                            offsetY: -50,
+                        },
+                    },
+                }],
+            };
+            if (window.salesChart) {
+                window.salesChart.updateOptions(salesChartOptions);
+                window.salesChart.updateSeries(data.series);
+            } else {
+                window.salesChart = new ApexCharts(salesChartDiv, salesChartOptions);
+                window.salesChart.render();
+            }
+        });
+}
+// Initial load for sales chart
 fetchAndRenderSalesAnalytic('week');
 
 // sales_funnel
@@ -497,76 +644,76 @@ TourLiveCard.render();
 //
 var colors = ["#7f56da", "#4697ce"];
 var options = {
-  chart: {
-    height: 349,
-    type: "radialBar",
-    toolbar: {
-      show: false,
-    },
-  },
-  plotOptions: {
-    radialBar: {
-      startAngle: -135,
-      endAngle: 225,
-      hollow: {
-        margin: 0,
-        size: "70%",
-        background: "transparent",
-        image: undefined,
-        imageOffsetX: 0,
-        imageOffsetY: 0,
-        position: "front",
-        dropShadow: {
-          enabled: true,
-          top: 3,
-          left: 0,
-          blur: 4,
-          opacity: 0.24,
+    chart: {
+        height: 349,
+        type: "radialBar",
+        toolbar: {
+            show: false,
         },
-      },
-      track: {
-        background: "rgba(170,184,197, 0.4)",
-        strokeWidth: "67%",
-        margin: 0,
-      },
+    },
+    plotOptions: {
+        radialBar: {
+            startAngle: -135,
+            endAngle: 225,
+            hollow: {
+                margin: 0,
+                size: "70%",
+                background: "transparent",
+                image: undefined,
+                imageOffsetX: 0,
+                imageOffsetY: 0,
+                position: "front",
+                dropShadow: {
+                    enabled: true,
+                    top: 3,
+                    left: 0,
+                    blur: 4,
+                    opacity: 0.24,
+                },
+            },
+            track: {
+                background: "rgba(170,184,197, 0.4)",
+                strokeWidth: "67%",
+                margin: 0,
+            },
 
-      dataLabels: {
-        showOn: "always",
-        name: {
-          offsetY: -10,
-          show: true,
-          color: "#888",
-          fontSize: "17px",
+            dataLabels: {
+                showOn: "always",
+                name: {
+                    offsetY: -10,
+                    show: true,
+                    color: "#888",
+                    fontSize: "17px",
+                },
+                value: {
+                    formatter: function (val) {
+                        return parseInt(val);
+                    },
+                    color: "#111",
+                    fontSize: "36px",
+                    show: true,
+                },
+            },
         },
-        value: {
-          formatter: function (val) {
-            return parseInt(val);
-          },
-          color: "#111",
-          fontSize: "36px",
-          show: true,
+    },
+    fill: {
+        type: "gradient",
+        gradient: {
+            shade: "dark",
+            type: "horizontal",
+            shadeIntensity: 0.5,
+            gradientToColors: colors,
+            inverseColors: true,
+            opacityFrom: 1,
+            opacityTo: 1,
+            stops: [0, 100],
         },
-      },
     },
-  },
-  fill: {
-    type: "gradient",
-    gradient: {
-      shade: "dark",
-      type: "horizontal",
-      shadeIntensity: 0.5,
-      gradientToColors: colors,
-      inverseColors: true,
-      opacityFrom: 1,
-      opacityTo: 1,
-      stops: [0, 100],
+    series: [70],
+    stroke: {
+        lineCap: "round",
     },
-  },
-  series: [70],
-  stroke: {
-    lineCap: "round",
-  },
-  labels: ["Total Buyer"],
+    labels: ["Total Buyer"],
 };
 var chart = new ApexCharts(document.querySelector("#own-property"), options);
 chart.render();
@@ -584,29 +731,29 @@ class VectorMap {
             zoomButtons: false,
             markersSelectable: true,
             markers: [{
-                    name: "Canada",
-                    coords: [56.1304, -106.3468]
-                },
-                {
-                    name: "Brazil",
-                    coords: [-14.235, -51.9253]
-                },
-                {
-                    name: "Russia",
-                    coords: [61, 105]
-                },
-                {
-                    name: "China",
-                    coords: [35.8617, 104.1954]
-                },
-                {
-                    name: "United States",
-                    coords: [37.0902, -95.7129]
-                },
-                {
-                    name: "Ahmedabad",
-                    coords: [23.03,	72.58]
-                },
+                name: "Canada",
+                coords: [56.1304, -106.3468]
+            },
+            {
+                name: "Brazil",
+                coords: [-14.235, -51.9253]
+            },
+            {
+                name: "Russia",
+                coords: [61, 105]
+            },
+            {
+                name: "China",
+                coords: [35.8617, 104.1954]
+            },
+            {
+                name: "United States",
+                coords: [37.0902, -95.7129]
+            },
+            {
+                name: "Ahmedabad",
+                coords: [23.03, 72.58]
+            },
             ],
             markerStyle: {
                 initial: {
@@ -640,12 +787,25 @@ document.addEventListener("DOMContentLoaded", function (e) {
 });
 
 // sales_analytic
-const salesAnaliticDropdown = document.getElementById('sales-analytic-dropdown');
-salesAnaliticDropdown.addEventListener('click', function(event) {
+const bookingAnaliticDropdown = document.getElementById('booking-analytic-dropdown');
+bookingAnaliticDropdown.addEventListener('click', function (event) {
     const target = event.target;
     if (target.classList.contains('dropdown-item')) {
         event.preventDefault();
         let type = target.dataset.type || 'week';
-        fetchAndRenderSalesAnalytic(type);
+        fetchAndRenderBookingAnalytic(type);
     }
 })
+
+// sales chart dropdown
+const salesAnaliticDropdown = document.getElementById('sales-analytic-dropdown');
+if (salesAnaliticDropdown) {
+    salesAnaliticDropdown.addEventListener('click', function (event) {
+        const target = event.target;
+        if (target.classList.contains('dropdown-item')) {
+            event.preventDefault();
+            let type = target.dataset.type || 'week';
+            fetchAndRenderSalesAnalytic(type);
+        }
+    })
+}
