@@ -1064,7 +1064,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             if (result.isConfirmed) {
                 try {
-                    const response = await fetch(`/admin/tours/${tourId}/unlink-ajax`, {
+                    const response = await fetch(`/${window.adminBasePath}/tours/${tourId}/unlink-ajax`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
