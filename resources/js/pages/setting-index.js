@@ -88,69 +88,69 @@ import '../../css/pages/setting-index.css';
                 encription: 'multipart/form-data',
                 credentials: 'same-origin'
             })
-            .then(async response => {
-                const contentType = response.headers.get('content-type');
-                let data;
-                if (contentType && contentType.includes('application/json')) {
-                    data = await response.json();
-                } else {
-                    const text = await response.text();
-                    throw {
-                        status: response.status,
-                        data: { message: text || 'An error occurred' }
-                    };
-                }
-                if (!response.ok) throw { status: response.status, data };
-                return data;
-            })
-            .then(data => {
-                if (data.success) {
-                    if (typeof Swal !== 'undefined') {
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Success!',
-                            text: (form.dataset.message || 'Settings updated successfully'),
-                            timer: 2000,
-                            showConfirmButton: false,
-                            timerProgressBar: true
-                        });
+                .then(async response => {
+                    const contentType = response.headers.get('content-type');
+                    let data;
+                    if (contentType && contentType.includes('application/json')) {
+                        data = await response.json();
+                    } else {
+                        const text = await response.text();
+                        throw {
+                            status: response.status,
+                            data: { message: text || 'An error occurred' }
+                        };
                     }
-                    if (activeTab) localStorage.setItem('settingsActiveTab', activeTab);
-                    setTimeout(() => window.location.reload(), 1200);
-                } else {
-                    throw { data };
-                }
-            })
-            .catch(error => {
-                let errorMessage = 'An error occurred while updating settings.';
-                if (error instanceof TypeError && error.message.includes('fetch')) {
-                    errorMessage = 'Network error. Please check your internet connection and try again.';
-                } else if (error.data) {
-                    if (error.data.message) {
-                        errorMessage = error.data.message;
-                    } else if (error.data.errors) {
-                        const errors = Object.values(error.data.errors).flat();
-                        errorMessage = errors.join('<br>');
-                    } else if (error.status === 422) {
-                        errorMessage = 'Validation error. Please check your input.';
+                    if (!response.ok) throw { status: response.status, data };
+                    return data;
+                })
+                .then(data => {
+                    if (data.success) {
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Success!',
+                                text: (form.dataset.message || 'Settings updated successfully'),
+                                timer: 2000,
+                                showConfirmButton: false,
+                                timerProgressBar: true
+                            });
+                        }
+                        if (activeTab) localStorage.setItem('settingsActiveTab', activeTab);
+                        setTimeout(() => window.location.reload(), 1200);
+                    } else {
+                        throw { data };
                     }
-                }
+                })
+                .catch(error => {
+                    let errorMessage = 'An error occurred while updating settings.';
+                    if (error instanceof TypeError && error.message.includes('fetch')) {
+                        errorMessage = 'Network error. Please check your internet connection and try again.';
+                    } else if (error.data) {
+                        if (error.data.message) {
+                            errorMessage = error.data.message;
+                        } else if (error.data.errors) {
+                            const errors = Object.values(error.data.errors).flat();
+                            errorMessage = errors.join('<br>');
+                        } else if (error.status === 422) {
+                            errorMessage = 'Validation error. Please check your input.';
+                        }
+                    }
 
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({ icon: 'error', title: 'Error!', html: errorMessage, confirmButtonText: 'OK' });
-                } else {
-                    alert(errorMessage);
-                }
-            })
-            .finally(() => {
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = originalBtnText;
-            });
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({ icon: 'error', title: 'Error!', html: errorMessage, confirmButtonText: 'OK' });
+                    } else {
+                        alert(errorMessage);
+                    }
+                })
+                .finally(() => {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalBtnText;
+                });
         });
     }
 
     function initPanelCardActions() {
-        const newHandler = function(event) {
+        const newHandler = function (event) {
             const button = event.target.closest('[data-panel-action]');
             if (!button) return;
             const card = button.closest('[data-panel-card]');
@@ -186,7 +186,7 @@ import '../../css/pages/setting-index.css';
 
     function handleFullscreen(card, button) {
         const isFullscreen = card.classList.contains('card-fullscreen') || card.classList.contains('panel-card-fullscreen');
-        if (isFullscreen) { card.classList.remove('card-fullscreen','panel-card-fullscreen'); document.body.style.overflow = ''; }
+        if (isFullscreen) { card.classList.remove('card-fullscreen', 'panel-card-fullscreen'); document.body.style.overflow = ''; }
         else { card.classList.add('card-fullscreen'); document.body.style.overflow = 'hidden'; }
         const icon = button.querySelector('i');
         if (icon) {
@@ -213,7 +213,7 @@ import '../../css/pages/setting-index.css';
         if (cashfreeStatus) activeGateways.push('Cashfree');
         if (payuStatus) activeGateways.push('PayU Money');
         if (razorpayStatus) activeGateways.push('Razorpay');
-        const activeGatewayValue = activeGateways.map(g => g.toLowerCase().replace(' money','').replace(' ', '')).join(',');
+        const activeGatewayValue = activeGateways.map(g => g.toLowerCase().replace(' money', '').replace(' ', '')).join(',');
         const activeGatewayDisplay = activeGateways.length > 0 ? activeGateways.join(', ') : 'None';
         const formData = new FormData();
         formData.append('active_payment_gateway', activeGatewayValue);
@@ -228,33 +228,33 @@ import '../../css/pages/setting-index.css';
             headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
             credentials: 'same-origin'
         })
-        .then(async response => {
-            const contentType = response.headers.get('content-type');
-            let data;
-            if (contentType && contentType.includes('application/json')) data = await response.json();
-            else { const text = await response.text(); throw { status: response.status, data: { message: text || 'An error occurred' } }; }
-            if (!response.ok) throw { status: response.status, data };
-            return data;
-        })
-        .then(data => {
-            if (data.success) {
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({ icon: 'success', title: 'Updated!', text: `Active payment gateway${activeGateways.length > 1 ? 's' : ''}: ${activeGatewayDisplay}`, timer: 2000, showConfirmButton: false, timerProgressBar: true, toast: true, position: 'top-end' });
+            .then(async response => {
+                const contentType = response.headers.get('content-type');
+                let data;
+                if (contentType && contentType.includes('application/json')) data = await response.json();
+                else { const text = await response.text(); throw { status: response.status, data: { message: text || 'An error occurred' } }; }
+                if (!response.ok) throw { status: response.status, data };
+                return data;
+            })
+            .then(data => {
+                if (data.success) {
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({ icon: 'success', title: 'Updated!', text: `Active payment gateway${activeGateways.length > 1 ? 's' : ''}: ${activeGatewayDisplay}`, timer: 2000, showConfirmButton: false, timerProgressBar: true, toast: true, position: 'top-end' });
+                    }
+                } else throw { data };
+            })
+            .catch(error => {
+                let errorMessage = 'Failed to update active payment gateway.';
+                if (error instanceof TypeError && error.message.includes('fetch')) errorMessage = 'Network error. Please check your internet connection.';
+                else if (error.data) {
+                    if (error.data.message) errorMessage = error.data.message;
+                    else if (error.data.errors) { const errors = Object.values(error.data.errors).flat(); errorMessage = errors.join('<br>'); }
+                    else if (error.status === 500) errorMessage = 'Server error. Please try again later.';
                 }
-            } else throw { data };
-        })
-        .catch(error => {
-            let errorMessage = 'Failed to update active payment gateway.';
-            if (error instanceof TypeError && error.message.includes('fetch')) errorMessage = 'Network error. Please check your internet connection.';
-            else if (error.data) {
-                if (error.data.message) errorMessage = error.data.message;
-                else if (error.data.errors) { const errors = Object.values(error.data.errors).flat(); errorMessage = errors.join('<br>'); }
-                else if (error.status === 500) errorMessage = 'Server error. Please try again later.';
-            }
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({ icon: 'error', title: 'Error!', html: errorMessage, timer: 3000, showConfirmButton: false, timerProgressBar: true, toast: true, position: 'top-end' });
-            } else alert(errorMessage);
-        });
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({ icon: 'error', title: 'Error!', html: errorMessage, timer: 3000, showConfirmButton: false, timerProgressBar: true, toast: true, position: 'top-end' });
+                } else alert(errorMessage);
+            });
     }
 
     function initTemplateManagement() {
@@ -263,7 +263,7 @@ import '../../css/pages/setting-index.css';
         if (!templatesTableBody) return;
 
         function attachDeleteHandler(btn) {
-            btn.addEventListener('click', function() {
+            btn.addEventListener('click', function () {
                 const row = this.closest('tr');
                 if (confirm('Are you sure you want to delete this template?')) {
                     row.style.transition = 'opacity 0.3s';
@@ -279,7 +279,7 @@ import '../../css/pages/setting-index.css';
         if (addTemplateBtn) {
             const newAddBtn = addTemplateBtn.cloneNode(true);
             addTemplateBtn.parentNode.replaceChild(newAddBtn, addTemplateBtn);
-            newAddBtn.addEventListener('click', function() {
+            newAddBtn.addEventListener('click', function () {
                 const newRow = document.createElement('tr');
                 newRow.innerHTML = `
                     <td>
@@ -313,11 +313,11 @@ import '../../css/pages/setting-index.css';
         if (saveTemplatesBtn) {
             const newSaveBtn = saveTemplatesBtn.cloneNode(true);
             saveTemplatesBtn.parentNode.replaceChild(newSaveBtn, saveTemplatesBtn);
-            newSaveBtn.addEventListener('click', function() { saveTemplates(); });
+            newSaveBtn.addEventListener('click', function () { saveTemplates(); });
         }
 
         if (msg91TemplatesModal) {
-            msg91TemplatesModal.addEventListener('shown.bs.modal', function() { /* noop: init already run */ });
+            msg91TemplatesModal.addEventListener('shown.bs.modal', function () { /* noop: init already run */ });
         }
 
         function saveTemplates() {
@@ -349,31 +349,31 @@ import '../../css/pages/setting-index.css';
             if (csrfToken) formData.append('_token', csrfToken);
             const action = getApiAction();
             fetch(action, { method: 'POST', body: formData, headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }, credentials: 'same-origin' })
-            .then(async response => {
-                const contentType = response.headers.get('content-type');
-                let data;
-                if (contentType && contentType.includes('application/json')) data = await response.json();
-                else { const text = await response.text(); throw { status: response.status, data: { message: text || 'An error occurred' } }; }
-                if (!response.ok) throw { status: response.status, data };
-                return data;
-            })
-            .then(data => {
-                if (data.success) {
-                    if (typeof Swal !== 'undefined') { Swal.fire({ icon: 'success', title: 'Success!', text: 'Templates saved successfully', timer: 2000, showConfirmButton: false, timerProgressBar: true }); }
-                    const modal = (typeof bootstrap !== 'undefined' && document.getElementById('msg91TemplatesModal')) ? bootstrap.Modal.getInstance(document.getElementById('msg91TemplatesModal')) : null;
-                    setTimeout(() => { if (modal) { modal.hide(); } window.location.reload(); }, 1500);
-                } else throw { data };
-            })
-            .catch(error => {
-                let errorMessage = 'Failed to save templates.';
-                if (error instanceof TypeError && error.message.includes('fetch')) errorMessage = 'Network error. Please check your internet connection.';
-                else if (error.data) {
-                    if (error.data.message) errorMessage = error.data.message;
-                    else if (error.data.errors) { const errs = Object.values(error.data.errors).flat(); errorMessage = errs.join('<br>'); }
-                }
-                if (typeof Swal !== 'undefined') { Swal.fire({ icon: 'error', title: 'Error!', html: errorMessage, confirmButtonText: 'OK' }); } else alert(errorMessage);
-            })
-            .finally(() => { saveBtn.disabled = false; saveBtn.innerHTML = originalBtnText; });
+                .then(async response => {
+                    const contentType = response.headers.get('content-type');
+                    let data;
+                    if (contentType && contentType.includes('application/json')) data = await response.json();
+                    else { const text = await response.text(); throw { status: response.status, data: { message: text || 'An error occurred' } }; }
+                    if (!response.ok) throw { status: response.status, data };
+                    return data;
+                })
+                .then(data => {
+                    if (data.success) {
+                        if (typeof Swal !== 'undefined') { Swal.fire({ icon: 'success', title: 'Success!', text: 'Templates saved successfully', timer: 2000, showConfirmButton: false, timerProgressBar: true }); }
+                        const modal = (typeof bootstrap !== 'undefined' && document.getElementById('msg91TemplatesModal')) ? bootstrap.Modal.getInstance(document.getElementById('msg91TemplatesModal')) : null;
+                        setTimeout(() => { if (modal) { modal.hide(); } window.location.reload(); }, 1500);
+                    } else throw { data };
+                })
+                .catch(error => {
+                    let errorMessage = 'Failed to save templates.';
+                    if (error instanceof TypeError && error.message.includes('fetch')) errorMessage = 'Network error. Please check your internet connection.';
+                    else if (error.data) {
+                        if (error.data.message) errorMessage = error.data.message;
+                        else if (error.data.errors) { const errs = Object.values(error.data.errors).flat(); errorMessage = errs.join('<br>'); }
+                    }
+                    if (typeof Swal !== 'undefined') { Swal.fire({ icon: 'error', title: 'Error!', html: errorMessage, confirmButtonText: 'OK' }); } else alert(errorMessage);
+                })
+                .finally(() => { saveBtn.disabled = false; saveBtn.innerHTML = originalBtnText; });
         }
     }
 
@@ -425,7 +425,7 @@ import '../../css/pages/setting-index.css';
             if (cashfreeEnv) cashfreeEnv.addEventListener('change', updateBaseUrl);
             const toggleCashfreeRequired = () => { const status = cashfreeStatus.checked; document.getElementById('cashfree_app_id').required = status; document.getElementById('cashfree_secret_key').required = status; document.querySelectorAll('.cashfree-required').forEach(el => { el.style.display = status ? 'inline' : 'none'; }); };
             toggleCashfreeRequired();
-            cashfreeStatus.addEventListener('change', function() { toggleCashfreeRequired(); saveActivePaymentGateway(); });
+            cashfreeStatus.addEventListener('change', function () { toggleCashfreeRequired(); saveActivePaymentGateway(); });
             handleFormSubmit(cashfreeForm, saveCashfreeBtn);
         }
 
@@ -435,7 +435,7 @@ import '../../css/pages/setting-index.css';
             const payuStatus = document.getElementById('payu_status');
             const togglePayuRequired = () => { const status = payuStatus.checked; document.getElementById('payu_merchant_key').required = status; document.getElementById('payu_merchant_salt').required = status; document.querySelectorAll('.payu-required').forEach(el => { el.style.display = status ? 'inline' : 'none'; }); };
             togglePayuRequired();
-            payuStatus.addEventListener('change', function() { togglePayuRequired(); saveActivePaymentGateway(); });
+            payuStatus.addEventListener('change', function () { togglePayuRequired(); saveActivePaymentGateway(); });
             handleFormSubmit(payuForm, savePayuBtn);
         }
 
@@ -445,7 +445,7 @@ import '../../css/pages/setting-index.css';
             const razorpayStatus = document.getElementById('razorpay_status');
             const toggleRazorpayRequired = () => { const status = razorpayStatus.checked; document.getElementById('razorpay_key').required = status; document.getElementById('razorpay_secret').required = status; document.querySelectorAll('.razorpay-required').forEach(el => { el.style.display = status ? 'inline' : 'none'; }); };
             toggleRazorpayRequired();
-            razorpayStatus.addEventListener('change', function() { toggleRazorpayRequired(); saveActivePaymentGateway(); });
+            razorpayStatus.addEventListener('change', function () { toggleRazorpayRequired(); saveActivePaymentGateway(); });
             handleFormSubmit(razorpayForm, saveRazorpayBtn);
         }
 
@@ -456,7 +456,7 @@ import '../../css/pages/setting-index.css';
         });
 
         document.querySelectorAll('.set-active-sms-gateway-btn').forEach(button => {
-            button.addEventListener('click', function() {
+            button.addEventListener('click', function () {
                 const gatewayKey = this.getAttribute('data-gateway');
                 const form = this.closest('form');
                 const csrfToken = form.getAttribute('data-csrf');
@@ -467,15 +467,15 @@ import '../../css/pages/setting-index.css';
                 this.innerHTML = '<i class="ri-loader-4-line me-1 spin"></i> Setting...';
                 const action = form.action || getApiAction();
                 fetch(action, { method: 'POST', body: formData, headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }, credentials: 'same-origin' })
-                .then(async response => { const data = await response.json(); if (!response.ok) throw { status: response.status, data }; return data; })
-                .then(data => { if (data.success) { if (typeof Swal !== 'undefined') { Swal.fire({ icon: 'success', title: 'Success!', text: gatewayKey.toUpperCase() + ' is now your active SMS gateway', timer: 2000, showConfirmButton: false, timerProgressBar: true }); } setTimeout(() => window.location.reload(), 1500); } else throw { data }; })
-                .catch(error => {
-                    let errorMessage = 'Failed to set active gateway.';
-                    if (error.data && error.data.message) errorMessage = error.data.message;
-                    if (typeof Swal !== 'undefined') { Swal.fire({ icon: 'error', title: 'Error!', text: errorMessage, confirmButtonText: 'OK' }); } else alert(errorMessage);
-                    this.disabled = false;
-                    this.innerHTML = '<i class="ri-check-line me-1"></i> Set as Active';
-                });
+                    .then(async response => { const data = await response.json(); if (!response.ok) throw { status: response.status, data }; return data; })
+                    .then(data => { if (data.success) { if (typeof Swal !== 'undefined') { Swal.fire({ icon: 'success', title: 'Success!', text: gatewayKey.toUpperCase() + ' is now your active SMS gateway', timer: 2000, showConfirmButton: false, timerProgressBar: true }); } setTimeout(() => window.location.reload(), 1500); } else throw { data }; })
+                    .catch(error => {
+                        let errorMessage = 'Failed to set active gateway.';
+                        if (error.data && error.data.message) errorMessage = error.data.message;
+                        if (typeof Swal !== 'undefined') { Swal.fire({ icon: 'error', title: 'Error!', text: errorMessage, confirmButtonText: 'OK' }); } else alert(errorMessage);
+                        this.disabled = false;
+                        this.innerHTML = '<i class="ri-check-line me-1"></i> Set as Active';
+                    });
             });
         });
 
@@ -492,7 +492,7 @@ import '../../css/pages/setting-index.css';
                 });
             }
 
-            checkbox.addEventListener('change', function() {
+            checkbox.addEventListener('change', function () {
                 const gatewayKey = this.getAttribute('data-gateway');
                 const form = this.closest('form');
                 const csrfToken = form ? form.getAttribute('data-csrf') : '';
@@ -502,41 +502,41 @@ import '../../css/pages/setting-index.css';
                 if (csrfToken) formData.append('_token', csrfToken);
                 const action = form.action || getApiAction();
                 fetch(action, { method: 'POST', body: formData, headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }, credentials: 'same-origin' })
-                .then(async response => {
-                    const contentType = response.headers.get('content-type');
-                    let data;
-                    if (contentType && contentType.includes('application/json')) data = await response.json();
-                    else { const text = await response.text(); throw { status: response.status, data: { message: text || 'An error occurred' } }; }
-                    if (!response.ok) throw { status: response.status, data };
-                    return data;
-                })
-                .then(data => {
-                    if (data.success) {
-                        if (form) {
-                            const requiredFields = form.querySelectorAll('.' + gatewayKey + '-sms-required');
-                            requiredFields.forEach(el => { el.style.display = this.checked ? 'inline' : 'none'; });
-                            const requiredInputs = form.querySelectorAll('input[type="text"], input[type="password"], input[type="number"], select');
-                            requiredInputs.forEach(input => { const fieldContainer = input.closest('.mb-3'); if (fieldContainer && fieldContainer.querySelector('.' + gatewayKey + '-sms-required')) input.required = this.checked; });
+                    .then(async response => {
+                        const contentType = response.headers.get('content-type');
+                        let data;
+                        if (contentType && contentType.includes('application/json')) data = await response.json();
+                        else { const text = await response.text(); throw { status: response.status, data: { message: text || 'An error occurred' } }; }
+                        if (!response.ok) throw { status: response.status, data };
+                        return data;
+                    })
+                    .then(data => {
+                        if (data.success) {
+                            if (form) {
+                                const requiredFields = form.querySelectorAll('.' + gatewayKey + '-sms-required');
+                                requiredFields.forEach(el => { el.style.display = this.checked ? 'inline' : 'none'; });
+                                const requiredInputs = form.querySelectorAll('input[type="text"], input[type="password"], input[type="number"], select');
+                                requiredInputs.forEach(input => { const fieldContainer = input.closest('.mb-3'); if (fieldContainer && fieldContainer.querySelector('.' + gatewayKey + '-sms-required')) input.required = this.checked; });
+                            }
+                            if (typeof Swal !== 'undefined') { Swal.fire({ icon: 'success', title: 'Updated!', text: 'SMS gateway status updated successfully', timer: 1500, showConfirmButton: false, timerProgressBar: true, toast: true, position: 'top-end' }); }
+                        } else throw { data };
+                    })
+                    .catch(error => {
+                        this.checked = originalChecked;
+                        let errorMessage = 'Failed to update gateway status.';
+                        if (error instanceof TypeError && error.message.includes('fetch')) errorMessage = 'Network error. Please check your internet connection.';
+                        else if (error.data) {
+                            if (error.data.message) errorMessage = error.data.message;
+                            else if (error.data.errors) { const errs = Object.values(error.data.errors).flat(); errorMessage = errs.join('<br>'); }
                         }
-                        if (typeof Swal !== 'undefined') { Swal.fire({ icon: 'success', title: 'Updated!', text: 'SMS gateway status updated successfully', timer: 1500, showConfirmButton: false, timerProgressBar: true, toast: true, position: 'top-end' }); }
-                    } else throw { data };
-                })
-                .catch(error => {
-                    this.checked = originalChecked;
-                    let errorMessage = 'Failed to update gateway status.';
-                    if (error instanceof TypeError && error.message.includes('fetch')) errorMessage = 'Network error. Please check your internet connection.';
-                    else if (error.data) {
-                        if (error.data.message) errorMessage = error.data.message;
-                        else if (error.data.errors) { const errs = Object.values(error.data.errors).flat(); errorMessage = errs.join('<br>'); }
-                    }
-                    if (typeof Swal !== 'undefined') { Swal.fire({ icon: 'error', title: 'Error!', html: errorMessage, timer: 3000, showConfirmButton: false, timerProgressBar: true, toast: true, position: 'top-end' }); } else alert(errorMessage);
-                });
+                        if (typeof Swal !== 'undefined') { Swal.fire({ icon: 'error', title: 'Error!', html: errorMessage, timer: 3000, showConfirmButton: false, timerProgressBar: true, toast: true, position: 'top-end' }); } else alert(errorMessage);
+                    });
             });
         });
 
         initTemplateManagement();
         initPanelCardActions();
-        
+
         // FTP Configuration Management
         initFtpConfigurationManagement();
     });
@@ -549,29 +549,29 @@ import '../../css/pages/setting-index.css';
         // Initialize modal
         const modalElement = document.getElementById('ftpConfigModal');
         if (!modalElement) return;
-        
+
         ftpConfigModal = new bootstrap.Modal(modalElement);
-        
+
         // Helper function to get base URL for admin API routes
         function getAdminApiUrl(path) {
             const basePath = window.location.pathname.split('/admin')[0] || '';
             return basePath + '/admin/api' + (path.startsWith('/') ? path : '/' + path);
         }
-        
+
         // Load FTP configurations on page load
         loadFtpConfigurations();
-        
+
         // Add button handler
         const addBtn = document.getElementById('addFtpConfigBtn');
         if (addBtn) {
-            addBtn.addEventListener('click', function() {
+            addBtn.addEventListener('click', function () {
                 resetFtpConfigForm();
                 editingFtpConfigId = null;
                 document.getElementById('ftpConfigModalTitle').textContent = 'Add FTP Configuration';
                 ftpConfigModal.show();
             });
         }
-        
+
         // Form submit handler
         const form = document.getElementById('ftpConfigForm');
         if (form) {
@@ -586,34 +586,34 @@ import '../../css/pages/setting-index.css';
                 },
                 credentials: 'same-origin'
             })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return response.json();
-            })
-            .then(data => {
-                console.log('FTP Configurations loaded:', data);
-                if (data.success && data.data) {
-                    renderFtpConfigurationsTable(data.data);
-                } else {
-                    console.error('Unexpected response format:', data);
-                }
-            })
-            .catch(error => {
-                console.error('Error loading FTP configurations:', error);
-            });
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('FTP Configurations loaded:', data);
+                    if (data.success && data.data) {
+                        renderFtpConfigurationsTable(data.data);
+                    } else {
+                        console.error('Unexpected response format:', data);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading FTP configurations:', error);
+                });
         }
 
         function renderFtpConfigurationsTable(configs) {
             const tbody = document.getElementById('ftpConfigurationsTableBody');
             if (!tbody) return;
-            
+
             if (!configs || configs.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="8" class="text-center">No FTP configurations found. Click "Add FTP Configuration" to create one.</td></tr>';
                 return;
             }
-            
+
             tbody.innerHTML = configs.map(config => `
                 <tr>
                     <td><strong>${config.category_name}</strong></td>
@@ -628,18 +628,29 @@ import '../../css/pages/setting-index.css';
                         </span>
                     </td>
                     <td>
-                        <button class="btn btn-sm btn-primary me-1" onclick="window.editFtpConfig(${config.id})">
-                            <i class="ri-edit-line"></i>
-                        </button>
-                        <button class="btn btn-sm btn-danger" onclick="window.deleteFtpConfig(${config.id})">
-                            <i class="ri-delete-bin-line"></i>
-                        </button>
+                        <div class="d-flex gap-1 justify-content-center">
+                            <button class="btn btn-sm btn-soft-info" onclick="window.editFtpConfig(${config.id})"
+                                data-bs-toggle="tooltip" data-bs-placement="top" title="Edit FTP Configuration">
+                                <iconify-icon icon="solar:pen-new-square-broken" class="align-middle fs-18"></iconify-icon>
+                            </button>
+                            <button class="btn btn-sm btn-soft-danger" onclick="window.deleteFtpConfig(${config.id})"
+                                data-bs-toggle="tooltip" data-bs-placement="top" title="Delete FTP Configuration">
+                                <iconify-icon icon="solar:trash-bin-minimalistic-broken" class="align-middle fs-18"></iconify-icon>
+                            </button>
+                        </div>
                     </td>
                 </tr>
             `).join('');
+            // Re-initialize tooltips for the freshly rendered action buttons
+            if (typeof bootstrap !== 'undefined' && bootstrap.Tooltip) {
+                const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                tooltipTriggerList.map(function (tooltipTriggerEl) {
+                    return new bootstrap.Tooltip(tooltipTriggerEl);
+                });
+            }
         }
 
-        window.editFtpConfig = function(id) {
+        window.editFtpConfig = function (id) {
             fetch(getAdminApiUrl(`/ftp-configurations/${id}`), {
                 headers: {
                     'Accept': 'application/json',
@@ -647,22 +658,22 @@ import '../../css/pages/setting-index.css';
                 },
                 credentials: 'same-origin'
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    const config = data.data;
-                    populateFtpConfigForm(config);
-                    editingFtpConfigId = id;
-                    document.getElementById('ftpConfigModalTitle').textContent = 'Edit FTP Configuration';
-                    ftpConfigModal.show();
-                }
-            })
-            .catch(error => {
-                console.error('Error loading FTP configuration:', error);
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({ icon: 'error', title: 'Error!', text: 'Failed to load FTP configuration', timer: 2000, showConfirmButton: false });
-                }
-            });
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const config = data.data;
+                        populateFtpConfigForm(config);
+                        editingFtpConfigId = id;
+                        document.getElementById('ftpConfigModalTitle').textContent = 'Edit FTP Configuration';
+                        ftpConfigModal.show();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading FTP configuration:', error);
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({ icon: 'error', title: 'Error!', text: 'Failed to load FTP configuration', timer: 2000, showConfirmButton: false });
+                    }
+                });
         };
 
         function populateFtpConfigForm(config) {
@@ -693,19 +704,19 @@ import '../../css/pages/setting-index.css';
 
         function handleFtpConfigSubmit(e) {
             e.preventDefault();
-            
+
             const formData = new FormData(e.target);
             const data = Object.fromEntries(formData.entries());
-            
+
             // Convert checkboxes to boolean
             data.passive = formData.has('passive');
             data.ssl = formData.has('ssl');
             data.is_active = formData.has('is_active');
-            
+
             // Convert port and timeout to integers
             if (data.port) data.port = parseInt(data.port);
             if (data.timeout) data.timeout = parseInt(data.timeout);
-            
+
             fetch(getAdminApiUrl('/ftp-configurations'), {
                 method: 'POST',
                 headers: {
@@ -717,41 +728,41 @@ import '../../css/pages/setting-index.css';
                 credentials: 'same-origin',
                 body: JSON.stringify(data)
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    if (typeof Swal !== 'undefined') {
-                        Swal.fire({ icon: 'success', title: 'Success!', text: data.message, timer: 2000, showConfirmButton: false });
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({ icon: 'success', title: 'Success!', text: data.message, timer: 2000, showConfirmButton: false });
+                        } else {
+                            alert(data.message);
+                        }
+                        ftpConfigModal.hide();
+                        loadFtpConfigurations();
                     } else {
-                        alert(data.message);
+                        let errorMessage = data.message || 'Failed to save FTP configuration';
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({ icon: 'error', title: 'Error!', text: errorMessage, timer: 3000, showConfirmButton: false });
+                        } else {
+                            alert('Error: ' + errorMessage);
+                        }
                     }
-                    ftpConfigModal.hide();
-                    loadFtpConfigurations();
-                } else {
-                    let errorMessage = data.message || 'Failed to save FTP configuration';
+                })
+                .catch(error => {
+                    console.error('Error saving FTP configuration:', error);
+                    const errorMessage = 'Error saving FTP configuration. Please try again.';
                     if (typeof Swal !== 'undefined') {
                         Swal.fire({ icon: 'error', title: 'Error!', text: errorMessage, timer: 3000, showConfirmButton: false });
                     } else {
-                        alert('Error: ' + errorMessage);
+                        alert(errorMessage);
                     }
-                }
-            })
-            .catch(error => {
-                console.error('Error saving FTP configuration:', error);
-                const errorMessage = 'Error saving FTP configuration. Please try again.';
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({ icon: 'error', title: 'Error!', text: errorMessage, timer: 3000, showConfirmButton: false });
-                } else {
-                    alert(errorMessage);
-                }
-            });
+                });
         }
 
-        window.deleteFtpConfig = function(id) {
+        window.deleteFtpConfig = function (id) {
             if (!confirm('Are you sure you want to delete this FTP configuration?')) {
                 return;
             }
-            
+
             fetch(getAdminApiUrl(`/ftp-configurations/${id}`), {
                 method: 'DELETE',
                 headers: {
@@ -761,33 +772,33 @@ import '../../css/pages/setting-index.css';
                 },
                 credentials: 'same-origin'
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    if (typeof Swal !== 'undefined') {
-                        Swal.fire({ icon: 'success', title: 'Deleted!', text: data.message, timer: 2000, showConfirmButton: false });
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({ icon: 'success', title: 'Deleted!', text: data.message, timer: 2000, showConfirmButton: false });
+                        } else {
+                            alert(data.message);
+                        }
+                        loadFtpConfigurations();
                     } else {
-                        alert(data.message);
+                        const errorMessage = data.message || 'Failed to delete FTP configuration';
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({ icon: 'error', title: 'Error!', text: errorMessage, timer: 3000, showConfirmButton: false });
+                        } else {
+                            alert('Error: ' + errorMessage);
+                        }
                     }
-                    loadFtpConfigurations();
-                } else {
-                    const errorMessage = data.message || 'Failed to delete FTP configuration';
+                })
+                .catch(error => {
+                    console.error('Error deleting FTP configuration:', error);
+                    const errorMessage = 'Error deleting FTP configuration. Please try again.';
                     if (typeof Swal !== 'undefined') {
                         Swal.fire({ icon: 'error', title: 'Error!', text: errorMessage, timer: 3000, showConfirmButton: false });
                     } else {
-                        alert('Error: ' + errorMessage);
+                        alert(errorMessage);
                     }
-                }
-            })
-            .catch(error => {
-                console.error('Error deleting FTP configuration:', error);
-                const errorMessage = 'Error deleting FTP configuration. Please try again.';
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({ icon: 'error', title: 'Error!', text: errorMessage, timer: 3000, showConfirmButton: false });
-                } else {
-                    alert(errorMessage);
-                }
-            });
+                });
         };
     }
 })();

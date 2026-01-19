@@ -15,10 +15,10 @@
                     <h3 class="mb-0">Photographer Visits</h3>
                 </div>
                 <div class="d-flex align-items-center gap-2">
-                    <x-admin.back-button :classes="['btn', 'btn-soft-secondary']" :merge="false"
+                   <x-admin.back-button :classes="['btn', 'btn-soft-primary']" :merge="false"
                         icon="ri-arrow-go-back-line" />
                     @if($canCreate)
-                    <a href="{{ route('admin.photographer-visits.create') }}" class="btn btn-primary">
+                     <a href="{{ route('admin.photographer-visits.create') }}" class="btn btn-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="Add New Visit" >
                         <i class="ri-add-line me-1"></i> New Visit
                     </a>
                     @endif

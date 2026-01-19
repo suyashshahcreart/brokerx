@@ -263,7 +263,7 @@
 
 
                     @canany(['setting_view', 'setting_booking_schedule', 'setting_photographer', 'setting_base_price', 'setting_payment_gateway', 'setting_sms_configuration', 'setting_ftp_configuration'])
-                         <li class="nav-item">
+                         <li class="d-none nav-item">
                               <a class="nav-link menu-arrow" href="#sidebarReports" data-bs-toggle="collapse" role="button" aria-expanded="false" aria-controls="sidebarReports">
                                    <span class="nav-icon">
                                         <i class="ri-file-chart-line"></i>

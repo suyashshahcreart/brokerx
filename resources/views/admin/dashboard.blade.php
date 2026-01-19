@@ -85,7 +85,7 @@
     </div> <!-- end row -->
     <!-- Sales Analytic -->
     <div class="row">
-        <div class="col-xl-8">
+        <div class="col-xl-12">
             <div class="card overflow-hidden">
                 <div class="card-header d-flex justify-content-between align-items-center pb-1">
                     <div>
@@ -274,7 +274,7 @@
 
         </div>
         <!-- property sales -->
-         <div class="col-xl-4 col-lg-6">
+         <div class="d-none col-xl-4 col-lg-6">
             <div class="card">
                 <div class="card-header">
                     <h4 class="card-title">Tours Live</h4>
@@ -323,7 +323,7 @@
         </div>
     </div>
 
-    <div class="row">
+    <div class="d-none row">
         <div class="col-xl-3 col-lg-6">
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center pb-1">

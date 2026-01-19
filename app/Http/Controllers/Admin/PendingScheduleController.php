@@ -28,7 +28,7 @@ class PendingScheduleController extends Controller
         if ($request->ajax()) {
             $query = Booking::with(['user', 'propertyType', 'propertySubType', 'bhk', 'city', 'state'])
                 ->whereIn('status', ['schedul_pending', 'reschedul_pending']);
-            
+
             return \Yajra\DataTables\Facades\DataTables::of($query)
                 ->addColumn('user', function (Booking $booking) {
                     return $booking->user ? $booking->user->firstname . ' ' . $booking->user->lastname : '-';
@@ -57,15 +57,17 @@ class PendingScheduleController extends Controller
                     $view = route('admin.bookings.show', $booking);
                     $accept = route('admin.pending-schedules.accept', $booking);
                     $decline = route('admin.pending-schedules.decline', $booking);
-                    
+
                     return '
-                        <div class="btn-group btn-group-sm" role="group">
-                            <a href="' . $view . '" class="btn btn-light border" title="View"><i class="ri-eye-line"></i></a>
-                            <button onclick="acceptSchedule(' . $booking->id . ')" class="btn btn-success border" title="Accept">
-                                <i class="ri-check-line"></i> Accept
+                          <div class="d-flex gap-1 justify-content-end">
+                            <a href="' . $view . '" class="btn btn-sm btn-soft-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="View Booking Details">
+                                <iconify-icon icon="solar:eye-broken" class="align-middle fs-18"></iconify-icon>
+                            </a>
+                            <button onclick="acceptSchedule(' . $booking->id . ')" class="btn btn-sm btn-soft-success" data-bs-toggle="tooltip" data-bs-placement="top" title="Accept Schedule">
+                                <iconify-icon icon="solar:check-circle-broken" class="align-middle fs-18"></iconify-icon>
                             </button>
-                            <button onclick="declineSchedule(' . $booking->id . ')" class="btn btn-danger border" title="Decline">
-                                <i class="ri-close-line"></i> Decline
+                            <button onclick="declineSchedule(' . $booking->id . ')" class="btn btn-sm btn-soft-danger" data-bs-toggle="tooltip" data-bs-placement="top" title="Decline Schedule">
+                                <iconify-icon icon="solar:close-circle-broken" class="align-middle fs-18"></iconify-icon>
                             </button>
                         </div>
                     ';
@@ -73,7 +75,7 @@ class PendingScheduleController extends Controller
                 ->rawColumns(['type_subtype', 'city_state', 'status', 'payment_status', 'actions'])
                 ->toJson();
         }
-        
+
         $canEdit = $request->user()->can('booking_edit');
         return view('admin.pending-schedules.index', compact('canEdit'));
     }
@@ -105,13 +107,13 @@ class PendingScheduleController extends Controller
 
         $isReschedule = $booking->status === 'reschedul_pending';
         $oldStatus = $booking->status;
-        
+
         // Capture before state for activity log
         $before = $booking->toArray();
 
         // Change status using the booking model method
         $newStatus = $isReschedule ? 'reschedul_accepted' : 'schedul_accepted';
-        
+
         $booking->changeStatus(
             $newStatus,
             auth()->id(),
@@ -121,11 +123,11 @@ class PendingScheduleController extends Controller
                 'approved_at' => now()->toDateTimeString(),
                 'scheduled_date' => $booking->booking_date?->format('Y-m-d'),
                 'admin_notes' => $request->notes,
-            ], function($value) {
+            ], function ($value) {
                 return !is_null($value) && $value !== '';
             })
         );
-        
+
         // Capture after state and calculate changes
         $booking->refresh();
         $after = $booking->toArray();
@@ -138,7 +140,7 @@ class PendingScheduleController extends Controller
                 ];
             }
         }
-        
+
         // Log activity
         activity('bookings')
             ->performedOn($booking)
@@ -158,22 +160,22 @@ class PendingScheduleController extends Controller
             try {
                 // PROPPIK: Your appointment is scheduled on ##DATE##. Please ensure you are available. – CREART
                 // Template ID: 69295d82a0f6627e122a0252
-                
+
                 $mobile = $booking->user->mobile;
-                
+
                 // Ensure mobile has country code (91 for India)
                 if (!str_starts_with($mobile, '91')) {
                     $mobile = '91' . $mobile;
                 }
-                
+
                 // Format booking date for SMS
                 $formattedDate = $booking->booking_date->format('d M Y'); // e.g., "05 Dec 2025"
-                
+
                 // Prepare SMS parameters
                 $smsParams = [
                     'DATE' => $formattedDate
                 ];
-                
+
                 // Send SMS using MSG91 appointment_scheduled template
                 $this->smsService->send(
                     $mobile,                        // Mobile number with country code
@@ -186,7 +188,7 @@ class PendingScheduleController extends Controller
                         'notes' => 'Appointment scheduled SMS sent after admin approval'
                     ]
                 );
-                
+
                 \Log::info('Appointment scheduled SMS sent successfully', [
                     'booking_id' => $booking->id,
                     'mobile' => $mobile,
@@ -241,7 +243,7 @@ class PendingScheduleController extends Controller
         $isReschedule = $booking->status === 'reschedul_pending';
         $oldStatus = $booking->status;
         $requestedDate = $booking->booking_date?->format('Y-m-d');
-        
+
         // Capture before state for activity log
         $before = $booking->toArray();
 
@@ -252,7 +254,7 @@ class PendingScheduleController extends Controller
 
         // Change status using the booking model method
         $newStatus = $isReschedule ? 'reschedul_decline' : 'schedul_decline';
-        
+
         $booking->changeStatus(
             $newStatus,
             auth()->id(),
@@ -264,7 +266,7 @@ class PendingScheduleController extends Controller
                 'scheduled_date_requested' => $requestedDate,
             ]
         );
-        
+
         // Capture after state and calculate changes
         $booking->refresh();
         $after = $booking->toArray();
@@ -277,7 +279,7 @@ class PendingScheduleController extends Controller
                 ];
             }
         }
-        
+
         // Log activity
         activity('bookings')
             ->performedOn($booking)
