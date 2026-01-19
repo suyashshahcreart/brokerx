@@ -554,8 +554,8 @@ import '../../css/pages/setting-index.css';
 
         // Helper function to get base URL for admin API routes
         function getAdminApiUrl(path) {
-            const basePath = window.location.pathname.split('/admin')[0] || '';
-            return basePath + '/admin/api' + (path.startsWith('/') ? path : '/' + path);
+            const basePath = window.location.pathname.split('/ppadmlog')[0] || '';
+            return basePath + '/ppadmlog/api' + (path.startsWith('/') ? path : '/' + path);
         }
 
         // Load FTP configurations on page load
@@ -685,7 +685,25 @@ import '../../css/pages/setting-index.css';
             document.getElementById('ftp_host').value = config.host || '';
             document.getElementById('ftp_port').value = config.port || 21;
             document.getElementById('ftp_username').value = config.username || '';
-            document.getElementById('ftp_password').value = ''; // Don't populate password for security
+            // Don't populate password - user must enter it if they want to change it
+            const passwordField = document.getElementById('ftp_password');
+            const passwordRequired = document.getElementById('ftp_password_required');
+            const passwordHelp = document.getElementById('ftp_password_help');
+            
+            passwordField.value = '';
+            if (config.id) {
+                // Editing existing record
+                passwordField.placeholder = 'Leave blank to keep current password';
+                passwordField.required = false;
+                if (passwordRequired) passwordRequired.style.display = 'none';
+                if (passwordHelp) passwordHelp.textContent = 'Leave blank to keep current password';
+            } else {
+                // New record
+                passwordField.placeholder = 'Enter password';
+                passwordField.required = true;
+                if (passwordRequired) passwordRequired.style.display = 'inline';
+                if (passwordHelp) passwordHelp.textContent = 'Required for new configurations';
+            }
             document.getElementById('ftp_root').value = config.root || '/';
             document.getElementById('ftp_timeout').value = config.timeout || 30;
             document.getElementById('ftp_passive').checked = config.passive !== false;
@@ -700,6 +718,15 @@ import '../../css/pages/setting-index.css';
             const form = document.getElementById('ftpConfigForm');
             if (form) form.reset();
             document.getElementById('ftp_config_id').value = '';
+            // Reset password field placeholder and requirement
+            const passwordField = document.getElementById('ftp_password');
+            const passwordRequired = document.getElementById('ftp_password_required');
+            const passwordHelp = document.getElementById('ftp_password_help');
+            
+            passwordField.placeholder = 'Enter password';
+            passwordField.required = true;
+            if (passwordRequired) passwordRequired.style.display = 'inline';
+            if (passwordHelp) passwordHelp.textContent = 'Required for new configurations';
         }
 
         function handleFtpConfigSubmit(e) {
@@ -707,6 +734,11 @@ import '../../css/pages/setting-index.css';
 
             const formData = new FormData(e.target);
             const data = Object.fromEntries(formData.entries());
+
+            // Remove password if it's empty (for updates)
+            if (!data.password || data.password.trim() === '') {
+                delete data.password;
+            }
 
             // Convert checkboxes to boolean
             data.passive = formData.has('passive');
