@@ -461,8 +461,8 @@
         <button class="btn btn-primary" type="submit">
             <i class="ri-save-line me-1"></i> Update Tour
         </button>
-        <button class="btn btn-soft-danger" type="button" id="unlinkTourBtn">
-            <i class="ri-link-unlink me-1"></i> Unlink Tour
+        <button class="btn btn-soft-secondary" type="button" onClick="window.location.reload();">
+            <i class="ri-link-unlink me-1"></i> Cancle
         </button>
     </div>
 

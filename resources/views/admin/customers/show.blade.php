@@ -93,8 +93,8 @@
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
-                        <table id="customer-bookings-table" class="table table-bordered table-hover">
-                            <thead>
+                         <table id="customer-bookings-table" class="table table-hover">
+                           <thead class="table-light">
                                 <tr>
                                     <th>ID</th>
                                     <th>User</th>

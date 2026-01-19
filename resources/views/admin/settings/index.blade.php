@@ -683,7 +683,7 @@
                                                         <th>Host</th>
                                                         <th>Port</th>
                                                         <th>Status</th>
-                                                        <th>Actions</th>
+                                                        <th class="text-center">Actions</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody id="ftpConfigurationsTableBody">
