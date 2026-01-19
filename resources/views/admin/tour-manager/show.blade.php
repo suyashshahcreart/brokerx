@@ -17,15 +17,15 @@
                         <h3 class="mb-0">Tour Management ({{$booking->tour_code}})</h3>
                     </div>
                     <div>
-                        <a href="{{ route('admin.tour-manager.index') }}" class="btn btn-secondary" data-bs-toggle="tooltip" title="Back to Tour Management">
+                        <a href="{{ route('admin.tour-manager.index') }}" class="btn btn-soft-secondary" data-bs-toggle="tooltip" title="Back to Tour Management">
                             <iconify-icon icon="solar:arrow-left-broken" class="align-middle me-1"></iconify-icon> Back
                         </a>
                         @can('booking_edit')
-                            <a href="{{ route('admin.bookings.edit', $booking->id) }}" class="btn btn-info" data-bs-toggle="tooltip" title="Edit Booking Info">
+                            <a href="{{ route('admin.bookings.edit', $booking->id) }}" class="btn btn-primary" data-bs-toggle="tooltip" title="Edit Booking Info">
                                 <iconify-icon icon="solar:pen-new-square-broken" class="align-middle me-1"></iconify-icon> Edit Booking
                             </a>
                         @endcan
-                        <a href="{{ route('admin.tour-manager.upload', $booking) }}" class="btn btn-warning" data-bs-toggle="tooltip" title="Upload & Manage Tour Assets">
+                        <a href="{{ route('admin.tour-manager.upload', $booking) }}" class="btn btn-primary" data-bs-toggle="tooltip" title="Upload & Manage Tour Assets">
                             <iconify-icon icon="solar:upload-minimalistic-broken" class="align-middle me-1"></iconify-icon> Upload Tour
                         </a>
                     </div>
