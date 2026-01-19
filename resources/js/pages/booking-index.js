@@ -354,7 +354,7 @@ document.addEventListener('DOMContentLoaded', function () {
 		// Use correct route for reschedule
 		const baseUrl = window.appBaseUrl || '';
 		$.ajax({
-			url: `${baseUrl}/admin/bookings/${bookingId}/reschedule`,
+			url: `${baseUrl}/${window.adminBasePath}/bookings/${bookingId}/reschedule`,
 			method: 'POST',
 			data: {
 				schedule_date: date,
@@ -448,7 +448,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 		if (result.isConfirmed) {
 			try {
-				const response = await fetch(`${window.appBaseUrl}/admin/pending-schedules/${bookingId}/accept`, {
+				const response = await fetch(`${window.appBaseUrl}/${window.adminBasePath}/pending-schedules/${bookingId}/accept`, {
 					method: 'POST',
 					headers: {
 						'Content-Type': 'application/json',
@@ -537,7 +537,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 		if (result.isConfirmed) {
 			try {
-				const response = await fetch(`${window.appBaseUrl}/admin/pending-schedules/${bookingId}/decline`, {
+				const response = await fetch(`${window.appBaseUrl}/${window.adminBasePath}/pending-schedules/${bookingId}/decline`, {
 					method: 'POST',
 					headers: {
 						'Content-Type': 'application/json',
@@ -586,7 +586,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 		if (result.isConfirmed) {
 			try {
-				const response = await fetch(`${window.appBaseUrl}/admin/bookings/${bookingId}`, {
+				const response = await fetch(`${window.appBaseUrl}/${window.adminBasePath}/bookings/${bookingId}`, {
 					method: 'DELETE',
 					headers: {
 						'X-CSRF-TOKEN': window.bookingCsrfToken,

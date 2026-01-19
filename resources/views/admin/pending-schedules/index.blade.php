@@ -215,7 +215,7 @@
 
             if (result.isConfirmed) {
                 try {
-                    const response = await fetch(`${baseUrl}/admin/pending-schedules/${bookingId}/accept`, {
+                    const response = await fetch(`${baseUrl}/${window.adminBasePath}/pending-schedules/${bookingId}/accept`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -315,7 +315,7 @@
             }
 
             try {
-                const response = await fetch(`${baseUrl}/admin/pending-schedules/${bookingId}/decline`, {
+                const response = await fetch(`${baseUrl}/${window.adminBasePath}/pending-schedules/${bookingId}/decline`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
