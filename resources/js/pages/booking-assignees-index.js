@@ -105,6 +105,8 @@ $(document).ready(function () {
         drawCallback: function () {
             initializeDropdowns();
             bindAssignButtons();
+            bindReassignButtons();
+            bindCancelButtons();
             // Re-initialize tooltips for dynamically rendered action buttons
             const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
             tooltipTriggerList.map(function (tooltipTriggerEl) {
@@ -426,159 +428,18 @@ function bindAssignButtons() {
 
             const getSlotMode = () => (slotModeAny?.checked ? 'any' : 'available');
 
-            // Helper to check if time is in the past
-            const isPastTime = (timeInMinutes, selectedDate) => {
-                if (!selectedDate) return false;
-                
-                const now = new Date();
-                // Parse selectedDate string (YYYY-MM-DD) to avoid timezone issues
-                const [year, month, day] = selectedDate.split('-').map(Number);
-                const selectedDateObj = new Date(year, month - 1, day);
-                const todayDateObj = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-                
-                // If selected date is not today, no filtering needed
-                if (selectedDateObj.getTime() !== todayDateObj.getTime()) {
-                    return false;
-                }
-                
-                // For today, check if the slot start time has passed
-                const currentMinutes = now.getHours() * 60 + now.getMinutes();
-                return timeInMinutes <= currentMinutes;
-            };
-
-            function buildAllSlots() {
-                assignTimeEl.innerHTML = '<option value="">Select a time</option>';
-                if (toM < fromM) return;
-                const dateVal = document.getElementById('modalDate').value;
-                for (let t = fromM; t <= toM; t += slotStep) {
-                    // Skip past times if date is today
-                    if (dateVal && isPastTime(t, dateVal)) continue;
-                    
-                    const opt = document.createElement('option');
-                    opt.value = formatHM(t);
-                    opt.textContent = formatDisplay(t);
-                    assignTimeEl.appendChild(opt);
-                }
-                if (assignTimeEl.options.length > 1) {
-                    assignTimeEl.disabled = false;
-                    assignTimeEl.value = assignTimeEl.options[1].value;
-                } else {
-                    assignTimeEl.disabled = true;
-                }
-            }
-
             function loadSlots() {
-                if (!assignPhotographerEl.value) {
-                    resetSelect();
-                    setHelper('Select a photographer first to see available slots from the API, or choose "Pick any" to ignore conflicts.');
-                    return;
-                }
-
-                if (toM < fromM) {
-                    resetSelect();
-                    setHelper('No available slots for photographers. Please update settings.');
-                    return;
-                }
-
-                const dateVal = document.getElementById('modalDate').value;
-                if (!dateVal) {
-                    resetSelect();
-                    setHelper('Please select a booking date first.');
-                    return;
-                }
-
-                // Mode: pick any (ignore existing assignments)
-                if (getSlotMode() === 'any') {
-                    buildAllSlots();
-                    setHelper(`Pick any slot between ${formatDisplay(fromM)} — ${formatDisplay(toM)} (every ${slotStep} min)`);
-                    return;
-                }
-
-                // Mode: available (default) -> fetch and filter
-                setHelper('Loading photographer slots...');
-                assignTimeEl.disabled = true;
-                assignTimeEl.innerHTML = '<option value="">Loading...</option>';
-
-                fetch(`${window.appBaseUrl || ''}/api/booking-assignees/slots?date=${encodeURIComponent(dateVal)}&user_id=${encodeURIComponent(assignPhotographerEl.value)}`, {
-                    method: 'GET',
-                    credentials: 'same-origin',
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest',
-                        'Accept': 'application/json'
-                    }
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        if (response.status === 403) {
-                            return response.json().then(err => {
-                                throw new Error(err?.message || 'Access denied');
-                            });
-                        }
-                        return response.json().then(err => Promise.reject(err));
-                    }
-                    return response.json();
-                })
-                .then(json => {
-                    if (!json || json.success === false) {
-                        setHelper(json?.message || 'Failed to load slots');
-                        resetSelect();
-                        return;
-                    }
-
-                    const occupiedIntervals = [];
-
-                    (json.data || []).forEach(s => {
-                        if (!s.time) return;
-                        const parts = s.time.split(':');
-                        if (parts.length < 2) return;
-                        const start = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
-                        // Add buffer time equal to working duration after the working duration
-                        const bufferTime = workingDuration;
-                        const end = start + workingDuration + bufferTime;
-                        occupiedIntervals.push({ start, end });
-                    });
-
-                    assignTimeEl.innerHTML = '<option value="">Select a time</option>';
-                    for (let t = fromM; t <= toM; t += slotStep) {
-                        const candidateStart = t;
-                        const candidateEnd = t + workingDuration;
-
-                        // Skip past times if date is today
-                        if (dateVal && isPastTime(candidateStart, dateVal)) continue;
-
-                        let overlaps = false;
-                        for (const occ of occupiedIntervals) {
-                            if (candidateStart < occ.end && candidateEnd > occ.start) {
-                                overlaps = true;
-                                break;
-                            }
-                        }
-
-                        if (overlaps) continue;
-
-                        const opt = document.createElement('option');
-                        opt.value = formatHM(t);
-                        opt.textContent = formatDisplay(t);
-                        assignTimeEl.appendChild(opt);
-                    }
-
-                    if (assignTimeEl.options.length <= 1) {
-                        resetSelect();
-                        setHelper('No available slots on this date for selected photographer.');
-                    } else {
-                        assignTimeEl.disabled = false;
-                        if (!assignTimeEl.value && assignTimeEl.options.length > 1) {
-                            assignTimeEl.value = assignTimeEl.options[1].value;
-                        }
-                        assignTimeEl.focus();
-                        setHelper(`Available slots: ${formatDisplay(fromM)} — ${formatDisplay(toM)} (every ${slotStep} min)`);
-                    }
-                })
-                .catch(err => {
-                    console.error('Error loading slots:', err);
-                    setHelper(err?.message || 'Failed to load slots.');
-                    resetSelect();
-                });
+                loadSlotsForElement(
+                    assignPhotographerEl,
+                    assignTimeEl,
+                    helper,
+                    document.getElementById('modalDate'),
+                    modalEl,
+                    slotModeAny,
+                    availableFrom,
+                    availableTo,
+                    workingDuration
+                );
             }
 
             assignPhotographerEl.onchange = loadSlots;
@@ -592,4 +453,424 @@ function bindAssignButtons() {
             modal.show();
         });
     });
+}
+
+/**
+ * Bind reassign booking buttons
+ */
+function bindReassignButtons() {
+    document.querySelectorAll('.reassign-btn').forEach(btn => {
+        btn.addEventListener('click', function () {
+            const assigneeId = this.getAttribute('data-assignee-id');
+            const bookingId = this.getAttribute('data-booking-id');
+            const currentPhotographerId = this.getAttribute('data-current-photographer-id');
+            const currentTime = this.getAttribute('data-current-time');
+            const address = this.getAttribute('data-booking-address');
+            const city = this.getAttribute('data-booking-city');
+            const state = this.getAttribute('data-booking-state');
+            const pincode = this.getAttribute('data-booking-pincode');
+            const customer = this.getAttribute('data-booking-customer');
+            const date = this.getAttribute('data-booking-date');
+
+            // Populate reassignment modal
+            document.getElementById('reassignAssigneeId').value = assigneeId;
+            document.getElementById('reassignModalCustomer').textContent = customer || '-';
+            document.getElementById('reassignModalAddress').textContent = address || '-';
+            document.getElementById('reassignModalCity').textContent = city || '-';
+            document.getElementById('reassignModalState').textContent = state || '-';
+            document.getElementById('reassignModalPincode').textContent = pincode || '-';
+            document.getElementById('reassignModalDate').value = date || '';
+
+            // Show current assignment info
+            const currentPhotographerEl = document.querySelector(`#assignPhotographer option[value="${currentPhotographerId}"]`);
+            const currentPhotographerName = currentPhotographerEl ? currentPhotographerEl.textContent : 'Unknown';
+            document.getElementById('currentPhotographerName').textContent = currentPhotographerName;
+            document.getElementById('currentAssignedTime').textContent = currentTime || '-';
+
+            // Reset form fields
+            const reassignPhotographerEl = document.getElementById('reassignPhotographer');
+            const reassignTimeEl = document.getElementById('reassignTime');
+            reassignPhotographerEl.value = '';
+            reassignTimeEl.value = '';
+            reassignTimeEl.disabled = true;
+
+            // Setup slot loading for reassignment
+            const modalEl = document.getElementById('reassignBookingModal');
+            const availableFrom = modalEl?.dataset?.photographerFrom || '08:00';
+            const availableTo = modalEl?.dataset?.photographerTo || '21:00';
+            const workingDuration = parseInt(modalEl?.dataset?.photographerDuration || '60', 10);
+
+            const helper = document.getElementById('reassignTimeHelper');
+            const slotModeAvailable = document.getElementById('reassignSlotModeAvailable');
+            const slotModeAny = document.getElementById('reassignSlotModeAny');
+
+            const setHelper = (msg) => { if (helper) helper.textContent = msg; };
+            const resetSelect = () => { 
+                reassignTimeEl.disabled = true; 
+                reassignTimeEl.innerHTML = '<option value="">Select a time</option>'; 
+                reassignTimeEl.value = ''; 
+            };
+
+            setHelper('Select a photographer first.');
+            resetSelect();
+            if (slotModeAvailable) slotModeAvailable.checked = true;
+            if (slotModeAny) slotModeAny.checked = false;
+
+            const loadReassignSlots = () => {
+                loadSlotsForElement(
+                    reassignPhotographerEl,
+                    reassignTimeEl,
+                    helper,
+                    document.getElementById('reassignModalDate'),
+                    modalEl,
+                    slotModeAny,
+                    availableFrom,
+                    availableTo,
+                    workingDuration
+                );
+            };
+
+            reassignPhotographerEl.onchange = loadReassignSlots;
+            if (slotModeAvailable) slotModeAvailable.onchange = loadReassignSlots;
+            if (slotModeAny) slotModeAny.onchange = loadReassignSlots;
+
+            const modal = new bootstrap.Modal(modalEl);
+            modal.show();
+        });
+    });
+
+    // Handle reassignment form submission
+    const reassignForm = document.getElementById('reassignBookingForm');
+    if (reassignForm && !reassignForm.hasAttribute('data-listener-attached')) {
+        reassignForm.setAttribute('data-listener-attached', 'true');
+        reassignForm.addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            const assigneeId = document.getElementById('reassignAssigneeId').value;
+            const userId = document.getElementById('reassignPhotographer').value;
+            const time = document.getElementById('reassignTime').value;
+
+            if (!userId || !time) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Required Fields',
+                    text: 'Please select a photographer and time'
+                });
+                return;
+            }
+
+            const submitBtn = this.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Reassigning...';
+
+            const formData = new FormData();
+            formData.append('user_id', userId);
+            formData.append('time', time);
+            formData.append('_token', csrfToken);
+
+            fetch(`${window.location.pathname}/${assigneeId}/reassign`, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json',
+                },
+                body: formData
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(err => Promise.reject(err));
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    const modalElement = document.getElementById('reassignBookingModal');
+                    const modalInstance = bootstrap.Modal.getInstance(modalElement);
+                    if (modalInstance) {
+                        modalInstance.hide();
+                    }
+
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success!',
+                        text: data.message || 'Booking reassigned successfully',
+                        timer: 2000,
+                        showConfirmButton: false
+                    }).then(() => {
+                        table.draw(false);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    let errorMessage = 'Failed to reassign booking';
+                    if (error.message) {
+                        errorMessage = error.message;
+                    }
+
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: errorMessage
+                    });
+                })
+                .finally(() => {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = 'Reassign';
+                });
+        });
+    }
+}
+
+/**
+ * Bind cancel assignment buttons
+ */
+function bindCancelButtons() {
+    document.querySelectorAll('.cancel-assignment-btn').forEach(btn => {
+        btn.addEventListener('click', function () {
+            const assigneeId = this.getAttribute('data-assignee-id');
+            const bookingId = this.getAttribute('data-booking-id');
+            const photographerName = this.getAttribute('data-photographer-name');
+
+            Swal.fire({
+                title: 'Cancel Assignment?',
+                html: `Are you sure you want to cancel the assignment for <strong>${photographerName}</strong>?<br><small class="text-muted">This will revert the booking status to "Schedul Accepted".</small>`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, Cancel Assignment',
+                cancelButtonText: 'No, Keep It'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Show loading
+                    Swal.fire({
+                        title: 'Cancelling...',
+                        text: 'Please wait',
+                        allowOutsideClick: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+
+                    fetch(`${window.location.pathname}/${assigneeId}/cancel`, {
+                        method: 'POST',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': csrfToken
+                        }
+                    })
+                        .then(response => {
+                            if (!response.ok) {
+                                return response.json().then(err => Promise.reject(err));
+                            }
+                            return response.json();
+                        })
+                        .then(data => {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Cancelled!',
+                                text: data.message || 'Assignment cancelled successfully',
+                                timer: 2000,
+                                showConfirmButton: false
+                            }).then(() => {
+                                table.draw(false);
+                            });
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: error.message || 'Failed to cancel assignment'
+                            });
+                        });
+                }
+            });
+        });
+    });
+}
+
+/**
+ * Helper function to load slots for any element (reusable for assign and reassign)
+ */
+function loadSlotsForElement(photographerSel, timeSel, helper, dateEl, modalEl, slotModeAnyEl, availableFrom, availableTo, workingDuration) {
+    const toMinutes = (t) => {
+        const parts = (t || '').split(':');
+        if (parts.length < 2) return null;
+        return parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
+    };
+
+    const formatHM = (m) => {
+        const h = Math.floor(m / 60).toString().padStart(2, '0');
+        const mm = (m % 60).toString().padStart(2, '0');
+        return `${h}:${mm}`;
+    };
+
+    const formatDisplay = (m) => {
+        const hours = Math.floor(m / 60);
+        const minutes = m % 60;
+        const period = hours >= 12 ? 'PM' : 'AM';
+        let h12 = hours % 12;
+        if (h12 === 0) h12 = 12;
+        return `${h12}:${minutes.toString().padStart(2, '0')} ${period}`;
+    };
+
+    const fromM = toMinutes(availableFrom);
+    const toM = toMinutes(availableTo);
+    const slotStep = 15;
+
+    const setHelper = (msg) => { if (helper) helper.textContent = msg; };
+    const resetSelect = () => {
+        timeSel.disabled = true;
+        timeSel.innerHTML = '<option value="">Select a time</option>';
+        timeSel.value = '';
+    };
+
+    const getSlotMode = () => (slotModeAnyEl?.checked ? 'any' : 'available');
+
+    // Helper to check if time is in the past
+    const isPastTime = (timeInMinutes, selectedDate) => {
+        if (!selectedDate) return false;
+        
+        const now = new Date();
+        const [year, month, day] = selectedDate.split('-').map(Number);
+        const selectedDateObj = new Date(year, month - 1, day);
+        const todayDateObj = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        
+        if (selectedDateObj.getTime() !== todayDateObj.getTime()) {
+            return false;
+        }
+        
+        const currentMinutes = now.getHours() * 60 + now.getMinutes();
+        return timeInMinutes <= currentMinutes;
+    };
+
+    const buildAllSlots = () => {
+        timeSel.innerHTML = '<option value="">Select a time</option>';
+        if (toM < fromM) return;
+        const dateVal = dateEl.value;
+        for (let t = fromM; t <= toM; t += slotStep) {
+            if (dateVal && isPastTime(t, dateVal)) continue;
+            
+            const opt = document.createElement('option');
+            opt.value = formatHM(t);
+            opt.textContent = formatDisplay(t);
+            timeSel.appendChild(opt);
+        }
+        if (timeSel.options.length > 1) {
+            timeSel.disabled = false;
+            timeSel.value = timeSel.options[1].value;
+        } else {
+            timeSel.disabled = true;
+        }
+    };
+
+    if (!photographerSel.value) {
+        resetSelect();
+        setHelper('Select a photographer first to see available slots from the API, or choose "Pick any" to ignore conflicts.');
+        return;
+    }
+
+    if (toM < fromM) {
+        resetSelect();
+        setHelper('No available slots for photographers. Please update settings.');
+        return;
+    }
+
+    const dateVal = dateEl.value;
+    if (!dateVal) {
+        resetSelect();
+        setHelper('Please select a booking date first.');
+        return;
+    }
+
+    if (getSlotMode() === 'any') {
+        buildAllSlots();
+        setHelper(`Pick any slot between ${formatDisplay(fromM)} — ${formatDisplay(toM)} (every ${slotStep} min)`);
+        return;
+    }
+
+    setHelper('Loading photographer slots...');
+    timeSel.disabled = true;
+    timeSel.innerHTML = '<option value="">Loading...</option>';
+
+    fetch(`${window.appBaseUrl || ''}/api/booking-assignees/slots?date=${encodeURIComponent(dateVal)}&user_id=${encodeURIComponent(photographerSel.value)}`, {
+        method: 'GET',
+        credentials: 'same-origin',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json'
+        }
+    })
+        .then(response => {
+            if (!response.ok) {
+                if (response.status === 403) {
+                    return response.json().then(err => {
+                        throw new Error(err?.message || 'Access denied');
+                    });
+                }
+                return response.json().then(err => Promise.reject(err));
+            }
+            return response.json();
+        })
+        .then(json => {
+            if (!json || json.success === false) {
+                setHelper(json?.message || 'Failed to load slots');
+                resetSelect();
+                return;
+            }
+
+            const occupiedIntervals = [];
+
+            (json.data || []).forEach(s => {
+                if (!s.time) return;
+                const parts = s.time.split(':');
+                if (parts.length < 2) return;
+                const start = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
+                const bufferTime = workingDuration;
+                const end = start + workingDuration + bufferTime;
+                occupiedIntervals.push({ start, end });
+            });
+
+            timeSel.innerHTML = '<option value="">Select a time</option>';
+            for (let t = fromM; t <= toM; t += slotStep) {
+                const candidateStart = t;
+                const candidateEnd = t + workingDuration;
+
+                if (dateVal && isPastTime(candidateStart, dateVal)) continue;
+
+                let overlaps = false;
+                for (const occ of occupiedIntervals) {
+                    if (candidateStart < occ.end && candidateEnd > occ.start) {
+                        overlaps = true;
+                        break;
+                    }
+                }
+
+                if (overlaps) continue;
+
+                const opt = document.createElement('option');
+                opt.value = formatHM(t);
+                opt.textContent = formatDisplay(t);
+                timeSel.appendChild(opt);
+            }
+
+            if (timeSel.options.length <= 1) {
+                resetSelect();
+                setHelper('No available slots on this date for selected photographer.');
+            } else {
+                timeSel.disabled = false;
+                if (!timeSel.value && timeSel.options.length > 1) {
+                    timeSel.value = timeSel.options[1].value;
+                }
+                timeSel.focus();
+                setHelper(`Available slots: ${formatDisplay(fromM)} — ${formatDisplay(toM)} (every ${slotStep} min)`);
+            }
+        })
+        .catch(err => {
+            console.error('Error loading slots:', err);
+            setHelper(err?.message || 'Failed to load slots.');
+            resetSelect();
+        });
 }
