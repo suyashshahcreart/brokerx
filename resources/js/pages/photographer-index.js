@@ -919,7 +919,7 @@ class CalendarSchedule {
             declineButton.disabled = true;
             declineButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Processing...';
             // Use route from Blade
-            let url = self.declineRouteTpl ? self.declineRouteTpl.replace(':id', bookingId) : `/admin/pending-schedules/${bookingId}/decline`;
+            let url = self.declineRouteTpl ? self.declineRouteTpl.replace(':id', bookingId) : `/${window.adminBasePath}/pending-schedules/${bookingId}/decline`;
             fetch(url, {
                 method: 'POST',
                 headers: {

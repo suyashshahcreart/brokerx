@@ -118,7 +118,7 @@
                                         data-is-admin="{{ auth()->check() && auth()->user()->hasRole('admin') ? '1' : '0' }}"
                                         data-check-in-route="{{ url('admin/booking-assignees') }}/:id/check-in"
                                         data-check-out-route="{{ url('admin/booking-assignees') }}/:id/check-out"
-                                        data-booking-show-route="{{ url('admin/bookings') }}/:id"></div>
+                                        data-booking-show-route=""></div>
                                 </div>
                             </div> <!-- end col -->
                         @endif
