@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Tour;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class TourApiController extends Controller
 {
@@ -13,7 +14,7 @@ class TourApiController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Tour::with(['booking:id,user_id,booking_date']);
+        $query = Tour::with(['booking:id,user_id,booking_date'])->select('id', 'title', 'name', 'location', 'status','tour_thumbnail');
 
         // Filter by category (mapped to tour location)
         if ($request->filled('category')) {
@@ -48,8 +49,27 @@ class TourApiController extends Controller
 
         $tours = $query->paginate($perPage);
 
-        // Hide large JSON blobs from response
-        $tours->getCollection()->makeHidden(['final_json']);
+        // Ensure tour_thumbnail is a full S3 URL
+        $tours->setCollection(
+            $tours->getCollection()->transform(function (Tour $tour) {
+                $thumb = $tour->tour_thumbnail;
+                if (empty($thumb)) {
+                    $tour->tour_thumbnail = null;
+                    return $tour;
+                }
+                // If already an absolute URL, keep as is
+                if (preg_match('#^https?://#i', $thumb)) {
+                    return $tour;
+                }
+                try {
+                    $tour->tour_thumbnail = Storage::disk('s3')->url($thumb);
+                } catch (\Throwable $e) {
+                    // Fallback to original value if disk not configured
+                    $tour->tour_thumbnail = $thumb;
+                }
+                return $tour;
+            })
+        );
 
         return response()->json([
             'success' => true,
