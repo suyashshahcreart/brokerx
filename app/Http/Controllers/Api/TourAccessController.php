@@ -575,6 +575,15 @@ class TourAccessController extends Controller{
      */
     public function getTourPageData(Request $request, $tour_code)
     {
+
+        // Get tour by slug and eager load booking with only tour_code field
+        $tour = Tour::with(['booking' => function($query) {
+            $query->select('id', 'tour_code');
+        }])->where('slug', $tour_code)->first();
+        $tour_code = $tour?->booking?->tour_code;
+
+        
+
         [$booking, $tour, $error] = $this->getBookingAndTour($tour_code);
 
         if ($error || !$tour) {
