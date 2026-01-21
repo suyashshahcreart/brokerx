@@ -43,5 +43,4 @@
     window.bookingIndexUrl = '{{ route("admin.bookings.index") }}';
 </script>
 @yield('scripts')
-
 </html>

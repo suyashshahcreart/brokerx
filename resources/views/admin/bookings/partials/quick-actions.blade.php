@@ -1,7 +1,7 @@
                     <!-- Quick Actions Card -->
                     @if($hasAnyQuickActionPermission ?? false)
                     <div class="card border mb-3 ">
-                        <div class="card-header bg-dark text-white">
+                        <div class="card-header">
                             <h5 class="card-title mb-0"><i class="ri-flashlight-line me-2"></i>Quick Actions</h5>
                         </div>
                         <div class="card-body p-2">
