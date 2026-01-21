@@ -4,10 +4,15 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
+use App\Models\City;
+use App\Models\State;
 use App\Models\Tour;
 use App\Models\User;
+use App\Exports\BookingsExport;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Yajra\DataTables\DataTables;
+use Maatwebsite\Excel\Facades\Excel;
 
 class ReportController extends Controller
 {
@@ -59,21 +64,94 @@ class ReportController extends Controller
         ]);
     }
 
-    public function bookings()
+    public function bookings(Request $request)
     {
         $statusBreakdown = Booking::selectRaw('status, COUNT(*) as total')
             ->groupBy('status')
             ->orderByDesc('total')
             ->get();
 
-        $recentBookings = Booking::with('user')
-            ->latest()
-            ->limit(20)
-            ->get();
+        $totalBookings = Booking::count();
+        $states = State::orderBy('name')->get();
+        $cities = City::orderBy('name')->get();
+
+        if ($request->ajax()) {
+            $query = Booking::with(['user', 'propertyType', 'propertySubType', 'bhk', 'city', 'state', 'assignees']);
+
+            // Filter bookings based on user role
+            if (auth()->user()->hasRole('admin')) {
+                // Admin can see all bookings
+            } elseif (auth()->user()->hasRole('photographer')) {
+                // Photographer can see only assigned bookings
+                $query->whereHas('assignees', function ($subQuery) {
+                    $subQuery->where('user_id', auth()->id());
+                });
+            }
+
+            // Apply filters
+            if ($request->filled('state_id')) {
+                $query->where('state_id', $request->state_id);
+            }
+
+            if ($request->filled('city_id')) {
+                $query->where('city_id', $request->city_id);
+            }
+
+            if ($request->filled('status')) {
+                $query->where('status', $request->status);
+            }
+
+            if ($request->filled('date_from') && $request->filled('date_to')) {
+                $query->whereBetween('booking_date', [
+                    $request->date_from,
+                    $request->date_to
+                ]);
+            }
+
+            return DataTables::of($query)
+                ->addColumn('user', function (Booking $booking) {
+                    return $booking->user ? $booking->user->firstname . ' ' . $booking->user->lastname : '-';
+                })
+                ->addColumn('type_subtype', function (Booking $booking) {
+                    return $booking->propertyType?->name . '<div class="text-muted small">' . ($booking->propertySubType?->name ?? '-') . '</div>';
+                })
+                ->addColumn('bhk', fn(Booking $booking) => $booking->bhk?->name ?? '-')
+                ->addColumn('city_state', function (Booking $booking) {
+                    return ($booking->city?->name ?? '-') . '<div class="text-muted small">' . ($booking->state?->name ?? '-') . '</div>';
+                })
+                ->editColumn('area', fn(Booking $booking) => number_format($booking->area))
+                ->editColumn('price', fn(Booking $booking) => '₹ ' . number_format($booking->price))
+                ->editColumn('booking_date', fn(Booking $booking) => optional($booking->booking_date)->format('Y-m-d') ?? '-')
+                ->editColumn('status', fn(Booking $booking) => '<span class="badge bg-secondary text-uppercase">' . $booking->status . '</span>')
+                ->editColumn('payment_status', fn(Booking $booking) => '<span class="badge bg-info text-uppercase">' . $booking->payment_status . '</span>')
+                ->addColumn('schedule', function (Booking $booking) {
+                    if (auth()->user()->can('booking_schedule')) {
+                        return '<a href="#" class="btn btn-soft-warning btn-sm schedule-booking-btn" data-booking-id="' . $booking->id . '" data-booking-date="' . ($booking->booking_date ? $booking->booking_date->format('Y-m-d') : '') . '" title="Schedule"><i class="ri-calendar-line"></i></a>';
+                    }
+                    return '';
+                })
+                ->addColumn('actions', function (Booking $booking) {
+                    $view = route('admin.bookings.show', $booking);
+                    $edit = route('admin.bookings.edit', $booking);
+                    $delete = route('admin.bookings.destroy', $booking);
+                    $csrf = csrf_field();
+                    $method = method_field('DELETE');
+                    $schedule = '';
+                    return '<div class="d-flex gap-1">' . $schedule .
+                        '<a href="' . $view . '" class="btn btn-soft-primary btn-sm" data-bs-toggle="tooltip" data-bs-placement="top" title="View Booking Details"><iconify-icon icon="solar:eye-broken" class="align-middle fs-18"></iconify-icon></a>' .
+                        '<a href="' . $edit . '" class="btn btn-soft-info btn-sm" data-bs-toggle="tooltip" data-bs-placement="top" title="Edit Booking Info"><iconify-icon icon="solar:pen-new-square-broken" class="align-middle fs-18"></iconify-icon></a>' .
+                        '<form action="' . $delete . '" method="POST" class="d-inline">' . $csrf . $method .
+                        '<button type="submit" class="btn btn-soft-danger btn-sm" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete Booking" onclick="return confirm(\'Delete this booking?\')"><iconify-icon icon="solar:trash-bin-minimalistic-broken" class="align-middle fs-18"></iconify-icon></button></form></div>';
+                })
+                ->rawColumns(['type_subtype', 'city_state', 'status', 'payment_status', 'actions', 'schedule'])
+                ->toJson();
+        }
 
         return view('admin.reports.bookings', [
             'statusBreakdown' => $statusBreakdown,
-            'recentBookings' => $recentBookings,
+            'totalBookings' => $totalBookings,
+            'states' => $states,
+            'cities' => $cities,
         ]);
     }
 
@@ -92,5 +170,23 @@ class ReportController extends Controller
             'topCustomers' => $topCustomers,
             'totalCustomers' => $totalCustomers,
         ]);
+    }
+
+    /**
+     * Export bookings report to Excel with all details
+     */
+    public function exportBookings(Request $request)
+    {
+        $filters = [
+            'state_id' => $request->state_id,
+            'city_id' => $request->city_id,
+            'status' => $request->status,
+            'date_from' => $request->date_from,
+            'date_to' => $request->date_to,
+        ];
+
+        $filename = 'bookings-report-' . now()->format('Y-m-d-His') . '.xlsx';
+
+        return Excel::download(new BookingsExport($filters), $filename);
     }
 }
