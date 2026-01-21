@@ -3,7 +3,7 @@
 @section('content')
     <div class="row">
         <div class="col-12">
-            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
                 <div>
                     <nav aria-label="breadcrumb" class="mb-0">
                         <ol class="breadcrumb mb-0">
@@ -24,64 +24,119 @@
         </div>
     </div>
 
-    <div class="row g-3 mb-3">
-        <div class="col-lg-6">
-            <div class="card h-100">
-                <div class="card-header d-flex justify-content-between align-items-center">
+    <!-- Status Breakdown Cards -->
+    <div class="row g-3 mb-4">
+        @forelse ($statusBreakdown as $status)
+            <div class="col-md-3 col-sm-6">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <p class="text-muted mb-1 text-uppercase">{{ $status->status ?? 'Unknown' }}</p>
+                                <h4 class="fw-bold text-dark mb-0">{{ number_format($status->total) }}</h4>
+                            </div>
+                            <div class="avatar-sm">
+                                <i class="ri-bookmark-line text-primary fs-4"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        @empty
+            <div class="col-12">
+                <p class="text-muted mb-0">No booking data found.</p>
+            </div>
+        @endforelse
+    </div>
+
+    <!-- Filters & Datatable -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card panel-card border-primary border-top" data-panel-card>
+                <div class="card-header d-flex justify-content-between align-items-start flex-wrap gap-2">
                     <div>
-                        <h4 class="card-title mb-1">Status Breakdown</h4>
-                        <p class="text-muted mb-0">Bookings by status</p>
+                        <h4 class="card-title mb-1">Bookings List</h4>
+                        <p class="text-muted mb-0">Manage all bookings</p>
+                    </div>
+                    <div>
+                        <button type="button" class="btn btn-success btn-sm" id="exportBookings">
+                            <i class="ri-file-excel-2-line me-1"></i> Export to Excel
+                        </button>
                     </div>
                 </div>
                 <div class="card-body">
-                    @forelse ($statusBreakdown as $row)
-                        <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
-                            <span class="text-uppercase text-muted">{{ $row->status ?? 'unknown' }}</span>
-                            <span class="fw-semibold text-dark">{{ number_format($row->total) }}</span>
+                    <!-- Filters Section -->
+                    <div class="row mb-4 g-3" id="filtersSection">
+                        <div class="col-md-3">
+                            <label for="filterState" class="form-label">State</label>
+                            <select id="filterState" class="form-select form-select-sm">
+                                <option value="">All States</option>
+                                @foreach ($states ?? [] as $state)
+                                    <option value="{{ $state->id }}">{{ $state->name }}</option>
+                                @endforeach
+                            </select>
                         </div>
-                    @empty
-                        <p class="text-muted mb-0">No booking data found.</p>
-                    @endforelse
-                </div>
-            </div>
-        </div>
-        <div class="col-lg-6">
-            <div class="card h-100">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <div>
-                        <h4 class="card-title mb-1">Recent Bookings</h4>
-                        <p class="text-muted mb-0">Latest 20 bookings</p>
+                        <div class="col-md-3">
+                            <label for="filterCity" class="form-label">City</label>
+                            <select id="filterCity" class="form-select form-select-sm">
+                                <option value="">All Cities</option>
+                                @foreach ($cities ?? [] as $city)
+                                    <option value="{{ $city->id }}" data-state="{{ $city->state_id }}">{{ $city->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="filterStatus" class="form-label">Status</label>
+                            <select id="filterStatus" class="form-select form-select-sm">
+                                <option value="">All Status</option>
+                                <option value="pending">Pending</option>
+                                <option value="confirmed">Confirmed</option>
+                                <option value="cancelled">Cancelled</option>
+                                <option value="completed">Completed</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="filterDateRange" class="form-label">Date Range</label>
+                            <input type="text" id="filterDateRange" class="form-control form-control-sm"
+                                placeholder="Select date range" />
+                        </div>
+                        <div class="col-12">
+                            <button type="button" class="btn btn-sm btn-primary" id="applyFilters">
+                                <i class="ri-search-line me-2"></i>Apply Filters
+                            </button>
+                            <button type="button" class="btn btn-sm btn-secondary" id="clearFilters">
+                                <i class="ri-close-line me-2"></i>Clear Filters
+                            </button>
+                        </div>
                     </div>
-                </div>
-                <div class="card-body p-0">
+
                     <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0">
+                        <table class="table table-hover align-middle mb-0" id="bookings-report-table">
                             <thead class="table-light">
                                 <tr>
-                                    <th scope="col">ID</th>
-                                    <th scope="col">Customer</th>
-                                    <th scope="col">Status</th>
-                                    <th scope="col" class="text-end">Created</th>
+                                    <th>ID</th>
+                                    <th>User</th>
+                                    <th>Type / Subtype</th>
+                                    <th>City</th>
+                                    <th>Price</th>
+                                    <th>Date</th>
+                                    <th>Status</th>
+                                    <th>Payment</th>
+                                    <th class="text-end">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                @forelse ($recentBookings as $booking)
-                                    <tr>
-                                        <td>#{{ $booking->id }}</td>
-                                        <td>{{ $booking->user->name ?? 'N/A' }}</td>
-                                        <td><span class="badge bg-primary-subtle text-primary">{{ $booking->status ?? 'N/A' }}</span></td>
-                                        <td class="text-end">{{ $booking->created_at?->format('d M Y') }}</td>
-                                    </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="4" class="text-center text-muted">No bookings found.</td>
-                                    </tr>
-                                @endforelse
-                            </tbody>
+                            <tbody></tbody>
                         </table>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+@endsection
+@section('script')
+    <script>
+        window.bookingReportUrl = '{{ route('admin.reports.bookings') }}';
+        window.exportBookingsUrl = '{{ route('admin.reports.bookings.export') }}';
+    </script>
+    @vite(['resources/js/pages/bookings-report-index.js'])
 @endsection
