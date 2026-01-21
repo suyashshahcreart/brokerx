@@ -190,6 +190,7 @@ Route::group(['prefix' => 'ppadmlog', 'as' => 'admin.', 'middleware' => ['web', 
     Route::post('pending-schedules/{booking}/accept', [PendingScheduleController::class, 'accept'])->name('pending-schedules.accept');
     Route::post('pending-schedules/{booking}/decline', [PendingScheduleController::class, 'decline'])->name('pending-schedules.decline');
     // Bookings
+    Route::get('bookings/export', [BookingController::class, 'export'])->name('bookings.export');
     Route::resource('bookings', BookingController::class);
     // Booking Assignees
     Route::resource('booking-assignees', BookingAssigneeController::class);
@@ -246,6 +247,7 @@ Route::group(['prefix' => 'ppadmlog', 'as' => 'admin.', 'middleware' => ['web', 
         Route::get('/', [ReportController::class, 'index'])->name('index');
         Route::get('/sales', [ReportController::class, 'sales'])->name('sales');
         Route::get('/bookings', [ReportController::class, 'bookings'])->name('bookings');
+        Route::get('/bookings/export', [ReportController::class, 'exportBookings'])->name('bookings.export');
         Route::get('/customers', [ReportController::class, 'customers'])->name('customers');
     });
 

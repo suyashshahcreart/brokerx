@@ -67,6 +67,7 @@ export default defineConfig({
                 'resources/js/pages/edit-booking-tour.js',
                 'resources/js/pages/customer-show.js',
                 'resources/js/pages/change-password-profile.js',
+                'resources/js/pages/bookings-report-index.js',
 
                 //components
                 'resources/js/components/maps-google.js',
