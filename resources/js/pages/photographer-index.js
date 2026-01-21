@@ -868,6 +868,10 @@ class CalendarSchedule {
             // Open reassign modal
             const reassignModal = new Modal(document.getElementById('reassignPhotographerModal'), { backdrop: 'static' });
             const reassignModalEl = document.getElementById('reassignPhotographerModal');
+            const reassignFormEl = document.getElementById('reassignPhotographerForm');
+
+            // Reset the form before prefilling values so the booking date and hidden ids stay populated
+            reassignFormEl?.reset();
             
             // Prefill reassign modal
             document.getElementById('reassignAssigneeId').value = assigneeId;
@@ -894,9 +898,6 @@ class CalendarSchedule {
             const dateStr = (self.selectedEvent && self.selectedEvent.startStr) ? self.selectedEvent.startStr : '';
             const bookingDate = (dateStr || '').split('T')[0] || '';
             document.getElementById('reassignModalDate').value = bookingDate;
-            
-            // Reset form
-            document.getElementById('reassignPhotographerForm').reset();
             
             // Get form elements for slot loading
             const photographerSel = document.getElementById('reassignPhotographer');
@@ -1027,7 +1028,7 @@ class CalendarSchedule {
                 submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Reassigning...';
             }
             
-            fetch(`/admin/booking-assignees/${newAssigneeId}/reassign`, {
+            fetch(`${window.appBaseUrl}/${window.adminBasePath}/booking-assignees/${newAssigneeId}/reassign`, {
                 method: 'POST',
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest',
