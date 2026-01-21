@@ -757,7 +757,7 @@ class CalendarSchedule {
         timeSel.disabled = true;
         timeSel.innerHTML = '<option value="">Loading...</option>';
 
-        fetch(`/api/booking-assignees/slots?date=${encodeURIComponent(dateVal)}&user_id=${encodeURIComponent(photographerSel.value)}`, {
+        fetch(`${window.appBaseUrl}/api/booking-assignees/slots?date=${encodeURIComponent(dateVal)}&user_id=${encodeURIComponent(photographerSel.value)}`, {
             method: 'GET',
             credentials: 'same-origin',
             headers: {

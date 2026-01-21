@@ -477,7 +477,7 @@ function bindAssignButtons() {
                 assignTimeEl.disabled = true;
                 assignTimeEl.innerHTML = '<option value="">Loading...</option>';
 
-                fetch(`/api/booking-assignees/slots?date=${encodeURIComponent(dateVal)}&user_id=${encodeURIComponent(assignPhotographerEl.value)}`, {
+                fetch(`${window.appBaseUrl}/api/booking-assignees/slots?date=${encodeURIComponent(dateVal)}&user_id=${encodeURIComponent(assignPhotographerEl.value)}`, {
                     method: 'GET',
                     credentials: 'same-origin',
                     headers: {
