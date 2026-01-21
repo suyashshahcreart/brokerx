@@ -554,8 +554,10 @@ import '../../css/pages/setting-index.css';
 
         // Helper function to get base URL for admin API routes
         function getAdminApiUrl(path) {
-            const basePath = window.location.pathname.split('/ppadmlog')[0] || '';
-            return basePath + '/ppadmlog/api' + (path.startsWith('/') ? path : '/' + path);
+            // const basePath = window.location.pathname.split('/ppadmlog')[0] || '';
+            // return basePath + '/ppadmlog/api' + (path.startsWith('/') ? path : '/' + path);
+
+            return `${window.appBaseUrl}/${window.adminBasePath}/api` + (path.startsWith('/') ? path : '/' + path);
         }
 
         // Load FTP configurations on page load

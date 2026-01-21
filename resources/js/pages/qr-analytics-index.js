@@ -221,7 +221,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                             <div class="col-md-2">
                                                 <label class="form-label fw-semibold small">Booking</label>
                                                 <p class="mb-2 small">
-                                                    <a href="/admin/bookings/${booking.id}" class="text-primary" target="_blank">
+                                                    <a href="${window.appBaseUrl}/${window.adminBasePath}/bookings/${booking.id}" class="text-primary" target="_blank">
                                                         #${booking.id}
                                                     </a>
                                                 </p>
@@ -232,7 +232,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                             <div class="col-md-2">
                                                 <label class="form-label fw-semibold small">Booking</label>
                                                 <p class="mb-2 small">
-                                                    <a href="/admin/bookings/${analytics.booking_id}" class="text-primary" target="_blank">
+                                                    <a href="${window.appBaseUrl}/${window.adminBasePath}/bookings/${analytics.booking_id}" class="text-primary" target="_blank">
                                                         #${analytics.booking_id}
                                                     </a>
                                                 </p>

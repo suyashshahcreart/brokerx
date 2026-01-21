@@ -1404,7 +1404,7 @@
         function deleteBooking(bookingId) {
             if (confirm('Are you sure you want to delete this booking?')) {
                 // Make AJAX request to delete booking from database
-                fetch(`/admin/bookings/${bookingId}`, {
+                fetch(`/${window.adminBasePath}/bookings/${bookingId}`, {
                     method: 'DELETE',
                     headers: {
                         'Content-Type': 'application/json',

@@ -75,7 +75,7 @@ $(document).ready(function () {
         let formData = new FormData(this);
 
         $.ajax({
-            url: '/admin/tour-manager/schedule-tour',
+            url: `${window.appBaseUrl}/${window.adminBasePath}/tour-manager/schedule-tour`,
             method: 'POST',
             data: formData,
             processData: false,
