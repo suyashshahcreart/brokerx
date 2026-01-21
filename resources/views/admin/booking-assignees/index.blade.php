@@ -113,6 +113,7 @@
             </div>
         </div>
     </div>
+    
     <!-- Assignment Modal -->
     <div class="modal fade" id="assignBookingModal" tabindex="-1" aria-labelledby="assignBookingModalLabel"
         aria-hidden="true"
@@ -200,6 +201,107 @@
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                         <button type="submit" class="btn btn-primary">Assign</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Reassignment Modal -->
+    <div class="modal fade" id="reassignBookingModal" tabindex="-1" aria-labelledby="reassignBookingModalLabel"
+        aria-hidden="true"
+        data-photographer-from="{{ \App\Models\Setting::where('name', 'photographer_available_from')->value('value') ?? '08:00' }}"
+        data-photographer-to="{{ \App\Models\Setting::where('name', 'photographer_available_to')->value('value') ?? '21:00' }}"
+        data-photographer-duration="{{ \App\Models\Setting::where('name', 'photographer_working_duration')->value('value') ?? '60' }}">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="reassignBookingModalLabel">Reassign Booking</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="reassignBookingForm" method="POST">
+                    @csrf
+                    <input type="hidden" id="reassignAssigneeId" name="assignee_id">
+                    <div class="modal-body">
+                        <!-- Current Assignment Info -->
+                        <div class="alert alert-warning mb-3">
+                            <h6 class="mb-2"><i class="ri-information-line me-1"></i>Current Assignment</h6>
+                            <div class="small">
+                                <strong>Photographer:</strong> <span id="currentPhotographerName">-</span><br>
+                                <strong>Time:</strong> <span id="currentAssignedTime">-</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Booking Details Section -->
+                        <div class="alert alert-info mb-3">
+                            <h6 class="mb-2">Booking Details</h6>
+                            <div class="row g-2 small">
+                                <div class="col-md-6">
+                                    <strong>Customer Name:</strong>
+                                    <p id="reassignModalCustomer" class="mb-1">-</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>Pin Code:</strong>
+                                    <p id="reassignModalPincode" class="mb-1">-</p>
+                                </div>
+                                <div class="col-md-12">
+                                    <strong>Address:</strong>
+                                    <p id="reassignModalAddress" class="mb-1">-</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>City:</strong>
+                                    <p id="reassignModalCity" class="mb-0">-</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>State:</strong>
+                                    <p id="reassignModalState" class="mb-0">-</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- New Photographer Select -->
+                        <div class="mb-3">
+                            <label for="reassignPhotographer" class="form-label">New Photographer <span
+                                    class="text-danger">*</span></label>
+                            <select id="reassignPhotographer" name="user_id" class="form-select" required>
+                                <option value="">-- Select Photographer --</option>
+                                @foreach ($users ?? [] as $user)
+                                    <option value="{{ $user->id }}">{{ $user->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <!-- New Time Assignment -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label for="reassignModalDate" class="form-label">Booking Date</label>
+                                <input type="date" id="reassignModalDate" class="form-control" disabled>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="reassignTime" class="form-label">New Time <span
+                                        class="text-danger">*</span></label>
+                                <select id="reassignTime" name="time" class="form-select" disabled required>
+                                    <option value="">Select a time</option>
+                                </select>
+                                <div class="mt-2">
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="reassignSlotMode" id="reassignSlotModeAvailable"
+                                            value="available" checked>
+                                        <label class="form-check-label" for="reassignSlotModeAvailable">Available slots</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="reassignSlotMode" id="reassignSlotModeAny"
+                                            value="any">
+                                        <label class="form-check-label" for="reassignSlotModeAny">Pick any</label>
+                                    </div>
+                                </div>
+                                <div id="reassignTimeHelper" class="form-text text-muted small">Select a photographer first.</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-warning">Reassign</button>
                     </div>
                 </form>
             </div>

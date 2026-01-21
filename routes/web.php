@@ -193,6 +193,9 @@ Route::group(['prefix' => 'ppadmlog', 'as' => 'admin.', 'middleware' => ['web', 
     Route::resource('bookings', BookingController::class);
     // Booking Assignees
     Route::resource('booking-assignees', BookingAssigneeController::class);
+    // Cancel and Reassign
+    Route::post('booking-assignees/{bookingAssignee}/cancel', [BookingAssigneeController::class, 'cancel'])->name('booking-assignees.cancel');
+    Route::post('booking-assignees/{bookingAssignee}/reassign', [BookingAssigneeController::class, 'reassign'])->name('booking-assignees.reassign');
     // Photographer visit check-in/out using BookingAssignee
     Route::get('booking-assignees/{bookingAssignee}/check-in', [BookingAssigneeController::class, 'checkInForm'])->name('booking-assignees.check-in-form');
     Route::post('booking-assignees/{bookingAssignee}/check-in', [BookingAssigneeController::class, 'checkIn'])->name('booking-assignees.check-in');
