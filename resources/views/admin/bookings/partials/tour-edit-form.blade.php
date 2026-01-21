@@ -389,7 +389,7 @@
                 <div class="col-md-6">
                     <div class="mb-3">
                         <label for="footer_mobile" class="form-label">Contact Mobile</label>
-                        <input type="text" name="footer_mobile" id="footer_mobile" class="form-control"
+                        <input type="number" name="footer_mobile" id="footer_mobile" class="form-control"
                             value="{{ old('footer_mobile', $tour->footer_mobile) }}" placeholder="eg.+91 9898 363026">
                         @error('footer_mobile')<div class="text-danger">{{ $message }}</div>@enderror
                     </div>
@@ -446,7 +446,7 @@
                 </div>
                 <div class="col-md-4">
                     <label for="footer_brand_mobile" class="form-label">Contact Number</label>
-                    <input type="text" name="footer_brand_mobile" id="footer_brand_mobile" class="form-control"
+                    <input type="number" name="footer_brand_mobile" id="footer_brand_mobile" class="form-control"
                         value="{{ old('footer_brand_mobile', $tour->footer_brand_mobile) }}"
                         placeholder="eg.+91 9898 363026"
                         >

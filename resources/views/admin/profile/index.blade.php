@@ -97,7 +97,7 @@
                         <div class="col-lg-6">
                             <div class="mb-3">
                                 <label for="mobile" class="form-label">Mobile</label>
-                                <input type="tel" name="mobile" id="mobile" value="{{ old('mobile', $user->mobile) }}"
+                                <input type="number"  name="mobile" id="mobile" value="{{ old('mobile', $user->mobile) }}"
                                     class="form-control @error('mobile') is-invalid @enderror"
                                     inputmode="numeric" pattern="[0-9]{10}" minlength="10" maxlength="20">
                                 <div class="invalid-feedback">
