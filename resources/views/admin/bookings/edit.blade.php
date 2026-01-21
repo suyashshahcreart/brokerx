@@ -255,6 +255,12 @@
             transform: translateY(-1px) !important;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
         }
+
+        .booking-edit-tabs .nav-link.active {
+            background-color: #604ae3 !important;
+            color: white !important;
+            border-radius: 0px 20px;
+        }
     </style>
 @endsection
 
@@ -290,7 +296,7 @@
             
             <div class="card panel-card border-primary border-top" data-panel-card>
                 <div class="card-header">
-                    <ul class="nav nav-tabs card-header-tabs" id="bookingEditTabs" role="tablist">
+                    <ul class="nav nav-tabs card-header-tabs booking-edit-tabs" id="bookingEditTabs" role="tablist">
                         <li class="nav-item" role="presentation">
                             <button class="nav-link active" id="booking-tab" data-bs-toggle="tab" data-bs-target="#booking-pane" type="button" role="tab" aria-controls="booking-pane" aria-selected="true">
                                 <i class="ri-file-list-3-line me-1"></i> Booking Details

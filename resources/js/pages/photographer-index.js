@@ -1274,10 +1274,10 @@ class CalendarSchedule {
                 Swal.fire({ icon: 'error', title: 'Error', text: 'Booking ID not found' });
                 return;
             }
-            acceptButton.disabled = true;
+            acceptButton.disabled = true;   
             acceptButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Processing...';
             // Use route from Blade
-            let url = self.acceptRouteTpl ? self.acceptRouteTpl.replace(':id', bookingId) : `/admin/pending-schedules/${bookingId}/accept`;
+            let url = self.acceptRouteTpl ? self.acceptRouteTpl.replace(':id', bookingId) : `${window.appBaseUrl}/${window.adminBasePath}/pending-schedules/${bookingId}/accept`;
             fetch(url, {
                 method: 'POST',
                 headers: {
