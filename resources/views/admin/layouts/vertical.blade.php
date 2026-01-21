@@ -38,10 +38,9 @@
 <script>
     // Set base URL and API routes for JavaScript
     window.appBaseUrl = '{{ url("/") }}';
-    window.adminBasePath = 'ppadmlog'
+    window.adminBasePath = 'admin'
     window.apiBaseUrl = '{{ url("/api") }}';
     window.bookingIndexUrl = '{{ route("admin.bookings.index") }}';
 </script>
 @yield('scripts')
-
 </html>
