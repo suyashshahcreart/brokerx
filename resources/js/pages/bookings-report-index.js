@@ -1,19 +1,19 @@
 import $ from 'jquery';
-import flatpickr from 'flatpickr';
-import 'flatpickr/dist/flatpickr.min.css';
-import moment from 'moment';
 import 'datatables.net-bs5';
 import 'datatables.net-bs5/css/dataTables.bootstrap5.min.css';
-import 'daterangepicker';
-import 'daterangepicker/daterangepicker.css';
 
-// Match booking index globals
-window.$ = $;
-window.jQuery = $;
-window.flatpickr = flatpickr;
+// Force CommonJS require for moment to ensure proper loading
+import moment from 'moment';
 window.moment = moment;
 moment.locale('en');
 
+// Make sure moment is a function
+if (typeof window.moment !== 'function') {
+    console.error('Moment is not a function after require');
+}
+
+// Don't re-import moment/daterangepicker - they're already in app.js
+// Just ensure globals are set
 document.addEventListener('DOMContentLoaded', function () {
     const $table = $('#bookings-report-table');
     if (!$table.length) return;
@@ -26,7 +26,8 @@ document.addEventListener('DOMContentLoaded', function () {
     // Daterangepicker (same pattern as booking-index)
     let dateRangePicker = null;
     const initDateRangePicker = () => {
-        if (typeof window.moment === 'undefined' || typeof $.fn.daterangepicker === 'undefined') {
+        // Wait for both moment AND daterangepicker to be fully loaded
+        if (typeof window.moment !== 'function' || typeof $.fn.daterangepicker === 'undefined') {
             setTimeout(initDateRangePicker, 100);
             return;
         }
@@ -34,12 +35,41 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
     function initializeDateRangePicker() {
-        if (!$dateRange.length) return;
+        const input = $('#filterDateRange');
+        if (!input.length || input.length === 0) {
+            // Element doesn't exist yet, try again later
+            setTimeout(initializeDateRangePicker, 200);
+            return;
+        }
 
-        if ($dateRange.data('daterangepicker')) return;
+        // Ensure moment is available as a function
+        if (typeof window.moment !== 'function') {
+            console.error('Moment.js is not available as a function');
+            setTimeout(initDateRangePicker, 100);
+            return;
+        }
+
+        // Ensure daterangepicker is available
+        if (typeof $.fn.daterangepicker === 'undefined') {
+            console.error('Daterangepicker is not available');
+            setTimeout(initDateRangePicker, 100);
+            return;
+        }
+
+        // Check if already initialized
+        if (input.data('daterangepicker')) {
+            return; // Already initialized
+        }
 
         try {
-            dateRangePicker = $dateRange.daterangepicker({
+            // Ensure the element is in the DOM
+            if (!input.is(':visible') && !document.body.contains(input[0])) {
+                setTimeout(initializeDateRangePicker, 200);
+                return;
+            }
+
+            // Initialize daterangepicker with proper configuration
+            dateRangePicker = input.daterangepicker({
                 autoUpdateInput: false,
                 locale: {
                     cancelLabel: 'Clear',
@@ -48,19 +78,23 @@ document.addEventListener('DOMContentLoaded', function () {
                 opens: 'left'
             });
 
-            $dateRange.on('apply.daterangepicker', function (_ev, picker) {
+            input.on('apply.daterangepicker', function (ev, picker) {
                 $(this).val(picker.startDate.format('YYYY-MM-DD') + ' - ' + picker.endDate.format('YYYY-MM-DD'));
             });
 
-            $dateRange.on('cancel.daterangepicker', function () {
+            input.on('cancel.daterangepicker', function (ev, picker) {
                 $(this).val('');
             });
         } catch (error) {
             console.error('Error initializing daterangepicker:', error);
+            // Don't retry on error to avoid infinite loop
         }
     }
 
-    setTimeout(initDateRangePicker, 300);
+    // Start initialization after a longer delay to ensure app.js moment is ready
+    setTimeout(() => {
+        initDateRangePicker();
+    }, 500);
 
     const dataTable = $table.DataTable({
         processing: true,
