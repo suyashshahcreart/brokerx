@@ -23,26 +23,25 @@ use App\Http\Controllers\Admin\Api\TourManagerController;
 // Rest API's
 // Tour Manager APIs
 Route::post('/tour-manager/login', [TourManagerController::class, 'login']);
-Route::get('/tour-manager/customers', [TourManagerController::class, 'getCustomers']);
-Route::get('/tour-manager/tours-by-customer', [TourManagerController::class, 'getToursByCustomer']);
-Route::get('/tour-manager/tour/{tour_code}', [TourManagerController::class, 'getTourDetails']);
-Route::put('/tour-manager/working_json/{tour_code}', [TourManagerController::class, 'updateWorkingJson']);
 
-// Tour Access APIs
-Route::get('/tour/is_active/{tour_code}', [\App\Http\Controllers\Api\TourAccessController::class, 'checkIsActive']);
-Route::get('/tour/page_data/{tour_code}', [\App\Http\Controllers\Api\TourAccessController::class, 'getTourPageData']);
+// Protected Tour Manager APIs - require authentication token
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/tour-manager/customers', [TourManagerController::class, 'getCustomers']);
+    Route::get('/tour-manager/tours-by-customer', [TourManagerController::class, 'getToursByCustomer']);
+    Route::get('/tour-manager/tour/{tour_code}', [TourManagerController::class, 'getTourDetails']);
+    Route::put('/tour-manager/working_json/{tour_code}', [TourManagerController::class, 'updateWorkingJson']);
+});
 
-Route::get('/tour/tour_credentials/{tour_code}', [\App\Http\Controllers\Api\TourAccessController::class, 'checkIsCredentials']);
-Route::post('/tour/login', [\App\Http\Controllers\Api\TourAccessController::class, 'login']);
-
-Route::get('/tour/is_mobile_validation/{tour_code}', [\App\Http\Controllers\Api\TourAccessController::class, 'checkIsMobileValidation']);
-Route::post('/tour/mobile/send-otp', [\App\Http\Controllers\Api\TourAccessController::class, 'sendOtp']);
-Route::post('/tour/mobile/verify-otp', [\App\Http\Controllers\Api\TourAccessController::class, 'verifyOtp']);
-
-
-
-
-Route::get('/tour/mobile/history/{tour_code}', [\App\Http\Controllers\Api\TourAccessController::class, 'getMobileHistory']);
+// Tour Access APIs (Protected by Dynamic Token)
+Route::middleware(['verify.tour.token'])->group(function () {
+    Route::get('/tour/is_active/{tour_code}', [\App\Http\Controllers\Api\TourAccessController::class, 'checkIsActive']);
+    Route::get('/tour/tour_credentials/{tour_code}', [\App\Http\Controllers\Api\TourAccessController::class, 'checkIsCredentials']);
+    Route::post('/tour/login', [\App\Http\Controllers\Api\TourAccessController::class, 'login']);
+    Route::get('/tour/is_mobile_validation/{tour_code}', [\App\Http\Controllers\Api\TourAccessController::class, 'checkIsMobileValidation']);
+    Route::post('/tour/mobile/send-otp', [\App\Http\Controllers\Api\TourAccessController::class, 'sendOtp']);
+    Route::post('/tour/mobile/verify-otp', [\App\Http\Controllers\Api\TourAccessController::class, 'verifyOtp']);
+    Route::get('/tour/mobile/history/{tour_code}', [\App\Http\Controllers\Api\TourAccessController::class, 'getMobileHistory']);
+});
 
 // Booking APIs with token security
 Route::get('/bookings/list', [\App\Http\Controllers\Api\TourAccessController::class, 'getAllBookingsList']);
