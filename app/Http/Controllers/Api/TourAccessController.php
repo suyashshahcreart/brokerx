@@ -195,7 +195,25 @@ class TourAccessController extends Controller{
     {
         $request->validate([
             'tour_code' => 'required|string',
-            'mobile' => 'required|string', // Basic validation, add regex if needed
+            'mobile' => [
+                'required',
+                'string',
+                'regex:/^(\+?[1-9]\d{1,14}|\d{10,15})$/',
+                function ($attribute, $value, $fail) {
+                    // Remove + if present for validation
+                    $cleanMobile = ltrim($value, '+');
+                    
+                    // Check if it's just a local number (starts with 0 or doesn't have country code)
+                    if (preg_match('/^0\d+$/', $cleanMobile) || (strlen($cleanMobile) < 10)) {
+                        $fail('The mobile number must include country code. Format: +[country code][number] or [country code][number] (e.g., +911234567890 or 911234567890)');
+                    }
+                    
+                    // Check if it looks like a local number without country code (10 digits starting with non-zero)
+                    if (preg_match('/^[1-9]\d{9}$/', $cleanMobile)) {
+                        $fail('The mobile number must include country code. Format: +[country code][number] or [country code][number] (e.g., +911234567890 or 911234567890)');
+                    }
+                },
+            ],
         ]);
 
         $tour_code = $request->input('tour_code');
@@ -207,15 +225,16 @@ class TourAccessController extends Controller{
             return response()->json(['success' => false, 'message' => $error], 404);
         }
 
-       
+        // Normalize mobile number (remove + if present, keep as is)
+        $normalizedMobile = ltrim($mobile, '+');
 
-        // Generate OTP (e.g., 4 digits)
+        // Generate OTP (e.g., 6 digits)
         $otp = rand(100000, 999999);
         
         // Save to DB
         // Check if entry exists for this tour and mobile
         $validation = \App\Models\TourMobileValidation::where('tour_id', $tour->id)
-            ->where('mobile', $mobile)
+            ->where('mobile', $normalizedMobile)
             ->first();
 
         if ($validation) {
@@ -226,7 +245,7 @@ class TourAccessController extends Controller{
         } else {
             \App\Models\TourMobileValidation::create([
                 'tour_id' => $tour->id,
-                'mobile' => $mobile,
+                'mobile' => $normalizedMobile,
                 'otp' => $otp,
                 'otp_expired_at' => now()->addMinutes(10),
             ]);
@@ -235,19 +254,18 @@ class TourAccessController extends Controller{
         // Log history: sent
         TourMobileValidationHistory::create([
             'tour_id' => $tour->id,
-            'mobile' => $mobile,
+            'mobile' => $normalizedMobile,
             'action' => 'sent',
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),
         ]);
 
-        // Send OTP via SMS
-        $mobileWithCountryCode = '91' . $mobile;
+        // Send OTP via SMS (mobile already includes country code)
         $templateKey = 'login_otp'; // Using login_otp template as preferred for tour access
 
         try {
             $this->smsService->send(
-                $mobileWithCountryCode,
+                $normalizedMobile,
                 $templateKey,
                 ['OTP' => $otp],
                 [
@@ -267,7 +285,7 @@ class TourAccessController extends Controller{
             'success' => true, 
             'message' => 'OTP sent successfully',
             'sms_sent' => $smsSent,
-            'debug_otp' => $otp // REMOVE IN PRODUCTION
+            // 'debug_otp' => $otp // REMOVE IN PRODUCTION
         ]);
     }
 
@@ -281,8 +299,26 @@ class TourAccessController extends Controller{
     {
         $request->validate([
             'tour_code' => 'required|string',
-            'mobile' => 'required|string',
-            'otp' => 'required|string',
+            'mobile' => [
+                'required',
+                'string',
+                'regex:/^(\+?[1-9]\d{1,14}|\d{10,15})$/',
+                function ($attribute, $value, $fail) {
+                    // Remove + if present for validation
+                    $cleanMobile = ltrim($value, '+');
+                    
+                    // Check if it's just a local number (starts with 0 or doesn't have country code)
+                    if (preg_match('/^0\d+$/', $cleanMobile) || (strlen($cleanMobile) < 10)) {
+                        $fail('The mobile number must include country code. Format: +[country code][number] or [country code][number] (e.g., +911234567890 or 911234567890)');
+                    }
+                    
+                    // Check if it looks like a local number without country code (10 digits starting with non-zero)
+                    if (preg_match('/^[1-9]\d{9}$/', $cleanMobile)) {
+                        $fail('The mobile number must include country code. Format: +[country code][number] or [country code][number] (e.g., +911234567890 or 911234567890)');
+                    }
+                },
+            ],
+            'otp' => 'required|string|size:6',
         ]);
 
         $tour_code = $request->input('tour_code');
@@ -295,8 +331,11 @@ class TourAccessController extends Controller{
             return response()->json(['success' => false, 'message' => $error], 404);
         }
 
+        // Normalize mobile number (remove + if present, keep as is)
+        $normalizedMobile = ltrim($mobile, '+');
+
         $validation = \App\Models\TourMobileValidation::where('tour_id', $tour->id)
-            ->where('mobile', $mobile)
+            ->where('mobile', $normalizedMobile)
             ->where('otp', $otp)
             ->where('otp_expired_at', '>', now())
             ->first();
@@ -310,7 +349,7 @@ class TourAccessController extends Controller{
              // Log history: verified
              TourMobileValidationHistory::create([
                  'tour_id' => $tour->id,
-                 'mobile' => $mobile,
+                 'mobile' => $normalizedMobile,
                  'action' => 'verified',
                  'ip_address' => $request->ip(),
                  'user_agent' => $request->userAgent(),
