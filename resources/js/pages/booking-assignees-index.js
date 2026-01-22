@@ -81,13 +81,13 @@ $(document).ready(function () {
         },
         columns: [
             { data: 'id', name: 'id', width: '60px' },
-            { data: 'user', name: 'user.name' },
-            { data: 'property', name: 'propertyType.name' },
-            { data: 'location', name: 'city.name' },
+            { data: 'user', name: 'users.firstname' },
+            { data: 'property', name: 'property_types.name' },
+            { data: 'location', name: 'cities.name' },
             { data: 'booking_date', name: 'booking_date', width: '120px' },
             { data: 'status', name: 'status', width: '100px' },
             { data: 'payment_status', name: 'payment_status', width: '100px' },
-            { data: 'created_by', name: 'creator.name' },
+            { data: 'created_by', name: 'users.firstname', searchable: false },
             { data: 'created_at', name: 'created_at', width: '150px' },
             { data: 'assign_action', name: 'assign_action', orderable: false, searchable: false, width: '100px' },
             { data: 'view_action', name: 'view_action', orderable: false, searchable: false, width: '80px' }

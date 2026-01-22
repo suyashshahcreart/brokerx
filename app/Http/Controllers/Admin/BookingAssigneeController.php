@@ -37,26 +37,32 @@ class BookingAssigneeController extends Controller
         })->get();
 
         if ($request->ajax()) {
+            // Add joins for searchable columns to avoid "Column not found" errors
             $query = Booking::query()
-                ->with(['user', 'propertyType', 'propertySubType', 'bhk', 'city', 'state']);
+                ->leftJoin('users', 'bookings.user_id', '=', 'users.id')
+                ->leftJoin('property_types', 'bookings.property_type_id', '=', 'property_types.id')
+                ->leftJoin('cities', 'bookings.city_id', '=', 'cities.id')
+                ->leftJoin('users as creator', 'bookings.created_by', '=', 'creator.id')
+                ->select('bookings.*')
+                ->with(['propertySubType', 'bhk', 'state']);
 
             // Apply filters
             if ($request->filled('state_id')) {
-                $query->where('state_id', $request->state_id);
+                $query->where('bookings.state_id', $request->state_id);
             }
 
             if ($request->filled('city_id')) {
-                $query->where('city_id', $request->city_id);
+                $query->where('bookings.city_id', $request->city_id);
             }
 
             if ($request->filled('status')) {
-                $query->where('status', $request->status);
+                $query->where('bookings.status', $request->status);
             } else {
-                $query->whereIn('status', ['Schedul_accepted', 'Reschedul_accepted', 'Schedul_assign', 'Reschedul_assigned']);
+                $query->whereIn('bookings.status', ['Schedul_accepted', 'Reschedul_accepted', 'Schedul_assign', 'Reschedul_assigned']);
             }
 
             if ($request->filled('date_from') && $request->filled('date_to')) {
-                $query->whereBetween('booking_date', [
+                $query->whereBetween('bookings.booking_date', [
                     $request->date_from,
                     $request->date_to
                 ]);
