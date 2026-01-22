@@ -25,7 +25,6 @@ $(document).ready(function () {
         order: [[3, 'desc']],
         pageLength: 25,
         responsive: true,
-        dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>rtip',
         language: {
             paginate: {
                 previous: "<i class='ri-arrow-left-s-line'></i>",

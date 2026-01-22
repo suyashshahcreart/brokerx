@@ -108,8 +108,7 @@ document.addEventListener('DOMContentLoaded', function () {
         },
         drawCallback: function() {
             $('.dataTables_paginate > .pagination').addClass('pagination-rounded');
-        },
-        dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>rt<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>'
+        }
     });
 
     // Panel card refresh button

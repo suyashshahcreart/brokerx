@@ -77,7 +77,6 @@
         </div>
     </div>
 @endsection
-
 @section('script')
     <script>
         document.addEventListener('DOMContentLoaded', function () {
@@ -101,9 +100,6 @@
                     { data: 'creator_name', name: 'creator_name', orderable: false },
                     { data: 'actions', name: 'actions', orderable: false, searchable: false, className: 'text-end' },
                 ],
-                dom: "<'row'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6'f>>" +
-                     "<'row'<'col-sm-12'tr>>" +
-                     "<'row'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>",
                 language: {
                     search: '_INPUT_',
                     searchPlaceholder: 'Search holidays...'
