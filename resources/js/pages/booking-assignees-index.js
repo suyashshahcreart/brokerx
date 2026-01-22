@@ -93,7 +93,7 @@ $(document).ready(function () {
             { data: 'view_action', name: 'view_action', orderable: false, searchable: false, width: '80px' }
         ],
         order: [[8, 'desc']],
-        pageLength: 25,
+        pageLength: 10,
         language: {
             emptyTable: "No bookings found",
             processing: "Processing...",

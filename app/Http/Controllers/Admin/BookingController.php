@@ -51,7 +51,13 @@ class BookingController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $query = Booking::with(['user', 'propertyType', 'propertySubType', 'bhk', 'city', 'state', 'assignees']);
+            // Add joins for searchable columns to avoid "Column not found" errors
+            $query = Booking::query()
+                ->leftJoin('users', 'bookings.user_id', '=', 'users.id')
+                ->leftJoin('b_h_k_s', 'bookings.bhk_id', '=', 'b_h_k_s.id')
+                ->leftJoin('cities', 'bookings.city_id', '=', 'cities.id')
+                ->select('bookings.*')
+                ->with(['propertyType', 'propertySubType', 'state', 'assignees']);
 
             // Filter bookings based on user role
             if (auth()->user()->hasRole('admin')) {
@@ -65,19 +71,19 @@ class BookingController extends Controller
 
             // Apply filters
             if ($request->filled('state_id')) {
-                $query->where('state_id', $request->state_id);
+                $query->where('bookings.state_id', $request->state_id);
             }
 
             if ($request->filled('city_id')) {
-                $query->where('city_id', $request->city_id);
+                $query->where('bookings.city_id', $request->city_id);
             }
 
             if ($request->filled('status')) {
-                $query->where('status', $request->status);
+                $query->where('bookings.status', $request->status);
             }
 
             if ($request->filled('date_from') && $request->filled('date_to')) {
-                $query->whereBetween('booking_date', [
+                $query->whereBetween('bookings.booking_date', [
                     $request->date_from,
                     $request->date_to
                 ]);
