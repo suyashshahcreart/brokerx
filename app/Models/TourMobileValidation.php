@@ -9,6 +9,9 @@ class TourMobileValidation extends Model
     protected $fillable = [
         'tour_id',
         'mobile',
+        'base_mobile',
+        'country_code',
+        'country_name',
         'otp',
         'otp_expired_at',
     ];
