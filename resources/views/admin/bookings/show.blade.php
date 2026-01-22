@@ -220,16 +220,22 @@
                         <ol class="breadcrumb mb-0">
                             <li class="breadcrumb-item"><a href="{{ route('admin.index') }}">Home</a></li>
                             <li class="breadcrumb-item"><a href="{{ route('admin.bookings.index') }}">Bookings</a></li>
-                            <li class="breadcrumb-item active" aria-current="page">#{{ $booking->id }}</li>
+                            <li class="breadcrumb-item active" aria-current="page">#{{ $booking->id }} </li>
                         </ol>
                     </nav>
-                    <h3 class="mb-0">Booking #{{ $booking->id }}</h3>
+                    <h3 class="mb-0">Booking #{{ $booking->id }} ({{ $booking->tour_code }})</h3>
                 </div>
                 <div class="d-flex align-items-center gap-2">
-                    <x-admin.back-button :fallback="route('admin.bookings.index')" :classes="['btn', 'btn-soft-secondary']"
-                        :merge="false" icon="ri-arrow-go-back-line" />
-                    <a href="{{ route('admin.bookings.edit', $booking) }}" class="btn btn-primary"><i
-                            class="ri-edit-line me-1"></i> Edit</a>
+                    <x-admin.back-button :fallback="route('admin.bookings.index')" :classes="['btn', 'btn-soft-primary']"
+                        :merge="false" icon="solar:arrow-left-broken" />
+                    
+                    @if($booking->tours()->exists() && auth()->user()->can('tour_manager_edit'))
+                           <a href="{{ route('admin.tour-manager.upload', $booking) }}" class="btn btn-primary" data-bs-toggle="tooltip" title="Upload & Manage Tour Assets">
+                            <iconify-icon icon="solar:upload-minimalistic-broken" class="align-middle me-1"></iconify-icon> Upload Tour
+                        </a>
+                    @endif
+
+                    <a href="{{ route('admin.bookings.edit', $booking) }}" class="btn btn-primary"><iconify-icon icon="solar:pen-2-broken" class="align-middle me-1"></iconify-icon> Edit</a>
                 </div>
             </div>
 
@@ -1806,7 +1812,7 @@
 
             if (result.isConfirmed) {
                 try {
-                    const response = await fetch(`${baseUrl}/admin/bookings/${bookingId}/update-ajax`, {
+                    const response = await fetch(`${baseUrl}/${adminBasePath}/bookings/${bookingId}/update-ajax`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -1874,7 +1880,7 @@
 
             if (result.isConfirmed) {
                 try {
-                    const response = await fetch(`${baseUrl}/admin/bookings/${bookingId}/change-status`, {
+                    const response = await fetch(`${baseUrl}/${adminBasePath}/bookings/${bookingId}/change-status`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -1948,7 +1954,7 @@
 
             if (result.isConfirmed) {
                 try {
-                    const response = await fetch(`${baseUrl}/admin/bookings/${bookingId}/change-status`, {
+                    const response = await fetch(`${baseUrl}/${adminBasePath}/bookings/${bookingId}/change-status`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -2079,7 +2085,7 @@
             }
             document.getElementById('schedule-date').classList.remove('is-invalid');
 
-            fetch(`${baseUrl}/admin/bookings/${bookingId}/reschedule`, {
+            fetch(`${baseUrl}/${adminBasePath}/bookings/${bookingId}/reschedule`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -2126,8 +2132,8 @@
             }).then((result) => {
                 if (result.isConfirmed) {
                     // Redirect to QR assignment page or open modal
-                    window.location.href = '/admin/qrs?booking_id=' + bookingId;
-                }
+                    window.location.href = `${baseUrl}/${adminBasePath}/qrs?booking_id=` + bookingId;
+                }   
             });
         }
 
@@ -2146,7 +2152,7 @@
 
             if (result.isConfirmed) {
                 try {
-                    const response = await fetch(`${baseUrl}/admin/bookings/${bookingId}`, {
+                    const response = await fetch(`${baseUrl}/${adminBasePath}/bookings/${bookingId}`, {
                         method: 'DELETE',
                         headers: {
                             'X-CSRF-TOKEN': csrfToken,
@@ -2164,7 +2170,7 @@
                             timer: 1500,
                             showConfirmButton: false
                         });
-                        window.location.href = `${baseUrl}/admin/bookings`;
+                        window.location.href = `${baseUrl}/${adminBasePath}/bookings`;
                     } else {
                         throw new Error(data.message || 'Failed to delete');
                     }
@@ -2233,7 +2239,7 @@
 
             if (result.isConfirmed) {
                 try {
-                    const response = await fetch(`${baseUrl}/admin/pending-schedules/${bookingId}/accept`, {
+                    const response = await fetch(`${baseUrl}/${adminBasePath}/pending-schedules/${bookingId}/accept`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -2328,7 +2334,7 @@
 
             if (result.isConfirmed) {
                 try {
-                    const response = await fetch(`${baseUrl}/admin/pending-schedules/${bookingId}/decline`, {
+                    const response = await fetch(`${baseUrl}/${adminBasePath}/pending-schedules/${bookingId}/decline`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',

@@ -1,5 +1,28 @@
 @extends('admin.layouts.vertical', ['title' => 'Change Password', 'subTitle' => 'Profile'])
-
+@section('styles')
+<style>
+    .password-requirements {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    .requirement {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: #6c757d;
+    }
+    .requirement i {
+        font-size: 0.875rem;
+    }
+    .requirement.met {
+        color: #28a745;
+    }
+    .requirement.met i {
+        color: #28a745;
+    }
+</style>
+@endsection
 @section('content')
 <div class="row">
     <div class="col-12">
@@ -38,6 +61,30 @@
                 </div>
             </div>
             <div class="card-body">
+                @if(session('success'))
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        <i class="ri-check-line me-1"></i> {{ session('success') }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                @endif
+
+                @if($errors->any())
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <div class="d-flex align-items-start gap-2">
+                            <i class="ri-error-warning-line fs-5 mt-1"></i>
+                            <div>
+                                <strong>Please fix the issues below:</strong>
+                                <ul class="mb-0 ps-3">
+                                    @foreach($errors->all() as $error)
+                                        <li>{{ $error }}</li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                @endif
+
                 <form method="POST" action="{{ route('admin.profile.update-password') }}" class="needs-validation" novalidate>
                     @csrf
                     @method('PUT')
@@ -78,7 +125,7 @@
                                         <i class="ri-eye-off-line" id="togglePasswordIcon"></i>
                                     </button>
                                 </div>
-                                <div class="invalid-feedback">
+                                <div class="invalid-feedback" id="passwordErrorFeedback">
                                     @error('password')
                                         {{ $message }}
                                     @else
@@ -86,8 +133,41 @@
                                     @enderror
                                 </div>
                                 @if(!$errors->has('password'))
-                                    <div class="valid-feedback">Looks good!</div>
+                                    <div class="valid-feedback" id="passwordValidFeedback">Looks good!</div>
                                 @endif
+                                
+                                <!-- Password Strength Checker -->
+                                <div class="mt-2">
+                                    <div class="d-flex align-items-center gap-2 mb-2">
+                                        <span class="small text-muted">Strength:</span>
+                                        <div class="password-strength-bar" style="width: 100px; height: 6px; background: #e9ecef; border-radius: 3px; overflow: hidden;">
+                                            <div id="strengthIndicator" style="width: 0%; height: 100%; background: #6c757d; transition: all 0.3s ease; border-radius: 3px;"></div>
+                                        </div>
+                                        <span id="strengthText" class="small text-muted"></span>
+                                    </div>
+                                    <div class="password-requirements small">
+                                        <div class="requirement" id="reqLength">
+                                            <i class="ri-close-circle-line text-danger"></i>
+                                            <span>At least 8 characters</span>
+                                        </div>
+                                        <div class="requirement" id="reqUppercase">
+                                            <i class="ri-close-circle-line text-danger"></i>
+                                            <span>At least one uppercase letter</span>
+                                        </div>
+                                        <div class="requirement" id="reqLowercase">
+                                            <i class="ri-close-circle-line text-danger"></i>
+                                            <span>At least one lowercase letter</span>
+                                        </div>
+                                        <div class="requirement" id="reqNumber">
+                                            <i class="ri-close-circle-line text-danger"></i>
+                                            <span>At least one number</span>
+                                        </div>
+                                        <div class="requirement" id="reqSpecial">
+                                            <i class="ri-close-circle-line text-danger"></i>
+                                            <span>At least one special character (!@#$%^&*)</span>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -103,16 +183,19 @@
                                         <i class="ri-eye-off-line" id="togglePasswordConfirmationIcon"></i>
                                     </button>
                                 </div>
-                                <div class="invalid-feedback">
+                                <div class="invalid-feedback" id="confirmPasswordErrorFeedback">
                                     @error('password_confirmation')
                                         {{ $message }}
                                     @else
-                                        Please confirm your new password.
+                                        Passwords do not match.
                                     @enderror
                                 </div>
                                 @if(!$errors->has('password_confirmation'))
-                                    <div class="valid-feedback">Looks good!</div>
+                                    <div class="valid-feedback" id="confirmPasswordValidFeedback">Passwords match!</div>
                                 @endif
+                                <div class="mt-2">
+                                    <small id="confirmPasswordMatch" class="text-muted"></small>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -120,7 +203,7 @@
                         <a href="{{ route('admin.profile.index') }}" class="btn btn-secondary">
                             <i class="ri-close-line me-1"></i> Cancel
                         </a>
-                        <button type="submit" class="btn btn-primary">
+                        <button type="submit" class="btn btn-primary" id="updatePasswordBtn">
                             <i class="ri-save-line me-1"></i> Update Password
                         </button>
                     </div>
@@ -129,30 +212,7 @@
         </div>
     </div>
 </div>
-
-@push('scripts')
-<script>
-    // Toggle password visibility
-    function setupPasswordToggle(toggleBtnId, inputId, iconId) {
-        const toggleBtn = document.getElementById(toggleBtnId);
-        const input = document.getElementById(inputId);
-        const icon = document.getElementById(iconId);
-        
-        if (toggleBtn && input && icon) {
-            toggleBtn.addEventListener('click', function() {
-                const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
-                input.setAttribute('type', type);
-                icon.classList.toggle('ri-eye-off-line');
-                icon.classList.toggle('ri-eye-line');
-            });
-        }
-    }
-
-    // Setup all password toggles
-    setupPasswordToggle('toggleCurrentPassword', 'current_password', 'toggleCurrentPasswordIcon');
-    setupPasswordToggle('togglePassword', 'password', 'togglePasswordIcon');
-    setupPasswordToggle('togglePasswordConfirmation', 'password_confirmation', 'togglePasswordConfirmationIcon');
-</script>
-@endpush
 @endsection
-
+@section('scripts')
+@vite(['resources/js/pages/change-password-profile.js']);
+@endsection

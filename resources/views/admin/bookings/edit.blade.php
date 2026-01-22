@@ -1,11 +1,11 @@
 @extends('admin.layouts.vertical', ['title' => 'Edit Booking', 'subTitle' => 'Property'])
 
 @section('css')
-<!-- Font Awesome for dynamic icons from database -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <!-- Font Awesome for dynamic icons from database -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
-<!-- Choices.js CSS -->
-@vite(['node_modules/choices.js/public/assets/styles/choices.min.css'])
+    <!-- Choices.js CSS -->
+    @vite(['node_modules/choices.js/public/assets/styles/choices.min.css'])
 
     <style>
         /* Pill and Chip Styles */
@@ -255,6 +255,12 @@
             transform: translateY(-1px) !important;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
         }
+
+        .booking-edit-tabs .nav-link.active {
+            background-color: #604ae3 !important;
+            color: white !important;
+            border-radius: 0px 20px;
+        }
     </style>
 @endsection
 
@@ -270,22 +276,27 @@
                             <li class="breadcrumb-item active" aria-current="page">Edit #{{ $booking->id }}</li>
                         </ol>
                     </nav>
-                    <h3 class="mb-0">Edit Booking #{{ $booking->id }}</h3>
+                    <h3 class="mb-0">Edit Booking #{{ $booking->id }} ({{ $booking->tour_code }})</h3>
                 </div>
                 <div class="d-flex align-items-center gap-2">
                     <x-admin.back-button :fallback="route('admin.bookings.index')" :classes="['btn', 'btn-soft-secondary']" :merge="false" icon="ri-arrow-go-back-line" />
 
-                <a href="{{ route('admin.bookings.show', $booking->id) }}" class="btn btn-primary" title="View Booking" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="View Booking">
-                    <i class="ri-eye-line"></i>
-                    <span>View</span>
-                </a>
-                    
+                    @if($booking->tours()->exists() && auth()->user()->can('tour_manager_edit'))
+                         <a href="{{ route('admin.tour-manager.upload', $booking) }}" class="btn btn-primary" data-bs-toggle="tooltip" title="Upload & Manage Tour Assets">
+                            <i class="ri-upload-2-line me-1"></i> Upload Tour
+                        </a>
+                    @endif
+
+                    <a href="{{ route('admin.bookings.show', $booking->id) }}" class="btn btn-primary" title="View Booking" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="View Booking">
+                        <i class="ri-eye-line"></i>
+                        <span>View</span>
+                    </a>
                 </div>
             </div>
             
             <div class="card panel-card border-primary border-top" data-panel-card>
                 <div class="card-header">
-                    <ul class="nav nav-tabs card-header-tabs" id="bookingEditTabs" role="tablist">
+                    <ul class="nav nav-tabs card-header-tabs booking-edit-tabs" id="bookingEditTabs" role="tablist">
                         <li class="nav-item" role="presentation">
                             <button class="nav-link active" id="booking-tab" data-bs-toggle="tab" data-bs-target="#booking-pane" type="button" role="tab" aria-controls="booking-pane" aria-selected="true">
                                 <i class="ri-file-list-3-line me-1"></i> Booking Details

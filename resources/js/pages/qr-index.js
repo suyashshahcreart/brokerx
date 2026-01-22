@@ -360,7 +360,7 @@ $(function() {
                 if (!bulkDeleteUrl) {
                     // Fallback: construct URL from current path
                     const basePath = window.location.pathname.split('/admin')[0] || '';
-                    bulkDeleteUrl = basePath + '/admin/qr/bulk-delete';
+                    bulkDeleteUrl = basePath + `/${window.adminBasePath}/qr/bulk-delete`;
                 }
 
                 // Make AJAX request
@@ -1019,7 +1019,7 @@ $(function() {
 
             // Get CSRF token and route URL
             const csrfToken = $('meta[name="csrf-token"]').attr('content');
-            const bulkGenerateUrl = $('#multipleGenerateModal').data('bulk-generate-url') || window.location.origin + '/admin/qr/bulk-generate';
+            const bulkGenerateUrl = $('#multipleGenerateModal').data('bulk-generate-url') || window.location.origin + `/${window.adminBasePath}/qr/bulk-generate`;
 
             // Make AJAX request
             fetch(bulkGenerateUrl, {

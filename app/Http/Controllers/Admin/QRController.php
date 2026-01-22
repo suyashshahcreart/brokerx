@@ -51,10 +51,10 @@ class QRController extends Controller
                     $csrf = csrf_field();
                     $method = method_field('DELETE');
                     $actions = '<div class="d-flex gap-1">';
-                    $actions .= '<a href="' . $showUrl . '" class="btn btn-light btn-sm border" title="View QR Code Details" data-bs-toggle="tooltip" data-bs-placement="top"><i class="ri-eye-line"></i></a>';
-                    $actions .= '<a href="' . $editUrl . '" class="btn btn-soft-primary btn-sm border" title="Edit QR Code" data-bs-toggle="tooltip" data-bs-placement="top"><i class="ri-edit-line"></i></a>';
+                    $actions .= '<a href="' . $showUrl . '" class="btn btn-soft-primary btn-sm" title="View QR Code Details" data-bs-toggle="tooltip" data-bs-placement="top"><iconify-icon icon="solar:eye-broken" class="align-middle fs-18"></iconify-icon></a>';
+                    $actions .= '<a href="' . $editUrl . '" class="btn btn-soft-info btn-sm" title="Edit QR Code" data-bs-toggle="tooltip" data-bs-placement="top"><iconify-icon icon="solar:pen-2-broken" class="align-middle fs-18"></iconify-icon></a>';
                     $actions .= '<form action="' . $deleteUrl . '" method="POST" class="d-inline">' . $csrf . $method .
-                        '<button type="submit" class="btn btn-soft-danger btn-sm border" onclick="return confirm(\'Delete this QR code?\')" title="Delete QR Code" data-bs-toggle="tooltip" data-bs-placement="top"><i class="ri-delete-bin-line"></i></button></form>';
+                        '<button type="submit" class="btn btn-soft-danger btn-sm" onclick="return confirm(\'Delete this QR code?\')" title="Delete QR Code" data-bs-toggle="tooltip" data-bs-placement="top"><iconify-icon icon="solar:trash-bin-minimalistic-2-broken" class="align-middle fs-18"></iconify-icon></button></form>';
                     $actions .= '</div>';
                     return $actions;
                 })

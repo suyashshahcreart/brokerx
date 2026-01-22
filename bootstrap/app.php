@@ -3,6 +3,7 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Auth\AuthenticationException;
 use App\Http\Middleware\RewriteImagePaths;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -33,7 +34,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->redirectGuestsTo(function ($request) {
             // If accessing admin routes, redirect to admin login
             if ($request->is('admin') || $request->is('admin/*')) {
-                return '/admin/login';
+                return '/ppadmlog/login';
             }
             // Otherwise redirect to frontend login
             return '/login';
@@ -43,5 +44,16 @@ return Application::configure(basePath: dirname(__DIR__))
         // Ensure API routes always return JSON
         $exceptions->shouldRenderJsonWhen(function ($request, Throwable $e) {
             return $request->is('api/*') || $request->expectsJson();
+        });
+
+        // Custom handling for unauthenticated API requests
+        $exceptions->render(function (AuthenticationException $e, $request) {
+            if ($request->is('api/*') || $request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthenticated.',
+                    'code' => 'UNAUTHENTICATED'
+                ], 401);
+            }
         });
     })->create();

@@ -339,13 +339,36 @@ class TourAccessController extends Controller{
     }
 
     /**
+     * Verify API token for security
+     *
+     * @param Request $request
+     * @return bool
+     */
+    private function verifyApiToken(Request $request)
+    {
+        $providedToken = $request->header('X-API-Token') ?? $request->get('token');
+        $expectedToken = env('API_SECRET_TOKEN', md5('proppik_api_secret_2026'));
+        
+        return $providedToken === $expectedToken;
+    }
+
+    /**
      * Get mobile validation history for a tour.
      *
+     * @param Request $request
      * @param string $tour_code
      * @return \Illuminate\Http\JsonResponse
      */
-    public function getMobileHistory($tour_code)
+    public function getMobileHistory(Request $request, $tour_code)
     {
+        // Verify API token
+        if (!$this->verifyApiToken($request)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized access. Invalid token.'
+            ], 403);
+        }
+
         [$booking, $tour, $error] = $this->getBookingAndTour($tour_code);
 
         if ($error) {
@@ -369,6 +392,257 @@ class TourAccessController extends Controller{
             'tour_id' => $tour->id,
             'tour_code' => $tour_code,
             'history' => $detailedHistory
+        ]);
+    }
+
+    /**
+     * Get all bookings list with basic information
+     * tour_code is compulsory in response
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getAllBookingsList(Request $request)
+    {
+        // Verify API token
+        if (!$this->verifyApiToken($request)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized access. Invalid token.'
+            ], 403);
+        }
+
+        // Get bookings with basic information
+        $bookings = Booking::with(['user:id,firstname,lastname,email,mobile'])
+            ->select([
+                'id',
+                'user_id',
+                'tour_code',
+                'status',
+                'payment_status',
+                'booking_date',
+                'created_at',
+                'updated_at'
+            ])
+            ->whereNotNull('tour_code')
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function ($booking) {
+                return [
+                    'booking_id' => $booking->id,
+                    'tour_code' => $booking->tour_code,
+                    'status' => $booking->status,
+                    'payment_status' => $booking->payment_status,
+                    'booking_date' => $booking->booking_date ? $booking->booking_date->format('Y-m-d') : null,
+                    'user' => [
+                        'id' => $booking->user->id ?? null,
+                        'firstname' => $booking->user->firstname ?? '',
+                        'lastname' => $booking->user->lastname ?? '',
+                        'email' => $booking->user->email ?? '',
+                        'mobile' => $booking->user->mobile ?? '',
+                    ],
+                    'created_at' => $booking->created_at->format('Y-m-d H:i:s'),
+                    'updated_at' => $booking->updated_at->format('Y-m-d H:i:s'),
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'total' => $bookings->count(),
+            'bookings' => $bookings
+        ]);
+    }
+
+    /**
+     * Get booking details by tour_code with additional information
+     *
+     * @param Request $request
+     * @param string $tour_code
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getBookingByTourCode(Request $request, $tour_code)
+    {
+        // Verify API token
+        if (!$this->verifyApiToken($request)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized access. Invalid token.'
+            ], 403);
+        }
+
+        [$booking, $tour, $error] = $this->getBookingAndTour($tour_code);
+
+        if ($error) {
+            return response()->json(['success' => false, 'message' => $error], 404);
+        }
+
+        // Eager load relationships to avoid N+1 queries
+        $booking->load([
+            'user:id,firstname,lastname,email,mobile',
+            'propertyType:id,name',
+            'propertySubType:id,name',
+            'bhk:id,name',
+            'city:id,name',
+            'state:id,name',
+            'qr:id,booking_id,code',
+            'tours' => function($query) {
+                $query->latest()->limit(1);
+            }
+        ]);
+
+        // Get latest tour
+        $latestTour = $booking->tours->first();
+
+        // Build comprehensive booking data
+        $bookingData = [
+            'booking_id' => $booking->id,
+            'tour_code' => $booking->tour_code,
+            'status' => $booking->status,
+            'payment_status' => $booking->payment_status,
+            'base_url' => $booking->base_url,
+            'tour_final_link' => $booking->tour_final_link,
+            'booking_date' => $booking->booking_date ? $booking->booking_date->format('Y-m-d') : null,
+            'booking_time' => $booking->booking_time,
+            'booking_notes' => $booking->booking_notes,
+            'created_at' => $booking->created_at->format('Y-m-d H:i:s'),
+            'updated_at' => $booking->updated_at->format('Y-m-d H:i:s'),
+            'user' => [
+                'id' => $booking->user->id ?? null,
+                'firstname' => $booking->user->firstname ?? '',
+                'lastname' => $booking->user->lastname ?? '',
+                'email' => $booking->user->email ?? '',
+                'mobile' => $booking->user->mobile ?? '',
+            ],
+            'property' => [
+                'property_type' => $booking->propertyType->name ?? null,
+                'property_sub_type' => $booking->propertySubType->name ?? null,
+                'bhk' => $booking->bhk->name ?? null,
+                'area' => $booking->area,
+                'price' => $booking->price,
+                'furniture_type' => $booking->furniture_type,
+                'address' => [
+                    'house_no' => $booking->house_no,
+                    'building' => $booking->building,
+                    'society_name' => $booking->society_name,
+                    'address_area' => $booking->address_area,
+                    'landmark' => $booking->landmark,
+                    'full_address' => $booking->full_address,
+                    'pin_code' => $booking->pin_code,
+                    'city' => $booking->city->name ?? null,
+                    'state' => $booking->state->name ?? null,
+                ],
+            ],
+            'tour' => null,
+        ];
+
+        // Add tour information if available
+        if ($latestTour) {
+            $bookingData['tour'] = [
+                'tour_id' => $latestTour->id,
+                'tour_name' => $latestTour->name,
+                'tour_title' => $latestTour->title,
+                'tour_slug' => $latestTour->slug,
+                'location' => $latestTour->location,
+                'status' => $latestTour->status,
+                'is_active' => (bool) $latestTour->is_active,
+                'is_credentials' => (bool) $latestTour->is_credentials,
+                'is_mobile_validation' => (bool) $latestTour->is_mobile_validation,
+                'is_hosted' => (bool) $latestTour->is_hosted,
+                'hosted_link' => $latestTour->hosted_link,
+                'tour_live_url' => $latestTour->getTourLiveUrl(),
+                'created_at' => $latestTour->created_at->format('Y-m-d H:i:s'),
+                'updated_at' => $latestTour->updated_at->format('Y-m-d H:i:s'),
+            ];
+        }
+
+        // Add QR code if available
+        if ($booking->qr) {
+            $bookingData['qr_code'] = $booking->qr->code;
+        }
+
+        return response()->json([
+            'success' => true,
+            'booking' => $bookingData
+        ]);
+    }
+
+    /**
+     * Get all necessary data for the tour index.php page (SEO, GTM, JSON, etc.)
+     *
+     * @param string $tour_code
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getTourPageData(Request $request, $tour_code)
+    {
+
+        // Get tour by slug and eager load booking with only tour_code field
+        $tour = Tour::with(['booking' => function($query) {
+            $query->select('id', 'tour_code');
+        }])->where('slug', $tour_code)->first();
+        $tour_code = $tour?->booking?->tour_code;
+
+        
+
+        [$booking, $tour, $error] = $this->getBookingAndTour($tour_code);
+
+        if ($error || !$tour) {
+            return response()->json([
+                'success' => false,
+                'message' => $error ?: 'Tour not found'
+            ], 404);
+        }
+
+        // Basic Security Check: Verify token
+        // Token is generated based on tour slug and created_at timestamp
+        $providedToken = $request->get('token');
+        $expectedToken = md5($tour->slug . $tour->created_at . 'tour_secret_2026');
+
+        if ($providedToken !== $expectedToken) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized access'
+            ], 403);
+        }
+
+        // Return a structured response optimized for the remote index.php
+        return response()->json([
+            'success'       => true,
+            'bookingStatus' => $booking->status,
+            'baseUrl'       => $booking->base_url,
+            'tourData'      => [
+                'id' => $tour->id,
+                'slug' => $tour->slug,
+                'is_active' => $tour->is_active,
+                'gtm_tag' => $tour->gtm_tag,
+                'structured_data' => $tour->structured_data,
+                'header_code' => $tour->header_code,
+                'footer_code' => $tour->footer_code,
+            ],
+            'bookingData'   => [
+                'id' => $booking->id,
+                'status' => $booking->status,
+                'base_url' => $booking->base_url,
+                'firstname' => $booking->user->firstname ?? '',
+                'lastname' => $booking->user->lastname ?? '',
+                'qr_code' => $booking->qr->code ?? '',
+            ],
+            'meta' => [
+                'title'       => $tour->meta_title,
+                'description' => $tour->meta_description,
+                'keywords'    => $tour->meta_keywords,
+                'robots'      => $tour->meta_robots,
+                'canonical'   => $tour->canonical_url,
+                'ogTitle'     => $tour->og_title ?: $tour->meta_title,
+                'ogDesc'      => $tour->og_description ?: $tour->meta_description,
+                'ogImage'     => $tour->og_image,
+                'twitterTitle'=> $tour->twitter_title ?: ($tour->og_title ?: $tour->meta_title),
+                'twitterDesc' => $tour->twitter_description ?: ($tour->og_description ?: $tour->meta_description),
+                'twitterImage'=> $tour->twitter_image ?: $tour->og_image,
+                'gtmCode'     => $tour->gtm_tag,
+                'headerCode'  => $tour->header_code,
+                'footerCode'  => $tour->footer_code
+            ]
         ]);
     }
 }

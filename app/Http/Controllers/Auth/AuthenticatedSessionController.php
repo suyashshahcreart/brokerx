@@ -10,15 +10,13 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use App\Models\User;
 
-class AuthenticatedSessionController extends Controller
-{
+class AuthenticatedSessionController extends Controller{
     /**
      * Display the login view.
      *
      * @return \Illuminate\View\View
      */
-    public function create()
-    {
+    public function create(){
         return view('auth.login');
     }
 
@@ -65,9 +63,18 @@ class AuthenticatedSessionController extends Controller
                     ])
                     ->log('User logged in via OTP');
 
-                // Check if this is an admin login (from /admin/login route)
-                if ($request->is('admin/login') || $request->routeIs('admin.login')) {
-                    return redirect()->intended('/admin/');
+                // Check if this is an admin login (from /login or /ppadmlog/login route)
+                $referer = $request->header('referer', '');
+                $isAdminLogin = $request->is('ppadmlog/login') 
+                    || $request->is('login')
+                    || $request->routeIs('admin.login') 
+                    || $request->path() === 'ppadmlog/login'
+                    || $request->path() === 'login'
+                    || str_contains($referer, 'ppadmlog/login')
+                    || (str_contains($referer, '/login') && !str_contains($referer, 'photographer'));
+                
+                if ($isAdminLogin) {
+                    return redirect()->intended('/ppadmlog');
                 }
 
                 return redirect()->intended(RouteServiceProvider::HOME);
@@ -99,9 +106,18 @@ class AuthenticatedSessionController extends Controller
             ])
             ->log('User logged in via password');
 
-        // Check if this is an admin login (from /admin/login route)
-        if ($request->is('admin/login') || $request->routeIs('admin.login')) {
-            return redirect()->intended('/admin/');
+        // Check if this is an admin login (from /login or /ppadmlog/login route)
+        $referer = $request->header('referer', '');
+        $isAdminLogin = $request->is('ppadmlog/login') 
+            || $request->is('login')
+            || $request->routeIs('admin.login') 
+            || $request->path() === 'ppadmlog/login'
+            || $request->path() === 'login'
+            || str_contains($referer, 'ppadmlog/login')
+            || (str_contains($referer, '/login') && !str_contains($referer, 'photographer'));
+        
+        if ($isAdminLogin) {
+            return redirect()->intended('/ppadmlog');
         }
 
         return redirect()->intended(RouteServiceProvider::HOME);
@@ -137,10 +153,10 @@ class AuthenticatedSessionController extends Controller
         $request->session()->regenerateToken();
 
         // Check if logout was from admin area
-        if ($request->is('admin/logout') || $request->routeIs('admin.logout')) {
-            return redirect('/admin/login');
+        if ($request->is('ppadmlog/logout') || $request->routeIs('admin.logout')) {
+            return redirect('/ppadmlog/login');
         }
 
-        return redirect('/');
+        return redirect('/ppadmlog');
     }
 }

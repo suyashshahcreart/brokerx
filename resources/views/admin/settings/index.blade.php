@@ -50,7 +50,7 @@
                     <div class="card-body py-0 px-2">
                         <div class="row mb-5">
                             <div class="col-sm-3 col-md-3 col-lg-3 mb-2 mb-sm-0">
-                                <div class="nav flex-column nav-pills settings-nav-pills" id="vl-pills-tab" role="tablist" aria-orientation="vertical">
+                                <div class="nav flex-column nav-pills settings-nav-pills" id="vl-pills-tab" role="tablist" aria-orientation="vertical" style="position: sticky; top: 20px;">
                                     @php
                                         // Find first available tab to make active
                                         $firstActiveTab = null;
@@ -673,8 +673,8 @@
                                         </div>
                                         
                                         <div class="table-responsive">
-                                            <table class="table table-bordered table-hover" id="ftpConfigurationsTable">
-                                                <thead>
+                                            <table class="table table-hover" id="ftpConfigurationsTable">
+                                                <thead class="table-light">
                                                     <tr>
                                                         <th>Category Name</th>
                                                         <th>Display Name</th>
@@ -683,7 +683,7 @@
                                                         <th>Host</th>
                                                         <th>Port</th>
                                                         <th>Status</th>
-                                                        <th>Actions</th>
+                                                        <th class="text-center">Actions</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody id="ftpConfigurationsTableBody">
@@ -801,7 +801,7 @@
 
                                                             <div class="mb-3">
                                                                 <label for="tour_bottommark_contact_mobile" class="form-label">Contact Number</label>
-                                                                <input type="tel" name="tour_bottommark_contact_mobile" id="contact_mobile"
+                                                                <input type="text" name="tour_bottommark_contact_mobile" id="contact_mobile"
                                                                     value="{{ $settings['tour_bottommark_contact_mobile'] ?? '' }}" class="form-control"
                                                                     placeholder="e.g., +91 98765 43210" maxlength="20">
                                                                 <small class="form-text text-muted">Contact mobile number for watermark</small>
@@ -902,7 +902,7 @@
 
                         <!-- FTP Configuration Modal -->
                         <div class="modal fade" id="ftpConfigModal" tabindex="-1">
-                            <div class="modal-dialog modal-lg">
+                            <div class="modal-dialog modal-xl">
                                 <div class="modal-content">
                                     <div class="modal-header">
                                         <h5 class="modal-title" id="ftpConfigModalTitle">Add FTP Configuration</h5>
@@ -926,13 +926,41 @@
                                                         <input type="text" name="display_name" id="ftp_display_name" class="form-control" required>
                                                     </div>
                                                 </div>
-                                                <div class="col-md-6">
+                                            </div>
+                                            <div class="row">
+                                                <div class="col-md-3">
+                                                    <div class="mb-3">
+                                                        <label class="form-label">Host <span class="text-danger">*</span></label>
+                                                        <input type="text" name="host" id="ftp_host" class="form-control" required>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <div class="mb-3">
+                                                        <label class="form-label">Username <span class="text-danger">*</span></label>
+                                                        <input type="text" name="username" id="ftp_username" class="form-control" required>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <div class="mb-3">
+                                                        <label class="form-label">Password <span class="text-danger" id="ftp_password_required">*</span></label>
+                                                        <input type="password" name="password" id="ftp_password" class="form-control" 
+                                                            placeholder="Enter password" required>
+                                                        <small class="text-muted" id="ftp_password_help">Required for new configurations</small>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <div class="mb-3">
+                                                        <label class="form-label">Port <span class="text-danger">*</span></label>
+                                                        <input type="number" name="port" id="ftp_port" class="form-control" value="21" required>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
                                                     <div class="mb-3">
                                                         <label class="form-label">Main URL <span class="text-danger">*</span></label>
                                                         <input type="text" name="main_url" id="ftp_main_url" class="form-control" required placeholder="tour.proppik.in">
                                                     </div>
                                                 </div>
-                                                <div class="col-md-6">
+                                                <div class="col-md-3">
                                                     <div class="mb-3">
                                                         <label class="form-label">Driver <span class="text-danger">*</span></label>
                                                         <select name="driver" id="ftp_driver" class="form-select" required>
@@ -941,42 +969,23 @@
                                                         </select>
                                                     </div>
                                                 </div>
-                                                <div class="col-md-8">
-                                                    <div class="mb-3">
-                                                        <label class="form-label">Host <span class="text-danger">*</span></label>
-                                                        <input type="text" name="host" id="ftp_host" class="form-control" required>
-                                                    </div>
-                                                </div>
-                                                <div class="col-md-4">
-                                                    <div class="mb-3">
-                                                        <label class="form-label">Port <span class="text-danger">*</span></label>
-                                                        <input type="number" name="port" id="ftp_port" class="form-control" value="21" required>
-                                                    </div>
-                                                </div>
-                                                <div class="col-md-6">
-                                                    <div class="mb-3">
-                                                        <label class="form-label">Username <span class="text-danger">*</span></label>
-                                                        <input type="text" name="username" id="ftp_username" class="form-control" required>
-                                                    </div>
-                                                </div>
-                                                <div class="col-md-6">
-                                                    <div class="mb-3">
-                                                        <label class="form-label">Password <span class="text-danger">*</span></label>
-                                                        <input type="password" name="password" id="ftp_password" class="form-control" required>
-                                                    </div>
-                                                </div>
-                                                <div class="col-md-6">
+                                                
+                                                
+                                                
+                                                <div class="col-md-3">
                                                     <div class="mb-3">
                                                         <label class="form-label">Root Path</label>
                                                         <input type="text" name="root" id="ftp_root" class="form-control" value="/">
                                                     </div>
                                                 </div>
-                                                <div class="col-md-6">
+                                                <div class="col-md-3">
                                                     <div class="mb-3">
                                                         <label class="form-label">Timeout (seconds)</label>
                                                         <input type="number" name="timeout" id="ftp_timeout" class="form-control" value="30">
                                                     </div>
                                                 </div>
+                                            </div>
+                                            <div class="row mb-4">
                                                 <div class="col-md-4">
                                                     <div class="form-check form-switch mt-4">
                                                         <input type="checkbox" name="passive" id="ftp_passive" class="form-check-input" checked>
@@ -995,17 +1004,19 @@
                                                         <label class="form-check-label" for="ftp_is_active">Active</label>
                                                     </div>
                                                 </div>
-                                                <div class="col-12">
+                                            </div>
+                                            <div class="row">
+                                                <div class="col-6">
                                                     <div class="mb-3">
                                                         <label class="form-label">Remote Path Pattern</label>
-                                                        <input type="text" name="remote_path_pattern" id="ftp_remote_path_pattern" class="form-control" value="{customer_id}/{slug}/index.php" placeholder="{customer_id}/{slug}/index.php">
+                                                        <input type="text" name="remote_path_pattern" id="ftp_remote_path_pattern" class="form-control bg-light" value="{customer_id}/{slug}/index.php" readonly placeholder="{customer_id}/{slug}/index.php">
                                                         <small class="text-muted">Use {customer_id} and {slug} placeholders for tour path</small>
                                                     </div>
                                                 </div>
-                                                <div class="col-12">
+                                                <div class="col-6">
                                                     <div class="mb-3">
                                                         <label class="form-label">URL Pattern</label>
-                                                        <input type="text" name="url_pattern" id="ftp_url_pattern" class="form-control" value="https://{main_url}/{remote_path}" placeholder="https://{main_url}/{remote_path}">
+                                                        <input type="text" name="url_pattern" id="ftp_url_pattern" class="form-control  bg-light" readonly value="https://{main_url}/{remote_path}" placeholder="https://{main_url}/{remote_path}">
                                                         <small class="text-muted">Use {main_url} and {remote_path} placeholders</small>
                                                     </div>
                                                 </div>

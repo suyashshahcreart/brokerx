@@ -45,7 +45,7 @@
                             <label for="name" class="form-label">Name <span class="text-danger">*</span></label>
                         <input type="text" name="name" id="name" value="{{ old('name') }}" 
                             class="form-control @error('name') is-invalid @enderror" 
-                            placeholder="permission_name" required minlength="2" maxlength="255" 
+                            placeholder="e.g, permission_name" required minlength="2" maxlength="255" 
                             pattern="[A-Za-z0-9_-]+" title="Permission name may contain letters, numbers, underscores or hyphens (e.g., Create_User, role-1)">
                             <div class="invalid-feedback">
                                 @error('name')

@@ -35,7 +35,7 @@
 
             if (result.isConfirmed) {
                 try {
-                    const response = await fetch(`${baseUrl}/admin/bookings/${bookingId}/update-ajax`, {
+                    const response = await fetch(`${baseUrl}/${window.adminBasePath}/bookings/${bookingId}/update-ajax`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -103,7 +103,7 @@
 
             if (result.isConfirmed) {
                 try {
-                    const response = await fetch(`${baseUrl}/admin/bookings/${bookingId}/change-status`, {
+                    const response = await fetch(`${baseUrl}/${window.adminBasePath}/bookings/${bookingId}/change-status`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -177,7 +177,7 @@
 
             if (result.isConfirmed) {
                 try {
-                    const response = await fetch(`${baseUrl}/admin/bookings/${bookingId}/change-status`, {
+                    const response = await fetch(`${baseUrl}/${window.adminBasePath}/bookings/${bookingId}/change-status`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -316,7 +316,7 @@
                 }
                 document.getElementById('schedule-date').classList.remove('is-invalid');
 
-                fetch(`${baseUrl}/admin/bookings/${bookingId}/reschedule`, {
+                fetch(`${baseUrl}/${window.adminBasePath}/bookings/${bookingId}/reschedule`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -364,7 +364,7 @@
             }).then((result) => {
                 if (result.isConfirmed) {
                     // Redirect to QR assignment page or open modal
-                    window.location.href = '/admin/qrs?booking_id=' + bookingId;
+                    window.location.href = `/${window.adminBasePath}/qrs?booking_id=` + bookingId;
                 }
             });
         }
@@ -429,7 +429,7 @@
 
             if (result.isConfirmed) {
                 try {
-                    const response = await fetch(`${baseUrl}/admin/pending-schedules/${bookingId}/accept`, {
+                    const response = await fetch(`${baseUrl}/${window.adminBasePath}/pending-schedules/${bookingId}/accept`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -524,7 +524,7 @@
 
             if (result.isConfirmed) {
                 try {
-                    const response = await fetch(`${baseUrl}/admin/pending-schedules/${bookingId}/decline`, {
+                    const response = await fetch(`${baseUrl}/${window.adminBasePath}/pending-schedules/${bookingId}/decline`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',

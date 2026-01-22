@@ -14,14 +14,19 @@
                                 <li class="breadcrumb-item active" aria-current="page">{{ $booking->id }}</li>
                             </ol>
                         </nav>
-                        <h3 class="mb-0">Tour Management</h3>
+                        <h3 class="mb-0">Tour Management ({{$booking->tour_code}})</h3>
                     </div>
                     <div>
-                        <a href="{{ route('admin.tour-manager.index') }}" class="btn btn-secondary">
-                            <i class="ri-arrow-left-line me-1"></i> Back to Booking
+                        <a href="{{ route('admin.tour-manager.index') }}" class="btn btn-soft-secondary" data-bs-toggle="tooltip" title="Back to Tour Management">
+                            <iconify-icon icon="solar:arrow-left-broken" class="align-middle me-1"></iconify-icon> Back
                         </a>
-                        <a href="{{ route('admin.tour-manager.edit', $booking) }}" class="btn btn-secondary">
-                            <i class="ri-edit-line me-1"></i> Edit
+                        @can('booking_edit')
+                            <a href="{{ route('admin.bookings.edit', $booking->id) }}" class="btn btn-primary" data-bs-toggle="tooltip" title="Edit Booking Info">
+                                <iconify-icon icon="solar:pen-new-square-broken" class="align-middle me-1"></iconify-icon> Edit Booking
+                            </a>
+                        @endcan
+                        <a href="{{ route('admin.tour-manager.upload', $booking) }}" class="btn btn-primary" data-bs-toggle="tooltip" title="Upload & Manage Tour Assets">
+                            <iconify-icon icon="solar:upload-minimalistic-broken" class="align-middle me-1"></iconify-icon> Upload Tour
                         </a>
                     </div>
                 </div>

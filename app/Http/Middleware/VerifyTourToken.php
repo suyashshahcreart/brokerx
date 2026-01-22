@@ -53,11 +53,14 @@ class VerifyTourToken
         // Formula: proppik + tour_code + created_at(Ymd\THis000000\Z)
         $formattedDate = $tour->created_at->format('Ymd\THis000000\Z');
         $expectedToken = 'proppik' . $tour_code . $formattedDate;
+        
+        // 4. Convert expected token to MD5 hash
+        $expectedTokenMd5 = md5($expectedToken);
 
-        // 4. Validate X-Tour-Token header
-        $providedToken = $request->header('X-Tour-Token');
+        // 5. Validate X-Tour-Token header (should contain MD5 hash)
+        $providedTokenMd5 = $request->header('X-Tour-Token');
 
-        if (!$providedToken || $providedToken !== $expectedToken) {
+        if (!$providedTokenMd5 || $providedTokenMd5 !== $expectedTokenMd5) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized access. Invalid or missing X-Tour-Token.'

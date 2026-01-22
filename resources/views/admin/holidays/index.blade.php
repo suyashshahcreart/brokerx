@@ -44,7 +44,7 @@
                 <div class="d-flex align-items-center gap-2">
                     <a href="{{ route('admin.holidays.create') }}" class="btn btn-primary" title="Add Holiday"
                         data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Add Holiday">
-                        <i class="ri-add-line me-1"></i> New Holiday
+                        <iconify-icon icon="solar:add-circle-broken" class="align-middle fs-18 me-1"></iconify-icon> New Holiday
                     </a>
                 </div>
             </div>
@@ -58,42 +58,66 @@
                     </div>
                     <div class="card-body">
                         <div class="table-responsive">
-                            <table class="table table-bordered table-hover">
-                                <thead>
+                            <table class="table table-bordered table-hover" id="holidays-table">
+                                <thead class="table-light">
                                     <tr>
+                                        <th>ID</th>
                                         <th>Name</th>
                                         <th>Date</th>
                                         <th>Created By</th>
-                                        <th>Actions</th>
+                                        <th class="text-end">Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody>
-                                    @forelse($holidays as $holiday)
-                                        <tr>
-                                            <td>{{ $holiday->name }}</td>
-                                            <td>{{ $holiday->date }}</td>
-                                            <td>{{ $holiday->creator?->name ?? '-' }}</td>
-                                            <td>
-                                                <a href="{{ route('admin.holidays.edit', $holiday) }}" class="btn btn-sm btn-warning">Edit</a>
-                                                <form action="{{ route('admin.holidays.destroy', $holiday) }}" method="POST" style="display:inline-block;">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure?')">Delete</button>
-                                                </form>
-                                            </td>
-                                        </tr>
-                                    @empty
-                                        <tr>
-                                            <td colspan="4" class="text-center">No holidays found.</td>
-                                        </tr>
-                                    @endforelse
-                                </tbody>
+                                <tbody></tbody>
                             </table>
                         </div>
-                        {{ $holidays->links() }}
                     </div>
                 </div>
             </div>
         </div>
     </div>
+@endsection
+
+@section('script')
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const $ = window.jQuery;
+            if (!$) return;
+
+            const table = $('#holidays-table');
+            if (!table.length) {
+                return;
+            }
+
+            const dataTable = table.DataTable({
+                processing: true,
+                serverSide: true,
+                ajax: '{{ route('admin.holidays.index') }}',
+                order: [[2, 'desc']], // Order by date descending
+                columns: [
+                    { data: 'id', name: 'id', className: 'fw-semibold' },
+                    { data: 'name', name: 'name' },
+                    { data: 'date', name: 'date' },
+                    { data: 'creator_name', name: 'creator_name', orderable: false },
+                    { data: 'actions', name: 'actions', orderable: false, searchable: false, className: 'text-end' },
+                ],
+                dom: "<'row'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6'f>>" +
+                     "<'row'<'col-sm-12'tr>>" +
+                     "<'row'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>",
+                language: {
+                    search: '_INPUT_',
+                    searchPlaceholder: 'Search holidays...'
+                },
+                lengthMenu: [10, 25, 50, 100],
+                responsive: true,
+                drawCallback: function () {
+                    // Re-initialize tooltips for dynamically rendered action buttons
+                    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                    tooltipTriggerList.map(function (tooltipTriggerEl) {
+                        return new bootstrap.Tooltip(tooltipTriggerEl);
+                    });
+                }
+            });
+        });
+    </script>
 @endsection

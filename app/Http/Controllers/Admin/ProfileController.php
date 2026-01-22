@@ -91,6 +91,10 @@ class ProfileController extends Controller
         $request->validate([
             'current_password' => ['required', 'current_password'],
             'password' => ['required', 'confirmed', Password::defaults()],
+        ], [
+            'current_password.current_password' => 'Your current password is incorrect.',
+            'password.confirmed' => 'The new password confirmation does not match.',
+            'password.required' => 'Please enter your new password.',
         ]);
 
         $user = auth()->user();
@@ -110,7 +114,7 @@ class ProfileController extends Controller
             ->log('Password changed');
 
         return redirect()->route('admin.profile.index')
-            ->with('success', 'Password changed successfully.');
+            ->with('success', 'Your password has been updated successfully.');
     }
 }
 

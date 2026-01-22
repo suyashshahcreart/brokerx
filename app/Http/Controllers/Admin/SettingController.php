@@ -851,9 +851,13 @@ class SettingController extends Controller
             ], 404);
         }
 
+        // Return config without password
+        $configData = $config->toArray();
+        unset($configData['password']);
+
         return response()->json([
             'success' => true,
-            'data' => $config
+            'data' => $configData
         ]);
     }
 
@@ -878,7 +882,7 @@ class SettingController extends Controller
             'driver' => 'required|in:ftp,sftp',
             'host' => 'required|string|max:255',
             'username' => 'required|string|max:255',
-            'password' => 'required|string',
+            'password' => 'nullable|string', // Make password optional for updates
             'port' => 'required|integer|min:1|max:65535',
             'root' => 'nullable|string|max:500',
             'passive' => 'boolean',
@@ -891,13 +895,28 @@ class SettingController extends Controller
             'notes' => 'nullable|string',
         ]);
 
+        // For updates, password is optional (only update if provided)
         if ($request->filled('id')) {
             $ftpConfig = FtpConfiguration::findOrFail($request->id);
+            
+            // If password is not provided or empty, remove it from validated data
+            if (empty($validated['password'])) {
+                unset($validated['password']);
+            }
+            
             $ftpConfig->update(array_merge($validated, [
                 'updated_by' => $request->user()->id
             ]));
             $message = 'FTP configuration updated successfully';
         } else {
+            // For new records, password is required
+            if (empty($validated['password'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Password is required for new FTP configurations.'
+                ], 422);
+            }
+            
             $ftpConfig = FtpConfiguration::create(array_merge($validated, [
                 'created_by' => $request->user()->id,
                 'updated_by' => $request->user()->id
@@ -905,19 +924,29 @@ class SettingController extends Controller
             $message = 'FTP configuration created successfully';
         }
 
+        // Prepare data for activity log (without password)
+        $logData = $validated;
+        if (isset($logData['password'])) {
+            $logData['password'] = '***hidden***';
+        }
+
         activity('ftp_configuration')
             ->performedOn($ftpConfig)
             ->causedBy($request->user())
             ->withProperties([
                 'event' => $request->filled('id') ? 'updated' : 'created',
-                'data' => $validated
+                'data' => $logData
             ])
             ->log('FTP configuration ' . ($request->filled('id') ? 'updated' : 'created'));
+
+        // Return config without password
+        $configData = $ftpConfig->toArray();
+        unset($configData['password']);
 
         return response()->json([
             'success' => true,
             'message' => $message,
-            'data' => $ftpConfig
+            'data' => $configData
         ]);
     }
 

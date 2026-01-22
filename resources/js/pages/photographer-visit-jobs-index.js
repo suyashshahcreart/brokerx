@@ -30,7 +30,7 @@ document.addEventListener('DOMContentLoaded', function () {
         return;
     }
 
-    const ajaxUrl = window.photographerJobsRoutes?.index || '/admin/photographer-visit-jobs';
+    const ajaxUrl = window.photographerJobsRoutes?.index || `${window.appBaseUrl}/${window.adminBasePath}/photographer-visit-jobs`;
     const csrfToken = window.jQuery('meta[name="csrf-token"]').attr('content');
 
     // Initialize DataTable

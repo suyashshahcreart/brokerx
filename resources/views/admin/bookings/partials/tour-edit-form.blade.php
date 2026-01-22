@@ -72,12 +72,33 @@
                         @error('status')<div class="text-danger">{{ $message }}</div>@enderror
                     </div>
                 </div>
-                <div class="col-lg-4">
-                    <div class="mb-3">
+                <div class="col-lg-4 d-none">
+                    <div class="mb-3 ">
                         <label class="form-label" for="tour_revision">Revision</label>
                         <input type="text" name="revision" id="tour_revision" class="form-control"
                             value="{{ old('revision', $tour->revision) }}" placeholder="v1.0">
                         @error('revision')<div class="text-danger">{{ $message }}</div>@enderror
+                    </div>
+                </div>
+
+                <div class="col-lg-4">
+                    <div class="mb-3">
+                        <label class="form-label" for="tour_thumbnail">Tour Thumbnail <span class="text-muted">(Image file, max 5MB)</span></label>
+                        
+                        <input type="file" name="tour_thumbnail" id="tour_thumbnail" class="form-control"
+                            accept="image/*">
+
+                            <div class="">
+                                @if($tour   ->tour_thumbnail)
+                                    <div>
+                                        <small class="text-muted d-block mb-2">Current thumbnail:</small>
+                                        <img src="{{ Storage::disk('s3')->url($tour->tour_thumbnail) }}" alt="Tour Thumbnail"
+                                            style="max-width: 200px; max-height: 200px; border:1px solid #ddd; padding:5px; border-radius: 4px;">
+                                    </div>
+                                @endif
+                            </div>
+                        <small class="text-muted d-block mt-2">Recommended size: 400x300px. Uploaded to S3 in settings/tour_thumbnails/</small>
+                        @error('tour_thumbnail')<div class="text-danger mt-2">{{ $message }}</div>@enderror
                     </div>
                 </div>
             </div>
@@ -92,7 +113,7 @@
                          </div>
                     </div>
                 </div>
-                <div class="col-lg-3">
+                <div class="col-lg-3" id="credentials-required-field">
                     <div class="mb-3">
                          <label class="form-label" for="is_credentials">Credentials Required</label>
                          <div class="form-check form-switch form-switch-lg" dir="ltr">
@@ -101,7 +122,7 @@
                          </div>
                     </div>
                 </div>
-                <div class="col-lg-3">
+                <div class="col-lg-3" id="mobile-validation-field">
                     <div class="mb-3">
                          <label class="form-label" for="is_mobile_validation">Mobile Validation</label>
                          <div class="form-check form-switch form-switch-lg" dir="ltr">
@@ -110,7 +131,7 @@
                          </div>
                     </div>
                 </div>
-                <div class="col-lg-3">
+                <div class="col-lg-3" id="is-hosted-field">
                     <div class="mb-3">
                          <label class="form-label" for="is_hosted">Is Hosted</label>
                          <div class="form-check form-switch form-switch-lg" dir="ltr">
@@ -227,27 +248,7 @@
                 </div>
             </div>
 
-            <!-- Tour Thumbnail Upload -->
-            <div class="row">
-                <div class="col-lg-12">
-                    <div class="mb-3">
-                        <label class="form-label" for="tour_thumbnail">Tour Thumbnail <span class="text-muted">(Image file, max 5MB)</span></label>
-                        <div class="mt-2 mb-3">
-                            @if($tour->tour_thumbnail)
-                                <div>
-                                    <small class="text-muted d-block mb-2">Current thumbnail:</small>
-                                    <img src="{{ Storage::disk('s3')->url($tour->tour_thumbnail) }}" alt="Tour Thumbnail"
-                                        style="max-width: 200px; max-height: 200px; border:1px solid #ddd; padding:5px; border-radius: 4px;">
-                                </div>
-                            @endif
-                        </div>
-                        <input type="file" name="tour_thumbnail" id="tour_thumbnail" class="form-control"
-                            accept="image/*">
-                        <small class="text-muted d-block mt-2">Recommended size: 400x300px. Uploaded to S3 in settings/tour_thumbnails/</small>
-                        @error('tour_thumbnail')<div class="text-danger mt-2">{{ $message }}</div>@enderror
-                    </div>
-                </div>
-            </div>
+            
 
 
 
@@ -388,7 +389,7 @@
                 <div class="col-md-6">
                     <div class="mb-3">
                         <label for="footer_mobile" class="form-label">Contact Mobile</label>
-                        <input type="number" name="footer_mobile" id="footer_mobile" class="form-control"
+                        <input type="text" name="footer_mobile" id="footer_mobile" class="form-control"
                             value="{{ old('footer_mobile', $tour->footer_mobile) }}" placeholder="eg.+91 9898 363026">
                         @error('footer_mobile')<div class="text-danger">{{ $message }}</div>@enderror
                     </div>
@@ -445,7 +446,7 @@
                 </div>
                 <div class="col-md-4">
                     <label for="footer_brand_mobile" class="form-label">Contact Number</label>
-                    <input type="number" name="footer_brand_mobile" id="footer_brand_mobile" class="form-control"
+                    <input type="text" name="footer_brand_mobile" id="footer_brand_mobile" class="form-control"
                         value="{{ old('footer_brand_mobile', $tour->footer_brand_mobile) }}"
                         placeholder="eg.+91 9898 363026"
                         >
@@ -460,8 +461,8 @@
         <button class="btn btn-primary" type="submit">
             <i class="ri-save-line me-1"></i> Update Tour
         </button>
-        <button class="btn btn-soft-danger" type="button" id="unlinkTourBtn">
-            <i class="ri-link-unlink me-1"></i> Unlink Tour
+        <button class="btn btn-soft-secondary" type="button" onClick="window.location.reload();">
+            <i class="ri-link-unlink me-1"></i> Cancle
         </button>
     </div>
 
@@ -469,27 +470,72 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Toggle credentials section
-        const isCredentials = document.getElementById('is_credentials');
+        // Get Tour Active checkbox and related fields
+        const isActive = document.getElementById('is_active');
+        const credentialsRequiredField = document.getElementById('credentials-required-field');
+        const mobileValidationField = document.getElementById('mobile-validation-field');
+        const isHostedField = document.getElementById('is-hosted-field');
+        const hostedLinkContainer = document.getElementById('hosted-link-container');
         const credentialsSection = document.getElementById('credentials-section');
-        
-        isCredentials.addEventListener('change', function() {
-            if(this.checked) {
-                credentialsSection.classList.remove('d-none');
+        const isCredentials = document.getElementById('is_credentials');
+        const isHosted = document.getElementById('is_hosted');
+
+        // Function to toggle visibility based on Tour Active
+        function toggleTourActiveFields() {
+            if (isActive.checked) {
+                // Show all fields when Tour Active is true
+                credentialsRequiredField.style.display = '';
+                mobileValidationField.style.display = '';
+                isHostedField.style.display = '';
+                
+                // Show/hide hosted link based on is_hosted checkbox
+                if (isHosted.checked) {
+                    hostedLinkContainer.classList.remove('d-none');
+                } else {
+                    hostedLinkContainer.classList.add('d-none');
+                }
+                
+                // Show/hide credentials section based on is_credentials checkbox
+                if (isCredentials.checked) {
+                    credentialsSection.classList.remove('d-none');
+                } else {
+                    credentialsSection.classList.add('d-none');
+                }
             } else {
+                // Hide all fields when Tour Active is false
+                credentialsRequiredField.style.display = 'none';
+                mobileValidationField.style.display = 'none';
+                isHostedField.style.display = 'none';
+                hostedLinkContainer.classList.add('d-none');
                 credentialsSection.classList.add('d-none');
+            }
+        }
+
+        // Initialize on page load
+        toggleTourActiveFields();
+
+        // Listen for Tour Active checkbox changes
+        isActive.addEventListener('change', toggleTourActiveFields);
+
+        // Toggle credentials section
+        isCredentials.addEventListener('change', function() {
+            if (isActive.checked) {
+                if(this.checked) {
+                    credentialsSection.classList.remove('d-none');
+                } else {
+                    credentialsSection.classList.add('d-none');
+                }
             }
         });
 
         // Toggle hosted link section
-        const isHosted = document.getElementById('is_hosted');
-        const hostedLinkContainer = document.getElementById('hosted-link-container');
-
         isHosted.addEventListener('change', function() {
-            if(this.checked) {
-                hostedLinkContainer.classList.remove('d-none');
-            } else {
-                hostedLinkContainer.classList.add('d-none');
+            if (isActive.checked) {
+                if(this.checked) {
+                    hostedLinkContainer.classList.remove('d-none');
+                } else {
+                    hostedLinkContainer.classList.add('d-none');
+                }
             }
         });
 

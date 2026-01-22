@@ -1,4 +1,4 @@
-@extends('admin.layouts.vertical', ['title' => 'Edit Tour'])
+@extends('admin.layouts.vertical', ['title' => 'Upload Tour'])
 
 @section('content')
 <div class="">
@@ -10,15 +10,25 @@
                         <ol class="breadcrumb mb-0">
                             <li class="breadcrumb-item"><a href="{{ route('admin.index') }}">Home</a></li>
                             <li class="breadcrumb-item" aria-current="page"><a href="{{ route('admin.tour-manager.index') }}">Tour Management</a></li>
-                            <li class="breadcrumb-item active" aria-current="page">Edit</li>
+                            <li class="breadcrumb-item active" aria-current="page">Upload</li>
                             <li class="breadcrumb-item active" aria-current="page">{{ $booking->id }}</li>
                         </ol>
                     </nav>
-                    <h3 class="mb-0">Tour Management</h3>
+                    <h3 class="mb-0">Tour Management ({{$booking->tour_code}}) </h3>
                 </div>
-                <a href="{{ route('admin.tour-manager.show', $booking) }}" class="btn btn-secondary">
-                        <i class="ri-arrow-left-line me-1"></i> Back to Booking
-                </a>
+                <div class="d-flex gap-2">
+                     <a href="{{ route('admin.tour-manager.index') }}" class="btn btn-soft-primary" data-bs-toggle="tooltip" title="Back to Tour Management">
+                        <i class="ri-arrow-left-line me-1"></i> Back
+                    </a>
+                    @can('booking_edit')
+                           <a href="{{ route('admin.bookings.edit', $booking->id) }}" class="btn btn-primary" data-bs-toggle="tooltip" title="Edit Booking Info">
+                            <i class="ri-edit-box-line me-1"></i> Edit Booking
+                        </a>
+                    @endcan
+                    <a href="{{ route('admin.tour-manager.show', $booking) }}" class="btn btn-primary" data-bs-toggle="tooltip" title="View Tour Public Page">
+                        <i class="ri-eye-line me-1"></i> View
+                    </a>
+                </div>
             </div>
         </div>
     </div>

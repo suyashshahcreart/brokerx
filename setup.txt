@@ -35,7 +35,8 @@ ALTER TABLE `users` CHANGE `lastname` `lastname` VARCHAR(255) CHARACTER SET utf8
     </IfModule>
 
     RewriteEngine On
-    RewriteBase /brokerx/
+    RewriteBase /propik_main/
+    # this is the folder path in htdocs
 
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
@@ -49,6 +50,7 @@ ALTER TABLE `users` CHANGE `lastname` `lastname` VARCHAR(255) CHARACTER SET utf8
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{DOCUMENT_ROOT}/brokerx/public/build/$1 -f
+    # this is the path of static assets serve.
     RewriteRule ^(.*)$ public/build/$1 [L]
 
     # Compatibility: requests to /assets/* should map to /public/build/assets/*

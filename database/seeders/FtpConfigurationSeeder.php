@@ -10,6 +10,9 @@ class FtpConfigurationSeeder extends Seeder
 {
     /**
      * Run the database seeds.
+     * 
+     * Note: Passwords will be automatically encrypted by the FtpConfiguration model's
+     * setPasswordAttribute mutator when using updateOrCreate.
      */
     public function run(): void
     {

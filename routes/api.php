@@ -1,11 +1,12 @@
 <?php
-
+use App\Http\Controllers\Admin\Api\AdminDashboardController;
 use App\Http\Controllers\Admin\BookingController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\HolidayController;
 use App\Http\Controllers\Api\BookingApiController;
+use App\Http\Controllers\Api\TourApiController;
 use App\Http\Controllers\Admin\ajax\BookingAssigneController;
 use App\Http\Controllers\Admin\Api\TourManagerController;
 /*
@@ -22,9 +23,14 @@ use App\Http\Controllers\Admin\Api\TourManagerController;
 // Rest API's
 // Tour Manager APIs
 Route::post('/tour-manager/login', [TourManagerController::class, 'login']);
-Route::get('/tour-manager/customers', [TourManagerController::class, 'getCustomers']);
-Route::get('/tour-manager/tours-by-customer', [TourManagerController::class, 'getToursByCustomer']);
-Route::put('/tour-manager/working_json/{tour_id}', [TourManagerController::class, 'updateWorkingJson']);
+
+// Protected Tour Manager APIs - require authentication token
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/tour-manager/customers', [TourManagerController::class, 'getCustomers']);
+    Route::get('/tour-manager/tours-by-customer', [TourManagerController::class, 'getToursByCustomer']);
+    Route::get('/tour-manager/tour/{tour_code}', [TourManagerController::class, 'getTourDetails']);
+    Route::put('/tour-manager/working_json/{tour_code}', [TourManagerController::class, 'updateWorkingJson']);
+});
 
 // Tour Access APIs (Protected by Dynamic Token)
 Route::middleware(['verify.tour.token'])->group(function () {
@@ -37,6 +43,10 @@ Route::middleware(['verify.tour.token'])->group(function () {
     Route::get('/tour/mobile/history/{tour_code}', [\App\Http\Controllers\Api\TourAccessController::class, 'getMobileHistory']);
 });
 
+// Booking APIs with token security
+Route::get('/bookings/list', [\App\Http\Controllers\Api\TourAccessController::class, 'getAllBookingsList']);
+Route::get('/booking/tour-code/{tour_code}', [\App\Http\Controllers\Api\TourAccessController::class, 'getBookingByTourCode']);
+
 // Route::middleware('auth')->group(function () {
 // });
 
@@ -46,6 +56,13 @@ Route::middleware(['verify.tour.token'])->group(function () {
 Route::middleware('auth')->get('/user', function (Request $request) {
     return $request->user();
 });
+
+// admim dashboard chart data
+Route::group(['prefix' => 'admin/dashboard', 'middleware' => ['auth','web','role:admin']], function () {
+    Route::get('/Booking-Analytic-chart-data', [AdminDashboardController::class, 'BookingsAnalyticChartData'])->name('admin.dashboard.booking-chart-data');
+    Route::get('/Sales-Analytic-chart-data', [AdminDashboardController::class, 'SalesAnalyticChartData'])->name('admin.dashboard.sales-chart-data');
+});
+
 
 // Protected Settings API routes - using web auth for same-origin requests
 Route::middleware(['web', 'auth'])->group(function () {
@@ -65,6 +82,7 @@ Route::middleware(['web', 'auth'])->group(function () {
     // Bookings API
     Route::get('/bookings', [BookingApiController::class, 'index'])->name('api.bookings.index');
     Route::get('/bookings/by-date-range', [BookingApiController::class, 'getByDateRange'])->name('api.bookings.by-date-range');
+    Route::get('/tours', [TourApiController::class, 'index'])->name('api.tours.index');
 
     // Booking assignee slots for photographers 
     Route::get('/booking-assignees/slots', [BookingAssigneController::class, 'slots'])->name('api.booking-assignees.slots');

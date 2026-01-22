@@ -263,6 +263,33 @@
 
 
                     @canany(['setting_view', 'setting_booking_schedule', 'setting_photographer', 'setting_base_price', 'setting_payment_gateway', 'setting_sms_configuration', 'setting_ftp_configuration'])
+                         <li class="d-none nav-item">
+                              <a class="nav-link menu-arrow" href="#sidebarReports" data-bs-toggle="collapse" role="button" aria-expanded="false" aria-controls="sidebarReports">
+                                   <span class="nav-icon">
+                                        <i class="ri-file-chart-line"></i>
+                                   </span>
+                                   <span class="nav-text"> Reports </span>
+                              </a>
+                              <div class="collapse" id="sidebarReports">
+                                   <ul class="nav sub-navbar-nav">
+                                        <li class="sub-nav-item">
+                                             <a class="sub-nav-link" href="{{ route('admin.reports.index') }}">index</a>
+                                        </li>
+                                        <li class="sub-nav-item">
+                                             <a class="sub-nav-link" href="{{ route('admin.reports.customers') }}">customers</a>
+                                        </li>
+                                        <li class="sub-nav-item">
+                                             <a class="sub-nav-link" href="{{ route('admin.reports.bookings') }}">Bookings</a>
+                                        </li>
+                                        <li class="sub-nav-item">
+                                             <a class="sub-nav-link" href="{{ route('admin.reports.sales') }}">Sales</a>
+                                        </li>
+                                   </ul>
+                              </div>
+                         </li>
+                    @endcanany
+
+                    @canany(['setting_view', 'setting_booking_schedule', 'setting_photographer', 'setting_base_price', 'setting_payment_gateway', 'setting_sms_configuration', 'setting_ftp_configuration'])
                          <li class="nav-item">
                               <a class="nav-link {{ request()->routeIs('admin.settings.*') ? 'active' : '' }}"
                                    href="{{ route('admin.settings.index') }}">

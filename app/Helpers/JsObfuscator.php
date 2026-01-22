@@ -3,9 +3,22 @@ function obfuscateJs(string $js): string
 {
     $script = storage_path('app/obfuscate.js');
     
-    // Create a temporary file to store the JS content
-    $tempFile = tempnam(sys_get_temp_dir(), 'obfuscate_');
-    file_put_contents($tempFile, $js);
+    // Use Laravel's storage directory instead of system temp directory
+    // This ensures proper permissions and avoids PHP 8.3 tempnam() issues
+    $tempDir = storage_path('app/temp');
+    
+    // Create temp directory if it doesn't exist
+    if (!is_dir($tempDir)) {
+        @mkdir($tempDir, 0755, true);
+    }
+    
+    // Create a temporary file in Laravel's storage directory
+    $tempFile = $tempDir . '/obfuscate_' . uniqid() . '_' . time() . '.js';
+    
+    // Write JS content to temp file
+    if (file_put_contents($tempFile, $js) === false) {
+        throw new Exception('Failed to create temporary file for JS obfuscation');
+    }
     
     try {
         $cmd = 'node ' . escapeshellarg($script) . ' ' . escapeshellarg($tempFile) . ' 2>&1';
@@ -20,7 +33,7 @@ function obfuscateJs(string $js): string
     } finally {
         // Clean up temporary file
         if (file_exists($tempFile)) {
-            unlink($tempFile);
+            @unlink($tempFile);
         }
     }
 }

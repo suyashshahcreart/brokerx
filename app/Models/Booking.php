@@ -513,18 +513,24 @@ class Booking extends Model
      * @return string FTP URL or '#' if not available
      */
     public function getTourLiveUrl(): string {
-        // Only generate URL if status is tour_live
-        if ($this->status !== 'tour_live') {
-            return '#';
-        }
-
         // Get the latest tour for this booking
         $tour = $this->tours()
             ->orderBy('created_at', 'desc')
             ->first();
 
-        // Check if tour exists and has required data
-        if (!$tour || !$tour->location || !$tour->slug || !$this->user_id) {
+        // Check if tour exists
+        if (!$tour) {
+            return '#';
+        }
+
+        // If tour is hosted and hosted_link is not null, return hosted_link
+        if ($tour->is_hosted && !empty($tour->hosted_link)) {
+            return $tour->hosted_link;
+        }
+
+        // Otherwise, use FTP URL logic
+        // Check if tour has required data for FTP URL
+        if (!$tour->location || !$tour->slug || !$this->user_id) {
             return '#';
         }   
 
@@ -539,8 +545,8 @@ class Booking extends Model
         $fullFtpUrl = $ftpConfig->getUrlForTour($tour->slug, $this->user_id);
         $tourFtpUrl = rtrim($fullFtpUrl, '/');
         
-        // Remove /index.php if present
-        if (substr($tourFtpUrl, -9) === '/index.php') {
+        // Remove index.php if present
+        if (substr($tourFtpUrl, -9) === 'index.php') {
             $tourFtpUrl = substr($tourFtpUrl, 0, -9);
         }
 

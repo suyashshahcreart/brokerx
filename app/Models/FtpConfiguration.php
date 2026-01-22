@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Crypt;
 use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Activitylog\LogOptions;
 
@@ -34,6 +35,11 @@ class FtpConfiguration extends Model
         'updated_by',
     ];
 
+    /**
+     * Hide password from JSON/array serialization
+     */
+    protected $hidden = ['password'];
+
     protected function casts(): array
     {
         return [
@@ -47,6 +53,34 @@ class FtpConfiguration extends Model
             'updated_at' => 'datetime',
             'deleted_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Encrypt password when setting it
+     */
+    public function setPasswordAttribute($value)
+    {
+        if (!empty($value)) {
+            $this->attributes['password'] = Crypt::encryptString($value);
+        }
+    }
+
+    /**
+     * Decrypt password when getting it
+     */
+    public function getPasswordAttribute($value)
+    {
+        if (empty($value)) {
+            return null;
+        }
+        
+        try {
+            return Crypt::decryptString($value);
+        } catch (\Exception $e) {
+            // If decryption fails (e.g., old plain text password), return as-is
+            // This handles migration from plain text to encrypted
+            return $value;
+        }
     }
 
     /**
