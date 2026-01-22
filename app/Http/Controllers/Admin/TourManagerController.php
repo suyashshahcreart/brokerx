@@ -212,13 +212,17 @@ class TourManagerController extends Controller{
      */
     public function update(Request $request, Booking $booking)
     {
+        // Increase execution time limit for large ZIP file processing (5 hours for files up to 1GB)
+        set_time_limit(18000);
+        ini_set('max_execution_time', '18000');
+        
         // Get valid location values from FTP configurations
         $validLocations = FtpConfiguration::active()->pluck('category_name')->toArray();
         
         $validated = $request->validate([
             'slug' => 'required|string|max:255|regex:/^[a-zA-Z0-9\/\-_]+$/',
             'location' => ['required', 'string', Rule::in($validLocations)],
-            'files.*' => 'nullable|file|max:512000', // 500MB for zip files - single file only
+            'files.*' => 'nullable|file|max:1024000', // 1GB for zip files - single file only
         ]);
 
         // Get the tour for this booking
@@ -365,6 +369,10 @@ class TourManagerController extends Controller{
     private function processZipFile($zipFile, Tour $tour, $uniqueCode)
     {
         try {
+            // Ensure sufficient execution time for large ZIP processing (5 hours for files up to 1GB)
+            set_time_limit(18000);
+            ini_set('max_execution_time', '18000');
+            
             // Load booking relationship to get customer_id
             $tour->load('booking');
             $zip = new ZipArchive();
