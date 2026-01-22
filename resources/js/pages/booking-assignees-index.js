@@ -11,6 +11,7 @@ if (typeof window.$ === 'undefined') {
 import 'datatables.net-bs5';
 import Swal from 'sweetalert2';
 import 'bootstrap/js/dist/dropdown';
+import moment from 'moment';
 const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 let table = null;
 
@@ -20,13 +21,13 @@ $(document).ready(function () {
     // app.js loads moment and daterangepicker, so we should use those
     let waitAttempts = 0;
     const maxWaitAttempts = 100; // Wait up to 10 seconds
-    
+
     const initDateRangePicker = () => {
         waitAttempts++;
-        
+
         // Check if moment is available and has localeData function from app.js
-        if (typeof window.moment === 'undefined' || 
-            typeof window.moment.localeData !== 'function' || 
+        if (typeof window.moment === 'undefined' ||
+            typeof window.moment.localeData !== 'function' ||
             typeof $.fn.daterangepicker === 'undefined') {
             // Wait for app.js to load them
             if (waitAttempts < maxWaitAttempts) {
@@ -36,15 +37,15 @@ $(document).ready(function () {
             }
             return;
         }
-        
+
         // Ensure moment locale is set
         if (typeof window.moment.localeData === 'function') {
             window.moment.locale('en');
         }
-        
+
         initializeDateRangePicker();
     };
-    
+
     // Initialize daterangepicker (will use the one from app.js)
     initDateRangePicker();
 
@@ -278,7 +279,7 @@ function initializeDateRangePicker() {
         setTimeout(initializeDateRangePicker, 200);
         return;
     }
-    
+
     // Ensure moment is available and has localeData
     if (typeof window.moment === 'undefined' || typeof window.moment.localeData !== 'function') {
         console.error('Moment.js is not available or localeData is not a function');
@@ -290,34 +291,34 @@ function initializeDateRangePicker() {
             return;
         }
     }
-    
+
     // Ensure daterangepicker is available
     if (typeof $.fn.daterangepicker === 'undefined') {
         console.error('Daterangepicker is not available');
         return;
     }
-    
+
     // Check if already initialized
     if (input.data('daterangepicker')) {
         return;
     }
-    
+
     try {
         // Use window.moment from app.js
         const momentInstance = window.moment;
-        
+
         // Verify moment has localeData before proceeding
         if (typeof momentInstance === 'undefined' || typeof momentInstance.localeData !== 'function') {
             console.error('Moment is not available or localeData is not a function');
             return;
         }
-        
+
         // Ensure locale is set
         momentInstance.locale('en');
-        
+
         input.daterangepicker({
-            startDate: momentInstance(),
-            endDate: momentInstance().add(1, 'month'),
+            startDate: moment(),
+            endDate: moment().add(1, 'month'),
             locale: {
                 format: 'DD/MM/YYYY'
             },
@@ -505,10 +506,10 @@ function bindReassignButtons() {
             const slotModeAny = document.getElementById('reassignSlotModeAny');
 
             const setHelper = (msg) => { if (helper) helper.textContent = msg; };
-            const resetSelect = () => { 
-                reassignTimeEl.disabled = true; 
-                reassignTimeEl.innerHTML = '<option value="">Select a time</option>'; 
-                reassignTimeEl.value = ''; 
+            const resetSelect = () => {
+                reassignTimeEl.disabled = true;
+                reassignTimeEl.innerHTML = '<option value="">Select a time</option>';
+                reassignTimeEl.value = '';
             };
 
             setHelper('Select a photographer first.');
@@ -732,16 +733,16 @@ function loadSlotsForElement(photographerSel, timeSel, helper, dateEl, modalEl, 
     // Helper to check if time is in the past
     const isPastTime = (timeInMinutes, selectedDate) => {
         if (!selectedDate) return false;
-        
+
         const now = new Date();
         const [year, month, day] = selectedDate.split('-').map(Number);
         const selectedDateObj = new Date(year, month - 1, day);
         const todayDateObj = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        
+
         if (selectedDateObj.getTime() !== todayDateObj.getTime()) {
             return false;
         }
-        
+
         const currentMinutes = now.getHours() * 60 + now.getMinutes();
         return timeInMinutes <= currentMinutes;
     };
@@ -752,7 +753,7 @@ function loadSlotsForElement(photographerSel, timeSel, helper, dateEl, modalEl, 
         const dateVal = dateEl.value;
         for (let t = fromM; t <= toM; t += slotStep) {
             if (dateVal && isPastTime(t, dateVal)) continue;
-            
+
             const opt = document.createElement('option');
             opt.value = formatHM(t);
             opt.textContent = formatDisplay(t);
