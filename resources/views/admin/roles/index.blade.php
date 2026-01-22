@@ -118,6 +118,7 @@
                     {
                         data: 'users_count',
                         name: 'users_count',
+                        searchable:false,
                         render: function (data) {
                             return `<span class="badge bg-soft-secondary text-secondary">${data ?? 0}</span>`;
                         }
