@@ -86,6 +86,7 @@
                                 <option value="">All Sources</option>
                                 <option value="GPS">GPS</option>
                                 <option value="IP">IP</option>
+                                <option value="IP-IPAPI">IP-IPAPI</option>
                                 <option value="UNAVAILABLE">Unavailable</option>
                             </select>
                         </div>

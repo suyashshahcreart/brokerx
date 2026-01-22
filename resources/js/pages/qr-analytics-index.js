@@ -46,7 +46,8 @@ document.addEventListener('DOMContentLoaded', function () {
             { 
                 data: 'tour_code', 
                 name: 'tour_code',
-                orderable: true
+                orderable: true, 
+                searchable: true
             },
             { 
                 data: 'booking_id', 
@@ -106,9 +107,15 @@ document.addEventListener('DOMContentLoaded', function () {
             emptyTable: "No analytics available",
             zeroRecords: "No matching analytics found"
         },
-        drawCallback: function() {
+        responsive: true,
+		drawCallback: function () {
             $('.dataTables_paginate > .pagination').addClass('pagination-rounded');
-        }
+			// Re-initialize Bootstrap tooltips for dynamically loaded buttons
+			const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+			tooltipTriggerList.map(function (tooltipTriggerEl) {
+				return new bootstrap.Tooltip(tooltipTriggerEl);
+			});
+		}
     });
 
     // Panel card refresh button
