@@ -45,13 +45,9 @@
                                     @endforeach
                                 </select>
                             </div>
-                            <div class="col-md-3">
-                                <label class="form-label">Date From</label>
-                                <input type="date" class="form-control" id="filter-date-from">
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">Date To</label>
-                                <input type="date" class="form-control" id="filter-date-to">
+                            <div class="col-md-6">
+                                <label class="form-label">Date Range</label>
+                                <input type="text" class="form-control" id="filter-date-range" placeholder="Select date range">
                             </div>
                         </div>
 

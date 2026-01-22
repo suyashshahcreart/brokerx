@@ -3,6 +3,8 @@
  */
 
 import GMaps from 'gmaps/gmaps';
+import moment from 'moment';
+window.moment = moment;
 
 document.addEventListener('DOMContentLoaded', function () {
     'use strict';
@@ -12,6 +14,36 @@ document.addEventListener('DOMContentLoaded', function () {
         console.error('QR Analytics table element not found');
         return;
     }
+
+    // Initialize daterangepicker
+    $('#filterDateRange').daterangepicker({
+        autoUpdateInput: false,
+        locale: {
+            cancelLabel: 'Clear',
+            format: 'YYYY-MM-DD'
+        },
+        opens: 'left',
+        ranges: {
+            'Today': [moment(), moment()],
+            'Yesterday': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
+            'Last 7 Days': [moment().subtract(6, 'days'), moment()],
+            'Last 30 Days': [moment().subtract(29, 'days'), moment()],
+            'This Month': [moment().startOf('month'), moment().endOf('month')],
+            'Last Month': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')],
+            'This Year': [moment().startOf('year'), moment().endOf('year')],
+            'Last Year': [moment().subtract(1, 'year').startOf('year'), moment().subtract(1, 'year').endOf('year')]
+        },
+        alwaysShowCalendars: true,
+        showCustomRangeLabel: true
+    });
+
+    $('#filterDateRange').on('apply.daterangepicker', function(ev, picker) {
+        $(this).val(picker.startDate.format('YYYY-MM-DD') + ' - ' + picker.endDate.format('YYYY-MM-DD'));
+    });
+
+    $('#filterDateRange').on('cancel.daterangepicker', function(ev, picker) {
+        $(this).val('');
+    });
 
     // Initialize DataTable
     const table = $('#qr-analytics-table').DataTable({
@@ -30,8 +62,16 @@ document.addEventListener('DOMContentLoaded', function () {
                 d.location_source = $('#filterLocationSource').val() || '';
                 d.tracking_status = $('#filterTrackingStatus').val() || '';
                 d.page_type = $('#filterPageType').val() || '';
-                d.date_from = $('#filterDateFrom').val() || '';
-                d.date_to = $('#filterDateTo').val() || '';
+                
+                // Handle date range
+                const dateRange = $('#filterDateRange').val();
+                if (dateRange) {
+                    const dates = dateRange.split(' - ');
+                    if (dates.length === 2) {
+                        d.date_from = dates[0];
+                        d.date_to = dates[1];
+                    }
+                }
             },
             error: function (xhr, error, code) {
                 console.error('DataTable Ajax Error:', error);
@@ -141,8 +181,7 @@ document.addEventListener('DOMContentLoaded', function () {
         $('#filterLocationSource').val('');
         $('#filterTrackingStatus').val('');
         $('#filterPageType').val('');
-        $('#filterDateFrom').val('');
-        $('#filterDateTo').val('');
+        $('#filterDateRange').val('');
         table.ajax.reload();
     });
 

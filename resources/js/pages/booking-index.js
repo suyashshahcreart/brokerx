@@ -63,7 +63,7 @@ document.addEventListener('DOMContentLoaded', function () {
 				return;
 			}
 
-			// Initialize daterangepicker with proper configuration
+			// Initialize daterangepicker with proper configuration and preset ranges
 			// Don't specify parentEl - let daterangepicker use default (appends to body)
 			dateRangePicker = input.daterangepicker({
 				autoUpdateInput: false,
@@ -71,7 +71,19 @@ document.addEventListener('DOMContentLoaded', function () {
 					cancelLabel: 'Clear',
 					format: 'YYYY-MM-DD'
 				},
-				opens: 'left'
+				opens: 'left',
+				ranges: {
+					'Today': [window.moment(), window.moment()],
+					'Yesterday': [window.moment().subtract(1, 'days'), window.moment().subtract(1, 'days')],
+					'Last 7 Days': [window.moment().subtract(6, 'days'), window.moment()],
+					'Last 30 Days': [window.moment().subtract(29, 'days'), window.moment()],
+					'This Month': [window.moment().startOf('month'), window.moment().endOf('month')],
+					'Last Month': [window.moment().subtract(1, 'month').startOf('month'), window.moment().subtract(1, 'month').endOf('month')],
+					'This Year': [window.moment().startOf('year'), window.moment().endOf('year')],
+					'Last Year': [window.moment().subtract(1, 'year').startOf('year'), window.moment().subtract(1, 'year').endOf('year')]
+				},
+				alwaysShowCalendars: true,
+				showCustomRangeLabel: true
 			});
 
 			input.on('apply.daterangepicker', function (ev, picker) {
