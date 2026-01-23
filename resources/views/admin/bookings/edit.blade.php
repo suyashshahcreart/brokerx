@@ -427,38 +427,6 @@
             });
         });
 
-        // Top update button handler
-        document.addEventListener('DOMContentLoaded', function() {
-            const topUpdateBtn = document.getElementById('top-update-btn');
-            
-            if (topUpdateBtn) {
-                topUpdateBtn.addEventListener('click', function() {
-                    // Get active tab
-                    const activeTab = document.querySelector('#bookingEditTabs .nav-link.active');
-                    const activePane = document.querySelector('.tab-pane.active');
-                    
-                    if (activePane) {
-                        // Find form in active pane
-                        const form = activePane.querySelector('form');
-                        
-                        if (form) {
-                            // Submit the form
-                            form.requestSubmit();
-                        } else {
-                            // No form in this tab (like Quick Actions or JSON)
-                            Swal.fire({
-                                icon: 'info',
-                                title: 'No Form',
-                                text: 'This tab does not have a form to submit.',
-                                timer: 2000,
-                                showConfirmButton: false
-                            });
-                        }
-                    }
-                });
-            }
-        });
-
         // Pass data to JavaScript
         window.bookingData = {
             id: {{ $booking->id }},

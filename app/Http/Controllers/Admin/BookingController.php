@@ -603,6 +603,16 @@ class BookingController extends Controller
             ])
             ->log('Booking updated');
 
+        // Return JSON response for AJAX requests
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Booking updated successfully.',
+                'booking' => $booking,
+                'redirect' => route('admin.bookings.edit', $booking)
+            ]);
+        }
+
         return redirect()->route('admin.bookings.edit', $booking)->with(['success' => 'Booking updated successfully.', 'active_tab' => 'booking']);
     }
 

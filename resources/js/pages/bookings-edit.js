@@ -886,28 +886,17 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (othPill) propertyTypeId = othPill.dataset.typeId;
             }
             
-            // Add property_type_id to form
+            // Prepare FormData for AJAX submission
+            const formData = new FormData(form);
+            
+            // Add property_type_id to formData
             if (propertyTypeId) {
-                let existingInput = form.querySelector('input[name="property_type_id"]');
-                if (!existingInput) {
-                    existingInput = document.createElement('input');
-                    existingInput.type = 'hidden';
-                    existingInput.name = 'property_type_id';
-                    form.appendChild(existingInput);
-                }
-                existingInput.value = propertyTypeId;
+                formData.set('property_type_id', propertyTypeId);
             }
             
-            // Add property_sub_type_id to form
+            // Add property_sub_type_id to formData
             if (propertySubTypeId) {
-                let existingInput = form.querySelector('input[name="property_sub_type_id"]');
-                if (!existingInput) {
-                    existingInput = document.createElement('input');
-                    existingInput.type = 'hidden';
-                    existingInput.name = 'property_sub_type_id';
-                    form.appendChild(existingInput);
-                }
-                existingInput.value = propertySubTypeId;
+                formData.set('property_sub_type_id', propertySubTypeId);
             }
             
             // Add furniture_type based on active tab
@@ -918,52 +907,112 @@ document.addEventListener('DOMContentLoaded', function () {
                     : null);
                 
             if (activeFurnishPill) {
-                let furnInput = form.querySelector('input[name="furniture_type"]');
-                if (!furnInput) {
-                    furnInput = document.createElement('input');
-                    furnInput.type = 'hidden';
-                    furnInput.name = 'furniture_type';
-                    form.appendChild(furnInput);
-                }
-                furnInput.value = activeFurnishPill.dataset.value;
+                formData.set('furniture_type', activeFurnishPill.dataset.value);
             }
             
             // Add bhk_id for residential
             if (state.activePropertyTab === 'res') {
                 const activeBhkPill = document.querySelector('#resSizeContainer .chip.active');
                 if (activeBhkPill) {
-                    let bhkInput = form.querySelector('input[name="bhk_id"]');
-                    if (!bhkInput) {
-                        bhkInput = document.createElement('input');
-                        bhkInput.type = 'hidden';
-                        bhkInput.name = 'bhk_id';
-                        form.appendChild(bhkInput);
-                    }
-                    bhkInput.value = activeBhkPill.dataset.value;
+                    formData.set('bhk_id', activeBhkPill.dataset.value);
                 }
             }
             
-            // Ensure user_id is captured and submitted (in case Choices.js interferes)
-            const userIdSelect = form.querySelector('select[name="user_id"]');
-            if (userIdSelect) {
-                const userIdValue = userIdSelect.value;
-                if (userIdValue) {
-                    let userIdInput = form.querySelector('input[name="user_id"]');
-                    if (!userIdInput) {
-                        userIdInput = document.createElement('input');
-                        userIdInput.type = 'hidden';
-                        userIdInput.name = 'user_id';
-                        form.appendChild(userIdInput);
-                    }
-                    userIdInput.value = userIdValue;
-                }
+            // Show loading state
+            const submitBtn = form.querySelector('button[type="submit"]');
+            const originalBtnText = submitBtn ? submitBtn.innerHTML : '';
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="ri-loader-4-line spinner-border spinner-border-sm me-1"></i> Updating...';
             }
             
-            // Billing fields are already in the HTML form with proper names and values
-            // They will be submitted naturally without manipulation
-            
-            // Submit the form (use native submit to bypass event listener)
-            HTMLFormElement.prototype.submit.call(this);
+            // Submit via AJAX
+            fetch(form.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Reset button state
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalBtnText;
+                }
+                
+                if (data.success) {
+                    // Show success toast
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'success',
+                            text: data.message || 'Booking updated successfully!',
+                            timer: 3000,
+                            showConfirmButton: false,
+                            toast: true,
+                            position: 'top-end',
+                            padding: '0',
+                            timerProgressBar: true,
+                            customClass: {
+                                popup: 'alert alert-success alert-dismissible fade show'
+                            }
+                        });
+                    } else {
+                        // Fallback toast
+                        const toast = document.createElement('div');
+                        toast.className = 'alert alert-success alert-dismissible fade show position-fixed';
+                        toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+                        toast.innerHTML = `
+                            <i class="ri-check-circle-line me-2"></i>${data.message || 'Booking updated successfully!'}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        `;
+                        document.body.appendChild(toast);
+                        setTimeout(() => toast.remove(), 3000);
+                    }
+                    
+                    // Optionally reload page or update UI
+                    if (data.redirect) {
+                        setTimeout(() => {
+                            window.location.href = data.redirect;
+                        }, 1500);
+                    }
+                } else {
+                    // Show error message
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: data.message || 'Failed to update booking',
+                            confirmButtonColor: '#dc3545'
+                        });
+                    } else {
+                        alert(data.message || 'Failed to update booking');
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                
+                // Reset button state
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalBtnText;
+                }
+                
+                // Show error message
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'An error occurred while updating the booking',
+                        confirmButtonColor: '#dc3545'
+                    });
+                } else {
+                    alert('An error occurred while updating the booking');
+                }
+            });
         });
     }
 
