@@ -171,12 +171,9 @@
                         @endif
 
                         <div class="d-grid gap-2 mt-3">
-                            <button type="submit" class="btn btn-primary btn-lg">
+                            <button type="submit" class="btn btn-primary btn-lg disabled" id="upload-btn" disabled>
                                 <i class="ri-upload-cloud-2-line me-1"></i> Upload Tour Files
                             </button>
-                            <a href="{{ route('admin.tour-manager.show', $booking) }}" class="btn btn-secondary">
-                                <i class="ri-close-line me-1"></i> Cancel
-                            </a>
                         </div>
                     </div>
                 </div>
@@ -238,7 +235,7 @@
                             </div>
                             @if($booking->qr->qr_link)
                                 <div class="col-6 mb-2">
-                                    <label class="form-label fw-bold text-muted small">QR Live Link</label>
+                                    <label class="form-label fw-bold text-muted small">Tour Live Link</label>
                                     <p class="mb-0">
                                         <a href="{{ $booking->getTourLiveUrl() }}" target="_blank" class="text-truncate d-block"
                                             style="max-width: 100%;">
