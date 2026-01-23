@@ -296,34 +296,38 @@
             
             <div class="card panel-card border-primary border-top" data-panel-card>
                 <div class="card-header">
-                    <ul class="nav nav-tabs card-header-tabs booking-edit-tabs" id="bookingEditTabs" role="tablist">
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link active" id="booking-tab" data-bs-toggle="tab" data-bs-target="#booking-pane" type="button" role="tab" aria-controls="booking-pane" aria-selected="true">
-                                <i class="ri-file-list-3-line me-1"></i> Booking Details
-                            </button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="quick-actions-tab" data-bs-toggle="tab" data-bs-target="#quick-actions-pane" type="button" role="tab" aria-controls="quick-actions-pane" aria-selected="false">
-                                <i class="ri-flashlight-line me-1"></i> Quick Actions
-                            </button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="tour-tab" data-bs-toggle="tab" data-bs-target="#tour-pane" type="button" role="tab" aria-controls="tour-pane" aria-selected="false">
-                                <i class="ri-map-pin-line me-1"></i> Tour Details
-                            </button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="seo-tab" data-bs-toggle="tab" data-bs-target="#seo-pane" type="button" role="tab" aria-controls="seo-pane" aria-selected="false">
-                                <i class="ri-search-eye-line me-1"></i> SEO
-                            </button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="json-tab" data-bs-toggle="tab" data-bs-target="#json-pane" type="button" role="tab" aria-controls="json-pane" aria-selected="false">
-                                <i class="ri-code-s-slash-line me-1"></i> JSON
-                            </button>
-                        </li>
-
-                    </ul>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <ul class="nav nav-tabs card-header-tabs booking-edit-tabs mb-0" id="bookingEditTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="booking-tab" data-bs-toggle="tab" data-bs-target="#booking-pane" type="button" role="tab" aria-controls="booking-pane" aria-selected="true">
+                                    <i class="ri-file-list-3-line me-1"></i> Booking Details
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="quick-actions-tab" data-bs-toggle="tab" data-bs-target="#quick-actions-pane" type="button" role="tab" aria-controls="quick-actions-pane" aria-selected="false">
+                                    <i class="ri-flashlight-line me-1"></i> Quick Actions
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="tour-tab" data-bs-toggle="tab" data-bs-target="#tour-pane" type="button" role="tab" aria-controls="tour-pane" aria-selected="false">
+                                    <i class="ri-map-pin-line me-1"></i> Tour Details
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="seo-tab" data-bs-toggle="tab" data-bs-target="#seo-pane" type="button" role="tab" aria-controls="seo-pane" aria-selected="false">
+                                    <i class="ri-search-eye-line me-1"></i> SEO
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="json-tab" data-bs-toggle="tab" data-bs-target="#json-pane" type="button" role="tab" aria-controls="json-pane" aria-selected="false">
+                                    <i class="ri-code-s-slash-line me-1"></i> JSON
+                                </button>
+                            </li>
+                        </ul>
+                        <button class="btn btn-primary" id="top-update-btn" type="button">
+                            <i class="ri-save-line me-1"></i> Update
+                        </button>
+                    </div>
                 </div>
                 <div class="card-body pt-0">
                     <div class="tab-content" id="bookingEditTabsContent">
@@ -421,6 +425,38 @@
                     localStorage.setItem('activeBookingTab', event.target.id);
                 });
             });
+        });
+
+        // Top update button handler
+        document.addEventListener('DOMContentLoaded', function() {
+            const topUpdateBtn = document.getElementById('top-update-btn');
+            
+            if (topUpdateBtn) {
+                topUpdateBtn.addEventListener('click', function() {
+                    // Get active tab
+                    const activeTab = document.querySelector('#bookingEditTabs .nav-link.active');
+                    const activePane = document.querySelector('.tab-pane.active');
+                    
+                    if (activePane) {
+                        // Find form in active pane
+                        const form = activePane.querySelector('form');
+                        
+                        if (form) {
+                            // Submit the form
+                            form.requestSubmit();
+                        } else {
+                            // No form in this tab (like Quick Actions or JSON)
+                            Swal.fire({
+                                icon: 'info',
+                                title: 'No Form',
+                                text: 'This tab does not have a form to submit.',
+                                timer: 2000,
+                                showConfirmButton: false
+                            });
+                        }
+                    }
+                });
+            }
         });
 
         // Pass data to JavaScript
