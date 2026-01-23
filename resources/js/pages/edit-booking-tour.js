@@ -71,6 +71,7 @@ function showAlert(message, type = 'success') {
 // Tour Edit Form AJAX Submission using form ID
 document.addEventListener('DOMContentLoaded', function () {
 	const tourForm = document.getElementById('tourDetailForm');
+	const seoForm = document.getElementById('seoForm');
 	
 	if (!tourForm) return;
 	
@@ -201,6 +202,71 @@ document.addEventListener('DOMContentLoaded', function () {
 			
 			// Show error alert
 			showAlert('An error occurred while updating the tour', 'error');
+		});
+	});
+});
+
+// SEO Form AJAX Submission
+document.addEventListener('DOMContentLoaded', function () {
+	const seoForm = document.getElementById('seoForm');
+	if (!seoForm) return;
+
+	let seoSubmitting = false;
+
+	seoForm.addEventListener('submit', function (e) {
+		e.preventDefault();
+
+		if (seoSubmitting) return false;
+
+		if (!seoForm.checkValidity()) {
+			seoForm.classList.add('was-validated');
+			return false;
+		}
+
+		const submitBtn = seoForm.querySelector('button[type="submit"]');
+		const originalText = submitBtn?.innerHTML || '';
+		seoSubmitting = true;
+
+		if (submitBtn) {
+			submitBtn.disabled = true;
+			submitBtn.innerHTML = '<i class="ri-loader-4-line spinner-border spinner-border-sm me-1"></i> Updating...';
+		}
+
+		fetch(seoForm.action, {
+			method: 'POST',
+			body: new FormData(seoForm),
+			headers: {
+				'X-Requested-With': 'XMLHttpRequest',
+				'Accept': 'application/json'
+			}
+		})
+		.then(res => res.json())
+		.then(data => {
+			seoSubmitting = false;
+
+			if (submitBtn) {
+				submitBtn.disabled = false;
+				submitBtn.innerHTML = originalText;
+			}
+
+			if (data.success) {
+				seoForm.classList.remove('was-validated');
+				seoForm.querySelectorAll('.form-control, .form-select, textarea').forEach(field => {
+					field.classList.remove('is-valid', 'is-invalid');
+				});
+				showAlert(data.message || 'SEO details updated successfully!', 'success');
+			} else {
+				showAlert(data.message || 'Failed to update SEO details', 'error');
+			}
+		})
+		.catch(err => {
+			console.error('SEO update error:', err);
+			seoSubmitting = false;
+			if (submitBtn) {
+				submitBtn.disabled = false;
+				submitBtn.innerHTML = originalText;
+			}
+			showAlert('An error occurred while updating SEO details', 'error');
 		});
 	});
 });

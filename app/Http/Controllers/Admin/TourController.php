@@ -725,6 +725,13 @@ class TourController extends Controller
         if (!empty($validated['structured_data'])) {
             json_decode($validated['structured_data']);
             if (json_last_error() !== JSON_ERROR_NONE) {
+                if ($request->expectsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Structured Data must be valid JSON.'
+                    ], 422);
+                }
+
                 return back()->withInput()->withErrors(['structured_data' => 'Structured Data must be valid JSON.']);
             }
         }
@@ -748,6 +755,13 @@ class TourController extends Controller
             'footer_code' => $validated['footer_code'] ?? null,
             'gtm_tag' => $validated['gtm_tag'] ?? null,
         ]);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'SEO details updated successfully.'
+            ]);
+        }
 
         return redirect()->back()->with(['success' => 'SEO details updated successfully.', 'active_tab' => 'seo']);
     }
