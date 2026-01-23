@@ -141,7 +141,7 @@
                                     <i class="ri-upload-cloud-2-line fs-1 text-muted"></i>
                                     <h4>Drop tour ZIP file here or click to select</h4>
                                     <span class="text-muted">Upload a single ZIP file containing tour assets (images, assets, gallery, tiles, index.html, data.json)</span>
-                                    <span class="text-muted d-block mt-1"><small>Max 500MB | Single file only | Required: index.html + JSON file + folders (images, assets, gallery, tiles)</small></span>
+                                    <span class="text-muted d-block mt-1"><small>Max 1GB | Single file only | Required: index.html + JSON file + folders (images, assets, gallery, tiles) | Files 75MB+ use chunked upload & background processing automatically</small></span>
                                 </div>
                             </div>
                             <div id="file-count-display" class="mt-2 text-muted" style="display: none;">
@@ -418,6 +418,21 @@
 @endsection
 @section('scripts')
 @vite(['resources/js/pages/tour-manager-edit.js'])
+
+<script>
+// Set admin base path for JavaScript
+(function() {
+    // Extract admin path from current URL
+    const currentPath = window.location.pathname;
+    const match = currentPath.match(/^\/([^\/]+)/);
+    if (match && match[1]) {
+        window.adminBasePath = '/' + match[1];
+    } else {
+        window.adminBasePath = '/ppadmlog';
+    }
+    console.log('Admin base path set to:', window.adminBasePath);
+})();
+</script>
 
 <script>
 // Inline script to ensure real-time path updates work

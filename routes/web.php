@@ -230,6 +230,9 @@ Route::group(['prefix' => 'ppadmlog', 'as' => 'admin.', 'middleware' => ['web', 
     Route::get('tour-manager/{booking}/upload', [TourManagerController::class, 'edit'])->name('tour-manager.upload');
     Route::put('tour-manager/{booking}', [TourManagerController::class, 'update'])->name('tour-manager.update');
     Route::post('tour-manager/upload-file', [TourManagerController::class, 'uploadFile'])->name('tour-manager.upload-file');
+    Route::post('tour-manager/chunked-upload/init', [TourManagerController::class, 'initChunkedUpload'])->name('tour-manager.chunked-upload.init');
+    Route::post('tour-manager/chunked-upload/chunk', [TourManagerController::class, 'uploadChunk'])->name('tour-manager.chunked-upload.chunk');
+    Route::post('tour-manager/chunked-upload/finalize/{booking}', [TourManagerController::class, 'finalizeChunkedUpload'])->name('tour-manager.chunked-upload.finalize');
     Route::post('tour-manager/schedule-tour', [TourManagerController::class, 'scheduleTour'])->name('tour-manager.schedule-tour');
 
     // Tour Notifications routes

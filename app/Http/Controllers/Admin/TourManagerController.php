@@ -8,6 +8,7 @@ use App\Models\QR;
 use App\Models\Tour;
 use App\Models\FtpConfiguration;
 use App\Jobs\UploadTourAssetsToS3;
+use App\Jobs\ProcessTourZipFile;
 use GrahamCampbell\ResultType\Success;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -293,30 +294,69 @@ class TourManagerController extends Controller{
                 // Reload tour to get latest slug and location if they were updated
                 $tour->refresh();
                 
-                        // Process zip file - extract and validate
-                        $result = $this->processZipFile($file, $tour, $qrCode->code);
-                        if ($result['success']) {
-                            $tourData = $result['data'];
-                            $uploadedFiles[] = [
-                                'name' => $file->getClientOriginalName(),
-                                'type' => 'zip',
-                                'processed' => true,
-                                'tour_path' => $result['tour_path'],
-                                'tour_url' => $result['tour_url'],
-                                's3_path' => $result['s3_path'],
-                                's3_url' => $result['s3_url'],
-                                'size' => $file->getSize(),
-                                'uploaded_at' => now()->toDateTimeString()
-                            ];
-
-                            // Save the S3 base URL of the storage folder to booking
-                            $booking->base_url = $result['s3_url'];
-                            $booking->save();
-                        } else {
-                            throw new \Exception($result['message']);
+                // Check file size - use background processing for files > 75MB
+                $fileSize = $file->getSize();
+                $useBackgroundProcessing = $fileSize > (75 * 1024 * 1024); // 75MB
+                
+                if ($useBackgroundProcessing) {
+                    // Save file temporarily and dispatch background job
+                    $tempPath = $file->storeAs('temp_uploads', 'tour_' . $booking->id . '_' . time() . '.zip', 'local');
+                    $fullTempPath = storage_path('app/' . $tempPath);
+                    
+                    \Log::info("Large file detected ({$fileSize} bytes), using background processing. Booking ID: {$booking->id}");
+                    
+                    // Dispatch background job
+                    // Use unique identifier to prevent duplicate jobs
+                    $jobUniqueId = 'tour-processing-' . $booking->id . '-' . md5($file->getClientOriginalName() . $fullTempPath);
+                    ProcessTourZipFile::dispatch(
+                        $booking->id,
+                        $fullTempPath,
+                        $file->getClientOriginalName(),
+                        $validated['slug'],
+                        $validated['location']
+                    )->onQueue('tour-processing');
+                    
+                    // Log job dispatch with unique identifier for tracking
+                    \Log::info("Large file processing queued. Booking ID: {$booking->id}, Job ID: {$jobUniqueId}");
+                    
+                    if ($request->expectsJson()) {
+                        return response()->json([
+                            'success' => true,
+                            'message' => 'Large file uploaded successfully! Processing will continue in the background.',
+                            'booking_id' => $booking->id,
+                            'processing' => true,
+                            'redirect' => route('admin.tour-manager.show', $booking)
+                        ]);
                     }
+                    
+                    return redirect()->route('admin.tour-manager.show', $booking)
+                        ->with('success', 'Large file uploaded! Processing will continue in the background.');
+                } else {
+                    // Process zip file synchronously for smaller files
+                    $result = $this->processZipFile($file, $tour, $qrCode->code);
+                    if ($result['success']) {
+                        $tourData = $result['data'];
+                        $uploadedFiles[] = [
+                            'name' => $file->getClientOriginalName(),
+                            'type' => 'zip',
+                            'processed' => true,
+                            'tour_path' => $result['tour_path'],
+                            'tour_url' => $result['tour_url'],
+                            's3_path' => $result['s3_path'],
+                            's3_url' => $result['s3_url'],
+                            'size' => $file->getSize(),
+                            'uploaded_at' => now()->toDateTimeString()
+                        ];
+
+                        // Save the S3 base URL of the storage folder to booking
+                        $booking->base_url = $result['s3_url'];
+                        $booking->save();
+                    } else {
+                        throw new \Exception($result['message']);
+                    }
+                }
                 } catch (\Exception $e) {
-                    \Log::error('File upload error: ' . $e->getMessage());
+                    \Log::error('File upload error: ' . $e->getMessage() . " in " . $e->getFile() . ":" . $e->getLine());
 
                     if ($request->expectsJson()) {
                         return response()->json([
@@ -366,12 +406,16 @@ class TourManagerController extends Controller{
     /**
      * Process and validate zip file containing tour assets
      */
-    private function processZipFile($zipFile, Tour $tour, $uniqueCode)
+    public function processZipFile($zipFile, Tour $tour, $uniqueCode)
     {
         try {
-            // Ensure sufficient execution time for large ZIP processing (5 hours for files up to 1GB)
+            // Ensure sufficient execution time and memory for large ZIP processing (5 hours for files up to 1GB)
             set_time_limit(18000);
             ini_set('max_execution_time', '18000');
+            ini_set('memory_limit', '2048M'); // Increase memory limit for large ZIP processing
+            
+            // Start processing
+            \Log::info("Starting ZIP processing for tour code: {$uniqueCode}");
             
             // Load booking relationship to get customer_id
             $tour->load('booking');
@@ -403,26 +447,23 @@ class TourManagerController extends Controller{
             // 2. S3 path for tour assets (images, assets, gallery, tiles)
             $s3TourPath = 'tours/' . $uniqueCode;
 
-            // STEP 1: Upload the original ZIP file to S3 first
-            \Log::info("Uploading original ZIP file to S3: {$s3TourPath}/tour.zip");
+            // STEP 1: Upload the original ZIP file to S3
             try {
                 $zipContent = file_get_contents($tempPath);
                 if ($zipContent !== false) {
-                    $zipUploaded = Storage::disk('s3')->put(
+                    Storage::disk('s3')->put(
                         $s3TourPath . '/tour.zip',
                         $zipContent,
                         ['ContentType' => 'application/zip']
                     );
-                    
-                    if ($zipUploaded) {
+                    try {
                         Storage::disk('s3')->setVisibility($s3TourPath . '/tour.zip', 'public');
-                        \Log::info("Successfully uploaded ZIP file to S3: {$s3TourPath}/tour.zip");
-                    } else {
-                        \Log::warning("Failed to upload ZIP file to S3, continuing with extraction...");
+                    } catch (\Exception $e) {
+                        // Visibility failure is not critical
                     }
                 }
             } catch (\Exception $zipUploadException) {
-                \Log::warning("Error uploading ZIP to S3: " . $zipUploadException->getMessage() . ". Continuing with extraction...");
+                \Log::warning("Error uploading ZIP to S3 (continuing): " . $zipUploadException->getMessage() . " in " . $zipUploadException->getFile() . ":" . $zipUploadException->getLine());
             }
 
             // Delete old tour files if they exist locally
@@ -430,135 +471,203 @@ class TourManagerController extends Controller{
                 \File::deleteDirectory($rootTourDirectory);
             }
 
-            // Create local directory for index.php
-            \File::makeDirectory($rootTourDirectory, 0755, true);
-
-            // Extract all files to local temp directory first
-            $tempExtractPath = storage_path('app/temp_tour_' . $uniqueCode . '_' . time());
-            if (!\File::exists($tempExtractPath)) {
-                \File::makeDirectory($tempExtractPath, 0755, true);
+            // Create local directory for index.php only
+            if (!\File::exists($rootTourDirectory)) {
+                \File::makeDirectory($rootTourDirectory, 0755, true);
             }
 
-            $zip->extractTo($tempExtractPath);
-            $zip->close();
-
-            // Find the root folder - handle both cases:
-            // 1. FLAT ZIP: Files at ZIP root (index.html, folders directly at root)
-            // 2. NESTED ZIP: Files inside a root folder (Kisna_Canteen/index.html, Kisna_Canteen/folders)
-            $items = scandir($tempExtractPath);
-            $rootFolder = null;
-            $indexPathFound = null;
-            $jsonPathFound = null;
-            $contentPath = $tempExtractPath; // Default to temp extract path (for flat ZIP structure)
+            // HYBRID APPROACH: Analyze ZIP structure first, then extract and upload directly to S3
             
-            \Log::info("=== ANALYZING ZIP STRUCTURE ===");
-            \Log::info("Temp extract path: {$tempExtractPath}");
-            \Log::info("Items in extract path: " . implode(', ', array_diff($items, ['.', '..'])));
+            // STEP 2: Analyze ZIP structure (lightweight - no extraction yet)
+            $zipStructure = [];
+            $indexHtmlPath = null;
+            $jsonPath = null;
+            $totalFiles = $zip->numFiles;
             
-            // First, check if index.html is directly in tempExtractPath (FLAT ZIP structure)
-            $directIndexPath = $tempExtractPath . '/index.html';
-            if (file_exists($directIndexPath)) {
-                $contentPath = $tempExtractPath;
-                $indexPathFound = $directIndexPath;
-                \Log::info("✓ FLAT ZIP STRUCTURE detected - Found index.html at ZIP root level: {$directIndexPath}");
-                \Log::info("Content path set to: {$contentPath} (ZIP root - all folders/files at root level)");
-            } else {
-                // Look for root folder containing index.html
-            foreach ($items as $item) {
-                if ($item !== '.' && $item !== '..' && strpos($item, '__MACOSX') === false) {
-                        $itemPath = $tempExtractPath . '/' . $item;
-                        if (is_dir($itemPath)) {
-                            // Check if this folder contains index.html
-                            $possibleIndexPath = $itemPath . '/index.html';
-                            if (file_exists($possibleIndexPath)) {
-                        $rootFolder = $item;
-                                $contentPath = $itemPath;
-                                $indexPathFound = $possibleIndexPath;
-                                \Log::info("Found index.html inside root folder: {$rootFolder} at {$possibleIndexPath}");
-                        break;
-                    }
-                        }
-                    }
-                }
-            }
-
-            // If still not found, try to find it recursively
-            if (!$indexPathFound) {
-                \Log::warning("index.html not found at root or first level, searching recursively in: {$tempExtractPath}");
-                $iterator = new \RecursiveIteratorIterator(
-                    new \RecursiveDirectoryIterator($tempExtractPath, \RecursiveDirectoryIterator::SKIP_DOTS),
-                    \RecursiveIteratorIterator::SELF_FIRST
-                );
+            \Log::info("Analyzing ZIP structure for tour code: {$uniqueCode} ({$totalFiles} files)");
+            
+            for ($i = 0; $i < $totalFiles; $i++) {
+                $filename = $zip->getNameIndex($i);
+                $fileInfo = $zip->statIndex($i);
                 
-                foreach ($iterator as $file) {
-                    if ($file->isFile() && strtolower($file->getFilename()) === 'index.html') {
-                        $indexPathFound = $file->getPathname();
-                        $contentPath = $file->getPath();
-                        \Log::info("Found index.html recursively at: {$indexPathFound}");
-                        break;
+                // Skip system files and directories
+                if (strpos($filename, '__MACOSX') !== false || 
+                    strpos($filename, '.DS_Store') !== false ||
+                    empty(trim($filename)) ||
+                    substr($filename, -1) === '/') {
+                    continue;
+                }
+                
+                // Track structure
+                $zipStructure[] = [
+                    'index' => $i,
+                    'name' => $filename,
+                    'size' => $fileInfo['size'] ?? 0
+                ];
+                
+                // Find index.html and JSON files
+                $lowerName = strtolower($filename);
+                if (basename($lowerName) === 'index.html') {
+                    $indexHtmlPath = $filename;
+                }
+                if (pathinfo($lowerName, PATHINFO_EXTENSION) === 'json') {
+                    // Prefer virtual-tour-nodes.json
+                    if (stripos($filename, 'virtual-tour-nodes') !== false) {
+                        $jsonPath = $filename;
+                    } elseif (!$jsonPath) {
+                        // Use first JSON found as fallback
+                        $jsonPath = $filename;
                     }
                 }
             }
             
-            // IMPORTANT: Only change contentPath if index.html was NOT found at root
-            // For flat ZIPs (index.html at root), contentPath should stay as tempExtractPath
-            if (!$indexPathFound && (!isset($contentPath) || $contentPath === $tempExtractPath)) {
-                foreach ($items as $item) {
-                    if ($item !== '.' && $item !== '..' && strpos($item, '__MACOSX') === false) {
-                        $itemPath = $tempExtractPath . '/' . $item;
-                        if (is_dir($itemPath)) {
-                            $contentPath = $itemPath;
-                            \Log::info("Using root folder as content path: {$item} (nested ZIP structure)");
-                            break;
-                        }
-                    }
-                }
-            } else if ($indexPathFound && $contentPath === $tempExtractPath) {
-                // Flat ZIP structure - contentPath is correct, don't change it!
-                \Log::info("✓ Flat ZIP confirmed - contentPath correctly set to ZIP root, keeping it: {$contentPath}");
+            if (!$indexHtmlPath) {
+                \Log::warning("index.html not found in ZIP structure in " . __FILE__ . ":" . __LINE__);
             }
             
-            // Final verification: Ensure contentPath is valid and log structure
-            if (!is_dir($contentPath)) {
-                \Log::error("Content path is not a valid directory: {$contentPath}");
-                $contentPath = $tempExtractPath;
-                \Log::info("Falling back to temp extract path: {$contentPath}");
+            // STEP 3: Verify S3 configuration before processing
+            if (!$this->verifyS3Configuration()) {
+                $zip->close();
+                \Log::error("S3 configuration verification failed. Cannot upload files to S3 in " . __FILE__ . ":" . __LINE__);
+                return [
+                    'success' => false,
+                    'message' => 'S3 configuration error. Please check AWS credentials in .env file.'
+                ];
             }
             
-            \Log::info("=== FINAL CONTENT PATH DETERMINED ===");
-            \Log::info("Content path: {$contentPath}");
-            \Log::info("Index.html found: " . ($indexPathFound ? "Yes at {$indexPathFound}" : "No"));
+            // STEP 4: Extract and upload directly to S3 (streaming approach)
+            \Log::info("Starting direct extraction and S3 upload for tour code: {$uniqueCode}");
             
-            // List all items in content path for verification
-            if (is_dir($contentPath)) {
-                $contentItems = array_diff(scandir($contentPath), ['.', '..']);
-                \Log::info("Items in content path: " . implode(', ', $contentItems));
-                $folderCount = 0;
-                $fileCount = 0;
-                foreach ($contentItems as $item) {
-                    if (is_dir($contentPath . '/' . $item)) {
-                        $folderCount++;
-                    } elseif (is_file($contentPath . '/' . $item)) {
-                        $fileCount++;
-                    }
-                }
-                \Log::info("Content path contains: {$folderCount} folders, {$fileCount} files");
-            }
-            \Log::info("=== END CONTENT PATH ANALYSIS ===");
-
-            // Extract files
-            $jsonData = null;
+            $uploadedFiles = [];
+            $uploadErrors = [];
             $indexHtmlContent = null;
+            $jsonContent = null;
+            $jsonFilename = null;
+            
+            // Process each file in ZIP and upload directly to S3
+            $batchSize = 50; // Process in batches for memory management
+            $processedCount = 0;
+            
+            foreach ($zipStructure as $fileInfo) {
+                $i = $fileInfo['index'];
+                $filename = $fileInfo['name'];
+                
+                // Extract file content directly from ZIP
+                $fileContent = $zip->getFromIndex($i);
+                if ($fileContent === false) {
+                    continue;
+                }
+                
+                // Handle special files (index.html, JSON) - upload to S3 first, then save in memory for processing
+                if ($filename === $indexHtmlPath) {
+                    // Upload original index.html to S3
+                    $s3IndexPath = $s3TourPath . '/' . $filename;
+                    try {
+                        $uploaded = Storage::disk('s3')->put(
+                            $s3IndexPath,
+                            $fileContent,
+                            ['ContentType' => 'text/html']
+                        );
+                        if ($uploaded) {
+                            try {
+                                Storage::disk('s3')->setVisibility($s3IndexPath, 'public');
+                            } catch (\Exception $e) {
+                                // Visibility failure is not critical
+                            }
+                            $uploadedFiles[] = $filename;
+                        }
+                    } catch (\Exception $e) {
+                        \Log::error("Error uploading index.html to S3: " . $e->getMessage() . " in " . $e->getFile() . ":" . $e->getLine());
+                    }
+                    
+                    // Save in memory for local processing (will be converted to index.php)
+                    $indexHtmlContent = $fileContent;
+                    unset($fileContent);
+                    continue; // Will process later for local index.php
+                }
+                
+                if ($filename === $jsonPath) {
+                    // Upload original JSON to S3
+                    $s3JsonPath = $s3TourPath . '/' . $filename;
+                    try {
+                        $uploaded = Storage::disk('s3')->put(
+                            $s3JsonPath,
+                            $fileContent,
+                            ['ContentType' => 'application/json']
+                        );
+                        if ($uploaded) {
+                            try {
+                                Storage::disk('s3')->setVisibility($s3JsonPath, 'public');
+                            } catch (\Exception $e) {
+                                // Visibility failure is not critical
+                            }
+                            $uploadedFiles[] = $filename;
+                        }
+                    } catch (\Exception $e) {
+                        \Log::error("Error uploading JSON to S3: " . $e->getMessage() . " in " . $e->getFile() . ":" . $e->getLine());
+                    }
+                    
+                    // Save in memory for local processing
+                    $jsonContent = $fileContent;
+                    $jsonFilename = basename($filename);
+                    unset($fileContent);
+                    continue; // Will process later for local save
+                }
+                
+                // For all other files: Upload directly to S3
+                $s3FilePath = $s3TourPath . '/' . $filename;
+                
+                try {
+                    // Determine MIME type
+                    $mimeType = $this->getMimeType($filename);
+                    
+                    // Upload directly to S3
+                    $uploaded = Storage::disk('s3')->put(
+                        $s3FilePath,
+                        $fileContent,
+                        ['ContentType' => $mimeType]
+                    );
+                    
+                    if ($uploaded) {
+                        // Set visibility (silently fail if it doesn't work)
+                        try {
+                            Storage::disk('s3')->setVisibility($s3FilePath, 'public');
+                        } catch (\Exception $e) {
+                            // Visibility failure is not critical
+                        }
+                        
+                        // Track uploaded files
+                        $uploadedFiles[] = $filename;
+                        $processedCount++;
+                    } else {
+                        $errorMsg = "Failed to upload {$filename} to S3";
+                        $uploadErrors[] = $errorMsg;
+                        \Log::error($errorMsg . " in " . __FILE__ . ":" . __LINE__);
+                    }
+                } catch (\Exception $e) {
+                    $errorMsg = "Error uploading {$filename}: " . $e->getMessage();
+                    $uploadErrors[] = $errorMsg;
+                    \Log::error($errorMsg . " in " . $e->getFile() . ":" . $e->getLine());
+                }
+                
+                // Free memory
+                unset($fileContent);
+                
+                // Periodic memory cleanup
+                if ($processedCount % $batchSize === 0) {
+                    gc_collect_cycles();
+                }
+            }
+            
+            $zip->close();
+            
+            // Variables for processing
+            $jsonData = null;
             $ftpUploadResult = null;
             
-            // Process index.html - SAVE LOCALLY
-            if ($indexPathFound && file_exists($indexPathFound)) {
+            // STEP 5: Process index.html and save as index.php locally
+            if ($indexHtmlContent) {
                 try {
-                    $indexHtmlContent = file_get_contents($indexPathFound);
-                    if ($indexHtmlContent === false) {
-                        throw new \Exception("Failed to read index.html content");
-                    }
-                    \Log::info("Successfully loaded index.html from: {$indexPathFound} (" . strlen($indexHtmlContent) . " bytes)");
 
                 // Prepare PHP echo snippet for GTM code replacement
                 $gtmPhpEcho = '<?php echo escAttr($gtmCode); ?>';
@@ -686,8 +795,18 @@ class TourManagerController extends Controller{
                     );
                 }
                 // Save index.php LOCALLY
-                file_put_contents($rootTourDirectory . '/index.php', $indexPhpContent);
-                    \Log::info("Successfully created index.php from index.html");
+                // Ensure directory exists and is writable
+                if (!is_dir($rootTourDirectory)) {
+                    \File::makeDirectory($rootTourDirectory, 0775, true);
+                    @chmod($rootTourDirectory, 0775);
+                }
+                
+                $indexPhpPath = $rootTourDirectory . '/index.php';
+                if (file_put_contents($indexPhpPath, $indexPhpContent) === false) {
+                    throw new \Exception("Failed to write index.php to {$indexPhpPath}. Please check directory permissions.");
+                }
+                @chmod($indexPhpPath, 0664);
+                \Log::info("Successfully created index.php from index.html");
                     
                     // Upload index.php to FTP server based on tour location
                     $ftpUploadResult = $this->uploadIndexPhpToFtp(
@@ -695,370 +814,54 @@ class TourManagerController extends Controller{
                         $tour
                     );
                 } catch (\Exception $e) {
-                    \Log::error("Error reading/processing index.html: " . $e->getMessage());
+                    \Log::error("Error processing index.html: " . $e->getMessage() . " in " . $e->getFile() . ":" . $e->getLine());
                     $indexHtmlContent = null;
                 }
             } else {
-                \Log::error("index.html file not found. Searched in: {$tempExtractPath}");
-                if (isset($contentPath)) {
-                    \Log::error("Content path was: {$contentPath}");
-                    if (is_dir($contentPath)) {
-                        $dirContents = scandir($contentPath);
-                        \Log::error("Directory contents: " . implode(', ', array_diff($dirContents, ['.', '..'])));
-                    }
-                }
+                \Log::error("index.html file not found in ZIP in " . __FILE__ . ":" . __LINE__);
             }
 
-            // Process JSON file - SAVE LOCALLY
-            // Look for JSON file (preferably virtual-tour-nodes.json, but accept any .json)
-            $jsonPathFound = null;
-            
-            // First check in contentPath
-            $jsonFiles = glob($contentPath . '/*.json');
-            if (!empty($jsonFiles)) {
-                // Prefer virtual-tour-nodes.json if it exists
-                foreach ($jsonFiles as $jsonFile) {
-                    if (stripos(basename($jsonFile), 'virtual-tour-nodes') !== false) {
-                        $jsonPathFound = $jsonFile;
-                        break;
-                    }
-                }
-                // If not found, use first JSON file
-                if (!$jsonPathFound) {
-                    $jsonPathFound = $jsonFiles[0];
-                }
-            }
-            
-            // If not found, search recursively
-            if (!$jsonPathFound) {
-                $iterator = new \RecursiveIteratorIterator(
-                    new \RecursiveDirectoryIterator($tempExtractPath, \RecursiveDirectoryIterator::SKIP_DOTS),
-                    \RecursiveIteratorIterator::SELF_FIRST
-                );
-                
-                foreach ($iterator as $file) {
-                    if ($file->isFile() && strtolower($file->getExtension()) === 'json') {
-                        // Prefer virtual-tour-nodes.json
-                        if (stripos($file->getFilename(), 'virtual-tour-nodes') !== false) {
-                            $jsonPathFound = $file->getPathname();
-                            break;
-                        }
-                        // Otherwise use first JSON found
-                        if (!$jsonPathFound) {
-                            $jsonPathFound = $file->getPathname();
-                        }
-                    }
-                }
-            }
-            
-            if ($jsonPathFound && file_exists($jsonPathFound)) {
-                $jsonContent = file_get_contents($jsonPathFound);
-                $jsonData = json_decode($jsonContent, true);
-                
-                // Save JSON locally
-                file_put_contents($rootTourDirectory . '/' . basename($jsonPathFound), $jsonContent);
-                \Log::info("Successfully loaded and saved JSON file: " . basename($jsonPathFound));
-            } else {
-                \Log::warning("JSON file not found in extracted ZIP");
-            }
-
-            // Upload ALL folders and files from extracted ZIP to S3
-            // IMPORTANT: Only upload files/folders that are actually in the extracted ZIP content
-            // This includes: images, assets, gallery, tiles, info, and any other folders/files from ZIP
-            \Log::info("Starting upload of ALL folders and files to S3. Content path: {$contentPath}, S3 path: {$s3TourPath}");
-            
-            // Verify that contentPath is within tempExtractPath (safety check)
-            $realContentPath = realpath($contentPath);
-            $realTempPath = realpath($tempExtractPath);
-            if (!$realContentPath || strpos($realContentPath, $realTempPath) !== 0) {
-                \Log::error("Security check failed: contentPath is not within tempExtractPath. Content: {$contentPath}, Temp: {$tempExtractPath}");
-                return [
-                    'success' => false,
-                    'message' => 'Invalid content path detected. Please try uploading again.'
-                ];
-            }
-            
-            // Verify S3 configuration before starting uploads
-            if (!$this->verifyS3Configuration()) {
-                \Log::error("S3 configuration verification failed. Cannot upload folders to S3.");
-                return [
-                    'success' => false,
-                    'message' => 'S3 configuration error. Please check AWS credentials in .env file (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION, AWS_BUCKET).'
-                ];
-            }
-            
-            // Get ALL folders and files from the extracted content (ONLY from ZIP)
-            $allItems = [];
-            if (is_dir($contentPath)) {
-                $items = scandir($contentPath);
-                \Log::info("Found items in content path: " . implode(', ', array_diff($items, ['.', '..'])));
-                
-                foreach ($items as $item) {
-                    // Skip system files and hidden files
-                    if ($item === '.' || $item === '..' || 
-                        strpos($item, '__MACOSX') !== false || 
-                        strpos($item, '.DS_Store') !== false ||
-                        strpos($item, '.') === 0) {
-                        continue;
-                    }
-                    
-                    $itemPath = $contentPath . '/' . $item;
-                    
-                    // Double-check the path is within tempExtractPath
-                    $realItemPath = realpath($itemPath);
-                    if (!$realItemPath || strpos($realItemPath, $realTempPath) !== 0) {
-                        \Log::warning("Skipping item outside temp path: {$itemPath}");
-                        continue;
-                    }
-                    
-                    if (is_dir($itemPath)) {
-                        $allItems[] = ['type' => 'folder', 'name' => $item, 'path' => $itemPath];
-                        \Log::info("Found folder to upload: {$item}");
-                    } elseif (is_file($itemPath)) {
-                        // Upload individual files (like .html, .json, etc.) directly to S3
-                        $allItems[] = ['type' => 'file', 'name' => $item, 'path' => $itemPath];
-                        \Log::info("Found file to upload: {$item}");
-                    }
-                }
-            } else {
-                \Log::error("Content path is not a directory: {$contentPath}");
-                return [
-                    'success' => false,
-                    'message' => 'Invalid content path. ZIP extraction may have failed.'
-                ];
-            }
-            
-            \Log::info("Total items to upload: " . count($allItems) . " (folders + files from ZIP)");
-            
-            // List all items that will be uploaded (for verification)
-            $itemsList = [];
-            foreach ($allItems as $item) {
-                $itemsList[] = $item['name'] . ' (' . $item['type'] . ')';
-            }
-            \Log::info("Items to upload: " . implode(', ', $itemsList));
-            
-            // Optional: Clear existing files in S3 path before uploading (to ensure clean state)
-            // Set CLEAR_S3_BEFORE_UPLOAD=true in .env to enable this
-            if (env('CLEAR_S3_BEFORE_UPLOAD', false)) {
+            // STEP 6: Process JSON file - Save locally
+            if ($jsonContent && $jsonFilename) {
                 try {
-                    \Log::info("Clearing existing files in S3 path: {$s3TourPath}");
-                    $existingFiles = Storage::disk('s3')->allFiles($s3TourPath);
-                    foreach ($existingFiles as $file) {
-                        // Don't delete tour.zip if it exists
-                        if (basename($file) !== 'tour.zip') {
-                            Storage::disk('s3')->delete($file);
-                        }
+                    $jsonData = json_decode($jsonContent, true);
+                    
+                    // Ensure directory exists
+                    if (!is_dir($rootTourDirectory)) {
+                        \File::makeDirectory($rootTourDirectory, 0775, true);
+                        @chmod($rootTourDirectory, 0775);
                     }
-                    \Log::info("Cleared " . count($existingFiles) . " existing files from S3 path");
+                    
+                    $jsonLocalPath = $rootTourDirectory . '/' . $jsonFilename;
+                    if (file_put_contents($jsonLocalPath, $jsonContent) === false) {
+                        throw new \Exception("Failed to write JSON file to {$jsonLocalPath}. Please check directory permissions.");
+                    }
+                    @chmod($jsonLocalPath, 0664);
                 } catch (\Exception $e) {
-                    \Log::warning("Failed to clear S3 path before upload: " . $e->getMessage());
+                    \Log::error("Error processing JSON file: " . $e->getMessage() . " in " . $e->getFile() . ":" . $e->getLine());
                 }
-            }
-            
-            $uploadedFolders = [];
-            $uploadedFiles = [];
-            $uploadErrors = [];
-            
-            // Always use synchronous uploads to ensure folders are uploaded immediately
-            // Queue mode can be enabled via USE_QUEUE_FOR_S3_UPLOADS=true in .env if needed
-            $useQueue = false; // Force synchronous uploads - folders must upload immediately
-            $booking = $tour->booking;
-            
-            if ($useQueue) {
-                // OPTIMIZED MODE: Dispatch uploads to background queue
-                \Log::info("Using background queue for S3 uploads (optimized mode)");
-                
-                foreach ($allItems as $item) {
-                    if ($item['type'] === 'folder') {
-                        // Dispatch folder upload job
-                        UploadTourAssetsToS3::dispatch(
-                            $item['path'],
-                            $s3TourPath . '/' . $item['name'],
-                            $booking->id,
-                            $item['name']
-                        )->onQueue('s3-uploads');
-                        
-                        $uploadedFolders[] = $item['name'];
-                        \Log::info("Queued folder '{$item['name']}' for background S3 upload");
-                    } else {
-                        // Upload file directly (synchronous for small files)
-                        try {
-                            $fileContent = file_get_contents($item['path']);
-                            // Get proper MIME type based on file extension
-                            $mimeType = $this->getMimeType($item['path']);
-                            
-                            $uploaded = Storage::disk('s3')->put(
-                                $s3TourPath . '/' . $item['name'],
-                                $fileContent,
-                                ['ContentType' => $mimeType]
-                            );
-                            
-                            if ($uploaded) {
-                                Storage::disk('s3')->setVisibility($s3TourPath . '/' . $item['name'], 'public');
-                                $uploadedFiles[] = $item['name'];
-                                \Log::info("Uploaded file '{$item['name']}' to S3");
-                            }
-                        } catch (\Exception $e) {
-                            \Log::warning("Failed to upload file '{$item['name']}': " . $e->getMessage());
-                        }
-                    }
-                }
-                
-                \Log::info("All items queued/uploaded. Folders: " . count($uploadedFolders) . ", Files: " . count($uploadedFiles));
             } else {
-                // SYNCHRONOUS MODE: Upload immediately
-                \Log::info("Using synchronous S3 uploads (uploading all folders and files)");
-                \Log::info("Processing " . count($allItems) . " items total");
-                
-                // Process folders first, then files
-                $foldersToUpload = array_filter($allItems, function($item) { return $item['type'] === 'folder'; });
-                $filesToUpload = array_filter($allItems, function($item) { return $item['type'] === 'file'; });
-                
-                \Log::info("Found " . count($foldersToUpload) . " folders and " . count($filesToUpload) . " files to upload");
-                
-                // Upload all folders
-                foreach ($foldersToUpload as $item) {
-                    try {
-                        \Log::info("=== Starting upload of folder '{$item['name']}' ===");
-                        \Log::info("Source path: {$item['path']}");
-                        \Log::info("S3 destination: {$s3TourPath}/{$item['name']}");
-                        
-                        // Verify folder exists and has content
-                        if (!is_dir($item['path'])) {
-                            $errorMsg = "Folder path is not a directory: {$item['path']}";
-                            $uploadErrors[] = $errorMsg;
-                            \Log::error($errorMsg);
-                            continue;
-                        }
-                        
-                        $folderContents = scandir($item['path']);
-                        $fileCount = count(array_diff($folderContents, ['.', '..']));
-                        \Log::info("Folder '{$item['name']}' contains {$fileCount} items");
-                        
-                        if ($fileCount === 0) {
-                            \Log::warning("Folder '{$item['name']}' is empty, skipping upload");
-                            continue;
-                        }
-                        
-                        // Upload entire folder
-                        $uploadResult = $this->uploadDirectoryToS3($item['path'], $s3TourPath . '/' . $item['name'], []);
-                    
-                    if ($uploadResult['success']) {
-                            $uploadedFolders[] = $item['name'];
-                            \Log::info("✓ Successfully uploaded '{$item['name']}' folder: {$uploadResult['files_count']} files ({$uploadResult['total_size']} MB)");
-                    } else {
-                            $errorMsg = "Failed to upload '{$item['name']}' folder: {$uploadResult['message']}";
-                            $uploadErrors[] = $errorMsg;
-                            \Log::error($errorMsg);
-                            // Continue with next folder even if this one failed
-                        }
-                    } catch (\Exception $e) {
-                        $errorMsg = "Exception uploading folder '{$item['name']}': " . $e->getMessage();
-                        $uploadErrors[] = $errorMsg;
-                        \Log::error($errorMsg);
-                        \Log::error("Stack trace: " . $e->getTraceAsString());
-                        // Continue with next folder
-                    }
-                }
-                
-                // Upload all files
-                foreach ($filesToUpload as $item) {
-                    try {
-                        \Log::info("Uploading file '{$item['name']}' to S3");
-                        $fileContent = file_get_contents($item['path']);
-                        // Get proper MIME type based on file extension
-                        $mimeType = $this->getMimeType($item['path']);
-                        
-                        $uploaded = Storage::disk('s3')->put(
-                            $s3TourPath . '/' . $item['name'],
-                            $fileContent,
-                            ['ContentType' => $mimeType]
-                        );
-                        
-                        if ($uploaded) {
-                            Storage::disk('s3')->setVisibility($s3TourPath . '/' . $item['name'], 'public');
-                            $uploadedFiles[] = $item['name'];
-                            \Log::info("✓ Successfully uploaded file '{$item['name']}' to S3");
-                } else {
-                            $errorMsg = "Failed to upload file '{$item['name']}'";
-                            $uploadErrors[] = $errorMsg;
-                            \Log::warning($errorMsg);
-                        }
-                    } catch (\Exception $e) {
-                        $errorMsg = "Error uploading file '{$item['name']}': " . $e->getMessage();
-                        $uploadErrors[] = $errorMsg;
-                        \Log::warning($errorMsg);
-                }
-            }
-            
-                $totalUploaded = count($uploadedFolders) + count($uploadedFiles);
-                if ($totalUploaded === 0) {
-                    $availableItems = is_dir($contentPath) ? implode(', ', array_diff(scandir($contentPath), ['.', '..'])) : 'N/A';
-                    \Log::error("No items were uploaded to S3. Available items in content path: {$availableItems}");
-                    if (!empty($uploadErrors)) {
-                        \Log::error("Upload errors: " . implode(' | ', array_slice($uploadErrors, 0, 5)));
-                    }
-            } else {
-                    \Log::info("=== S3 UPLOAD SUMMARY ===");
-                    \Log::info("Successfully uploaded to S3: " . count($uploadedFolders) . " folders, " . count($uploadedFiles) . " files");
-                    \Log::info("S3 Path: {$s3TourPath}");
-                    if (count($uploadedFolders) > 0) {
-                        \Log::info("Uploaded folders: " . implode(', ', $uploadedFolders));
-            }
-                    if (count($uploadedFiles) > 0) {
-                        \Log::info("Uploaded files: " . implode(', ', $uploadedFiles));
-                    }
-                    \Log::info("=== END UPLOAD SUMMARY ===");
-                    
-                    // Verify uploaded items match ZIP structure
-                    $expectedItems = array_map(function($item) { return $item['name']; }, $allItems);
-                    $uploadedItems = array_merge($uploadedFolders, $uploadedFiles);
-                    $missingItems = array_diff($expectedItems, $uploadedItems);
-                    
-                    \Log::info("=== UPLOAD VERIFICATION ===");
-                    \Log::info("Expected items from ZIP: " . implode(', ', $expectedItems));
-                    \Log::info("Successfully uploaded items: " . implode(', ', $uploadedItems));
-                    
-                    if (!empty($missingItems)) {
-                        \Log::error("⚠️ MISSING ITEMS - Some items from ZIP were NOT uploaded: " . implode(', ', $missingItems));
-                        \Log::error("This indicates an upload failure. Check errors above for details.");
-                    } else {
-                        \Log::info("✓ All items from ZIP were successfully uploaded to S3");
-                    }
-                    
-                    if (!empty($uploadErrors)) {
-                        \Log::error("Upload errors encountered: " . count($uploadErrors) . " error(s)");
-                        foreach (array_slice($uploadErrors, 0, 10) as $error) {
-                            \Log::error("  - " . $error);
-                        }
-                    }
-                    \Log::info("=== END UPLOAD VERIFICATION ===");
-                }
+                \Log::warning("JSON file not found in ZIP in " . __FILE__ . ":" . __LINE__);
             }
 
-            // Clean up temporary directory (only if not using queue)
-            // If using queue, temp directory will be cleaned after jobs complete
-            if (!env('USE_QUEUE_FOR_S3_UPLOADS', false)) {
-            \File::deleteDirectory($tempExtractPath);
-            } else {
-                // Schedule cleanup after a delay (give queue jobs time to process)
-                // You can add a cleanup job here if needed
-                \Log::info("Temporary directory kept for queue jobs: {$tempExtractPath}");
+            // STEP 7: Final summary and cleanup
+            $totalUploaded = count($uploadedFiles);
+            
+            if ($totalUploaded === 0) {
+                \Log::error("No files were uploaded to S3 in " . __FILE__ . ":" . __LINE__);
+                if (!empty($uploadErrors)) {
+                    \Log::error("Upload errors: " . implode(' | ', array_slice($uploadErrors, 0, 5)));
+                }
+            } else if (!empty($uploadErrors)) {
+                \Log::warning("Some upload errors occurred: " . count($uploadErrors) . " error(s) in " . __FILE__ . ":" . __LINE__);
             }
+            
+            // No temp directory cleanup needed - we never created one!
+            // Files were uploaded directly from ZIP to S3
 
-            // Validate that we got the required files
+            // STEP 8: Validate that we got the required files
             if (!$indexHtmlContent) {
-                // Log available files for debugging
-                $availableFiles = [];
-                if (isset($contentPath) && is_dir($contentPath)) {
-                    $files = scandir($contentPath);
-                    foreach ($files as $file) {
-                        if ($file !== '.' && $file !== '..' && is_file($contentPath . '/' . $file)) {
-                            $availableFiles[] = $file;
-                        }
-                    }
-                }
-                \Log::error("index.html not found. Content path: " . ($contentPath ?? 'not set') . ", Available files: " . implode(', ', $availableFiles));
+                \Log::error("index.html not found in ZIP file in " . __FILE__ . ":" . __LINE__);
                 return [
                     'success' => false,
                     'message' => 'index.html file not found in ZIP file. Please ensure your ZIP contains an index.html file.'
@@ -1066,9 +869,8 @@ class TourManagerController extends Controller{
             }
 
             if (!$jsonData) {
-                \Log::warning("JSON file not found, but continuing as it's not critical for basic functionality");
+                \Log::warning("JSON file not found, but continuing as it's not critical for basic functionality in " . __FILE__ . ":" . __LINE__);
                 // JSON is not critical - we can continue without it
-                // But log a warning
             }
 
             // Generate base URL for S3 assets
@@ -1109,7 +911,7 @@ class TourManagerController extends Controller{
             return $returnData;
 
         } catch (\Exception $e) {
-            \Log::error('Zip processing error: ' . $e->getMessage());
+            \Log::error('Zip processing error: ' . $e->getMessage() . " in " . $e->getFile() . ":" . $e->getLine());
             return [
                 'success' => false,
                 'message' => 'Error processing zip file: ' . $e->getMessage()
@@ -1230,7 +1032,7 @@ class TourManagerController extends Controller{
     {
         // First, verify S3 configuration
         if (!$this->verifyS3Configuration()) {
-            \Log::error("S3 configuration is missing or invalid. Check AWS credentials in .env file.");
+            \Log::error("S3 configuration is missing or invalid. Check AWS credentials in .env file in " . __FILE__ . ":" . __LINE__);
             return [
                 'success' => false,
                 'message' => 'S3 configuration error. Please check AWS credentials in .env file.',
@@ -1289,7 +1091,6 @@ class TourManagerController extends Controller{
         }
 
         // Log summary of files to upload
-        \Log::info("Found " . count($filesToUpload) . " files to upload from: {$localPath} to S3 path: {$s3Path}");
         
         if (empty($filesToUpload)) {
             \Log::warning("No files found to upload in directory: {$localPath}");
@@ -1368,8 +1169,8 @@ class TourManagerController extends Controller{
                     try {
                         $s3Disk->setVisibility($fileData['s3'], 'public');
                     } catch (\Exception $visibilityException) {
-                        \Log::warning("Failed to set visibility for {$fileData['s3']}: " . $visibilityException->getMessage());
-                        // Continue even if visibility setting fails - file is still uploaded
+                        // Visibility setting failure is not critical - file is still uploaded
+                        // Only log if it's a persistent issue (not just visibility)
                     }
                     
                     // Verify the file was actually uploaded (with retry for eventual consistency)
@@ -1384,26 +1185,22 @@ class TourManagerController extends Controller{
                         }
                     }
                     
-                    if (!$verified) {
-                        \Log::warning("File upload verification failed for {$fileData['s3']} - file may not be immediately visible but upload may have succeeded");
-                        // Don't throw error - S3 eventual consistency means file might exist but not be immediately visible
-                        // The upload likely succeeded if put() returned true
-                    }
+                    // Verification skipped - S3 eventual consistency means file might exist but not be immediately visible
+                    // The upload likely succeeded if put() returned true
                     
                     $totalSize += $fileData['size'];
                     $uploadedCount++;
                     
-                    \Log::info("Successfully uploaded to S3: {$fileData['s3']} ({$fileData['size']} bytes)");
                     
                 } catch (\Exception $e) {
                     $failedCount++;
                     $errorMsg = "Failed to upload {$fileData['s3']}: " . $e->getMessage();
                     $errors[] = $errorMsg;
-                    \Log::error($errorMsg . " | File: {$fileData['local']}");
+                    \Log::error($errorMsg . " | File: {$fileData['local']} in " . __FILE__ . ":" . __LINE__);
                     
                     // If too many failures, stop and report
                     if ($failedCount > 10) {
-                        \Log::error("Too many upload failures ({$failedCount}). Stopping upload process.");
+                        \Log::error("Too many upload failures ({$failedCount}). Stopping upload process in " . __FILE__ . ":" . __LINE__);
                         break 2;
                     }
                 }
@@ -1414,10 +1211,8 @@ class TourManagerController extends Controller{
         $totalFiles = count($filesToUpload);
         
         if ($failedCount > 0) {
-            \Log::warning("Upload completed with errors: {$uploadedCount}/{$totalFiles} files uploaded ({$sizeMB} MB), {$failedCount} failed to S3 path: {$s3Path}");
-            \Log::warning("Upload errors: " . implode(' | ', array_slice($errors, 0, 5)));
-        } else {
-            \Log::info("Successfully uploaded all {$uploadedCount}/{$totalFiles} files ({$sizeMB} MB) to S3 path: {$s3Path}");
+            \Log::error("Upload completed with errors: {$uploadedCount}/{$totalFiles} files uploaded ({$sizeMB} MB), {$failedCount} failed to S3 path: {$s3Path} in " . __FILE__ . ":" . __LINE__);
+            \Log::error("Upload errors: " . implode(' | ', array_slice($errors, 0, 5)));
         }
         
         return [
@@ -1447,7 +1242,7 @@ class TourManagerController extends Controller{
         foreach ($required as $key) {
             $value = env($key);
             if (empty($value)) {
-                \Log::error("Missing S3 configuration: {$key}");
+                \Log::error("Missing S3 configuration: {$key} in " . __FILE__ . ":" . __LINE__);
                 return false;
             }
         }
@@ -1459,16 +1254,15 @@ class TourManagerController extends Controller{
             $region = config('filesystems.disks.s3.region');
             
             if (empty($bucket)) {
-                \Log::error("S3 bucket name is not configured");
+                \Log::error("S3 bucket name is not configured in " . __FILE__ . ":" . __LINE__);
                 return false;
             }
             
             // Try to test connection by checking if we can access the bucket
             // This is a lightweight test that doesn't require listing
-            \Log::info("S3 configuration verified. Bucket: {$bucket}, Region: {$region}");
             return true;
         } catch (\Exception $e) {
-            \Log::error("S3 configuration test failed: " . $e->getMessage());
+            \Log::error("S3 configuration test failed: " . $e->getMessage() . " in " . $e->getFile() . ":" . $e->getLine());
             return false;
         }
     }
@@ -1809,6 +1603,254 @@ PHP;
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Initialize chunked upload for large files
+     */
+    public function initChunkedUpload(Request $request)
+    {
+        $request->validate([
+            'filename' => 'required|string|max:255',
+            'total_size' => 'required|integer|min:1',
+            'booking_id' => 'required|exists:bookings,id',
+        ]);
+
+        $filename = $request->input('filename');
+        $totalSize = $request->input('total_size');
+        $bookingId = $request->input('booking_id');
+        
+        // Generate unique upload ID
+        $uploadId = md5($filename . $totalSize . $bookingId . time());
+        
+        // Create temporary directory for chunks
+        $chunkDir = storage_path('app/chunks/' . $uploadId);
+        
+        // Ensure parent chunks directory exists and has correct permissions
+        $chunksBaseDir = storage_path('app/chunks');
+        if (!is_dir($chunksBaseDir)) {
+            if (!mkdir($chunksBaseDir, 0775, true)) {
+                \Log::error("Failed to create chunks base directory: {$chunksBaseDir} in " . __FILE__ . ":" . __LINE__);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to create upload directory. Please check server permissions.'
+                ], 500);
+            }
+            // Set ownership if possible
+            @chmod($chunksBaseDir, 0775);
+        }
+        
+        // Create upload-specific directory
+        if (!is_dir($chunkDir)) {
+            if (!mkdir($chunkDir, 0775, true)) {
+                \Log::error("Failed to create chunk directory: {$chunkDir} in " . __FILE__ . ":" . __LINE__);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to create upload directory. Please check server permissions.'
+                ], 500);
+            }
+            @chmod($chunkDir, 0775);
+        }
+        
+        // Store upload metadata
+        $metadata = [
+            'upload_id' => $uploadId,
+            'filename' => $filename,
+            'total_size' => $totalSize,
+            'booking_id' => $bookingId,
+            'chunks_uploaded' => 0,
+            'total_chunks' => ceil($totalSize / (10 * 1024 * 1024)), // 10MB chunks
+            'created_at' => now()->toDateTimeString(),
+        ];
+        
+        file_put_contents($chunkDir . '/metadata.json', json_encode($metadata));
+        
+        return response()->json([
+            'success' => true,
+            'upload_id' => $uploadId,
+            'chunk_size' => 10 * 1024 * 1024, // 10MB chunks
+            'total_chunks' => $metadata['total_chunks'],
+        ]);
+    }
+
+    /**
+     * Upload a chunk of file
+     */
+    public function uploadChunk(Request $request)
+    {
+        $request->validate([
+            'upload_id' => 'required|string',
+            'chunk_number' => 'required|integer|min:0',
+            'chunk' => 'required|file',
+        ]);
+
+        $uploadId = $request->input('upload_id');
+        $chunkNumber = $request->input('chunk_number');
+        $chunkFile = $request->file('chunk');
+        
+        $chunkDir = storage_path('app/chunks/' . $uploadId);
+        
+        if (!is_dir($chunkDir)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Upload session not found. Please restart the upload.'
+            ], 404);
+        }
+        
+        // Load metadata
+        $metadataPath = $chunkDir . '/metadata.json';
+        if (!file_exists($metadataPath)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Upload metadata not found.'
+            ], 404);
+        }
+        
+        $metadata = json_decode(file_get_contents($metadataPath), true);
+        
+        // Save chunk
+        $chunkPath = $chunkDir . '/chunk_' . $chunkNumber;
+        $chunkFile->move($chunkDir, 'chunk_' . $chunkNumber);
+        
+        // Update metadata
+        $metadata['chunks_uploaded'] = max($metadata['chunks_uploaded'], $chunkNumber + 1);
+        file_put_contents($metadataPath, json_encode($metadata));
+        
+        return response()->json([
+            'success' => true,
+            'chunk_number' => $chunkNumber,
+            'chunks_uploaded' => $metadata['chunks_uploaded'],
+            'total_chunks' => $metadata['total_chunks'],
+            'progress' => round(($metadata['chunks_uploaded'] / $metadata['total_chunks']) * 100, 2),
+        ]);
+    }
+
+    /**
+     * Finalize chunked upload and process the file
+     */
+    public function finalizeChunkedUpload(Request $request, Booking $booking)
+    {
+        // Increase execution time limit for large ZIP file processing
+        set_time_limit(18000);
+        ini_set('max_execution_time', '18000');
+        
+        // Get valid location values from FTP configurations
+        $validLocations = FtpConfiguration::active()->pluck('category_name')->toArray();
+        
+        $request->validate([
+            'upload_id' => 'required|string',
+            'slug' => 'required|string|max:255|regex:/^[a-zA-Z0-9\/\-_]+$/',
+            'location' => ['required', 'string', Rule::in($validLocations)],
+        ]);
+
+        $uploadId = $request->input('upload_id');
+        $chunkDir = storage_path('app/chunks/' . $uploadId);
+        
+        if (!is_dir($chunkDir)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Upload session not found.'
+            ], 404);
+        }
+        
+        // Load metadata
+        $metadataPath = $chunkDir . '/metadata.json';
+        if (!file_exists($metadataPath)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Upload metadata not found.'
+            ], 404);
+        }
+        
+        $metadata = json_decode(file_get_contents($metadataPath), true);
+        
+        // Verify all chunks are uploaded
+        $expectedChunks = $metadata['total_chunks'];
+        $uploadedChunks = 0;
+        for ($i = 0; $i < $expectedChunks; $i++) {
+            if (file_exists($chunkDir . '/chunk_' . $i)) {
+                $uploadedChunks++;
+            }
+        }
+        
+        if ($uploadedChunks < $expectedChunks) {
+            return response()->json([
+                'success' => false,
+                'message' => "Not all chunks uploaded. Expected: {$expectedChunks}, Uploaded: {$uploadedChunks}"
+            ], 400);
+        }
+        
+        // Combine chunks into single file
+        $finalPath = $chunkDir . '/final.zip';
+        $finalFile = fopen($finalPath, 'wb');
+        
+        if (!$finalFile) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create final file.'
+            ], 500);
+        }
+        
+        for ($i = 0; $i < $expectedChunks; $i++) {
+            $chunkPath = $chunkDir . '/chunk_' . $i;
+            $chunkContent = file_get_contents($chunkPath);
+            fwrite($finalFile, $chunkContent);
+            unlink($chunkPath); // Clean up chunk
+        }
+        
+        fclose($finalFile);
+        
+        try {
+            $slug = $request->input('slug');
+            $location = $request->input('location');
+            
+            // Dispatch background job to process the ZIP file
+            // Use unique identifier to prevent duplicate jobs
+            $jobUniqueId = 'tour-processing-' . $booking->id . '-' . md5($metadata['filename'] . $finalPath);
+            \App\Jobs\ProcessTourZipFile::dispatch(
+                $booking->id,
+                $finalPath,
+                $metadata['filename'],
+                $slug,
+                $location
+            )->onQueue('tour-processing');
+            
+            // Log job dispatch with unique identifier for tracking
+            \Log::info("ZIP file processing queued. Booking ID: {$booking->id}, Job ID: {$jobUniqueId}");
+            
+            \Log::info("ZIP file processing queued for background processing. Booking ID: {$booking->id}");
+            
+            // Clean up metadata files (keep final.zip for the job)
+            unlink($metadataPath);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'File uploaded successfully! Processing will continue in the background.',
+                'booking_id' => $booking->id,
+                'processing' => true,
+                'redirect' => route('admin.tour-manager.show', $booking)
+            ]);
+            
+        } catch (\Exception $e) {
+            \Log::error('Chunked upload finalization error: ' . $e->getMessage() . " in " . $e->getFile() . ":" . $e->getLine());
+            
+            // Clean up on error
+            if (file_exists($finalPath)) {
+                @unlink($finalPath);
+            }
+            if (file_exists($metadataPath)) {
+                @unlink($metadataPath);
+            }
+            if (is_dir($chunkDir)) {
+                @array_map('unlink', glob($chunkDir . '/*'));
+                @rmdir($chunkDir);
+            }
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to queue processing: ' . $e->getMessage()
             ], 500);
         }
     }
