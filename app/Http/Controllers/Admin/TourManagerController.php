@@ -13,6 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Storage;
 use Yajra\DataTables\Facades\DataTables;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
 use ZipArchive;
 use Aws\S3\Exception\S3Exception;
 
@@ -96,6 +97,29 @@ class TourManagerController extends Controller{
 
                     return implode(', ', $location) ?: 'N/A';
                 })
+                ->addColumn('qr_code', function (Booking $booking) {
+                    if ($booking->qr && $booking->qr->code) {
+                        try {
+                            $logoPath = public_path('images/proppik-logo-sm.png');
+                            $hasLogo = file_exists($logoPath);
+                            
+                            $qrCode = QrCode::size(50)->color(0, 0, 128);
+                            
+                            if ($hasLogo) {
+                                $qrCode = $qrCode->merge($logoPath, 0.2, true);
+                            }
+                            
+                            $qrUrl = $booking->qr->qr_link ?: 'https://qr.proppik.com/' . $booking->qr->code;
+                            $svg = $qrCode->generate($qrUrl);
+                            
+                            return '<a href="'.$qrUrl.'" target="blank" style="width: 50px; height: 50px; overflow: hidden;" data-bs-toggle="tooltip" data-bs-placement="top" title="' . htmlspecialchars($booking->qr->code) . '">' . $svg . '</a>';
+                        } catch (\Exception $e) {
+                            \Log::error('QR Code Generation Error in Tour Manager: ' . $e->getMessage());
+                            return '<span class="text-muted">Error</span>';
+                        }
+                    }
+                    return '<span class="text-muted">N/A</span>';
+                })
                 ->addColumn('booking_date', function (Booking $booking) {
                     if ($booking->booking_date) {
                         return \Carbon\Carbon::parse($booking->booking_date)->format('d M Y') . '<br>' .
@@ -146,7 +170,7 @@ class TourManagerController extends Controller{
                     $actions .= '</div>';
                     return $actions;
                 })
-                ->rawColumns(['booking_info', 'customer', 'booking_date', 'status', 'payment_status', 'actions'])
+                ->rawColumns(['booking_info', 'customer', 'location', 'qr_code', 'booking_date', 'status', 'payment_status', 'actions'])
                 ->make(true);
         }
 

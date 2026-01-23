@@ -70,6 +70,7 @@
                                         <th>Booking</th>
                                         <th>Customer</th>
                                         <th>Location</th>
+                                        <th>QR Code</th>
                                         {{-- <th>Booking Date</th> --}}
                                         <th>Status</th>
                                         <th>Payment</th>
