@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Exports\BookingsExport;
 use App\Http\Controllers\Controller;
 use App\Models\BHK;
 use App\Models\Booking;
@@ -18,6 +19,7 @@ use App\Models\User;
 use App\Models\PhotographerVisitJob;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Maatwebsite\Excel\Facades\Excel;
 use Spatie\Activitylog\Models\Activity;
 use Yajra\DataTables\DataTables;
 
@@ -665,7 +667,7 @@ class BookingController extends Controller
         if ($dateChanged || $oldDateStr === null) {
             // Check if status should change when date is updated
             if (in_array($oldStatus, ['schedul_assign', 'reschedul_assign', 'schedul_completed', 'pending', 'confirmed', 'completed'])) {
-            
+
                 // udpate status to reschedul_accepted or shedul_accepted
                 if ($oldStatus === 'schedul_assign') {
                     $newStatus = 'schedul_accepted';
@@ -1090,6 +1092,14 @@ class BookingController extends Controller
             $code .= $chars[random_int(0, strlen($chars) - 1)];
         }
         return $code;
+    }
+
+    /* 
+    export excel
+    */
+    public function export()
+    {
+        return Excel::download(new BookingsExport, 'Booking-01.xlsx');
     }
 
     /**

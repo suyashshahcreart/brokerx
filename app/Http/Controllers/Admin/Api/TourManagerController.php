@@ -34,7 +34,9 @@ class TourManagerController extends Controller
 
         // Generate a token (using Laravel Sanctum if available)
         if (method_exists($user, 'createToken')) {
-            $token = $user->createToken('tour_manager_api')->plainTextToken;
+            $fullToken = $user->createToken('tour_manager_api')->plainTextToken;
+            // Extract only the token part (remove the ID prefix)
+            $token = explode('|', $fullToken, 2)[1] ?? $fullToken;
         } else {
             $token = base64_encode(bin2hex(random_bytes(32)));
         }
@@ -92,6 +94,7 @@ class TourManagerController extends Controller
 
             // QR Code
             $tour->qr_code = $tour->booking ? $tour->booking->tour_code : null;
+            $tour->tour_code = $tour->booking ? $tour->booking->tour_code : null;
             $tour->qr_link = $tour->booking ? $tour->booking->tour_code ? $qrLinkBase . $tour->qr_code : null : null;
             $tour->s3_link = $tour->booking ? $tour->booking->tour_code ? $s3LinkBase . 'tours/' . $tour->qr_code . "/" : null : null;
             

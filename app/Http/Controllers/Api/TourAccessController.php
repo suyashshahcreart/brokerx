@@ -17,6 +17,107 @@ class TourAccessController extends Controller{
         $this->smsService = $smsService;
     }
     /**
+     * Parse mobile number to extract country code, country name, and base mobile.
+     *
+     * @param string $mobile
+     * @return array ['country_code' => string, 'country_name' => string, 'base_mobile' => string]
+     */
+    private function parseMobileNumber($mobile)
+    {
+        // Remove + if present
+        $cleanMobile = ltrim($mobile, '+');
+        
+        // Common country codes mapping (most common ones)
+        $countryCodes = [
+            '1' => ['name' => 'United States/Canada', 'min_length' => 10, 'max_length' => 10],
+            '91' => ['name' => 'India', 'min_length' => 10, 'max_length' => 10],
+            '44' => ['name' => 'United Kingdom', 'min_length' => 10, 'max_length' => 10],
+            '86' => ['name' => 'China', 'min_length' => 11, 'max_length' => 11],
+            '81' => ['name' => 'Japan', 'min_length' => 10, 'max_length' => 10],
+            '49' => ['name' => 'Germany', 'min_length' => 10, 'max_length' => 11],
+            '33' => ['name' => 'France', 'min_length' => 9, 'max_length' => 9],
+            '39' => ['name' => 'Italy', 'min_length' => 9, 'max_length' => 10],
+            '34' => ['name' => 'Spain', 'min_length' => 9, 'max_length' => 9],
+            '61' => ['name' => 'Australia', 'min_length' => 9, 'max_length' => 9],
+            '7' => ['name' => 'Russia/Kazakhstan', 'min_length' => 10, 'max_length' => 10],
+            '971' => ['name' => 'United Arab Emirates', 'min_length' => 9, 'max_length' => 9],
+            '966' => ['name' => 'Saudi Arabia', 'min_length' => 9, 'max_length' => 9],
+            '65' => ['name' => 'Singapore', 'min_length' => 8, 'max_length' => 8],
+            '60' => ['name' => 'Malaysia', 'min_length' => 9, 'max_length' => 10],
+            '62' => ['name' => 'Indonesia', 'min_length' => 9, 'max_length' => 11],
+            '84' => ['name' => 'Vietnam', 'min_length' => 9, 'max_length' => 10],
+            '66' => ['name' => 'Thailand', 'min_length' => 9, 'max_length' => 9],
+            '63' => ['name' => 'Philippines', 'min_length' => 10, 'max_length' => 10],
+            '82' => ['name' => 'South Korea', 'min_length' => 9, 'max_length' => 10],
+            '852' => ['name' => 'Hong Kong', 'min_length' => 8, 'max_length' => 8],
+            '853' => ['name' => 'Macau', 'min_length' => 8, 'max_length' => 8],
+            '886' => ['name' => 'Taiwan', 'min_length' => 9, 'max_length' => 9],
+            '880' => ['name' => 'Bangladesh', 'min_length' => 10, 'max_length' => 10],
+            '92' => ['name' => 'Pakistan', 'min_length' => 10, 'max_length' => 10],
+            '94' => ['name' => 'Sri Lanka', 'min_length' => 9, 'max_length' => 9],
+            '977' => ['name' => 'Nepal', 'min_length' => 10, 'max_length' => 10],
+            '95' => ['name' => 'Myanmar', 'min_length' => 8, 'max_length' => 10],
+            '855' => ['name' => 'Cambodia', 'min_length' => 8, 'max_length' => 9],
+            '856' => ['name' => 'Laos', 'min_length' => 8, 'max_length' => 10],
+            '673' => ['name' => 'Brunei', 'min_length' => 7, 'max_length' => 7],
+        ];
+        
+        // Try to match country code (check longer codes first)
+        $countryCode = null;
+        $countryName = null;
+        $baseMobile = null;
+        
+        // Sort by length (descending) to check longer codes first
+        $sortedCodes = array_keys($countryCodes);
+        usort($sortedCodes, function($a, $b) {
+            return strlen($b) - strlen($a);
+        });
+        
+        foreach ($sortedCodes as $code) {
+            if (strpos($cleanMobile, $code) === 0) {
+                $countryCode = $code;
+                $countryName = $countryCodes[$code]['name'];
+                $baseMobile = substr($cleanMobile, strlen($code));
+                break;
+            }
+        }
+        
+        // If no country code found, try to extract (assume first 1-3 digits are country code)
+        if (!$countryCode && strlen($cleanMobile) >= 10) {
+            // Try 1-digit country code (e.g., USA/Canada)
+            if (strlen($cleanMobile) >= 11 && $cleanMobile[0] === '1') {
+                $countryCode = '1';
+                $countryName = 'United States/Canada';
+                $baseMobile = substr($cleanMobile, 1);
+            }
+            // Try 2-digit country code
+            elseif (strlen($cleanMobile) >= 12) {
+                $countryCode = substr($cleanMobile, 0, 2);
+                $countryName = 'Unknown';
+                $baseMobile = substr($cleanMobile, 2);
+            }
+            // Try 3-digit country code
+            elseif (strlen($cleanMobile) >= 13) {
+                $countryCode = substr($cleanMobile, 0, 3);
+                $countryName = 'Unknown';
+                $baseMobile = substr($cleanMobile, 3);
+            }
+            // Default: assume first 2 digits
+            else {
+                $countryCode = substr($cleanMobile, 0, 2);
+                $countryName = 'Unknown';
+                $baseMobile = substr($cleanMobile, 2);
+            }
+        }
+        
+        return [
+            'country_code' => $countryCode ?? null,
+            'country_name' => $countryName ?? 'Unknown',
+            'base_mobile' => $baseMobile ?? $cleanMobile,
+        ];
+    }
+
+    /**
      * Find booking and its latest tour by tour_code.
      *
      * @param string $tour_code
@@ -195,7 +296,25 @@ class TourAccessController extends Controller{
     {
         $request->validate([
             'tour_code' => 'required|string',
-            'mobile' => 'required|string', // Basic validation, add regex if needed
+            'mobile' => [
+                'required',
+                'string',
+                'regex:/^(\+?[1-9]\d{1,14}|\d{10,15})$/',
+                function ($attribute, $value, $fail) {
+                    // Remove + if present for validation
+                    $cleanMobile = ltrim($value, '+');
+                    
+                    // Check if it's just a local number (starts with 0 or doesn't have country code)
+                    if (preg_match('/^0\d+$/', $cleanMobile) || (strlen($cleanMobile) < 10)) {
+                        $fail('The mobile number must include country code. Format: +[country code][number] or [country code][number] (e.g., +911234567890 or 911234567890)');
+                    }
+                    
+                    // Check if it looks like a local number without country code (10 digits starting with non-zero)
+                    if (preg_match('/^[1-9]\d{9}$/', $cleanMobile)) {
+                        $fail('The mobile number must include country code. Format: +[country code][number] or [country code][number] (e.g., +911234567890 or 911234567890)');
+                    }
+                },
+            ],
         ]);
 
         $tour_code = $request->input('tour_code');
@@ -207,26 +326,36 @@ class TourAccessController extends Controller{
             return response()->json(['success' => false, 'message' => $error], 404);
         }
 
-       
+        // Normalize mobile number (remove + if present, keep as is)
+        $normalizedMobile = ltrim($mobile, '+');
+        
+        // Parse mobile number to extract country code, country name, and base mobile
+        $parsedMobile = $this->parseMobileNumber($mobile);
 
-        // Generate OTP (e.g., 4 digits)
+        // Generate OTP (e.g., 6 digits)
         $otp = rand(100000, 999999);
         
         // Save to DB
         // Check if entry exists for this tour and mobile
         $validation = \App\Models\TourMobileValidation::where('tour_id', $tour->id)
-            ->where('mobile', $mobile)
+            ->where('mobile', $normalizedMobile)
             ->first();
 
         if ($validation) {
             $validation->update([
+                'base_mobile' => $parsedMobile['base_mobile'],
+                'country_code' => $parsedMobile['country_code'],
+                'country_name' => $parsedMobile['country_name'],
                 'otp' => $otp,
                 'otp_expired_at' => now()->addMinutes(10),
             ]);
         } else {
             \App\Models\TourMobileValidation::create([
                 'tour_id' => $tour->id,
-                'mobile' => $mobile,
+                'mobile' => $normalizedMobile,
+                'base_mobile' => $parsedMobile['base_mobile'],
+                'country_code' => $parsedMobile['country_code'],
+                'country_name' => $parsedMobile['country_name'],
                 'otp' => $otp,
                 'otp_expired_at' => now()->addMinutes(10),
             ]);
@@ -235,19 +364,18 @@ class TourAccessController extends Controller{
         // Log history: sent
         TourMobileValidationHistory::create([
             'tour_id' => $tour->id,
-            'mobile' => $mobile,
+            'mobile' => $normalizedMobile,
             'action' => 'sent',
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),
         ]);
 
-        // Send OTP via SMS
-        $mobileWithCountryCode = '91' . $mobile;
+        // Send OTP via SMS (mobile already includes country code)
         $templateKey = 'login_otp'; // Using login_otp template as preferred for tour access
 
         try {
             $this->smsService->send(
-                $mobileWithCountryCode,
+                $normalizedMobile,
                 $templateKey,
                 ['OTP' => $otp],
                 [
@@ -267,7 +395,7 @@ class TourAccessController extends Controller{
             'success' => true, 
             'message' => 'OTP sent successfully',
             'sms_sent' => $smsSent,
-            'debug_otp' => $otp // REMOVE IN PRODUCTION
+            // 'debug_otp' => $otp // REMOVE IN PRODUCTION
         ]);
     }
 
@@ -281,8 +409,26 @@ class TourAccessController extends Controller{
     {
         $request->validate([
             'tour_code' => 'required|string',
-            'mobile' => 'required|string',
-            'otp' => 'required|string',
+            'mobile' => [
+                'required',
+                'string',
+                'regex:/^(\+?[1-9]\d{1,14}|\d{10,15})$/',
+                function ($attribute, $value, $fail) {
+                    // Remove + if present for validation
+                    $cleanMobile = ltrim($value, '+');
+                    
+                    // Check if it's just a local number (starts with 0 or doesn't have country code)
+                    if (preg_match('/^0\d+$/', $cleanMobile) || (strlen($cleanMobile) < 10)) {
+                        $fail('The mobile number must include country code. Format: +[country code][number] or [country code][number] (e.g., +911234567890 or 911234567890)');
+                    }
+                    
+                    // Check if it looks like a local number without country code (10 digits starting with non-zero)
+                    if (preg_match('/^[1-9]\d{9}$/', $cleanMobile)) {
+                        $fail('The mobile number must include country code. Format: +[country code][number] or [country code][number] (e.g., +911234567890 or 911234567890)');
+                    }
+                },
+            ],
+            'otp' => 'required|string|size:6',
         ]);
 
         $tour_code = $request->input('tour_code');
@@ -295,22 +441,38 @@ class TourAccessController extends Controller{
             return response()->json(['success' => false, 'message' => $error], 404);
         }
 
+        // Normalize mobile number (remove + if present, keep as is)
+        $normalizedMobile = ltrim($mobile, '+');
+        
+        // Parse mobile number to extract country code, country name, and base mobile
+        $parsedMobile = $this->parseMobileNumber($mobile);
+
         $validation = \App\Models\TourMobileValidation::where('tour_id', $tour->id)
-            ->where('mobile', $mobile)
+            ->where('mobile', $normalizedMobile)
             ->where('otp', $otp)
             ->where('otp_expired_at', '>', now())
             ->first();
 
         if ($validation) {
-             // Clear OTP after successful verification? 
-             // Or keep it to allow re-entry for a session duration?
-             // Usually we generate a token. But for now just success.
-             $validation->update(['otp' => null, 'otp_expired_at' => null]);
+             // Clear OTP after successful verification and update parsed mobile data if missing
+             $updateData = [
+                 'otp' => null, 
+                 'otp_expired_at' => null
+             ];
+             
+             // Update parsed mobile data if not already set (for backward compatibility)
+             if (empty($validation->base_mobile) || empty($validation->country_code)) {
+                 $updateData['base_mobile'] = $parsedMobile['base_mobile'];
+                 $updateData['country_code'] = $parsedMobile['country_code'];
+                 $updateData['country_name'] = $parsedMobile['country_name'];
+             }
+             
+             $validation->update($updateData);
 
              // Log history: verified
              TourMobileValidationHistory::create([
                  'tour_id' => $tour->id,
-                 'mobile' => $mobile,
+                 'mobile' => $normalizedMobile,
                  'action' => 'verified',
                  'ip_address' => $request->ip(),
                  'user_agent' => $request->userAgent(),
