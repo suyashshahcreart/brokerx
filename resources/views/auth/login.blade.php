@@ -15,7 +15,7 @@
                     </a>
                 </div>
 
-                <h2 class="fw-bold text-uppercase text-center fs-18">Log In</h2>
+                <h2 class="fw-bold text-uppercase text-center fs-18">Log In working</h2>
                 <p class="text-muted text-center mt-1 mb-4">Enter your email, mobile and password to access admin
                     panel.</p>
 
@@ -80,7 +80,7 @@
                                        placeholder="Enter your password" name="password"
                                        autocomplete="current-password"
                                        required>
-                                <button class="d-none btn btn-light border-light" type="button" id="togglePassword" title="Show Password">
+                                <button class="btn btn-light border-light" type="button" id="togglePassword" title="Show Password">
                                     <i class='bx bx-hide' id="togglePasswordIcon"></i>
                                 </button>
                             </div>
@@ -138,5 +138,5 @@
 </div>
 @endsection
 @push('scripts')
-<script src="{{ asset('js/auth-login.js') }}"></script>
+@vite(['resources/js/pages/login-page.js'])
 @endpush
