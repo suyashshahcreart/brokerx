@@ -38,7 +38,8 @@ class TourManagerController extends Controller
                 'propertySubType',
                 'bhk',
                 'city',
-                'state'
+                'state',
+                'tours'
             ])->orderBy('created_at', 'desc');
 
             // Apply filters
@@ -66,27 +67,46 @@ class TourManagerController extends Controller
                 $query->whereDate('booking_date', '<=', $request->date_to);
             }
             return DataTables::of($query)
+                ->addColumn('booking_id', function (Booking $booking) {
+                    return '<strong>#' . $booking->id . '</strong>';
+                })
                 ->addColumn('booking_info', function (Booking $booking) {
                     $propertyType = $booking->propertyType?->name ?? 'N/A';
                     $subType = $booking->propertySubType?->name ?? '';
                     $bhk = $booking->bhk?->name ?? '';
 
-                    $info = '<strong>#' . $booking->id . '</strong><br>';
-                    $info .= '<small class="text-muted">' . $propertyType;
+                    $info = '';
+                    $info .= '<p>' . $propertyType;
                     if ($subType)
                         $info .= ' - ' . $subType;
                     if ($bhk)
                         $info .= ' - ' . $bhk;
-                    $info .= '</small>';
+                    $info .= '</p>';
 
                     return $info;
                 })
                 ->addColumn('customer', function (Booking $booking) {
-                    if ($booking->user) {
-                        return '<strong>' . $booking->user->firstname . ' ' . $booking->user->lastname . '</strong><br>' .
-                            '<small class="text-muted">' . $booking->user->mobile . '</small>';
+                    $name = $booking->user ? $booking->user->firstname . ' ' . $booking->user->lastname : '-';
+                    
+                    // Get tour name safely - check if tours relation is loaded
+                    $tourName = null;
+                    if (isset($booking->tours) && is_object($booking->tours)) {
+                        if (is_iterable($booking->tours)) {
+                            $tour = $booking->tours instanceof \Illuminate\Database\Eloquent\Collection 
+                                ? $booking->tours->first() 
+                                : current($booking->tours);
+                            $tourName = $tour?->name;
+                        }
                     }
-                    return '<span class="text-muted">N/A</span>';
+
+                    if ($tourName) {
+                        return '<strong>' . e($name) . '</strong><br>' .
+                            '<small class="text-muted">' . e($booking->user->mobile ?? '') . '</small><br>' .
+                            '<small class="text-muted">' . e($tourName) . '</small>';
+                    }
+
+                    return '<strong>' . e($name) . '</strong><br>' .
+                        '<small class="text-muted">' . e($booking->user->mobile ?? '') . '</small>';
                 })
                 ->addColumn('location', function (Booking $booking) {
                     $location = [];
@@ -98,6 +118,9 @@ class TourManagerController extends Controller
                         $location[] = $booking->city->name;
 
                     return implode(', ', $location) ?: 'N/A';
+                })
+                ->addColumn('city_state', function (Booking $booking) {
+                    return ($booking->city?->name ?? '-') . '<div class="text-muted small">' . ($booking->state?->name ?? '-') . '</div>';
                 })
                 ->addColumn('qr_code', function (Booking $booking) {
                     if ($booking->qr && $booking->qr->code) {
@@ -117,12 +140,9 @@ class TourManagerController extends Controller
 
                     return '<span class="text-muted">N/A</span>';
                 })
-                ->addColumn('booking_date', function (Booking $booking) {
-                    if ($booking->booking_date) {
-                        return \Carbon\Carbon::parse($booking->booking_date)->format('d M Y') . '<br>' .
-                            '<small class="text-muted">' . \Carbon\Carbon::parse($booking->booking_date)->format('h:i A') . '</small>';
-                    }
-                    return '<span class="text-muted">Not scheduled</span>';
+                ->addColumn('created_at', function (Booking $booking) {
+                    return \Carbon\Carbon::parse($booking->created_at)->format('d M Y') . '<br>' .
+                        '<small class="text-muted">' . \Carbon\Carbon::parse($booking->created_at)->format('h:i A') . '</small>';
                 })
                 ->addColumn('status', function (Booking $booking) {
                     $badges = [
@@ -167,7 +187,7 @@ class TourManagerController extends Controller
                     $actions .= '</div>';
                     return $actions;
                 })
-                ->rawColumns(['booking_info', 'customer', 'location', 'qr_code', 'booking_date', 'status', 'payment_status', 'actions'])
+                ->rawColumns(['booking_id', 'booking_info', 'customer', 'location', 'city_state', 'qr_code', 'created_at', 'status', 'payment_status', 'actions'])
                 ->make(true);
         }
 

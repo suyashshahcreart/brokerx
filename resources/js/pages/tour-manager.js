@@ -55,16 +55,19 @@ $(document).ready(function () {
             }
         },
         columns: [
+            { data: 'booking_id', name: 'id' },
             { data: 'booking_info', name: 'id' },
             { data: 'customer', name: 'user.firstname' },
-            { data: 'location', name: 'city.name' },
+            { data: 'location', name: 'location' },
+            { data: 'city_state', name: 'city.name' },
             { data: 'qr_code', name: 'qr.code', orderable: false, searchable: false },
+            { data: 'created_at', name: 'created_at' },
             { data: 'status', name: 'status' },
             { data: 'payment_status', name: 'payment_status' },
             { data: 'price', name: 'price' },
             { data: 'actions', name: 'actions', orderable: false, searchable: false }
         ],
-        order: [[3, 'desc']],
+        order: [[0, 'desc']],
         pageLength: 25,
         responsive: true,
         language: {

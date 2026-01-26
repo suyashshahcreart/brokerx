@@ -67,11 +67,13 @@
                                <table id="bookings-table" class="table table-hover dt-responsive nowrap w-100">
                                 <thead class="table-light">
                                     <tr>
+                                        <th>ID</th>
                                         <th>Booking</th>
                                         <th>Customer</th>
                                         <th>Location</th>
+                                        <th>City / State</th>
                                         <th>QR Code</th>
-                                        {{-- <th>Booking Date</th> --}}
+                                        <th>Created</th>
                                         <th>Status</th>
                                         <th>Payment</th>
                                         <th>Price</th>
