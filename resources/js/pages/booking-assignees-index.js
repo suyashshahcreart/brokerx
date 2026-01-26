@@ -10,7 +10,6 @@ if (typeof window.$ === 'undefined') {
 
 import 'datatables.net-bs5';
 import Swal from 'sweetalert2';
-import 'bootstrap/js/dist/dropdown';
 import moment from 'moment';
 const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 let table = null;
@@ -322,6 +321,18 @@ function initializeDateRangePicker() {
             locale: {
                 format: 'DD/MM/YYYY'
             },
+            ranges: {
+                'Today': [window.moment(), window.moment()],
+                'Yesterday': [window.moment().subtract(1, 'days'), window.moment().subtract(1, 'days')],
+                'Last 7 Days': [window.moment().subtract(6, 'days'), window.moment()],
+                'Last 30 Days': [window.moment().subtract(29, 'days'), window.moment()],
+                'This Month': [window.moment().startOf('month'), window.moment().endOf('month')],
+                'Last Month': [window.moment().subtract(1, 'month').startOf('month'), window.moment().subtract(1, 'month').endOf('month')],
+                'This Year': [window.moment().startOf('year'), window.moment().endOf('year')],
+                'Last Year': [window.moment().subtract(1, 'year').startOf('year'), window.moment().subtract(1, 'year').endOf('year')]
+            },
+            alwaysShowCalendars: true,
+            showCustomRangeLabel: true,
             autoUpdateInput: false
         });
 

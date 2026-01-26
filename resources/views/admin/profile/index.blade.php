@@ -13,6 +13,9 @@
                 </nav>
                 <h3 class="mb-0">My Profile</h3>
             </div>
+            <div class="d-flex align-items-center gap-2">
+                <x-admin.back-button :fallback="route('admin.index')" :classes="['btn', 'btn-soft-secondary']" :merge="false" icon="ri-arrow-go-back-line" />
+            </div>
         </div>
 
         <div class="card panel-card border-primary border-top" data-panel-card>

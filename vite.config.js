@@ -50,6 +50,7 @@ export default defineConfig({
                 'resources/js/pages/photo-checkin-visit.js',
                 'resources/js/pages/photographer-visits-index.js',
                 'resources/js/pages/tours-index.js',
+                'resources/js/pages/login-page.js',
                 'resources/js/pages/tour-notifications-index.js',
                 'resources/js/pages/qr-analytics-index.js',
                 'resources/js/pages/photographer-index.js',
