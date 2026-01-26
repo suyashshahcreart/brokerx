@@ -132,7 +132,7 @@ document.addEventListener('DOMContentLoaded', function () {
 			{ data: 'id', name: 'id' },
 			{ data: 'user', name: 'users.firstname', searchable: true },
 			{ data: 'type_subtype', name: 'property_types.name', orderable: false, searchable: false },
-			{ data: 'bhk', name: 'b_h_k_s.name', orderable: false, searchable: true },
+			{ data: 'qr_code', name: 'qr.code', orderable: false, searchable: false },
 			{ data: 'city_state', name: 'cities.name', orderable: false, searchable: true },
 			{ data: 'area', name: 'area' },
 			{ data: 'price', name: 'price' },

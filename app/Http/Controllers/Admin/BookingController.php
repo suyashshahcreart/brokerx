@@ -56,10 +56,9 @@ class BookingController extends Controller
             // Add joins for searchable columns to avoid "Column not found" errors
             $query = Booking::query()
                 ->leftJoin('users', 'bookings.user_id', '=', 'users.id')
-                ->leftJoin('b_h_k_s', 'bookings.bhk_id', '=', 'b_h_k_s.id')
                 ->leftJoin('cities', 'bookings.city_id', '=', 'cities.id')
                 ->select('bookings.*')
-                ->with(['propertyType', 'propertySubType', 'state', 'assignees']);
+                ->with(['propertyType', 'propertySubType', 'state', 'assignees', 'qr', 'tours']);
 
             // Filter bookings based on user role
             if (auth()->user()->hasRole('admin')) {
@@ -93,18 +92,41 @@ class BookingController extends Controller
 
             return DataTables::of($query)
                 ->addColumn('user', function (Booking $booking) {
-                    return $booking->user ? $booking->user->firstname . ' ' . $booking->user->lastname : '-';
+                    $name = $booking->user ? $booking->user->firstname . ' ' . $booking->user->lastname : '-';
+                    $tourName = $booking->tours->first()?->name;
+
+                    if ($tourName) {
+                        return '<div><strong>' . e($name) . '</strong><div class="text-muted small">' . e($tourName) . '</div></div>';
+                    }
+
+                    return e($name);
                 })
                 ->addColumn('type_subtype', function (Booking $booking) {
                     return $booking->propertyType?->name . '<div class="text-muted small">' . ($booking->propertySubType?->name ?? '-') . '</div>';
                 })
-                ->addColumn('bhk', fn(Booking $booking) => $booking->bhk?->name ?? '-')
+                ->addColumn('qr_code', function (Booking $booking) {
+                    if ($booking->qr && $booking->qr->code) {
+                        $qrBaseUrl = rtrim(Setting::where('name', 'qr_link_base')->value('value') ?? '', '/');
+                        $qrUrl = $booking->qr->qr_link ?: ($qrBaseUrl ? $qrBaseUrl . '/' . $booking->qr->code : null);
+
+                        if (!$qrUrl) {
+                            return '<span class="text-muted">' . htmlspecialchars($booking->qr->code, ENT_QUOTES, 'UTF-8') . '</span>';
+                        }
+
+                        $safeUrl = htmlspecialchars($qrUrl, ENT_QUOTES, 'UTF-8');
+                        $safeCode = htmlspecialchars($booking->qr->code, ENT_QUOTES, 'UTF-8');
+
+                        return '<a href="' . $safeUrl . '" target="_blank" rel="noopener" data-bs-toggle="tooltip" data-bs-placement="top" title="Open QR link">' . $safeCode . '</a>';
+                    }
+
+                    return '<span class="text-muted">N/A</span>';
+                })
                 ->addColumn('city_state', function (Booking $booking) {
                     return ($booking->city?->name ?? '-') . '<div class="text-muted small">' . ($booking->state?->name ?? '-') . '</div>';
                 })
                 ->editColumn('area', fn(Booking $booking) => number_format($booking->area))
                 ->editColumn('price', fn(Booking $booking) => '₹ ' . number_format($booking->price))
-                ->editColumn('booking_date', fn(Booking $booking) => optional($booking->booking_date)->format('Y-m-d') ?? '-')
+                ->editColumn('booking_date', fn(Booking $booking) => optional($booking->created_at)->format('Y-m-d') ?? '-')
                 ->editColumn('status', fn(Booking $booking) => '<span class="badge bg-secondary text-uppercase">' . $booking->status . '</span>')
                 ->editColumn('payment_status', fn(Booking $booking) => '<span class="badge bg-info text-uppercase">' . $booking->payment_status . '</span>')
                 ->addColumn('schedule', function (Booking $booking) {
@@ -131,7 +153,7 @@ class BookingController extends Controller
                         '<form action="' . $delete . '" method="POST" class="d-inline">' . $csrf . $method .
                         '<button type="submit" class="btn btn-soft-danger btn-sm" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete Booking" onclick="return confirm(\'Delete this booking?\')"><iconify-icon icon="solar:trash-bin-minimalistic-broken" class="align-middle fs-18"></iconify-icon></button></form></div>';
                 })
-                ->rawColumns(['type_subtype', 'city_state', 'status', 'payment_status', 'actions', 'schedule'])
+                ->rawColumns(['user', 'type_subtype', 'city_state', 'qr_code', 'status', 'payment_status', 'actions', 'schedule'])
                 ->toJson();
         }
 

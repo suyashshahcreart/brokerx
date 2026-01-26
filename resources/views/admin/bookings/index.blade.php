@@ -126,7 +126,7 @@
                                     <th>ID</th>
                                     <th>User</th>
                                     <th>Type / Subtype</th>
-                                    <th>BHK</th>
+                                    <th>QR Code</th>
                                     <th>City / State</th>
                                     <th>Area</th>
                                     <th>Price</th>

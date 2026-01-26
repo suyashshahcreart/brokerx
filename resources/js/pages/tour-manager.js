@@ -59,7 +59,6 @@ $(document).ready(function () {
             { data: 'customer', name: 'user.firstname' },
             { data: 'location', name: 'city.name' },
             { data: 'qr_code', name: 'qr.code', orderable: false, searchable: false },
-            // { data: 'booking_date', name: 'booking_date' },
             { data: 'status', name: 'status' },
             { data: 'payment_status', name: 'payment_status' },
             { data: 'price', name: 'price' },
