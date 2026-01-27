@@ -1,6 +1,44 @@
 @extends('admin.layouts.vertical', ['title' => 'Upload Tour'])
 
 @section('content')
+    @if(request()->get('completed') == '1' && ($booking->tour_zip_status ?? 'pending') === 'done')
+        <div id="tour-completion-toast" class="position-fixed top-0 end-0 p-3" style="z-index: 1080;">
+            <div class="toast align-items-center text-bg-success border-0 show" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="d-flex">
+                    <div class="toast-body">
+                        <i class="ri-check-line me-2"></i> Tour processing completed and live link is ready.
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+            </div>
+        </div>
+        <script>
+            (function() {
+                const toast = document.getElementById('tour-completion-toast');
+                if (toast) {
+                    const btn = toast.querySelector('.btn-close');
+                    if (btn) {
+                        btn.addEventListener('click', () => {
+                            toast.remove();
+                            // Remove URL parameter after closing
+                            const url = new URL(window.location.href);
+                            url.searchParams.delete('completed');
+                            window.history.replaceState({}, '', url.toString());
+                        });
+                    }
+                    setTimeout(() => {
+                        if (toast && toast.parentNode) {
+                            toast.remove();
+                            // Remove URL parameter after auto-hide
+                            const url = new URL(window.location.href);
+                            url.searchParams.delete('completed');
+                            window.history.replaceState({}, '', url.toString());
+                        }
+                    }, 5000);
+                }
+            })();
+        </script>
+    @endif
 <div class="">
     <div class="row">
         <div class="col-12">
@@ -236,19 +274,63 @@
                                     </a>
                                 </p>
                             </div>
-                            @if($booking->qr->qr_link)
-                                <div class="col-6 mb-2">
-                                    <label class="form-label fw-bold text-muted small">QR Live Link</label>
-                                    <p class="mb-0">
-                                        <a href="{{ $booking->getTourLiveUrl() }}" target="_blank" class="text-truncate d-block"
-                                            style="max-width: 100%;">
-                                            {{ Str::limit($booking->getTourLiveUrl(), 40) }}
-                                            <i class="ri-external-link-line ms-1"></i>
-                                        </a>
-                                    </p>
+                            <div class="col-6 mb-2" id="tour-live-link-box" data-booking-id="{{ $booking->id }}">
+                                <label class="form-label fw-bold text-muted small">Tour Live Link</label>
+
+                                @php
+                                    $tourZipStatus = $booking->tour_zip_status ?? 'pending';
+                                    $tourZipProgress = (int)($booking->tour_zip_progress ?? 0);
+                                    $tourZipMessage = $booking->tour_zip_message;
+                                    $tourLiveUrl = $booking->getTourLiveUrl();
+                                    $hasLiveLink = !empty($booking->qr?->qr_link) && $tourLiveUrl !== '#';
+                                @endphp
+
+                                <div id="tour-live-link-content">
+                                    
+                                    @if($tourZipStatus === 'processing')
+                                        <p class="text-warning mb-1">
+                                            Processing ZIP… {{ $tourZipMessage ? '(' . $tourZipMessage . ')' : '' }}
+                                        </p>
+                                        <div class="progress" style="height: 10px;">
+                                            <div class="progress-bar progress-bar-striped progress-bar-animated"
+                                                 role="progressbar"
+                                                 style="width: {{ max(1, min(100, $tourZipProgress)) }}%;"
+                                                 aria-valuenow="{{ $tourZipProgress }}" aria-valuemin="0" aria-valuemax="100">
+                                            </div>
+                                        </div>
+                                        <small class="text-muted d-block mt-1">
+                                            {{ $tourZipProgress }}%
+                                            @if($booking->tour_zip_started_at)
+                                                · started {{ $booking->tour_zip_started_at->diffForHumans() }}
+                                            @endif
+                                        </small>
+                                    @elseif($tourZipStatus === 'failed')
+                                        <p class="text-danger mb-0">
+                                            Processing failed{{ $tourZipMessage ? ': ' . $tourZipMessage : '.' }}
+                                        </p>
+                                    @elseif($tourZipStatus === 'done')
+                                        @if($hasLiveLink)
+                                            <p class="mb-0">
+                                                <a href="{{ $tourLiveUrl }}" target="_blank" class="text-truncate d-block" style="max-width: 100%;">
+                                                    {{ Str::limit($tourLiveUrl, 40) }}
+                                                    <i class="ri-external-link-line ms-1"></i>
+                                                </a>
+                                            </p>
+                                        @else
+                                            <p class="text-muted mb-0">Please upload a ZIP Again to generate the live link.</p>
+                                        @endif
+                                    @elseif($tourZipStatus === 'pending')
+                                        <p class="text-muted mb-0">Please upload a ZIP to generate the live link.</p>
+                                    @else
+                                        <p class="text-muted mb-0">Please upload a ZIP Again to generate the live link.</p>
+                                    @endif
                                 </div>
-                                
-                            @endif
+                            </div>
+
+                            <div class="col-6 mb-2">
+                                <label class="form-label fw-bold text-muted small">Tour Live Status</label>
+                                <p class="mb-0">{{ $booking->tour_zip_status ?? 'N/A' }}</p>
+                            </div>
                             
                             <div class="col-6 mb-2">
                                 <label class="form-label fw-bold text-muted small">Created</label>
@@ -641,6 +723,207 @@
     
     // Also try after a delay
     setTimeout(initCopyButtons, 200);
+})();
+</script>
+
+<script>
+// Live ZIP processing status polling (Tour Live Link box)
+(function() {
+    const box = document.getElementById('tour-live-link-box');
+    const content = document.getElementById('tour-live-link-content');
+    if (!box || !content) return;
+
+    const statusUrl = "{{ route('admin.tour-manager.status', $booking) }}";
+    let startedAtMs = null;
+    let isProcessing = false;
+    let lastStatus = null;
+    const initialStatus = "{{ $tourZipStatus }}"; // Get initial status from server
+    
+    // Initialize timer data if page loads with processing status
+    @if($tourZipStatus === 'processing' && $booking->tour_zip_started_at)
+        @php
+            $startedAtTimestamp = $booking->tour_zip_started_at->timestamp * 1000; // Convert to milliseconds
+        @endphp
+        startedAtMs = {{ $startedAtTimestamp }};
+        isProcessing = true;
+    @endif
+
+    function escapeHtml(str) {
+        return String(str ?? '').replace(/[&<>"']/g, function(m) {
+            return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]);
+        });
+    }
+
+    function showToast(message, type) {
+        try {
+            const existing = document.getElementById('tour-status-toast');
+            if (existing) existing.remove();
+
+            const toast = document.createElement('div');
+            toast.id = 'tour-status-toast';
+            toast.className = 'position-fixed top-0 end-0 p-3';
+            toast.style.zIndex = '1080';
+            toast.innerHTML = `
+                <div class="toast align-items-center text-bg-${type === 'success' ? 'success' : type === 'error' ? 'danger' : 'info'} border-0 show" role="alert" aria-live="assertive" aria-atomic="true">
+                    <div class="d-flex">
+                        <div class="toast-body">
+                            ${escapeHtml(message)}
+                        </div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(toast);
+
+            const btn = toast.querySelector('.btn-close');
+            if (btn) {
+                btn.addEventListener('click', () => toast.remove());
+            }
+
+            setTimeout(() => {
+                if (toast.parentNode) toast.remove();
+            }, 4000);
+        } catch (e) {
+            alert(message);
+        }
+    }
+
+    function render(data) {
+        const status = data?.tour_zip_status ?? 'pending';
+        const progress = Math.max(0, Math.min(100, parseInt(data?.tour_zip_progress ?? 0, 10)));
+        const message = data?.tour_zip_message ?? '';
+        const liveUrl = data?.tour_live_url ?? '#';
+        const hasLive = data?.has_live_link === true;
+        const startedAt = data?.tour_zip_started_at ? new Date(data.tour_zip_started_at) : null;
+        isProcessing = status === 'processing';
+        startedAtMs = (startedAt && !isNaN(startedAt.getTime())) ? startedAt.getTime() : startedAtMs;
+
+        function formatElapsed() {
+            if (!startedAtMs) return '';
+            const now = new Date();
+            const diffMs = Math.max(0, now.getTime() - startedAtMs);
+            const totalSeconds = Math.floor(diffMs / 1000);
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = totalSeconds % 60;
+            if (minutes === 0) {
+                return `${seconds}s`;
+            }
+            return `${minutes}m ${seconds.toString().padStart(2, '0')}s`;
+        }
+
+        if (status === 'processing') {
+            const width = Math.max(1, progress);
+            const elapsed = formatElapsed();
+            content.innerHTML = `
+                <p class="text-warning mb-1">Processing ZIP… ${message ? '(' + escapeHtml(message) + ')' : ''}</p>
+                <div class="progress" style="height: 10px;">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated"
+                         role="progressbar"
+                         style="width: ${width}%;"
+                         aria-valuenow="${progress}" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+                <small class="text-muted d-block mt-1">
+                    ${progress}%${elapsed ? ' · running for <span id="tour-zip-elapsed">' + escapeHtml(elapsed) + '</span>' : ''}
+                </small>
+            `;
+            return;
+        }
+
+        if (status === 'failed') {
+            content.innerHTML = `<p class="text-danger mb-0">Processing failed${message ? ': ' + escapeHtml(message) : '.'}</p>`;
+            return;
+        }
+
+        if (status === 'done') {
+            if (hasLive && liveUrl && liveUrl !== '#') {
+                content.innerHTML = `
+                    <p class="mb-0">
+                        <a href="${escapeHtml(liveUrl)}" target="_blank" class="text-truncate d-block" style="max-width: 100%;">
+                            ${escapeHtml(liveUrl.length > 40 ? liveUrl.slice(0, 40) + '…' : liveUrl)}
+                            <i class="ri-external-link-line ms-1"></i>
+                        </a>
+                    </p>
+                `;
+            } else {
+                content.innerHTML = `<p class="text-muted mb-0">Please upload a ZIP Again to generate the live link.</p>`;
+            }
+            return;
+        }
+
+        if (status === 'pending') {
+            content.innerHTML = `<p class="text-muted mb-0">Please upload a ZIP to generate the live link.</p>`;
+            return;
+        }
+
+        content.innerHTML = `<p class="text-muted mb-0">Please upload a ZIP Again to generate the live link.</p>`;
+    }
+
+    async function poll() {
+        try {
+            const res = await fetch(statusUrl, { headers: { 'Accept': 'application/json' } });
+            if (!res.ok) return;
+            const data = await res.json();
+            const status = data?.tour_zip_status ?? 'pending';
+
+            // Detect status change from processing -> something else (check BEFORE updating lastStatus)
+            const wasProcessing = lastStatus === 'processing';
+            const isNowDone = status === 'done';
+            const isNowFailed = status === 'failed';
+            const isNowNotProcessing = status !== 'processing';
+
+            if (wasProcessing && isNowNotProcessing) {
+                if (isNowDone && (data?.has_live_link ?? false)) {
+                    showToast('Tour processing completed and live link is ready.', 'success');
+                } else if (isNowFailed) {
+                    showToast('Tour processing failed. Please check logs.', 'error');
+                } else {
+                    showToast('Tour processing finished.', 'info');
+                }
+            }
+
+            // Update lastStatus AFTER checking transitions
+            lastStatus = status;
+            render(data);
+
+            // Only reload if status changed FROM processing TO done (transition detection)
+            if (wasProcessing && isNowDone) {
+                if (!poll._reloaded) {
+                    poll._reloaded = true;
+                    // Add URL parameter to show toast after reload
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('completed', '1');
+                    setTimeout(() => window.location.href = url.toString(), 1200);
+                }
+                return;
+            }
+
+            // Continue polling only while processing (or until live link is available)
+            if (status === 'processing' && data?.has_live_link !== true) {
+                setTimeout(poll, 5000);
+            }
+        } catch (e) {
+            setTimeout(poll, 10000);
+        }
+    }
+
+    // Smooth UI timer: update "running for ..." every 1s without extra AJAX calls
+    setInterval(() => {
+        const el = document.getElementById('tour-zip-elapsed');
+        if (!el || !isProcessing || !startedAtMs) return;
+        const diffMs = Math.max(0, Date.now() - startedAtMs);
+        const totalSeconds = Math.floor(diffMs / 1000);
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        el.textContent = minutes === 0 ? `${seconds}s` : `${minutes}m ${seconds.toString().padStart(2, '0')}s`;
+    }, 1000);
+
+    // Only start polling if initial status is 'processing'
+    // If page loads with 'done'/'failed'/'pending', don't poll at all
+    if (initialStatus === 'processing') {
+        lastStatus = 'processing'; // Initialize so transition detection works
+        // Start polling immediately, then continue every 5 seconds
+        poll();
+    }
 })();
 </script>
 @endsection

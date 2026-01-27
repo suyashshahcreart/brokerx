@@ -227,6 +227,7 @@ Route::group(['prefix' => 'ppadmlog', 'as' => 'admin.', 'middleware' => ['web', 
     // Tour Manager routes
     Route::get('tour-manager', [TourManagerController::class, 'index'])->name('tour-manager.index');
     Route::get('tour-manager/{booking}', [TourManagerController::class, 'show'])->name('tour-manager.show');
+    Route::get('tour-manager/{booking}/status', [TourManagerController::class, 'status'])->name('tour-manager.status');
     Route::get('tour-manager/{booking}/upload', [TourManagerController::class, 'edit'])->name('tour-manager.upload');
     Route::put('tour-manager/{booking}', [TourManagerController::class, 'update'])->name('tour-manager.update');
     Route::post('tour-manager/upload-file', [TourManagerController::class, 'uploadFile'])->name('tour-manager.upload-file');
