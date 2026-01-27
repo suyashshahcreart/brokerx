@@ -27,6 +27,11 @@ class Booking extends Model
         'tour_final_link',
         'tour_code',
         'base_url',
+        'tour_zip_status',
+        'tour_zip_progress',
+        'tour_zip_message',
+        'tour_zip_started_at',
+        'tour_zip_finished_at',
         'area',
         'price',
         'house_no',
@@ -64,6 +69,8 @@ class Booking extends Model
         'cashfree_payment_meta' => 'array',
         'cashfree_last_response' => 'array',
         'json_data' => 'array',
+        'tour_zip_started_at' => 'datetime',
+        'tour_zip_finished_at' => 'datetime',
     ];
 
     // Relationships
