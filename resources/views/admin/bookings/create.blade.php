@@ -391,36 +391,17 @@
                                             <div class="mb-1">
                                                 <div class="section-title m-0">Property Type <span class="text-danger">*</span></div>
                                                 <div class="d-flex gap mb-0" id="propertyTypeContainer">
-                                                    @php
-                                                        // Define property type order and icons
-                                                        $propertyTypeOrder = [
-                                                            'Residential' => ['key' => 'res', 'icon' => 'ri-home-4-line', 'type' => 'ri'],
-                                                            'Commercial'  => ['key' => 'com', 'icon' => 'ri-building-line', 'type' => 'ri'],
-                                                            'Other'       => ['key' => 'oth', 'icon' => 'fa-ellipsis', 'type' => 'fa'],
-                                                        ];
-                                                        
-                                                        // Sort property types by the defined order
-                                                        $sortedPropertyTypes = collect($propertyTypes)->sortBy(function($pt) use ($propertyTypeOrder) {
-                                                            return array_search($pt->name, array_keys($propertyTypeOrder));
-                                                        });
-                                                    @endphp
-                                                    
-                                                    @foreach($sortedPropertyTypes as $pt)
-                                                        @php
-                                                            $config = $propertyTypeOrder[$pt->name] ?? ['key' => 'oth', 'icon' => 'fa-circle', 'type' => 'fa'];
-                                                        @endphp
+                                                   
+                                                    @foreach($propertyTypes as $pt)
                                                         <div
                                                             class="top-pill"
                                                             id="pill{{ \Illuminate\Support\Str::studly($pt->name) }}"
                                                             data-value="{{ $pt->name }}"
                                                             data-type-id="{{ $pt->id }}"
-                                                            onclick="handlePropertyTabChange('{{ $config['key'] }}')"
+                                                            data-tab-connect="tab-{{ $pt->name }}"
+                                                            onclick="handlePropertyTabChange(this)"
                                                         >
-                                                            @if($config['type'] === 'ri')
-                                                                <i class="{{ $config['icon'] }} me-1"></i>
-                                                            @else
-                                                                <i class="fa-solid {{ $config['icon'] }} me-1"></i>
-                                                            @endif
+                                                            <i class="{{ $pt->icon }}"></i>
                                                             {{ $pt->name }}
                                                         </div>
                                                     @endforeach
@@ -429,37 +410,27 @@
                                             </div>
                                         </div>
                                     </div>
-                                            
-
-                                            
-
-                                    <!-- RESIDENTIAL TAB -->
-                                    <div id="tab-res" class="hidden">
+                                    <!-- PROPERTY SUB TYPE AND OTHER DETAILS TAB -->
+                                    <div id="propertySubTypetab" class="hidden">
                                         <div class="row">
                                             <div class="col-6">
                                                 <!-- Property Sub Type -->
                                                 <div class="mb-1">
                                                     <div class="section-title mb-0">Property Sub Type <span class="text-danger">*</span></div>
-                                                    <div class="d-wrap" id="resTypeContainer">
-                                                        @foreach($propertySubTypes as $pst)
-                                                            @if($pst->property_type_id == ($propertyTypes->firstWhere('name', 'Residential')->id ?? null))
-                                                                <div class="top-pill" data-group="resType" data-value="{{ $pst->id }}" onclick="selectCard(this)">
-                                                                    @if($pst->icon)
-                                                                        @php
-                                                                            // Check if icon already has 'fa-' prefix, if not add 'fa-solid'
-                                                                            $iconClass = str_starts_with($pst->icon, 'fa-') ? "fa {$pst->icon}" : "fa-solid fa-{$pst->icon}";
-                                                                        @endphp
-                                                                        <i class="{{ $iconClass }} me-1"></i>
-                                                                    @endif
-                                                                    {{ $pst->name }}
+                                                    @foreach($propertySubTypes as $typeId => $subTypes)
+                                                        <div class="d-wrap " id="tab-{{collect($propertyTypes)->firstWhere('id', $typeId)->name}}">
+                                                            @foreach ($subTypes as $subType)
+                                                                <div class="top-pill" data-group="resType" data-value="{{ $subType->id }}" onclick="selectCard(this)">
+                                                                            <i class="{{ $subType->icon }}"></i>
+                                                                            {{ $subType->name }}
                                                                 </div>
-                                                            @endif
-                                                        @endforeach
-                                                    </div>
+                                                             @endforeach
+                                                         </div>
+                                                    @endforeach
                                                     <div id="err-resType" class="error">Property Sub Type is required.</div>
                                                 </div>
                                             </div>
-                                            <div class="col-6">
+                                            <div class="col-6" id="furnishRow">
                                                 <!-- Furnish Type -->
                                                 <div class="mb-1">
                                                     <div class="section-title mb-0">Furnish Type <span class="text-danger">*</span></div>
@@ -473,7 +444,7 @@
                                             </div>
                                         </div>
                                         <div class="row">
-                                            <div class="col-12">
+                                            <div class="col-12" id="sizeRow" >
                                                 <!-- Size (BHK/RK) -->
                                                 <div class="mb-1">
                                                     <div class="section-title mb-0">Size (BHK / RK) <span class="text-danger">*</span></div>
@@ -485,90 +456,7 @@
                                                     <div id="err-resSize" class="error">Size (BHK / RK) is required.</div>
                                                 </div>
                                             </div>
-                                        </div>
-                                                
-                                    </div>
-
-                                    <!-- COMMERCIAL TAB -->
-                                    <div id="tab-com" class="hidden">
-                                        <div class="row">
-                                            <div class="col-6">
-                                                <!-- Property Sub Type -->
-                                                <div class="mb-1">
-                                                    <div class="section-title mb-0">Property Sub Type <span class="text-danger">*</span></div>
-                                                    <div class="d-wrap" id="comTypeContainer">
-                                                        @foreach($propertySubTypes as $pst)
-                                                            @if($pst->property_type_id == ($propertyTypes->firstWhere('name', 'Commercial')->id ?? null))
-                                                                <div class="top-pill" data-group="comType" data-value="{{ $pst->id }}" onclick="selectCard(this)">
-                                                                    @if($pst->icon)
-                                                                        @php
-                                                                            // Check if icon already has 'fa-' prefix, if not add 'fa-solid'
-                                                                            $iconClass = str_starts_with($pst->icon, 'fa-') ? "fa {$pst->icon}" : "fa-solid fa-{$pst->icon}";
-                                                                        @endphp
-                                                                        <i class="{{ $iconClass }} me-1"></i>
-                                                                    @endif
-                                                                    {{ $pst->name }}
-                                                                </div>
-                                                            @endif
-                                                        @endforeach
-                                                    </div>
-                                                    <div id="err-comType" class="error">Property Sub Type is required.</div>
-                                                </div>
-                                            </div>
-                                            <div class="col-6">
-                                                <!-- Furnish Type -->
-                                                <div class="mb-1">
-                                                    <div class="section-title mb-0">Furnish Type <span class="text-danger">*</span></div>
-                                                    <div class="d-flex flex-wrap gap" id="comFurnishContainer">
-                                                        <div class="chip" data-group="comFurnish" data-value="Furnished" onclick="selectChip(this)">
-                                                            <i class="ri-sofa-line me-1"></i> Fully Furnished
-                                                        </div>
-                                                        <div class="chip" data-group="comFurnish" data-value="Semi-Furnished" onclick="selectChip(this)">
-                                                            <i class="ri-lightbulb-line me-1"></i> Semi Furnished
-                                                        </div>
-                                                        <div class="chip" data-group="comFurnish" data-value="Unfurnished" onclick="selectChip(this)">
-                                                            <i class="ri-door-line me-1"></i> Unfurnished
-                                                        </div>
-                                                    </div>
-                                                    <div id="err-comFurnish" class="error">Furnish Type is required.</div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                                
-
-                                                
-                                    </div>
-
-                                    <!-- OTHER TAB -->
-                                    <div id="tab-oth" class="hidden">
-                                        <!-- Looking For -->
-                                        <div class="mb-1">
-                                            <div class="section-title mb-0">Select Option <span class="text-danger">*</span></div>
-                                            <div class="d-flex flex-wrap gap" id="othLookingContainer">
-                                                @foreach($propertySubTypes as $pst)
-                                                    @if($pst->property_type_id == ($propertyTypes->firstWhere('name', 'Other')->id ?? null))
-                                                        <div class="top-pill" data-group="othLooking" data-value="{{ $pst->id }}" onclick="topPillClick(this)">
-                                                            @if($pst->icon)
-                                                                @php
-                                                                    // Check if icon already has 'fa-' prefix, if not add 'fa-solid'
-                                                                    $iconClass = str_starts_with($pst->icon, 'fa-') ? "fa {$pst->icon}" : "fa-solid fa-{$pst->icon}";
-                                                                @endphp
-                                                                <i class="{{ $iconClass }} me-1"></i>
-                                                            @endif
-                                                            {{ $pst->name }}
-                                                        </div>
-                                                    @endif
-                                                @endforeach
-                                            </div>
-                                            <div id="err-othLooking" class="error">Select Option is required.</div>
-                                        </div>
-
-                                        <!-- Other Option Details -->
-                                        <div class="mb-1">
-                                            <div class="section-title mb-0">Other Option Details</div>
-                                            <textarea name="other_option_details" id="othDesc" class="form-control @error('other_option_details') is-invalid @enderror" rows="3" placeholder="Enter other option details">{{ old('other_option_details') }}</textarea>
-                                            <div id="err-othDesc" class="error @error('other_option_details') @else hidden @enderror">@error('other_option_details'){{ $message }}@else Other Option Details is required.@enderror</div>
-                                        </div>
+                                        </div> 
                                     </div>
 
                                     <div class="row">

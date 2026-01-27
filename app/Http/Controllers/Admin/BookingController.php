@@ -239,13 +239,17 @@ class BookingController extends Controller
     {
         $users = User::role('customer')->orderBy('firstname')->get();
         $propertyTypes = PropertyType::orderBy('name')->get();
-        $propertySubTypes = PropertySubType::orderBy('name')->get();
+        $propertySubTypes = PropertySubType::query()
+            ->orderBy('property_type_id')
+            ->get()
+            ->groupBy('property_type_id');
         $bhks = BHK::orderBy('name')->get();
         $cities = City::orderBy('name')->get();
         $states = State::orderBy('name')->get();
-
         $paymentStatuses = ['pending', 'paid', 'failed', 'refunded'];
         $statuses = ['pending', 'confirmed', 'cancelled', 'completed'];
+
+        // dd($propertySubTypes);
 
         return view('admin.bookings.create', compact(
             'users',
