@@ -540,6 +540,7 @@ class TourManagerController extends Controller{
             // STEP 2: Analyze ZIP structure (lightweight - no extraction yet)
             $zipStructure = [];
             $indexHtmlPath = null;
+            $swJsPath = null;
             $jsonPath = null;
             $totalFiles = $zip->numFiles;
             
@@ -610,7 +611,6 @@ class TourManagerController extends Controller{
             $uploadErrors = [];
             $indexHtmlContent = null;
             $swJsContent = null;
-            $swJsPath = null;
             $jsonContent = null;
             $jsonFilename = null;
             
@@ -659,8 +659,9 @@ class TourManagerController extends Controller{
                     continue; // Will process later for local index.php
                 }
                 
-                if ($filename === $swJsPath || $basenameLower === 'sw.js') {
-                    \Log::info("Processing sw.js file: {$filename} (detected path: " . ($swJsPath ?? 'null') . ")");
+                // Check if this is sw.js file (only process if sw.js exists in ZIP)
+                if ($swJsPath && ($filename === $swJsPath || $basenameLower === 'sw.js')) {
+                    \Log::info("Processing sw.js file: {$filename} (detected path: {$swJsPath})");
                     // Upload sw.js to S3
                     $s3SwJsPath = $s3TourPath . '/' . $filename;
                     try {

@@ -639,7 +639,7 @@
 
             setTimeout(() => {
                 if (toast.parentNode) toast.remove();
-            }, 4000);
+            }, 6000);
         } catch (e) {
             // Fallback
             alert(message);
@@ -720,9 +720,18 @@
     async function poll() {
         try {
             const res = await fetch(statusUrl, { headers: { 'Accept': 'application/json' } });
-            if (!res.ok) return;
+            if (!res.ok) {
+                // On HTTP error, retry if still processing
+                if (lastStatus === 'processing') {
+                    console.warn('Status API returned error:', res.status, '- retrying in 10s');
+                    setTimeout(() => poll(), 10000);
+                }
+                return;
+            }
             const data = await res.json();
             const status = data?.tour_zip_status ?? 'pending';
+            
+            console.log('Poll response - Status:', status, 'Progress:', data?.tour_zip_progress ?? 0);
 
             // Detect status change from processing -> something else (check BEFORE updating lastStatus)
             const wasProcessing = lastStatus === 'processing';
@@ -731,12 +740,13 @@
             const isNowNotProcessing = status !== 'processing';
 
             if (wasProcessing && isNowNotProcessing) {
+                console.log('Status changed from processing to:', status);
                 if (isNowDone && (data?.has_live_link ?? false)) {
-                    showToast('Tour processing completed and live link is ready.', 'success');
+                    showToast('✅ Tour processing completed! Live link is ready.', 'success');
                 } else if (isNowFailed) {
-                    showToast('Tour processing failed. Please check logs.', 'error');
+                    showToast('❌ Tour processing failed. Please check logs.', 'error');
                 } else {
-                    showToast('Tour processing finished.', 'info');
+                    showToast('ℹ️ Tour processing finished.', 'info');
                 }
             }
 
@@ -748,21 +758,40 @@
             if (wasProcessing && isNowDone) {
                 if (!poll._reloaded) {
                     poll._reloaded = true;
+                    console.log('Status changed to done, preparing page reload...');
                     // Add URL parameter to show toast after reload
                     const url = new URL(window.location.href);
                     url.searchParams.set('completed', '1');
-                    setTimeout(() => window.location.href = url.toString(), 1200);
+                    // Show toast for 2 seconds before reload
+                    setTimeout(() => {
+                        console.log('Reloading page with completed parameter...');
+                        window.location.href = url.toString();
+                    }, 2000);
                 }
                 return;
             }
 
-            // Continue polling only while processing (or until live link is available)
-            if (status === 'processing' && data?.has_live_link !== true) {
-                setTimeout(poll, 5000);
+            // Continue polling only while processing
+            if (status === 'processing') {
+                // Keep polling every 5 seconds while still processing
+                console.log('Status is processing, scheduling next poll in 5s...');
+                setTimeout(() => {
+                    console.log('Executing scheduled poll...');
+                    poll();
+                }, 5000);
+            } else {
+                // Status changed from processing to something else - stop polling
+                // (reload already handled above if it was processing -> done)
+                console.log('Polling stopped. Status changed to:', status);
             }
         } catch (e) {
-            // retry slowly on transient errors
-            setTimeout(poll, 10000);
+            // On error, only retry if we're still in processing state
+            if (lastStatus === 'processing') {
+                console.error('Poll error, retrying in 10s:', e);
+                setTimeout(() => poll(), 10000);
+            } else {
+                console.error('Poll error and status not processing, stopping:', e);
+            }
         }
     }
 
@@ -781,8 +810,11 @@
     // If page loads with 'done'/'failed'/'pending', don't poll at all
     if (initialStatus === 'processing') {
         lastStatus = 'processing'; // Initialize so transition detection works
+        console.log('Initial status is processing, starting polling...');
         // Start polling immediately, then continue every 5 seconds
         poll();
+    } else {
+        console.log('Initial status is', initialStatus, '- polling not started');
     }
 })();
 </script>
