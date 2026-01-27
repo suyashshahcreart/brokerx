@@ -2,27 +2,101 @@
  * Photographer Visits Index Page
  * DataTables initialization and filter handling
  */
+import $ from "jquery";
+import moment from "moment";
+import 'datatables.net-bs5';
+
+// Set default locale (moment includes 'en' by default)
+moment.locale('en');
+
+window.$ = $;
+window.jQuery = $;
+window.moment = moment;
 
 document.addEventListener('DOMContentLoaded', function() {
     'use strict';
     
-    console.log('Initializing DataTables for photographer visits...');
-    
-    // Check if jQuery and DataTables are loaded
-    if (typeof jQuery === 'undefined') {
-        console.error('jQuery is not loaded!');
-        return;
+    const table = $('#visits-table');
+    if (!table.length) return;
+
+    // Initialize daterangepicker
+    let dateRangePicker = null;
+
+    // Wait for moment and daterangepicker to be available
+    const initDateRangePicker = () => {
+        if (typeof window.moment === 'undefined' || typeof $.fn.daterangepicker === 'undefined') {
+            setTimeout(initDateRangePicker, 100);
+            return;
+        }
+        initializeDateRangePicker();
+    };
+
+    function initializeDateRangePicker() {
+        const input = $('#filter-date-range');
+        if (!input.length || input.length === 0) {
+            // Element doesn't exist yet, try again later
+            setTimeout(initializeDateRangePicker, 200);
+            return;
+        }
+
+        // Ensure moment is available
+        if (typeof window.moment === 'undefined') {
+            console.error('Moment.js is not available');
+            return;
+        }
+
+        // Ensure daterangepicker is available
+        if (typeof $.fn.daterangepicker === 'undefined') {
+            console.error('Daterangepicker is not available');
+            return;
+        }
+
+        // Check if already initialized
+        if (input.data('daterangepicker')) {
+            return; // Already initialized
+        }
+
+        try {
+            // Ensure the element is in the DOM
+            if (!input.is(':visible') && !document.body.contains(input[0])) {
+                setTimeout(initializeDateRangePicker, 200);
+                return;
+            }
+
+            // Initialize daterangepicker with proper configuration
+            dateRangePicker = input.daterangepicker({
+                autoUpdateInput: false,
+                locale: {
+                    cancelLabel: 'Clear',
+                    format: 'YYYY-MM-DD'
+                },
+                opens: 'left'
+            });
+
+            input.on('apply.daterangepicker', function (ev, picker) {
+                $(this).val(picker.startDate.format('YYYY-MM-DD') + ' - ' + picker.endDate.format('YYYY-MM-DD'));
+                // Trigger table reload
+                dataTable.draw();
+            });
+
+            input.on('cancel.daterangepicker', function (ev, picker) {
+                $(this).val('');
+                // Trigger table reload
+                dataTable.draw();
+            });
+        } catch (error) {
+            console.error('Error initializing daterangepicker:', error);
+            // Don't retry on error to avoid infinite loop
+        }
     }
-    
-    if (typeof jQuery.fn.DataTable === 'undefined') {
-        console.error('DataTables is not loaded!');
-        return;
-    }
-    
-    const $ = jQuery;
-    
+
+    // Start initialization after a short delay to ensure DOM is ready
+    setTimeout(() => {
+        initDateRangePicker();
+    }, 300);
+
     // Initialize DataTable
-    const table = $('#visits-table').DataTable({
+    const dataTable = table.DataTable({
         processing: true,
         serverSide: true,
         ajax: {
@@ -31,8 +105,16 @@ document.addEventListener('DOMContentLoaded', function() {
             data: function(d) {
                 d.status = $('#filter-status').val();
                 d.photographer_id = $('#filter-photographer').val();
-                d.date_from = $('#filter-date-from').val();
-                d.date_to = $('#filter-date-to').val();
+
+                // Handle date range
+                const dateRange = $('#filter-date-range').val();
+                if (dateRange) {
+                    const dates = dateRange.split(' - ');
+                    if (dates.length === 2) {
+                        d.date_from = dates[0];
+                        d.date_to = dates[1];
+                    }
+                }
             },
             dataSrc: function(json) {
                 return json.data;
@@ -118,10 +200,20 @@ document.addEventListener('DOMContentLoaded', function() {
         ],
         order: [[0, 'desc']],
         language: {
+            search: '_INPUT_',
+            searchPlaceholder: 'Search visits...',
             processing: '<i class="ri-loader-4-line spin"></i> Loading...',
             emptyTable: 'No photographer visits found',
-            zeroRecords: 'No matching visits found'
+            zeroRecords: 'No matching visits found',
+            paginate: {
+                next: '<i class="ri-arrow-right-s-line"></i>',
+                previous: '<i class="ri-arrow-left-s-line"></i>'
+            }
         },
+        lengthMenu: [10, 25, 50, 100],
+        responsive: true,
+        lengthMenu: [10, 25, 50, 100],
+        responsive: true,
         drawCallback: function(settings) {
             // Reinitialize tooltips if they exist
             if (typeof bootstrap !== 'undefined' && bootstrap.Tooltip) {
@@ -134,13 +226,13 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Filter change events
-    $('#filter-status, #filter-photographer, #filter-date-from, #filter-date-to').on('change', function() {
-        table.draw();
+    $('#filter-status, #filter-photographer').on('change', function() {
+        dataTable.draw();
     });
 
     // Panel card refresh
     $('[data-panel-action="refresh"]').on('click', function() {
-        table.ajax.reload();
+        dataTable.ajax.reload();
     });
     
 });

@@ -382,6 +382,9 @@
                                                     <div class="top-pill" data-group="ownerType" data-value="Broker" onclick="topPillClick(this)">
                                                         <i class="ri-briefcase-line me-1"></i> Broker
                                                     </div>
+                                                    <div class="top-pill" data-group="ownerType" data-value="Other" onclick="topPillClick(this)">
+                                                        <i class="ri-briefcase-line me-1"></i> Other
+                                                    </div>
                                                 </div>
                                                 <div id="err-ownerType" class="error">Owner Type is required.</div>
                                             </div>

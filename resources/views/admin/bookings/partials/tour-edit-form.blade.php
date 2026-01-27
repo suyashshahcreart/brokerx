@@ -1,5 +1,5 @@
 {{-- Tour Edit Form --}}
-<form method="POST" action="{{ route('admin.tours.updateTourDetails', $tour) }}" enctype="multipart/form-data"
+<form method="POST" id="tourDetailForm" action="{{ route('admin.tours.updateTourDetails', $tour) }}" enctype="multipart/form-data"
     class="needs-validation" novalidate>
     @csrf
     @method('PUT')
@@ -146,8 +146,7 @@
                 <div class="col-lg-12">
                     <div class="mb-3">
                         <label class="form-label" for="hosted_link">Hosted Link</label>
-                        <input type="url" name="hosted_link" id="hosted_link" class="form-control" placeholder="https://example.com" value="{{ old('hosted_link', $tour->hosted_link) }}">
-                        @error('hosted_link')<div class="text-danger">{{ $message }}</div>@enderror
+                        <input type="url" name="hosted_link" id="hosted_link" class="form-control" placeholder="e.g, https://example.com" value="{{ old('hosted_link', $tour->hosted_link) }}">                        <div class="invalid-feedback">Hosted Link is required when Is Hosted is enabled.</div>                        @error('hosted_link')<div class="text-danger">{{ $message }}</div>@enderror
                     </div>
                 </div>
             </div>
@@ -389,7 +388,7 @@
                 <div class="col-md-6">
                     <div class="mb-3">
                         <label for="footer_mobile" class="form-label">Contact Mobile</label>
-                        <input type="text" name="footer_mobile" id="footer_mobile" class="form-control"
+                        <input type="number" name="footer_mobile" id="footer_mobile" class="form-control"
                             value="{{ old('footer_mobile', $tour->footer_mobile) }}" placeholder="eg.+91 9898 363026">
                         @error('footer_mobile')<div class="text-danger">{{ $message }}</div>@enderror
                     </div>
@@ -446,7 +445,7 @@
                 </div>
                 <div class="col-md-4">
                     <label for="footer_brand_mobile" class="form-label">Contact Number</label>
-                    <input type="text" name="footer_brand_mobile" id="footer_brand_mobile" class="form-control"
+                    <input type="number" name="footer_brand_mobile" id="footer_brand_mobile" class="form-control"
                         value="{{ old('footer_brand_mobile', $tour->footer_brand_mobile) }}"
                         placeholder="eg.+91 9898 363026"
                         >
@@ -457,7 +456,7 @@
     </div>
 
     <!-- Button of actions -->
-    <div class="d-flex gap-2">
+    <div class="d-flex justify-content-end gap-2">
         <button class="btn btn-primary" type="submit">
             <i class="ri-save-line me-1"></i> Update Tour
         </button>
@@ -533,49 +532,102 @@
             if (isActive.checked) {
                 if(this.checked) {
                     hostedLinkContainer.classList.remove('d-none');
+                    // Make hosted link required when Is Hosted is checked
+                    const hostedLinkInput = document.getElementById('hosted_link');
+                    if (hostedLinkInput) {
+                        hostedLinkInput.required = true;
+                    }
                 } else {
                     hostedLinkContainer.classList.add('d-none');
+                    // Make hosted link optional when Is Hosted is unchecked
+                    const hostedLinkInput = document.getElementById('hosted_link');
+                    if (hostedLinkInput) {
+                        hostedLinkInput.required = false;
+                        hostedLinkInput.classList.remove('is-valid', 'is-invalid');
+                    }
                 }
             }
         });
+
+        // Real-time validation for hosted link
+        const hostedLinkInput = document.getElementById('hosted_link');
+        if (hostedLinkInput) {
+            hostedLinkInput.addEventListener('input', function() {
+                const isHostedChecked = isHosted.checked;
+                const value = this.value.trim();
+                
+                if (isHostedChecked) {
+                    if (value) {
+                        // Valid URL or non-empty
+                        this.classList.remove('is-invalid');
+                        this.classList.add('is-valid');
+                    } else {
+                        // Empty and required
+                        this.classList.remove('is-valid');
+                        this.classList.add('is-invalid');
+                    }
+                } else {
+                    // Not required, clear validation
+                    this.classList.remove('is-valid', 'is-invalid');
+                }
+            });
+            
+            // Show alert on blur if field is invalid
+            hostedLinkInput.addEventListener('blur', function() {
+                const isHostedChecked = isHosted.checked;
+                const value = this.value.trim();
+                
+                if (isHostedChecked && !value) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Validation Error',
+                        text: 'Hosted Link is required when Is Hosted is enabled.',
+                        confirmButtonColor: '#dc3545',
+                        confirmButtonText: 'OK'
+                    });
+                }
+            });
+        }
 
         // Add credential row
         const container = document.getElementById('credentials-container');
         const addBtn = document.getElementById('add-credential-btn');
         let credentialIndex = {{ count(old('credentials', $tour->credentials ?? [])) }};
 
-        addBtn.addEventListener('click', function() {
-            const row = document.createElement('div');
-            row.className = 'credential-row row mb-2 align-items-end';
-            row.innerHTML = `
-                <div class="col-md-3">
-                    <label class="form-label">Username</label>
-                    <input type="text" name="credentials[${credentialIndex}][user_name]" class="form-control" required>
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label">Password</label>
-                    <input type="text" name="credentials[${credentialIndex}][password]" class="form-control" required>
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label">Status</label>
-                    <select name="credentials[${credentialIndex}][is_active]" class="form-select">
-                        <option value="1" selected>Active</option>
-                        <option value="0">Inactive</option>
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <button type="button" class="btn btn-danger remove-credential"><i class="ri-delete-bin-line"></i></button>
-                </div>
-            `;
-            container.appendChild(row);
-            credentialIndex++;
-        });
+        if (addBtn && container) {
+            addBtn.addEventListener('click', function() {
+                const row = document.createElement('div');
+                row.className = 'credential-row row mb-2 align-items-end';
+                row.innerHTML = `
+                    <div class="col-md-3">
+                        <label class="form-label">Username</label>
+                        <input type="text" name="credentials[${credentialIndex}][user_name]" class="form-control" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Password</label>
+                        <input type="text" name="credentials[${credentialIndex}][password]" class="form-control" required>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Status</label>
+                        <select name="credentials[${credentialIndex}][is_active]" class="form-select">
+                            <option value="1" selected>Active</option>
+                            <option value="0">Inactive</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <button type="button" class="btn btn-danger remove-credential"><i class="ri-delete-bin-line"></i></button>
+                    </div>
+                `;
+                container.appendChild(row);
+                credentialIndex++;
+            });
 
-        // Remove credential row
-        container.addEventListener('click', function(e) {
-            if (e.target.closest('.remove-credential')) {
-                e.target.closest('.credential-row').remove();
-            }
-        });
+            // Remove credential row
+            container.addEventListener('click', function(e) {
+                if (e.target.closest('.remove-credential')) {
+                    e.target.closest('.credential-row').remove();
+                }
+            });
+        }
     });
 </script>

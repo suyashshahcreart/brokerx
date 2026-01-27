@@ -15,12 +15,13 @@
                     <h3 class="mb-0">Photographer Visits</h3>
                 </div>
                 <div class="d-flex align-items-center gap-2">
-                   <x-admin.back-button :classes="['btn', 'btn-soft-primary']" :merge="false"
+                    <x-admin.back-button :classes="['btn', 'btn-soft-primary']" :merge="false"
                         icon="ri-arrow-go-back-line" />
                     @if($canCreate)
-                     <a href="{{ route('admin.photographer-visits.create') }}" class="btn btn-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="Add New Visit" >
-                        <i class="ri-add-line me-1"></i> New Visit
-                    </a>
+                        <a href="{{ route('admin.photographer-visits.create') }}" class="btn btn-primary"
+                            data-bs-toggle="tooltip" data-bs-placement="top" title="Add New Visit">
+                            <i class="ri-add-line me-1"></i> New Visit
+                        </a>
                     @endif
                 </div>
             </div>
@@ -48,6 +49,7 @@
                     <!-- Filters -->
                     <div class="row mb-3">
                         <div class="col-md-3 mb-2">
+                            <label for="filterState" class="form-label">Status</label>
                             <select id="filter-status" class="form-select">
                                 <option value="">All Status</option>
                                 <option value="pending">Pending</option>
@@ -58,18 +60,18 @@
                             </select>
                         </div>
                         <div class="col-md-3 mb-2">
+                            <label for="filter-photographer" class="form-label">Photographer</label>
                             <select id="filter-photographer" class="form-select">
                                 <option value="">All Photographers</option>
                                 @foreach($photographers as $photographer)
-                                    <option value="{{ $photographer->id }}">{{ $photographer->firstname }} {{ $photographer->lastname }}</option>
+                                    <option value="{{ $photographer->id }}">{{ $photographer->firstname }}
+                                        {{ $photographer->lastname }}</option>
                                 @endforeach
                             </select>
                         </div>
                         <div class="col-md-3 mb-2">
-                            <input type="date" id="filter-date-from" class="form-control" placeholder="From Date">
-                        </div>
-                        <div class="col-md-3 mb-2">
-                            <input type="date" id="filter-date-to" class="form-control" placeholder="To Date">
+                            <label for="filter-date-range" class="form-label">Visit Date Range</label>
+                            <input type="text" id="filter-date-range" class="form-control" placeholder="Select date range" />
                         </div>
                     </div>
 
@@ -95,11 +97,11 @@
     </div>
 @endsection
 @section('script')
-@vite(['resources/js/pages/photographer-visits-index.js'])
-<script>
-    // Configuration for the photographer visits page
-    window.photographerVisitsConfig = {
-        indexRoute: '{{ route('admin.photographer-visits.index') }}'
-    };
-</script>
+    @vite(['resources/js/pages/photographer-visits-index.js'])
+    <script>
+        // Configuration for the photographer visits page
+        window.photographerVisitsConfig = {
+            indexRoute: '{{ route('admin.photographer-visits.index') }}'
+        };
+    </script>
 @endsection

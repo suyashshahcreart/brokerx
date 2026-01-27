@@ -50,7 +50,7 @@
                     <div class="card-body py-0 px-2">
                         <div class="row mb-5">
                             <div class="col-sm-3 col-md-3 col-lg-3 mb-2 mb-sm-0">
-                                <div class="nav flex-column nav-pills settings-nav-pills" id="vl-pills-tab" role="tablist" aria-orientation="vertical" style="position: sticky; top: 20px;">
+                                <div class="nav flex-column nav-pills settings-nav-pills p-1" id="vl-pills-tab" role="tablist" aria-orientation="vertical" style="position: sticky; top: 20px;">
                                     @php
                                         // Find first available tab to make active
                                         $firstActiveTab = null;

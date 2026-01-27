@@ -91,7 +91,7 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div class="d-none col-md-3">
+                        <div class="col-md-3">
                             <label for="filterStatus" class="form-label">Booking Status</label>
                             <select id="filterStatus" class="form-select form-select-sm">
                                 <option value="">All Status</option>
@@ -101,6 +101,7 @@
                                 <option value="completed">Completed</option>
                                 <option value="Schedul_accepted">Schedul Accepted</option>
                                 <option value="Reschedul_accepted">Reschedul Accepted</option>
+                                <option value="Schedul_completed">Schedul Completed</option>
                             </select>
                         </div>
                         <div class="col-md-3">
@@ -125,7 +126,7 @@
                                     <th>ID</th>
                                     <th>User</th>
                                     <th>Type / Subtype</th>
-                                    <th>BHK</th>
+                                    <th>QR Code</th>
                                     <th>City / State</th>
                                     <th>Area</th>
                                     <th>Price</th>

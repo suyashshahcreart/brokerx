@@ -13,6 +13,9 @@
                 </nav>
                 <h3 class="mb-0">My Profile</h3>
             </div>
+            <div class="d-flex align-items-center gap-2">
+                <x-admin.back-button :fallback="route('admin.index')" :classes="['btn', 'btn-soft-secondary']" :merge="false" icon="ri-arrow-go-back-line" />
+            </div>
         </div>
 
         <div class="card panel-card border-primary border-top" data-panel-card>
@@ -97,7 +100,7 @@
                         <div class="col-lg-6">
                             <div class="mb-3">
                                 <label for="mobile" class="form-label">Mobile</label>
-                                <input type="tel" name="mobile" id="mobile" value="{{ old('mobile', $user->mobile) }}"
+                                <input type="number"  name="mobile" id="mobile" value="{{ old('mobile', $user->mobile) }}"
                                     class="form-control @error('mobile') is-invalid @enderror"
                                     inputmode="numeric" pattern="[0-9]{10}" minlength="10" maxlength="20">
                                 <div class="invalid-feedback">

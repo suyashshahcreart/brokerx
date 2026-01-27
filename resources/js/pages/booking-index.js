@@ -63,7 +63,7 @@ document.addEventListener('DOMContentLoaded', function () {
 				return;
 			}
 
-			// Initialize daterangepicker with proper configuration
+			// Initialize daterangepicker with proper configuration and preset ranges
 			// Don't specify parentEl - let daterangepicker use default (appends to body)
 			dateRangePicker = input.daterangepicker({
 				autoUpdateInput: false,
@@ -71,7 +71,19 @@ document.addEventListener('DOMContentLoaded', function () {
 					cancelLabel: 'Clear',
 					format: 'YYYY-MM-DD'
 				},
-				opens: 'left'
+				opens: 'left',
+				ranges: {
+					'Today': [window.moment(), window.moment()],
+					'Yesterday': [window.moment().subtract(1, 'days'), window.moment().subtract(1, 'days')],
+					'Last 7 Days': [window.moment().subtract(6, 'days'), window.moment()],
+					'Last 30 Days': [window.moment().subtract(29, 'days'), window.moment()],
+					'This Month': [window.moment().startOf('month'), window.moment().endOf('month')],
+					'Last Month': [window.moment().subtract(1, 'month').startOf('month'), window.moment().subtract(1, 'month').endOf('month')],
+					'This Year': [window.moment().startOf('year'), window.moment().endOf('year')],
+					'Last Year': [window.moment().subtract(1, 'year').startOf('year'), window.moment().subtract(1, 'year').endOf('year')]
+				},
+				alwaysShowCalendars: true,
+				showCustomRangeLabel: true
 			});
 
 			input.on('apply.daterangepicker', function (ev, picker) {
@@ -118,10 +130,10 @@ document.addEventListener('DOMContentLoaded', function () {
 		order: [[0, 'desc']],
 		columns: [
 			{ data: 'id', name: 'id' },
-			{ data: 'user', name: 'user.firstname', orderable: false, searchable: false },
-			{ data: 'type_subtype', name: 'propertyType.name', orderable: false, searchable: false },
-			{ data: 'bhk', name: 'bhk.name', orderable: false, searchable: false },
-			{ data: 'city_state', name: 'city.name', orderable: false, searchable: false },
+			{ data: 'user', name: 'users.firstname', searchable: true },
+			{ data: 'type_subtype', name: 'property_types.name', orderable: false, searchable: false },
+			{ data: 'qr_code', name: 'qr.code', orderable: false, searchable: false },
+			{ data: 'city_state', name: 'cities.name', orderable: false, searchable: true },
 			{ data: 'area', name: 'area' },
 			{ data: 'price', name: 'price' },
 			{ data: 'booking_date', name: 'booking_date' },

@@ -45,13 +45,9 @@
                                     @endforeach
                                 </select>
                             </div>
-                            <div class="col-md-3">
-                                <label class="form-label">Date From</label>
-                                <input type="date" class="form-control" id="filter-date-from">
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">Date To</label>
-                                <input type="date" class="form-control" id="filter-date-to">
+                            <div class="col-md-6">
+                                <label class="form-label">Date Range</label>
+                                <input type="text" class="form-control" id="filter-date-range" placeholder="Select date range">
                             </div>
                         </div>
 
@@ -71,10 +67,13 @@
                                <table id="bookings-table" class="table table-hover dt-responsive nowrap w-100">
                                 <thead class="table-light">
                                     <tr>
+                                        <th>ID</th>
                                         <th>Booking</th>
                                         <th>Customer</th>
                                         <th>Location</th>
-                                        {{-- <th>Booking Date</th> --}}
+                                        <th>City / State</th>
+                                        <th>QR Code</th>
+                                        <th>Created</th>
                                         <th>Status</th>
                                         <th>Payment</th>
                                         <th>Price</th>

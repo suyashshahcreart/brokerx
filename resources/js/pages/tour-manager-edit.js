@@ -25,6 +25,36 @@ function updateUploadPaths() {
     } else {
         ftpFullUrlText.textContent = 'N/A';
     }
+    
+    // Validate upload button
+    validateUploadButton();
+}
+
+// Function to validate upload button state
+function validateUploadButton() {
+    const slugInput = document.getElementById('tour_slug');
+    const locationSelect = document.getElementById('tour_location');
+    const uploadBtn = document.getElementById('upload-btn');
+    const dropzoneEl = document.getElementById('tour-dropzone');
+    
+    if (!uploadBtn || !slugInput || !locationSelect) return;
+    
+    const slug = slugInput.value.trim();
+    const location = locationSelect.value.trim();
+    
+    let hasFiles = false;
+    if (dropzoneEl && Dropzone.forElement(dropzoneEl)) {
+        const dropzone = Dropzone.forElement(dropzoneEl);
+        hasFiles = dropzone && dropzone.files.length > 0;
+    }
+    
+    const hasExistingFiles = document.querySelector('.list-group-item') !== null;
+    
+    // Disable button if any required field is empty or no files
+    const isValid = slug && location && (hasFiles || hasExistingFiles);
+    
+    uploadBtn.disabled = !isValid;
+    uploadBtn.classList.toggle('disabled', !isValid);
 }
 
 // Setup dynamic path updates - ensure it runs after DOM is ready
@@ -139,11 +169,13 @@ if (document.getElementById('tour-dropzone') && !document.getElementById('tour-d
                     
                     // Show file count
                     updateFileCount();
+                    validateUploadButton();
                 });
 
                 this.on("removedfile", function (file) {
                     console.log('File removed:', file.name);
                     updateFileCount();
+                    validateUploadButton();
                 });
                 
                 this.on("maxfilesexceeded", function(file) {

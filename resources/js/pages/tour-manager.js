@@ -1,4 +1,38 @@
+import moment from 'moment';
+
+window.moment = moment;
+
 $(document).ready(function () {
+    // Initialize daterangepicker
+    $('#filter-date-range').daterangepicker({
+        autoUpdateInput: false,
+        locale: {
+            cancelLabel: 'Clear',
+            format: 'YYYY-MM-DD'
+        },
+        opens: 'left',
+        ranges: {
+            'Today': [moment(), moment()],
+            'Yesterday': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
+            'Last 7 Days': [moment().subtract(6, 'days'), moment()],
+            'Last 30 Days': [moment().subtract(29, 'days'), moment()],
+            'This Month': [moment().startOf('month'), moment().endOf('month')],
+            'Last Month': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')],
+            'This Year': [moment().startOf('year'), moment().endOf('year')],
+            'Last Year': [moment().subtract(1, 'year').startOf('year'), moment().subtract(1, 'year').endOf('year')]
+        },
+        alwaysShowCalendars: true,
+        showCustomRangeLabel: true
+    });
+
+    $('#filter-date-range').on('apply.daterangepicker', function(ev, picker) {
+        $(this).val(picker.startDate.format('YYYY-MM-DD') + ' - ' + picker.endDate.format('YYYY-MM-DD'));
+    });
+
+    $('#filter-date-range').on('cancel.daterangepicker', function(ev, picker) {
+        $(this).val('');
+    });
+
     // Initialize DataTable
     let table = $('#bookings-table').DataTable({
         processing: true,
@@ -8,24 +42,34 @@ $(document).ready(function () {
             data: function (d) {
                 d.status = $('#filter-status').val();
                 d.payment_status = $('#filter-payment-status').val();
-                d.date_from = $('#filter-date-from').val();
-                d.date_to = $('#filter-date-to').val();
+                
+                // Handle date range
+                const dateRange = $('#filter-date-range').val();
+                if (dateRange) {
+                    const dates = dateRange.split(' - ');
+                    if (dates.length === 2) {
+                        d.date_from = dates[0];
+                        d.date_to = dates[1];
+                    }
+                }
             }
         },
         columns: [
+            { data: 'booking_id', name: 'id' },
             { data: 'booking_info', name: 'id' },
             { data: 'customer', name: 'user.firstname' },
-            { data: 'location', name: 'city.name' },
-            // { data: 'booking_date', name: 'booking_date' },
+            { data: 'location', name: 'location' },
+            { data: 'city_state', name: 'city.name' },
+            { data: 'qr_code', name: 'qr.code', orderable: false, searchable: false },
+            { data: 'created_at', name: 'created_at' },
             { data: 'status', name: 'status' },
             { data: 'payment_status', name: 'payment_status' },
             { data: 'price', name: 'price' },
             { data: 'actions', name: 'actions', orderable: false, searchable: false }
         ],
-        order: [[3, 'desc']],
+        order: [[0, 'desc']],
         pageLength: 25,
         responsive: true,
-        dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>rtip',
         language: {
             paginate: {
                 previous: "<i class='ri-arrow-left-s-line'></i>",
@@ -50,8 +94,7 @@ $(document).ready(function () {
     $('#reset-filters').on('click', function () {
         $('#filter-status').val('');
         $('#filter-payment-status').val('');
-        $('#filter-date-from').val('');
-        $('#filter-date-to').val('');
+        $('#filter-date-range').val('');
         table.draw();
     });
 

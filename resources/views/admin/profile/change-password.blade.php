@@ -200,7 +200,7 @@
                         </div>
                     </div>
                     <div class="d-flex justify-content-end gap-2">
-                        <a href="{{ route('admin.profile.index') }}" class="btn btn-secondary">
+                        <a href="{{ route('admin.profile.index') }}" class="btn btn-soft-secondary">
                             <i class="ri-close-line me-1"></i> Cancel
                         </a>
                         <button type="submit" class="btn btn-primary" id="updatePasswordBtn">

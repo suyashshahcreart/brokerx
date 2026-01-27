@@ -65,13 +65,10 @@
                             <input type="number" id="filterBookingId" class="form-control form-control-sm"
                                 placeholder="Enter booking ID..." />
                         </div>
-                        <div class="col-md-3">
-                            <label for="filterDateFrom" class="form-label">Date From</label>
-                            <input type="date" id="filterDateFrom" class="form-control form-control-sm" />
-                        </div>
-                        <div class="col-md-3">
-                            <label for="filterDateTo" class="form-label">Date To</label>
-                            <input type="date" id="filterDateTo" class="form-control form-control-sm" />
+                        <div class="col-md-6">
+                            <label for="filterDateRange" class="form-label">Date Range</label>
+                            <input type="text" id="filterDateRange" class="form-control form-control-sm"
+                                placeholder="Select date range" />
                         </div>
                         <div class="col-12">
                             <button type="button" class="btn btn-sm btn-primary" id="applyFilters">

@@ -24,6 +24,55 @@ class QRAnalyticsController extends Controller
             $query = QRAnalytics::with(['booking', 'user'])
                 ->select('qr_analytics.*');
 
+            // Filter by tour_code
+            if ($request->has('tour_code') && $request->tour_code != '') {
+                $query->where('tour_code', 'like', '%' . $request->tour_code . '%');
+            }
+
+            // Filter by booking_id
+            if ($request->has('booking_id') && $request->booking_id != '') {
+                $query->where('booking_id', $request->booking_id);
+            }
+
+            // Filter by country
+            if ($request->has('country') && $request->country != '') {
+                $query->where('country', 'like', '%' . $request->country . '%');
+            }
+
+            // Filter by city
+            if ($request->has('city') && $request->city != '') {
+                $query->where('city', 'like', '%' . $request->city . '%');
+            }
+
+            // Filter by device_type
+            if ($request->has('device_type') && $request->device_type != '') {
+                $query->where('device_type', $request->device_type);
+            }
+
+            // Filter by location_source
+            if ($request->has('location_source') && $request->location_source != '') {
+                $query->where('location_source', $request->location_source);
+            }
+
+            // Filter by tracking_status
+            if ($request->has('tracking_status') && $request->tracking_status != '') {
+                $query->where('tracking_status', $request->tracking_status);
+            }
+
+            // Filter by page_type
+            if ($request->has('page_type') && $request->page_type != '') {
+                $query->where('page_type', $request->page_type);
+            }
+
+            // Filter by date range
+            if ($request->has('date_from') && $request->date_from != '') {
+                $query->whereDate('scan_date', '>=', $request->date_from);
+            }
+
+            if ($request->has('date_to') && $request->date_to != '') {
+                $query->whereDate('scan_date', '<=', $request->date_to);
+            }
+
             return DataTables::of($query)
                 ->addIndexColumn()
                 ->editColumn('tour_code', function (QRAnalytics $analytics) {
@@ -40,20 +89,27 @@ class QRAnalyticsController extends Controller
                 })
                 ->editColumn('location', function (QRAnalytics $analytics) {
                     $location = [];
-                    if ($analytics->city) $location[] = $analytics->city;
-                    if ($analytics->region) $location[] = $analytics->region;
-                    if ($analytics->country) $location[] = $analytics->country;
+                    if ($analytics->city)
+                        $location[] = $analytics->city;
+                    if ($analytics->region)
+                        $location[] = $analytics->region;
+                    if ($analytics->country)
+                        $location[] = $analytics->country;
                     return !empty($location) ? implode(', ', $location) : '<span class="text-muted">-</span>';
                 })
                 ->editColumn('device_info', function (QRAnalytics $analytics) {
                     $device = [];
-                    if ($analytics->device_type) $device[] = ucfirst($analytics->device_type);
-                    if ($analytics->browser_name) $device[] = $analytics->browser_name;
-                    if ($analytics->os_name) $device[] = $analytics->os_name;
+                    if ($analytics->device_type)
+                        $device[] = ucfirst($analytics->device_type);
+                    if ($analytics->browser_name)
+                        $device[] = $analytics->browser_name;
+                    if ($analytics->os_name)
+                        $device[] = $analytics->os_name;
                     return !empty($device) ? implode(' / ', $device) : '<span class="text-muted">-</span>';
                 })
                 ->editColumn('location_source', function (QRAnalytics $analytics) {
-                    if (!$analytics->location_source) return '<span class="text-muted">-</span>';
+                    if (!$analytics->location_source)
+                        return '<span class="text-muted">-</span>';
                     $badges = [
                         'GPS' => 'bg-success',
                         'IP' => 'bg-info',
@@ -83,56 +139,6 @@ class QRAnalyticsController extends Controller
                         data-bs-toggle="tooltip" data-bs-placement="top" title="View Full Scan Details">
                         <iconify-icon icon="solar:eye-broken" class="align-middle fs-18"></iconify-icon>
                     </button>';
-                })
-                ->filter(function ($query) use ($request) {
-                    // Filter by tour_code
-                    if ($request->has('tour_code') && $request->tour_code != '') {
-                        $query->where('tour_code', 'like', '%' . $request->tour_code . '%');
-                    }
-                    
-                    // Filter by booking_id
-                    if ($request->has('booking_id') && $request->booking_id != '') {
-                        $query->where('booking_id', $request->booking_id);
-                    }
-                    
-                    // Filter by country
-                    if ($request->has('country') && $request->country != '') {
-                        $query->where('country', 'like', '%' . $request->country . '%');
-                    }
-                    
-                    // Filter by city
-                    if ($request->has('city') && $request->city != '') {
-                        $query->where('city', 'like', '%' . $request->city . '%');
-                    }
-                    
-                    // Filter by device_type
-                    if ($request->has('device_type') && $request->device_type != '') {
-                        $query->where('device_type', $request->device_type);
-                    }
-                    
-                    // Filter by location_source
-                    if ($request->has('location_source') && $request->location_source != '') {
-                        $query->where('location_source', $request->location_source);
-                    }
-                    
-                    // Filter by tracking_status
-                    if ($request->has('tracking_status') && $request->tracking_status != '') {
-                        $query->where('tracking_status', $request->tracking_status);
-                    }
-                    
-                    // Filter by page_type
-                    if ($request->has('page_type') && $request->page_type != '') {
-                        $query->where('page_type', $request->page_type);
-                    }
-                    
-                    // Filter by date range
-                    if ($request->has('date_from') && $request->date_from != '') {
-                        $query->whereDate('scan_date', '>=', $request->date_from);
-                    }
-                    
-                    if ($request->has('date_to') && $request->date_to != '') {
-                        $query->whereDate('scan_date', '<=', $request->date_to);
-                    }
                 })
                 ->rawColumns(['tour_code', 'booking_id', 'user_ip', 'location', 'device_info', 'location_source', 'tracking_status', 'actions'])
                 ->toJson();
@@ -172,11 +178,11 @@ class QRAnalyticsController extends Controller
     public function show($id)
     {
         $analytics = QRAnalytics::with(['booking', 'user'])->findOrFail($id);
-        
+
         // Format dates for display
         $analytics->formatted_scan_date = $analytics->scan_date ? $analytics->scan_date->format('d M Y, h:i A') : '-';
         $analytics->formatted_created_at = $analytics->created_at ? $analytics->created_at->format('d M Y, h:i A') : '-';
-        
+
         return response()->json([
             'success' => true,
             'analytics' => $analytics
