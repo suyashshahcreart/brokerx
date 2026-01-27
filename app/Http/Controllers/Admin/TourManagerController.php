@@ -75,36 +75,31 @@ class TourManagerController extends Controller
                     $subType = $booking->propertySubType?->name ?? '';
                     $bhk = $booking->bhk?->name ?? '';
 
+                    // Get tour name safely - check if tours relation is loaded
+                    $tourName = null;
+                    if (isset($booking->tours) && is_object($booking->tours)) {
+                        if (is_iterable($booking->tours)) {
+                            $tour = $booking->tours instanceof \Illuminate\Database\Eloquent\Collection
+                                ? $booking->tours->first()
+                                : current($booking->tours);
+                            $tourName = $tour?->name;
+                        }
+                    }
+
                     $info = '';
                     $info .= '<p>' . $propertyType;
                     if ($subType)
                         $info .= ' - ' . $subType;
                     if ($bhk)
                         $info .= ' - ' . $bhk;
-                    $info .= '</p>';
-
+                    $info .= '</br>';
+                    if ($tourName) {
+                        $info .= e($tourName) . '</p>';
+                    }
                     return $info;
                 })
                 ->addColumn('customer', function (Booking $booking) {
                     $name = $booking->user ? $booking->user->firstname . ' ' . $booking->user->lastname : '-';
-                    
-                    // Get tour name safely - check if tours relation is loaded
-                    $tourName = null;
-                    if (isset($booking->tours) && is_object($booking->tours)) {
-                        if (is_iterable($booking->tours)) {
-                            $tour = $booking->tours instanceof \Illuminate\Database\Eloquent\Collection 
-                                ? $booking->tours->first() 
-                                : current($booking->tours);
-                            $tourName = $tour?->name;
-                        }
-                    }
-
-                    if ($tourName) {
-                        return '<strong>' . e($name) . '</strong><br>' .
-                            '<small class="text-muted">' . e($booking->user->mobile ?? '') . '</small><br>' .
-                            '<small class="text-muted">' . e($tourName) . '</small>';
-                    }
-
                     return '<strong>' . e($name) . '</strong><br>' .
                         '<small class="text-muted">' . e($booking->user->mobile ?? '') . '</small>';
                 })
