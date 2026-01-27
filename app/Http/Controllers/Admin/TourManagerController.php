@@ -564,10 +564,13 @@ class TourManagerController extends Controller{
                     'size' => $fileInfo['size'] ?? 0
                 ];
                 
-                // Find index.html and JSON files
+                // Find index.html, sw.js, and JSON files
                 $lowerName = strtolower($filename);
                 if (basename($lowerName) === 'index.html') {
                     $indexHtmlPath = $filename;
+                }
+                if (basename($lowerName) === 'sw.js') {
+                    $swJsPath = $filename;
                 }
                 if (pathinfo($lowerName, PATHINFO_EXTENSION) === 'json') {
                     // Prefer virtual-tour-nodes.json
@@ -582,6 +585,12 @@ class TourManagerController extends Controller{
             
             if (!$indexHtmlPath) {
                 \Log::warning("index.html not found in ZIP structure in " . __FILE__ . ":" . __LINE__);
+            }
+            
+            if ($swJsPath) {
+                \Log::info("sw.js file detected in ZIP: {$swJsPath}");
+            } else {
+                \Log::info("sw.js file not found in ZIP structure");
             }
             
             // STEP 3: Verify S3 configuration before processing
@@ -600,6 +609,8 @@ class TourManagerController extends Controller{
             $uploadedFiles = [];
             $uploadErrors = [];
             $indexHtmlContent = null;
+            $swJsContent = null;
+            $swJsPath = null;
             $jsonContent = null;
             $jsonFilename = null;
             
@@ -617,8 +628,11 @@ class TourManagerController extends Controller{
                     continue;
                 }
                 
-                // Handle special files (index.html, JSON) - upload to S3 first, then save in memory for processing
-                if ($filename === $indexHtmlPath) {
+                // Handle special files (index.html, sw.js, JSON) - upload to S3 first, then save in memory for processing
+                $lowerFilename = strtolower($filename);
+                $basenameLower = basename($lowerFilename);
+                
+                if ($filename === $indexHtmlPath || $basenameLower === 'index.html') {
                     // Upload original index.html to S3
                     $s3IndexPath = $s3TourPath . '/' . $filename;
                     try {
@@ -645,7 +659,37 @@ class TourManagerController extends Controller{
                     continue; // Will process later for local index.php
                 }
                 
-                if ($filename === $jsonPath) {
+                if ($filename === $swJsPath || $basenameLower === 'sw.js') {
+                    \Log::info("Processing sw.js file: {$filename} (detected path: " . ($swJsPath ?? 'null') . ")");
+                    // Upload sw.js to S3
+                    $s3SwJsPath = $s3TourPath . '/' . $filename;
+                    try {
+                        $uploaded = Storage::disk('s3')->put(
+                            $s3SwJsPath,
+                            $fileContent,
+                            ['ContentType' => 'application/javascript']
+                        );
+                        if ($uploaded) {
+                            try {
+                                Storage::disk('s3')->setVisibility($s3SwJsPath, 'public');
+                            } catch (\Exception $e) {
+                                // Visibility failure is not critical
+                            }
+                            $uploadedFiles[] = $filename;
+                            \Log::info("Successfully uploaded sw.js to S3: {$s3SwJsPath}");
+                        }
+                    } catch (\Exception $e) {
+                        \Log::error("Error uploading sw.js to S3: " . $e->getMessage() . " in " . $e->getFile() . ":" . $e->getLine());
+                    }
+                    
+                    // Save in memory for FTP upload (will be uploaded without changes)
+                    $swJsContent = $fileContent;
+                    \Log::info("Saved sw.js content in memory for FTP upload (size: " . strlen($swJsContent) . " bytes)");
+                    unset($fileContent);
+                    continue; // Will process later for FTP upload
+                }
+                
+                if ($filename === $jsonPath || (pathinfo($lowerFilename, PATHINFO_EXTENSION) === 'json' && stripos($filename, 'virtual-tour-nodes') !== false)) {
                     // Upload original JSON to S3
                     $s3JsonPath = $s3TourPath . '/' . $filename;
                     try {
@@ -872,12 +916,47 @@ class TourManagerController extends Controller{
                         $rootTourDirectory . '/index.php', 
                         $tour
                     );
+                    
                 } catch (\Exception $e) {
                     \Log::error("Error processing index.html: " . $e->getMessage() . " in " . $e->getFile() . ":" . $e->getLine());
                     $indexHtmlContent = null;
                 }
             } else {
                 \Log::error("index.html file not found in ZIP in " . __FILE__ . ":" . __LINE__);
+            }
+            
+            // STEP 5.5: Upload sw.js to FTP if it exists (same path as index.php)
+            // Do this outside index.html processing so it works even if index.html fails
+            if ($swJsContent) {
+                try {
+                    \Log::info("Preparing to upload sw.js to FTP (content size: " . strlen($swJsContent) . " bytes)");
+                    // Ensure directory exists
+                    if (!is_dir($rootTourDirectory)) {
+                        \File::makeDirectory($rootTourDirectory, 0775, true);
+                        @chmod($rootTourDirectory, 0775);
+                    }
+                    
+                    // Save sw.js locally first
+                    $swJsLocalPath = $rootTourDirectory . '/sw.js';
+                    if (file_put_contents($swJsLocalPath, $swJsContent) === false) {
+                        throw new \Exception("Failed to write sw.js to {$swJsLocalPath}. Please check directory permissions.");
+                    }
+                    @chmod($swJsLocalPath, 0664);
+                    \Log::info("Successfully saved sw.js locally: {$swJsLocalPath}");
+                    
+                    // Upload sw.js to FTP (same directory as index.php)
+                    $swJsFtpResult = $this->uploadSwJsToFtp($swJsLocalPath, $tour);
+                    if ($swJsFtpResult['success']) {
+                        \Log::info("✓ Successfully uploaded sw.js to FTP: " . ($swJsFtpResult['ftp_path'] ?? 'N/A'));
+                    } else {
+                        \Log::warning("Failed to upload sw.js to FTP: " . ($swJsFtpResult['message'] ?? 'Unknown error'));
+                    }
+                } catch (\Exception $e) {
+                    \Log::error("Error processing sw.js: " . $e->getMessage() . " in " . $e->getFile() . ":" . $e->getLine());
+                    \Log::error("Stack trace: " . $e->getTraceAsString());
+                }
+            } else {
+                \Log::info("sw.js content not found, skipping FTP upload");
             }
 
             // STEP 6: Process JSON file - Save locally
@@ -2197,6 +2276,227 @@ PHP;
             
         } catch (\Exception $e) {
             \Log::error("FTP upload error: " . $e->getMessage());
+            \Log::error("Stack trace: " . $e->getTraceAsString());
+            return [
+                'success' => false,
+                'message' => 'FTP upload error: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Upload sw.js to FTP server using dynamic FTP configuration
+     * 
+     * @param string $localSwJsPath Local path to sw.js file
+     * @param Tour $tour Tour object containing location, slug, and booking relationship
+     * @return array Result with success status and FTP URL
+     */
+    private function uploadSwJsToFtp($localSwJsPath, Tour $tour)
+    {
+        try {
+            $location = $tour->location;
+            $tourSlug = $tour->slug;
+            
+            \Log::info("=== Starting sw.js FTP upload for tour: {$tourSlug} (Location: {$location}) ===");
+            
+            // Validate location
+            if (empty($location)) {
+                \Log::warning("Location is missing. Skipping sw.js FTP upload.");
+                return [
+                    'success' => false,
+                    'message' => 'Tour location is required for FTP upload'
+                ];
+            }
+            
+            // Validate tour slug
+            if (empty($tourSlug)) {
+                \Log::warning("Tour slug is missing. Skipping sw.js FTP upload.");
+                return [
+                    'success' => false,
+                    'message' => 'Tour slug is required for FTP upload'
+                ];
+            }
+            
+            // Get customer_id from tour's booking
+            $customerId = null;
+            if ($tour->booking) {
+                $customerId = $tour->booking->user_id;
+            }
+            
+            if (empty($customerId)) {
+                \Log::warning("Customer ID is missing. Skipping sw.js FTP upload.");
+                return [
+                    'success' => false,
+                    'message' => 'Customer ID is required for FTP upload. Tour must be associated with a booking.'
+                ];
+            }
+            
+            // Get FTP configuration from database
+            $ftpConfig = FtpConfiguration::where('category_name', $location)
+                ->active()
+                ->first();
+                
+            if (!$ftpConfig) {
+                \Log::error("FTP configuration not found for location: {$location}");
+                return [
+                    'success' => false,
+                    'message' => "FTP configuration not found for location: {$location}"
+                ];
+            }
+            
+            // Verify local file exists
+            if (!file_exists($localSwJsPath)) {
+                \Log::error("Local sw.js file not found: {$localSwJsPath}");
+                return [
+                    'success' => false,
+                    'message' => 'Local sw.js file not found'
+                ];
+            }
+            
+            // Get remote path (same directory as index.php, just sw.js instead)
+            // Use the same pattern as index.php but replace index.php with sw.js
+            $ftpRemotePath = $ftpConfig->getRemotePathForTour($tourSlug, $customerId);
+            // Replace index.php with sw.js in the remote path
+            $ftpRemotePath = str_replace('index.php', 'sw.js', $ftpRemotePath);
+            $ftpUrl = $ftpConfig->getUrlForTour($tourSlug, $customerId);
+            $ftpUrl = str_replace('index.php', 'sw.js', $ftpUrl);
+            
+            \Log::info("sw.js FTP Upload Details:");
+            \Log::info("  Category: {$ftpConfig->category_name}");
+            \Log::info("  Display Name: {$ftpConfig->display_name}");
+            \Log::info("  Main URL: {$ftpConfig->main_url}");
+            \Log::info("  Driver: {$ftpConfig->driver}");
+            \Log::info("  Host: {$ftpConfig->host}:{$ftpConfig->port}");
+            \Log::info("  Username: {$ftpConfig->username}");
+            \Log::info("  Customer ID: {$customerId}");
+            \Log::info("  Local file: {$localSwJsPath}");
+            \Log::info("  Remote path: {$ftpRemotePath}");
+            \Log::info("  Final URL: {$ftpUrl}");
+            
+            // Create a temporary disk config for this FTP configuration
+            $diskName = 'ftp_temp_' . $ftpConfig->id;
+            config(["filesystems.disks.{$diskName}" => $ftpConfig->storage_config]);
+            
+            // Use SFTP driver if configured
+            if ($ftpConfig->driver === 'sftp') {
+                \Log::info("Using Storage SFTP driver for sw.js upload...");
+                
+                $ftpDisk = Storage::disk($diskName);
+                $fileContent = file_get_contents($localSwJsPath);
+                
+                if ($fileContent === false) {
+                    throw new \Exception("Failed to read local sw.js file");
+                }
+                
+                // Ensure remote directory exists (same as index.php)
+                $remoteDir = trim(dirname($ftpRemotePath), '/');
+                if (!empty($remoteDir) && $remoteDir !== '.') {
+                    try {
+                        $ftpDisk->makeDirectory($remoteDir);
+                        \Log::info("Ensured remote directory exists: {$remoteDir}");
+                    } catch (\Exception $dirEx) {
+                        \Log::warning("Could not create remote directory '{$remoteDir}': " . $dirEx->getMessage());
+                    }
+                }
+                
+                // Upload with explicit visibility
+                $uploaded = $ftpDisk->put($ftpRemotePath, $fileContent, ['visibility' => 'public']);
+                
+                if (!$uploaded) {
+                    throw new \Exception("SFTP put() returned false for {$ftpRemotePath}");
+                }
+                
+                // Verify upload
+                if (!$ftpDisk->exists($ftpRemotePath)) {
+                    throw new \Exception("SFTP upload verification failed; file not found at {$ftpRemotePath}");
+                }
+                
+                // Set permissions
+                try {
+                    $ftpDisk->setVisibility($ftpRemotePath, 'public');
+                } catch (\Exception $visEx) {
+                    \Log::warning("Could not set visibility: " . $visEx->getMessage());
+                }
+                
+            } else {
+                // Use native PHP FTP functions for FTP
+                \Log::info("Using native PHP FTP functions for sw.js upload...");
+                try {
+                    $host = preg_replace('#^ftps?://#', '', $ftpConfig->host);
+                    
+                    // Prepend root if defined in FTP configuration for native call
+                    $root = trim($ftpConfig->root ?? '', '/');
+                    $remotePathWithRoot = $ftpRemotePath;
+                    if (!empty($root)) {
+                        $remotePathWithRoot = $root . '/' . ltrim($ftpRemotePath, '/');
+                    }
+                    
+                    $uploaded = $this->uploadToFtpNative(
+                        $host,
+                        $ftpConfig->port,
+                        $ftpConfig->username,
+                        $ftpConfig->password,
+                        $remotePathWithRoot,
+                        $localSwJsPath,
+                        $ftpConfig->passive
+                    );
+                } catch (\Exception $nativeException) {
+                    \Log::error("Native FTP upload failed for sw.js: " . $nativeException->getMessage());
+                    
+                    // Try Laravel Storage as fallback
+                    \Log::info("Trying Laravel Storage FTP driver as fallback for sw.js...");
+                    try {
+                        $ftpDisk = Storage::disk($diskName);
+                        
+                        // Read local file content
+                        $fileContent = file_get_contents($localSwJsPath);
+                        if ($fileContent === false) {
+                            throw new \Exception("Failed to read local sw.js file");
+                        }
+                        
+                        // Ensure remote directory exists
+                        $remoteDir = trim(dirname($ftpRemotePath), '/');
+                        if (!empty($remoteDir) && $remoteDir !== '.') {
+                            try {
+                                $ftpDisk->makeDirectory($remoteDir);
+                            } catch (\Exception $dirEx) {
+                                \Log::warning("Could not create remote directory: " . $dirEx->getMessage());
+                            }
+                        }
+                        
+                        // Upload file to FTP using Storage facade
+                        \Log::info("Uploading sw.js to FTP using Storage facade...");
+                        $uploaded = $ftpDisk->put($ftpRemotePath, $fileContent);
+                    } catch (\Exception $storageException) {
+                        \Log::error("Storage FTP driver also failed for sw.js: " . $storageException->getMessage());
+                        throw new \Exception("FTP upload failed: " . $nativeException->getMessage() . " | Storage: " . $storageException->getMessage());
+                    }
+                }
+            }
+            
+            if ($uploaded) {
+                \Log::info("✓ Successfully uploaded sw.js to FTP: {$ftpRemotePath}");
+                \Log::info("sw.js accessible at: {$ftpUrl}");
+                
+                return [
+                    'success' => true,
+                    'message' => 'sw.js uploaded to FTP successfully',
+                    'ftp_path' => $ftpRemotePath,
+                    'ftp_url' => $ftpUrl,
+                    'ftp_host' => $ftpConfig->host,
+                    'location' => $ftpConfig->category_name,
+                    'customer_id' => $customerId
+                ];
+            } else {
+                \Log::error("FTP upload returned false for sw.js: {$ftpRemotePath}");
+                return [
+                    'success' => false,
+                    'message' => 'FTP upload failed (returned false)'
+                ];
+            }
+            
+        } catch (\Exception $e) {
+            \Log::error("sw.js FTP upload error: " . $e->getMessage());
             \Log::error("Stack trace: " . $e->getTraceAsString());
             return [
                 'success' => false,
