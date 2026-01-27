@@ -627,6 +627,12 @@ class TourController extends Controller
 
         // If final_json was empty originally, only persist DB changes and skip S3
         if ($finalJsonWasEmpty) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Tour updated, but files were not uploaded to S3 because final JSON was empty.'
+                ]);
+            }
             return redirect()->back()->with(['warning' => 'Tour updated, but files were not uploaded to S3 because final JSON was empty.', 'active_tab' => 'tour']);
         }
 
@@ -679,6 +685,14 @@ class TourController extends Controller
         // update the json file of virtual-tour-nodes.json
         Storage::disk('s3')->put('tours/' . $qr_code . '/virtual-tour-nodes.json', $jsonString, ['ContentType' => 'application/json']);
 
+        // Return JSON response for AJAX requests
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Tour updated successfully'
+            ]);
+        }
+
         return redirect()->back()->with(['success' => 'Tour updated successfully from booking edit.', 'active_tab' => 'tour']);
     }
 
@@ -711,6 +725,13 @@ class TourController extends Controller
         if (!empty($validated['structured_data'])) {
             json_decode($validated['structured_data']);
             if (json_last_error() !== JSON_ERROR_NONE) {
+                if ($request->expectsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Structured Data must be valid JSON.'
+                    ], 422);
+                }
+
                 return back()->withInput()->withErrors(['structured_data' => 'Structured Data must be valid JSON.']);
             }
         }
@@ -734,6 +755,13 @@ class TourController extends Controller
             'footer_code' => $validated['footer_code'] ?? null,
             'gtm_tag' => $validated['gtm_tag'] ?? null,
         ]);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'SEO details updated successfully.'
+            ]);
+        }
 
         return redirect()->back()->with(['success' => 'SEO details updated successfully.', 'active_tab' => 'seo']);
     }

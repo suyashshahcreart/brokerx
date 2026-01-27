@@ -4,7 +4,7 @@ import {
 import laravel from 'laravel-vite-plugin';
 
 export default defineConfig({
-    base: '/',
+    base: '/propik_main/',
     plugins: [
         laravel({
             input: [
@@ -15,7 +15,6 @@ export default defineConfig({
                 'node_modules/nouislider/dist/nouislider.min.css',
                 'node_modules/choices.js/public/assets/styles/choices.min.css',
                 'node_modules/swiper/swiper-bundle.min.css',
-                'node_modules/fullcalendar/main.min.css',
                 'node_modules/gridjs/dist/theme/mermaid.min.css',
                 'node_modules/flatpickr/dist/flatpickr.min.css',
                 'node_modules/quill/dist/quill.snow.css',
@@ -50,6 +49,7 @@ export default defineConfig({
                 'resources/js/pages/photo-checkin-visit.js',
                 'resources/js/pages/photographer-visits-index.js',
                 'resources/js/pages/tours-index.js',
+                'resources/js/pages/login-page.js',
                 'resources/js/pages/tour-notifications-index.js',
                 'resources/js/pages/qr-analytics-index.js',
                 'resources/js/pages/photographer-index.js',

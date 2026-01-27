@@ -1,4 +1,4 @@
-<form method="POST" action="{{ route('admin.tours.updateSeo', $tour) }}" class="needs-validation" novalidate >
+<form method="POST" id="seoForm" action="{{ route('admin.tours.updateSeo', $tour) }}" class="needs-validation" novalidate >
     @csrf
     @method('PUT')
     <!-- SEO Meta Tags -->
