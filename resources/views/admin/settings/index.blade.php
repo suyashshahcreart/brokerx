@@ -68,6 +68,8 @@
                                             $firstActiveTab = 'vl-pills-ftp';
                                         } elseif ($canPropertyType) {
                                             $firstActiveTab = 'vl-pills-property-types';
+                                        } elseif ($canFtpConfiguration) {
+                                            $firstActiveTab = 'vl-pills-state-city';
                                         }
                                     @endphp
                                     
@@ -124,6 +126,13 @@
                                         <a class="nav-link {{ ($firstActiveTab === 'vl-pills-property-types') ? 'active show' : '' }}" id="vl-pills-property-types-tab" data-bs-toggle="pill" href="#vl-pills-property-types" role="tab" aria-controls="vl-pills-property-types" aria-selected="{{ ($firstActiveTab === 'vl-pills-property-types') ? 'true' : 'false' }}">
                                             <i class="ri-home-4-line me-2"></i>
                                             <span>Property Types</span>
+                                        </a>
+                                    @endif
+
+                                    @if($canFtpConfiguration)
+                                        <a class="nav-link {{ ($firstActiveTab === 'vl-pills-state-city') ? 'active show' : '' }}" id="vl-pills-state-city-tab" data-bs-toggle="pill" href="#vl-pills-state-city" role="tab" aria-controls="vl-pills-state-city" aria-selected="{{ ($firstActiveTab === 'vl-pills-state-city') ? 'true' : 'false' }}">
+                                            <i class="ri-map-pin-line me-2"></i>
+                                            <span>State City</span>
                                         </a>
                                     @endif
 
@@ -766,6 +775,68 @@
                                         </div>
                                     </div>
                                     @endif
+
+                                    @if($canFtpConfiguration)
+                                    <div class="tab-pane fade {{ ($firstActiveTab === 'vl-pills-state-city') ? 'active show' : '' }}" id="vl-pills-state-city" role="tabpanel" aria-labelledby="vl-pills-state-city-tab">
+                                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                                            <div>
+                                                <h5 class="mb-1">State & City Management</h5>
+                                                <p class="text-muted mb-0 small">Manage states and cities for location-based operations.</p>
+                                            </div>
+                                            <div class="d-flex gap-2">
+                                                <button type="button" class="btn btn-primary btn-sm" id="openStateModal">
+                                                    <i class="ri-add-line me-1"></i> Add State
+                                                </button>
+                                                <button type="button" class="btn btn-outline-primary btn-sm" id="openCityModal">
+                                                    <i class="ri-add-line me-1"></i> Add City
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <ul class="nav nav-tabs" role="tablist">
+                                            <li class="nav-item" role="presentation">
+                                                <button class="nav-link active" id="states-inner-tab" data-bs-toggle="tab" data-bs-target="#states-tabpane" type="button" role="tab" aria-controls="states-tabpane" aria-selected="true">States</button>
+                                            </li>
+                                            <li class="nav-item" role="presentation">
+                                                <button class="nav-link" id="cities-inner-tab" data-bs-toggle="tab" data-bs-target="#cities-tabpane" type="button" role="tab" aria-controls="cities-tabpane" aria-selected="false">Cities</button>
+                                            </li>
+                                        </ul>
+
+                                        <div class="tab-content pt-3">
+                                            <div class="tab-pane fade show active" id="states-tabpane" role="tabpanel" aria-labelledby="states-inner-tab">
+                                                <div class="table-responsive">
+                                                    <table class="table table-hover align-middle" id="states-table">
+                                                        <thead class="table-light">
+                                                            <tr>
+                                                                <th>Name</th>
+                                                                <th>Cities Count</th>
+                                                                <th>Updated At</th>
+                                                                <th class="text-end">Actions</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody></tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+
+                                            <div class="tab-pane fade" id="cities-tabpane" role="tabpanel" aria-labelledby="cities-inner-tab">
+                                                <div class="table-responsive">
+                                                    <table class="table table-hover align-middle" id="cities-table">
+                                                        <thead class="table-light">
+                                                            <tr>
+                                                                <th>State</th>
+                                                                <th>Name</th>
+                                                                <th>Updated At</th>
+                                                                <th class="text-end">Actions</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody></tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    @endif
                                     <!-- tour configration Model -->
                                     @if($canBookingSchedule)
                                     <div class="tab-pane fade {{ ($firstActiveTab === 'vl-pills-tour') ? 'active show' : '' }}" id="vl-pills-tour" role="tabpanel" aria-labelledby="vl-pills-tour-tab">
@@ -914,11 +985,11 @@
                                             <div class="alert alert-danger d-none" id="propertyTypeErrors"></div>
                                             <div class="mb-3">
                                                 <label for="propertyTypeName" class="form-label">Name <span class="text-danger">*</span></label>
-                                                <input type="text" class="form-control" id="propertyTypeName" name="name" placeholder="Residential" required maxlength="255">
+                                                <input type="text" class="form-control" id="propertyTypeName" name="name" placeholder="e.g, Residential" required maxlength="255">
                                             </div>
                                             <div class="mb-3">
                                                 <label for="propertyTypeIcon" class="form-label">Icon (optional)</label>
-                                                <input type="text" class="form-control" id="propertyTypeIcon" name="icon" placeholder="ri-home-line or image URL" maxlength="255">
+                                                <input type="text" class="form-control" id="propertyTypeIcon" name="icon" placeholder="e.g, ri-home-line" maxlength="255">
                                                 <small class="text-muted">Accepts an icon class (e.g., ri-building-line) or an image URL.</small>
                                             </div>
                                         </div>
@@ -950,17 +1021,75 @@
                                             </div>
                                             <div class="mb-3">
                                                 <label for="propertySubTypeName" class="form-label">Name <span class="text-danger">*</span></label>
-                                                <input type="text" class="form-control" id="propertySubTypeName" name="name" placeholder="Apartment" required maxlength="255">
+                                                <input type="text" class="form-control" id="propertySubTypeName" name="name" placeholder="e.g, Apartment" required maxlength="255">
                                             </div>
                                             <div class="mb-3">
                                                 <label for="propertySubTypeIcon" class="form-label">Icon (optional)</label>
-                                                <input type="text" class="form-control" id="propertySubTypeIcon" name="icon" placeholder="ri-building-4-line or image URL" maxlength="255">
+                                                <input type="text" class="form-control" id="propertySubTypeIcon" name="icon" placeholder="e.g, ri-building-4-line" maxlength="255">
                                                 <small class="text-muted">Accepts an icon class (e.g., ri-community-line) or an image URL.</small>
                                             </div>
                                         </div>
                                         <div class="modal-footer">
                                             <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
                                             <button type="submit" class="btn btn-primary" id="savePropertySubTypeBtn">Save</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- State Modal -->
+                        <div class="modal fade" id="stateModal" tabindex="-1" aria-labelledby="stateModalLabel" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="stateModalLabel">Add State</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <form id="stateForm">
+                                        @csrf
+                                        <input type="hidden" name="state_id" id="stateId">
+                                        <div class="modal-body">
+                                            <div class="alert alert-danger d-none" id="stateErrors"></div>
+                                            <div class="mb-3">
+                                                <label for="stateName" class="form-label">State Name <span class="text-danger">*</span></label>
+                                                <input type="text" class="form-control" id="stateName" name="name" placeholder="e.g., Maharashtra" required maxlength="255">
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                                            <button type="submit" class="btn btn-primary" id="saveStateBtn">Save</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- City Modal -->
+                        <div class="modal fade" id="cityModal" tabindex="-1" aria-labelledby="cityModalLabel" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="cityModalLabel">Add City</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <form id="cityForm">
+                                        @csrf
+                                        <input type="hidden" name="city_id" id="cityId">
+                                        <div class="modal-body">
+                                            <div class="alert alert-danger d-none" id="cityErrors"></div>
+                                            <div class="mb-3">
+                                                <label for="cityState" class="form-label">State <span class="text-danger">*</span></label>
+                                                <select class="form-select" id="cityState" name="state_id" required></select>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="cityName" class="form-label">City Name <span class="text-danger">*</span></label>
+                                                <input type="text" class="form-control" id="cityName" name="name" placeholder="e.g., Mumbai" required maxlength="255">
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                                            <button type="submit" class="btn btn-primary" id="saveCityBtn">Save</button>
                                         </div>
                                     </form>
                                 </div>
@@ -1197,6 +1326,20 @@
         subTypesStore: '{{ route('admin.api.property-sub-types.store') }}',
         subTypesUpdate: '{{ route('admin.api.property-sub-types.update', ['propertySubType' => '__ID__']) }}',
         subTypesDestroy: '{{ route('admin.api.property-sub-types.destroy', ['propertySubType' => '__ID__']) }}'
+    };
+
+    // State and City routes for JavaScript
+    window.stateCityRoutes = {
+        statesList: '{{ route('admin.api.states.index') }}',
+        statesOptions: '{{ route('admin.api.states.options') }}',
+        statesStore: '{{ route('admin.api.states.store') }}',
+        statesUpdate: '{{ route('admin.api.states.update', ['state' => '__ID__']) }}',
+        statesDestroy: '{{ route('admin.api.states.destroy', ['state' => '__ID__']) }}',
+        citiesList: '{{ route('admin.api.cities.index') }}',
+        citiesOptions: '{{ route('admin.api.cities.options') }}',
+        citiesStore: '{{ route('admin.api.cities.store') }}',
+        citiesUpdate: '{{ route('admin.api.cities.update', ['city' => '__ID__']) }}',
+        citiesDestroy: '{{ route('admin.api.cities.destroy', ['city' => '__ID__']) }}'
     };
 </script>
 @vite(['resources/js/pages/setting-index.js'])

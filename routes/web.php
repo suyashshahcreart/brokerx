@@ -274,6 +274,21 @@ Route::group(['prefix' => 'ppadmlog', 'as' => 'admin.', 'middleware' => ['web', 
         Route::post('/property-sub-types', [PropertySettingController::class, 'storePropertySubType'])->name('property-sub-types.store');
         Route::put('/property-sub-types/{propertySubType}', [PropertySettingController::class, 'updatePropertySubType'])->name('property-sub-types.update');
         Route::delete('/property-sub-types/{propertySubType}', [PropertySettingController::class, 'deletePropertySubType'])->name('property-sub-types.destroy');
+
+        // State & City routes (AJAX)
+        Route::get('/states', [\App\Http\Controllers\Admin\Api\StateController::class, 'index'])->name('states.index');
+        Route::get('/states/options', [\App\Http\Controllers\Admin\Api\StateController::class, 'options'])->name('states.options');
+        Route::post('/states', [\App\Http\Controllers\Admin\Api\StateController::class, 'store'])->name('states.store');
+        Route::get('/states/{state}', [\App\Http\Controllers\Admin\Api\StateController::class, 'show'])->name('states.show');
+        Route::put('/states/{state}', [\App\Http\Controllers\Admin\Api\StateController::class, 'update'])->name('states.update');
+        Route::delete('/states/{state}', [\App\Http\Controllers\Admin\Api\StateController::class, 'destroy'])->name('states.destroy');
+
+        Route::get('/cities', [\App\Http\Controllers\Admin\Api\CityController::class, 'index'])->name('cities.index');
+        Route::get('/cities/options', [\App\Http\Controllers\Admin\Api\CityController::class, 'options'])->name('cities.options');
+        Route::post('/cities', [\App\Http\Controllers\Admin\Api\CityController::class, 'store'])->name('cities.store');
+        Route::get('/cities/{city}', [\App\Http\Controllers\Admin\Api\CityController::class, 'show'])->name('cities.show');
+        Route::put('/cities/{city}', [\App\Http\Controllers\Admin\Api\CityController::class, 'update'])->name('cities.update');
+        Route::delete('/cities/{city}', [\App\Http\Controllers\Admin\Api\CityController::class, 'destroy'])->name('cities.destroy');
     });
 
     Route::get('activity', [ActivityLogController::class, 'index'])->name('activity.index');

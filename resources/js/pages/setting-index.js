@@ -550,6 +550,9 @@ import '../../css/pages/setting-index.css';
 
         // FTP Configuration Management
         initFtpConfigurationManagement();
+
+        // State and City Management
+        initStateCityManagement();
     });
 
     function initPropertyTypeManagement() {
@@ -1139,5 +1142,293 @@ import '../../css/pages/setting-index.css';
                     }
                 });
         };
+    }
+
+    // State and City Management Functions
+    function initStateCityManagement() {
+        const $ = window.jQuery;
+        if (!$ || !$.fn.DataTable) return;
+
+        // Check if state city routes are defined
+        if (!window.stateCityRoutes) {
+            console.error('State city routes not defined');
+            return;
+        }
+
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+
+        const routes = {
+            states: {
+                list: window.stateCityRoutes.statesList,
+                options: window.stateCityRoutes.statesOptions,
+                store: window.stateCityRoutes.statesStore,
+                update: id => window.stateCityRoutes.statesUpdate.replace('__ID__', id),
+                destroy: id => window.stateCityRoutes.statesDestroy.replace('__ID__', id)
+            },
+            cities: {
+                list: window.stateCityRoutes.citiesList,
+                options: window.stateCityRoutes.citiesOptions,
+                store: window.stateCityRoutes.citiesStore,
+                update: id => window.stateCityRoutes.citiesUpdate.replace('__ID__', id),
+                destroy: id => window.stateCityRoutes.citiesDestroy.replace('__ID__', id)
+            }
+        };
+
+        const stateModal = new bootstrap.Modal(document.getElementById('stateModal'));
+        const cityModal = new bootstrap.Modal(document.getElementById('cityModal'));
+
+        const stateTableEl = $('#states-table');
+        const cityTableEl = $('#cities-table');
+        if (!stateTableEl.length || !cityTableEl.length) return;
+
+        // States DataTable
+        const stateTable = stateTableEl.DataTable({
+            processing: true,
+            serverSide: true,
+            ajax: routes.states.list,
+            order: [[0, 'asc']],
+            columns: [
+                { data: 'name', name: 'name', className: 'fw-semibold' },
+                { data: 'cities_count', name: 'cities_count', defaultContent: 0, className: 'text-center' },
+                { data: 'updated_at', name: 'updated_at' },
+                {
+                    data: null,
+                    orderable: false,
+                    searchable: false,
+                    className: 'text-end',
+                    render: row => actionButtons('state', row)
+                }
+            ],
+            language: { search: '_INPUT_', searchPlaceholder: 'Search states...' },
+            lengthMenu: [10, 25, 50, 100],
+            responsive: true
+        });
+
+        // Cities DataTable
+        const cityTable = cityTableEl.DataTable({
+            processing: true,
+            serverSide: true,
+            ajax: routes.cities.list,
+            order: [[1, 'asc']],
+            columns: [
+                { data: 'state_name', name: 'state.name', className: 'fw-semibold', orderable: false },
+                { data: 'name', name: 'name' },
+                { data: 'updated_at', name: 'updated_at' },
+                {
+                    data: null,
+                    orderable: false,
+                    searchable: false,
+                    className: 'text-end',
+                    render: row => actionButtons('city', row)
+                }
+            ],
+            language: { search: '_INPUT_', searchPlaceholder: 'Search cities...' },
+            lengthMenu: [10, 25, 50, 100],
+            responsive: true
+        });
+
+        function actionButtons(kind, data) {
+            const editClass = kind === 'state' ? 'btn-edit-state' : 'btn-edit-city';
+            const deleteClass = kind === 'state' ? 'btn-delete-state' : 'btn-delete-city';
+            const label = kind === 'state' ? 'State' : 'City';
+            return `
+                <div class="btn-group btn-group-sm" role="group">
+                    <button type="button" class="btn btn-soft-primary ${editClass}" data-id="${data.id}" title="Edit ${label}">
+                        <i class="ri-edit-2-line"></i>
+                    </button>
+                    <button type="button" class="btn btn-soft-danger ${deleteClass}" data-id="${data.id}" data-name="${data.name}" title="Delete ${label}">
+                        <i class="ri-delete-bin-line"></i>
+                    </button>
+                </div>
+            `;
+        }
+
+        function showErrors(selector, errors) {
+            const container = $(selector);
+            if (!errors || !Object.keys(errors).length) {
+                container.addClass('d-none').empty();
+                return;
+            }
+            const list = Object.values(errors).flat().map(msg => `<div>${msg}</div>`).join('');
+            container.html(list).removeClass('d-none');
+        }
+
+        function notify(type, message) {
+            if (window.Swal) {
+                Swal.fire({ icon: type, title: type === 'success' ? 'Success!' : 'Error!', text: message, timer: 2000, showConfirmButton: false });
+            } else {
+                alert(message);
+            }
+        }
+
+        function getRowData(dt, element) {
+            const $tr = $(element).closest('tr');
+            const row = dt.row($tr);
+            return row.data() || dt.row($tr.prev('.parent')).data();
+        }
+
+        function resetStateForm(data = null) {
+            $('#stateForm')[0].reset();
+            $('#stateErrors').addClass('d-none').empty();
+            $('#stateId').val(data ? data.id : '');
+            $('#stateName').val(data ? data.name : '');
+            $('#stateModalLabel').text(data ? 'Edit State' : 'Add State');
+            $('#saveStateBtn').text(data ? 'Update' : 'Save');
+        }
+
+        function resetCityForm(data = null) {
+            $('#cityForm')[0].reset();
+            $('#cityErrors').addClass('d-none').empty();
+            $('#cityId').val(data ? data.id : '');
+            $('#cityName').val(data ? data.name : '');
+            $('#cityModalLabel').text(data ? 'Edit City' : 'Add City');
+            $('#saveCityBtn').text(data ? 'Update' : 'Save');
+            loadStateOptions(data ? data.state_id : null);
+        }
+
+        function loadStateOptions(selectedId = null) {
+            $.get(routes.states.options)
+                .done(res => {
+                    const select = $('#cityState');
+                    select.empty().append('<option value="">-- Select State --</option>');
+                    if (res && res.length) {
+                        res.forEach(state => {
+                            const option = $('<option></option>')
+                                .attr('value', state.id)
+                                .text(state.name);
+                            if (selectedId && state.id == selectedId) {
+                                option.attr('selected', 'selected');
+                            }
+                            select.append(option);
+                        });
+                    }
+                })
+                .fail(() => notify('error', 'Unable to load states.'));
+        }
+
+        // Open modals
+        $('#openStateModal').on('click', () => { resetStateForm(); stateModal.show(); });
+        $('#openCityModal').on('click', () => { resetCityForm(); cityModal.show(); });
+
+        // Edit State
+        $('#states-table').on('click', '.btn-edit-state', function () {
+            const data = getRowData(stateTable, this);
+            if (!data) return;
+            resetStateForm(data);
+            stateModal.show();
+        });
+
+        // Edit City
+        $('#cities-table').on('click', '.btn-edit-city', function () {
+            const data = getRowData(cityTable, this);
+            if (!data) return;
+            resetCityForm(data);
+            $('#cityState').val(data.state_id);
+            cityModal.show();
+        });
+
+        // Delete State
+        $('#states-table').on('click', '.btn-delete-state', function () {
+            const data = getRowData(stateTable, this);
+            if (!data) return;
+            confirmAndDelete('state', data.id, data.name);
+        });
+
+        // Delete City
+        $('#cities-table').on('click', '.btn-delete-city', function () {
+            const data = getRowData(cityTable, this);
+            if (!data) return;
+            confirmAndDelete('city', data.id, data.name);
+        });
+
+        function confirmAndDelete(kind, id, name) {
+            const label = kind === 'state' ? 'state' : 'city';
+            const table = kind === 'state' ? stateTable : cityTable;
+            const url = kind === 'state' ? routes.states.destroy(id) : routes.cities.destroy(id);
+
+            const proceed = () => {
+                $.ajax({
+                    url,
+                    method: 'DELETE',
+                    headers: { 'X-CSRF-TOKEN': csrfToken }
+                })
+                    .done(res => {
+                        notify('success', res.message || `${label} deleted successfully.`);
+                        table.ajax.reload(null, false);
+                        // Reload the other table if it's a state (cities might be affected)
+                        if (kind === 'state') cityTable.ajax.reload(null, false);
+                    })
+                    .fail(xhr => {
+                        const message = xhr.responseJSON?.message || `Unable to delete ${label}.`;
+                        notify('error', message);
+                    });
+            };
+
+            if (window.Swal) {
+                Swal.fire({
+                    title: `Delete ${label}?`,
+                    text: `Are you sure you want to delete "${name}"? This action cannot be undone.`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#3085d6',
+                    confirmButtonText: 'Yes, delete it!'
+                }).then(result => { if (result.isConfirmed) proceed(); });
+            } else {
+                if (confirm(`Are you sure you want to delete "${name}"?`)) proceed();
+            }
+        }
+
+        // Submit State Form
+        $('#stateForm').on('submit', function (event) {
+            event.preventDefault();
+            showErrors('#stateErrors', null);
+            const id = $('#stateId').val();
+            const url = id ? routes.states.update(id) : routes.states.store;
+            const method = id ? 'PUT' : 'POST';
+            $.ajax({
+                url,
+                method,
+                data: $(this).serialize(),
+                headers: { 'X-CSRF-TOKEN': csrfToken }
+            })
+                .done(res => {
+                    notify('success', res.message || 'State saved successfully.');
+                    stateModal.hide();
+                    stateTable.ajax.reload(null, false);
+                })
+                .fail(xhr => {
+                    const errors = xhr.responseJSON?.errors;
+                    const message = xhr.responseJSON?.message || 'Unable to save state.';
+                    showErrors('#stateErrors', errors);
+                    if (!errors) notify('error', message);
+                });
+        });
+
+        // Submit City Form
+        $('#cityForm').on('submit', function (event) {
+            event.preventDefault();
+            showErrors('#cityErrors', null);
+            const id = $('#cityId').val();
+            const url = id ? routes.cities.update(id) : routes.cities.store;
+            const method = id ? 'PUT' : 'POST';
+            $.ajax({
+                url,
+                method,
+                data: $(this).serialize(),
+                headers: { 'X-CSRF-TOKEN': csrfToken }
+            })
+                .done(res => {
+                    notify('success', res.message || 'City saved successfully.');
+                    cityModal.hide();
+                    cityTable.ajax.reload(null, false);
+                })
+                .fail(xhr => {
+                    const errors = xhr.responseJSON?.errors;
+                    const message = xhr.responseJSON?.message || 'Unable to save city.';
+                    showErrors('#cityErrors', errors);
+                    if (!errors) notify('error', message);
+                });
+        });
     }
 })();
