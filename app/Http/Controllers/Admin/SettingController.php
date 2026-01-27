@@ -111,6 +111,7 @@ class SettingController extends Controller
         $canPaymentGateway = $request->user()->can('setting_payment_gateway');
         $canSmsConfiguration = $request->user()->can('setting_sms_configuration');
         $canFtpConfiguration = $request->user()->can('setting_ftp_configuration');
+        $canPropertyType = true; // Allow property type tab for all admins
         
         return view('admin.settings.index', compact(
             'settings', 
@@ -126,7 +127,8 @@ class SettingController extends Controller
             'canBasePrice',
             'canPaymentGateway',
             'canSmsConfiguration',
-            'canFtpConfiguration'
+            'canFtpConfiguration',
+            'canPropertyType'
         ));
     }
 

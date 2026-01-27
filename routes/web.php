@@ -2,6 +2,7 @@
 use App\Http\Controllers\Admin\CustomerController;
 use App\Http\Controllers\Admin\HolidayController;
 use App\Http\Controllers\Admin\QRController;
+use App\Http\Controllers\Admin\Api\PropertySettingController;
 use App\Http\Controllers\Admin\BookingAssigneeController;
 use App\Http\Controllers\OtpController;
 use App\Http\Controllers\EmailOtpController;
@@ -265,6 +266,33 @@ Route::group(['prefix' => 'ppadmlog', 'as' => 'admin.', 'middleware' => ['web', 
         Route::get('/ftp-configurations/{id}', [SettingController::class, 'apiGetFtpConfiguration'])->name('ftp-configurations.show');
         Route::post('/ftp-configurations', [SettingController::class, 'apiStoreFtpConfiguration'])->name('ftp-configurations.store');
         Route::delete('/ftp-configurations/{id}', [SettingController::class, 'apiDeleteFtpConfiguration'])->name('ftp-configurations.destroy');
+
+        // Property Type & Sub Type routes (AJAX)
+        Route::get('/property-types', [PropertySettingController::class, 'propertyTypes'])->name('property-types.index');
+        Route::get('/property-types/options', [PropertySettingController::class, 'propertyTypeOptions'])->name('property-types.options');
+        Route::post('/property-types', [PropertySettingController::class, 'storePropertyType'])->name('property-types.store');
+        Route::put('/property-types/{propertyType}', [PropertySettingController::class, 'updatePropertyType'])->name('property-types.update');
+        Route::delete('/property-types/{propertyType}', [PropertySettingController::class, 'deletePropertyType'])->name('property-types.destroy');
+
+        Route::get('/property-sub-types', [PropertySettingController::class, 'propertySubTypes'])->name('property-sub-types.index');
+        Route::post('/property-sub-types', [PropertySettingController::class, 'storePropertySubType'])->name('property-sub-types.store');
+        Route::put('/property-sub-types/{propertySubType}', [PropertySettingController::class, 'updatePropertySubType'])->name('property-sub-types.update');
+        Route::delete('/property-sub-types/{propertySubType}', [PropertySettingController::class, 'deletePropertySubType'])->name('property-sub-types.destroy');
+
+        // State & City routes (AJAX)
+        Route::get('/states', [\App\Http\Controllers\Admin\Api\StateController::class, 'index'])->name('states.index');
+        Route::get('/states/options', [\App\Http\Controllers\Admin\Api\StateController::class, 'options'])->name('states.options');
+        Route::post('/states', [\App\Http\Controllers\Admin\Api\StateController::class, 'store'])->name('states.store');
+        Route::get('/states/{state}', [\App\Http\Controllers\Admin\Api\StateController::class, 'show'])->name('states.show');
+        Route::put('/states/{state}', [\App\Http\Controllers\Admin\Api\StateController::class, 'update'])->name('states.update');
+        Route::delete('/states/{state}', [\App\Http\Controllers\Admin\Api\StateController::class, 'destroy'])->name('states.destroy');
+
+        Route::get('/cities', [\App\Http\Controllers\Admin\Api\CityController::class, 'index'])->name('cities.index');
+        Route::get('/cities/options', [\App\Http\Controllers\Admin\Api\CityController::class, 'options'])->name('cities.options');
+        Route::post('/cities', [\App\Http\Controllers\Admin\Api\CityController::class, 'store'])->name('cities.store');
+        Route::get('/cities/{city}', [\App\Http\Controllers\Admin\Api\CityController::class, 'show'])->name('cities.show');
+        Route::put('/cities/{city}', [\App\Http\Controllers\Admin\Api\CityController::class, 'update'])->name('cities.update');
+        Route::delete('/cities/{city}', [\App\Http\Controllers\Admin\Api\CityController::class, 'destroy'])->name('cities.destroy');
     });
 
     Route::get('activity', [ActivityLogController::class, 'index'])->name('activity.index');

@@ -5,6 +5,14 @@ import '../../css/pages/setting-index.css';
 (function () {
     'use strict';
 
+    // Build admin API URL from globals
+    function getAdminApiUrl(path) {
+        const base = (window.appBaseUrl || '').replace(/\/$/, '');
+        const adminBase = (window.adminBasePath || 'ppadmlog').replace(/\/$/, '');
+        const normalized = path.startsWith('/') ? path : `/${path}`;
+        return `${base}/${adminBase}/api${normalized}`;
+    }
+
     // Utility: get the main API endpoint from a form with data-csrf
     function getApiAction() {
         return document.querySelector('form[data-csrf]')?.action || '';
@@ -537,9 +545,317 @@ import '../../css/pages/setting-index.css';
         initTemplateManagement();
         initPanelCardActions();
 
+        // Property Type/Sub Type Management
+        initPropertyTypeManagement();
+
         // FTP Configuration Management
         initFtpConfigurationManagement();
+
+        // State and City Management
+        initStateCityManagement();
     });
+
+    function initPropertyTypeManagement() {
+        const $ = window.jQuery;
+        if (!$ || !$.fn.DataTable) return;
+
+        // Check if property type routes are defined
+        if (!window.propertyTypeRoutes) {
+            console.error('Property type routes not defined');
+            return;
+        }
+
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+
+        const routes = {
+            propertyTypes: {
+                list: window.propertyTypeRoutes.propertyTypesList,
+                options: window.propertyTypeRoutes.propertyTypesOptions,
+                store: window.propertyTypeRoutes.propertyTypesStore,
+                update: id => window.propertyTypeRoutes.propertyTypesUpdate.replace('__ID__', id),
+                destroy: id => window.propertyTypeRoutes.propertyTypesDestroy.replace('__ID__', id)
+            },
+            subTypes: {
+                list: window.propertyTypeRoutes.subTypesList,
+                store: window.propertyTypeRoutes.subTypesStore,
+                update: id => window.propertyTypeRoutes.subTypesUpdate.replace('__ID__', id),
+                destroy: id => window.propertyTypeRoutes.subTypesDestroy.replace('__ID__', id)
+            }
+        };
+
+        const typeModal = new bootstrap.Modal(document.getElementById('propertyTypeModal'));
+        const subTypeModal = new bootstrap.Modal(document.getElementById('propertySubTypeModal'));
+
+        const typeTableEl = $('#property-types-table');
+        const subTypeTableEl = $('#property-sub-types-table');
+        if (!typeTableEl.length || !subTypeTableEl.length) return;
+
+        const typeTable = typeTableEl.DataTable({
+            processing: true,
+            serverSide: true,
+            ajax: routes.propertyTypes.list,
+            order: [[0, 'asc']],
+            columns: [
+                { data: 'name', name: 'name', className: 'fw-semibold' },
+                {
+                    data: 'icon',
+                    name: 'icon',
+                    orderable: false,
+                    render: value => renderIcon(value)
+                },
+                { data: 'sub_types_count', name: 'sub_types_count', defaultContent: 0, className: 'text-center' },
+                { data: 'updated_at', name: 'updated_at' },
+                {
+                    data: null,
+                    orderable: false,
+                    searchable: false,
+                    className: 'text-end',
+                    render: row => actionButtons('type', row)
+                }
+            ],
+            language: { search: '_INPUT_', searchPlaceholder: 'Search property types...' },
+            lengthMenu: [10, 25, 50, 100],
+            responsive: true
+        });
+
+        const subTypeTable = subTypeTableEl.DataTable({
+            processing: true,
+            serverSide: true,
+            ajax: routes.subTypes.list,
+            order: [[1, 'asc']],
+            columns: [
+                { data: 'property_type_name', name: 'propertyType.name', className: 'fw-semibold', orderable: false },
+                { data: 'name', name: 'name' },
+                {
+                    data: 'icon',
+                    name: 'icon',
+                    orderable: false,
+                    render: value => renderIcon(value)
+                },
+                { data: 'updated_at', name: 'updated_at' },
+                {
+                    data: null,
+                    orderable: false,
+                    searchable: false,
+                    className: 'text-end',
+                    render: row => actionButtons('subType', row)
+                }
+            ],
+            language: { search: '_INPUT_', searchPlaceholder: 'Search sub property types...' },
+            lengthMenu: [10, 25, 50, 100],
+            responsive: true
+        });
+
+        function renderIcon(value) {
+            if (!value) return '<span class="text-muted">-</span>';
+            const isUrl = /^(http|https):\/\//i.test(value);
+            if (isUrl) {
+                return `<span class="d-inline-flex align-items-center gap-2"><img src="${value}" alt="icon" height="20" class="rounded"> <span class="text-muted small">Image</span></span>`;
+            }
+            return `<span class="d-inline-flex align-items-center gap-2"><i class="${value}"></i> <span class="text-muted small">${value}</span></span>`;
+        }
+
+        function actionButtons(kind, data) {
+            const editClass = kind === 'type' ? 'btn-edit-type' : 'btn-edit-subtype';
+            const deleteClass = kind === 'type' ? 'btn-delete-type' : 'btn-delete-subtype';
+            const label = kind === 'type' ? 'Property Type' : 'Sub Property Type';
+            return `
+                <div class="btn-group btn-group-sm" role="group">
+                    <button type="button" class="btn btn-soft-primary ${editClass}" data-id="${data.id}" title="Edit ${label}">
+                        <i class="ri-edit-2-line"></i>
+                    </button>
+                    <button type="button" class="btn btn-soft-danger ${deleteClass}" data-id="${data.id}" data-name="${data.name}" title="Delete ${label}">
+                        <i class="ri-delete-bin-line"></i>
+                    </button>
+                </div>
+            `;
+        }
+
+        function showErrors(selector, errors) {
+            const container = $(selector);
+            if (!errors || !Object.keys(errors).length) {
+                container.addClass('d-none').empty();
+                return;
+            }
+            const list = Object.values(errors).flat().map(msg => `<div>${msg}</div>`).join('');
+            container.html(list).removeClass('d-none');
+        }
+
+        function notify(type, message) {
+            if (window.Swal) {
+                Swal.fire({ toast: true, icon: type, title: message, position: 'top-end', showConfirmButton: false, timer: 2000 });
+            } else if (window.toastr && typeof window.toastr[type] === 'function') {
+                window.toastr[type](message);
+            } else {
+                window.alert(message);
+            }
+        }
+
+        function getRowData(dt, element) {
+            const $tr = $(element).closest('tr');
+            const row = dt.row($tr);
+            return row.data() || dt.row($tr.prev('.parent')).data();
+        }
+
+        function resetTypeForm(data = null) {
+            $('#propertyTypeForm')[0].reset();
+            $('#propertyTypeErrors').addClass('d-none').empty();
+            $('#propertyTypeId').val(data ? data.id : '');
+            $('#propertyTypeName').val(data ? data.name : '');
+            $('#propertyTypeIcon').val(data ? data.icon : '');
+            $('#propertyTypeModalLabel').text(data ? 'Edit Property Type' : 'Add Property Type');
+            $('#savePropertyTypeBtn').text(data ? 'Update' : 'Save');
+        }
+
+        function resetSubTypeForm(data = null) {
+            $('#propertySubTypeForm')[0].reset();
+            $('#propertySubTypeErrors').addClass('d-none').empty();
+            $('#propertySubTypeId').val(data ? data.id : '');
+            $('#propertySubTypeName').val(data ? data.name : '');
+            $('#propertySubTypeIcon').val(data ? data.icon : '');
+            $('#propertySubTypeModalLabel').text(data ? 'Edit Sub Property Type' : 'Add Sub Property Type');
+            $('#savePropertySubTypeBtn').text(data ? 'Update' : 'Save');
+            loadPropertyTypeOptions(data ? data.property_type_id : null);
+        }
+
+        function loadPropertyTypeOptions(selectedId = null) {
+            $.get(routes.propertyTypes.options)
+                .done(res => {
+                    const select = $('#propertySubTypePropertyType');
+                    select.empty();
+                    const types = res.data || [];
+                    if (!types.length) {
+                        select.append('<option value="">No property types found</option>');
+                        return;
+                    }
+                    select.append('<option value="">Select property type</option>');
+                    types.forEach(item => {
+                        const selected = selectedId && Number(selectedId) === Number(item.id) ? 'selected' : '';
+                        select.append(`<option value="${item.id}" ${selected}>${item.name}</option>`);
+                    });
+                })
+                .fail(() => notify('error', 'Unable to load property types.'));
+        }
+
+        // Open modals
+        $('#openPropertyTypeModal').on('click', () => { resetTypeForm(); typeModal.show(); });
+        $('#openPropertySubTypeModal, #openPropertySubTypeModalSecondary').on('click', () => { resetSubTypeForm(); subTypeModal.show(); });
+
+        // Edit actions
+        $('#property-types-table').on('click', '.btn-edit-type', function () {
+            const data = getRowData(typeTable, this);
+            if (!data) return;
+            resetTypeForm(data);
+            typeModal.show();
+        });
+
+        $('#property-sub-types-table').on('click', '.btn-edit-subtype', function () {
+            const data = getRowData(subTypeTable, this);
+            if (!data) return;
+            resetSubTypeForm(data);
+            $('#propertySubTypePropertyType').val(data.property_type_id);
+            subTypeModal.show();
+        });
+
+        // Delete actions
+        $('#property-types-table').on('click', '.btn-delete-type', function () {
+            const data = getRowData(typeTable, this);
+            if (!data) return;
+            confirmAndDelete('type', data.id, data.name);
+        });
+
+        $('#property-sub-types-table').on('click', '.btn-delete-subtype', function () {
+            const data = getRowData(subTypeTable, this);
+            if (!data) return;
+            confirmAndDelete('subType', data.id, data.name);
+        });
+
+        function confirmAndDelete(kind, id, name) {
+            const label = kind === 'type' ? 'property type' : 'sub property type';
+            const proceed = () => {
+                const url = kind === 'type' ? routes.propertyTypes.destroy(id) : routes.subTypes.destroy(id);
+                $.ajax({ url, method: 'DELETE', headers: { 'X-CSRF-TOKEN': csrfToken } })
+                    .done(res => {
+                        notify('success', res.message || 'Deleted successfully');
+                        typeTable.ajax.reload(null, false);
+                        subTypeTable.ajax.reload(null, false);
+                    })
+                    .fail(xhr => {
+                        const message = xhr.responseJSON?.message || `Failed to delete ${label}.`;
+                        notify('error', message);
+                    });
+            };
+
+            if (window.Swal) {
+                Swal.fire({
+                    title: 'Delete Confirmation',
+                    text: `Delete ${label} "${name}"?`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Delete',
+                    cancelButtonText: 'Cancel',
+                    customClass: { confirmButton: 'btn btn-danger me-2', cancelButton: 'btn btn-outline-secondary' },
+                    buttonsStyling: false
+                }).then(result => { if (result.isConfirmed) proceed(); });
+            } else if (window.confirm(`Delete ${label} "${name}"?`)) {
+                proceed();
+            }
+        }
+
+        // Submit type form
+        $('#propertyTypeForm').on('submit', function (event) {
+            event.preventDefault();
+            showErrors('#propertyTypeErrors', null);
+            const id = $('#propertyTypeId').val();
+            const url = id ? routes.propertyTypes.update(id) : routes.propertyTypes.store;
+            const method = id ? 'PUT' : 'POST';
+            $.ajax({
+                url,
+                method,
+                data: $(this).serialize(),
+                headers: { 'X-CSRF-TOKEN': csrfToken }
+            })
+                .done(res => {
+                    notify('success', res.message || 'Property type saved');
+                    typeModal.hide();
+                    typeTable.ajax.reload(null, false);
+                    subTypeTable.ajax.reload(null, false);
+                })
+                .fail(xhr => {
+                    const errors = xhr.responseJSON?.errors || null;
+                    const message = xhr.responseJSON?.message || 'Unable to save property type.';
+                    showErrors('#propertyTypeErrors', errors);
+                    if (!errors) notify('error', message);
+                });
+        });
+
+        // Submit sub type form
+        $('#propertySubTypeForm').on('submit', function (event) {
+            event.preventDefault();
+            showErrors('#propertySubTypeErrors', null);
+            const id = $('#propertySubTypeId').val();
+            const url = id ? routes.subTypes.update(id) : routes.subTypes.store;
+            const method = id ? 'PUT' : 'POST';
+            $.ajax({
+                url,
+                method,
+                data: $(this).serialize(),
+                headers: { 'X-CSRF-TOKEN': csrfToken }
+            })
+                .done(res => {
+                    notify('success', res.message || 'Sub property type saved');
+                    subTypeModal.hide();
+                    subTypeTable.ajax.reload(null, false);
+                    typeTable.ajax.reload(null, false);
+                })
+                .fail(xhr => {
+                    const errors = xhr.responseJSON?.errors || null;
+                    const message = xhr.responseJSON?.message || 'Unable to save sub property type.';
+                    showErrors('#propertySubTypeErrors', errors);
+                    if (!errors) notify('error', message);
+                });
+        });
+    }
 
     // FTP Configuration Management Functions
     function initFtpConfigurationManagement() {
@@ -551,14 +867,6 @@ import '../../css/pages/setting-index.css';
         if (!modalElement) return;
 
         ftpConfigModal = new bootstrap.Modal(modalElement);
-
-        // Helper function to get base URL for admin API routes
-        function getAdminApiUrl(path) {
-            // const basePath = window.location.pathname.split('/ppadmlog')[0] || '';
-            // return basePath + '/ppadmlog/api' + (path.startsWith('/') ? path : '/' + path);
-
-            return `${window.appBaseUrl}/${window.adminBasePath}/api` + (path.startsWith('/') ? path : '/' + path);
-        }
 
         // Load FTP configurations on page load
         loadFtpConfigurations();
@@ -834,5 +1142,293 @@ import '../../css/pages/setting-index.css';
                     }
                 });
         };
+    }
+
+    // State and City Management Functions
+    function initStateCityManagement() {
+        const $ = window.jQuery;
+        if (!$ || !$.fn.DataTable) return;
+
+        // Check if state city routes are defined
+        if (!window.stateCityRoutes) {
+            console.error('State city routes not defined');
+            return;
+        }
+
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+
+        const routes = {
+            states: {
+                list: window.stateCityRoutes.statesList,
+                options: window.stateCityRoutes.statesOptions,
+                store: window.stateCityRoutes.statesStore,
+                update: id => window.stateCityRoutes.statesUpdate.replace('__ID__', id),
+                destroy: id => window.stateCityRoutes.statesDestroy.replace('__ID__', id)
+            },
+            cities: {
+                list: window.stateCityRoutes.citiesList,
+                options: window.stateCityRoutes.citiesOptions,
+                store: window.stateCityRoutes.citiesStore,
+                update: id => window.stateCityRoutes.citiesUpdate.replace('__ID__', id),
+                destroy: id => window.stateCityRoutes.citiesDestroy.replace('__ID__', id)
+            }
+        };
+
+        const stateModal = new bootstrap.Modal(document.getElementById('stateModal'));
+        const cityModal = new bootstrap.Modal(document.getElementById('cityModal'));
+
+        const stateTableEl = $('#states-table');
+        const cityTableEl = $('#cities-table');
+        if (!stateTableEl.length || !cityTableEl.length) return;
+
+        // States DataTable
+        const stateTable = stateTableEl.DataTable({
+            processing: true,
+            serverSide: true,
+            ajax: routes.states.list,
+            order: [[0, 'asc']],
+            columns: [
+                { data: 'name', name: 'name', className: 'fw-semibold' },
+                { data: 'cities_count', name: 'cities_count', defaultContent: 0, className: 'text-center' },
+                { data: 'updated_at', name: 'updated_at' },
+                {
+                    data: null,
+                    orderable: false,
+                    searchable: false,
+                    className: 'text-end',
+                    render: row => actionButtons('state', row)
+                }
+            ],
+            language: { search: '_INPUT_', searchPlaceholder: 'Search states...' },
+            lengthMenu: [10, 25, 50, 100],
+            responsive: true
+        });
+
+        // Cities DataTable
+        const cityTable = cityTableEl.DataTable({
+            processing: true,
+            serverSide: true,
+            ajax: routes.cities.list,
+            order: [[1, 'asc']],
+            columns: [
+                { data: 'state_name', name: 'state.name', className: 'fw-semibold', orderable: false },
+                { data: 'name', name: 'name' },
+                { data: 'updated_at', name: 'updated_at' },
+                {
+                    data: null,
+                    orderable: false,
+                    searchable: false,
+                    className: 'text-end',
+                    render: row => actionButtons('city', row)
+                }
+            ],
+            language: { search: '_INPUT_', searchPlaceholder: 'Search cities...' },
+            lengthMenu: [10, 25, 50, 100],
+            responsive: true
+        });
+
+        function actionButtons(kind, data) {
+            const editClass = kind === 'state' ? 'btn-edit-state' : 'btn-edit-city';
+            const deleteClass = kind === 'state' ? 'btn-delete-state' : 'btn-delete-city';
+            const label = kind === 'state' ? 'State' : 'City';
+            return `
+                <div class="btn-group btn-group-sm" role="group">
+                    <button type="button" class="btn btn-soft-primary ${editClass}" data-id="${data.id}" title="Edit ${label}">
+                        <i class="ri-edit-2-line"></i>
+                    </button>
+                    <button type="button" class="btn btn-soft-danger ${deleteClass}" data-id="${data.id}" data-name="${data.name}" title="Delete ${label}">
+                        <i class="ri-delete-bin-line"></i>
+                    </button>
+                </div>
+            `;
+        }
+
+        function showErrors(selector, errors) {
+            const container = $(selector);
+            if (!errors || !Object.keys(errors).length) {
+                container.addClass('d-none').empty();
+                return;
+            }
+            const list = Object.values(errors).flat().map(msg => `<div>${msg}</div>`).join('');
+            container.html(list).removeClass('d-none');
+        }
+
+        function notify(type, message) {
+            if (window.Swal) {
+                Swal.fire({ icon: type, title: type === 'success' ? 'Success!' : 'Error!', text: message, timer: 2000, showConfirmButton: false });
+            } else {
+                alert(message);
+            }
+        }
+
+        function getRowData(dt, element) {
+            const $tr = $(element).closest('tr');
+            const row = dt.row($tr);
+            return row.data() || dt.row($tr.prev('.parent')).data();
+        }
+
+        function resetStateForm(data = null) {
+            $('#stateForm')[0].reset();
+            $('#stateErrors').addClass('d-none').empty();
+            $('#stateId').val(data ? data.id : '');
+            $('#stateName').val(data ? data.name : '');
+            $('#stateModalLabel').text(data ? 'Edit State' : 'Add State');
+            $('#saveStateBtn').text(data ? 'Update' : 'Save');
+        }
+
+        function resetCityForm(data = null) {
+            $('#cityForm')[0].reset();
+            $('#cityErrors').addClass('d-none').empty();
+            $('#cityId').val(data ? data.id : '');
+            $('#cityName').val(data ? data.name : '');
+            $('#cityModalLabel').text(data ? 'Edit City' : 'Add City');
+            $('#saveCityBtn').text(data ? 'Update' : 'Save');
+            loadStateOptions(data ? data.state_id : null);
+        }
+
+        function loadStateOptions(selectedId = null) {
+            $.get(routes.states.options)
+                .done(res => {
+                    const select = $('#cityState');
+                    select.empty().append('<option value="">-- Select State --</option>');
+                    if (res && res.length) {
+                        res.forEach(state => {
+                            const option = $('<option></option>')
+                                .attr('value', state.id)
+                                .text(state.name);
+                            if (selectedId && state.id == selectedId) {
+                                option.attr('selected', 'selected');
+                            }
+                            select.append(option);
+                        });
+                    }
+                })
+                .fail(() => notify('error', 'Unable to load states.'));
+        }
+
+        // Open modals
+        $('#openStateModal').on('click', () => { resetStateForm(); stateModal.show(); });
+        $('#openCityModal').on('click', () => { resetCityForm(); cityModal.show(); });
+
+        // Edit State
+        $('#states-table').on('click', '.btn-edit-state', function () {
+            const data = getRowData(stateTable, this);
+            if (!data) return;
+            resetStateForm(data);
+            stateModal.show();
+        });
+
+        // Edit City
+        $('#cities-table').on('click', '.btn-edit-city', function () {
+            const data = getRowData(cityTable, this);
+            if (!data) return;
+            resetCityForm(data);
+            $('#cityState').val(data.state_id);
+            cityModal.show();
+        });
+
+        // Delete State
+        $('#states-table').on('click', '.btn-delete-state', function () {
+            const data = getRowData(stateTable, this);
+            if (!data) return;
+            confirmAndDelete('state', data.id, data.name);
+        });
+
+        // Delete City
+        $('#cities-table').on('click', '.btn-delete-city', function () {
+            const data = getRowData(cityTable, this);
+            if (!data) return;
+            confirmAndDelete('city', data.id, data.name);
+        });
+
+        function confirmAndDelete(kind, id, name) {
+            const label = kind === 'state' ? 'state' : 'city';
+            const table = kind === 'state' ? stateTable : cityTable;
+            const url = kind === 'state' ? routes.states.destroy(id) : routes.cities.destroy(id);
+
+            const proceed = () => {
+                $.ajax({
+                    url,
+                    method: 'DELETE',
+                    headers: { 'X-CSRF-TOKEN': csrfToken }
+                })
+                    .done(res => {
+                        notify('success', res.message || `${label} deleted successfully.`);
+                        table.ajax.reload(null, false);
+                        // Reload the other table if it's a state (cities might be affected)
+                        if (kind === 'state') cityTable.ajax.reload(null, false);
+                    })
+                    .fail(xhr => {
+                        const message = xhr.responseJSON?.message || `Unable to delete ${label}.`;
+                        notify('error', message);
+                    });
+            };
+
+            if (window.Swal) {
+                Swal.fire({
+                    title: `Delete ${label}?`,
+                    text: `Are you sure you want to delete "${name}"? This action cannot be undone.`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#3085d6',
+                    confirmButtonText: 'Yes, delete it!'
+                }).then(result => { if (result.isConfirmed) proceed(); });
+            } else {
+                if (confirm(`Are you sure you want to delete "${name}"?`)) proceed();
+            }
+        }
+
+        // Submit State Form
+        $('#stateForm').on('submit', function (event) {
+            event.preventDefault();
+            showErrors('#stateErrors', null);
+            const id = $('#stateId').val();
+            const url = id ? routes.states.update(id) : routes.states.store;
+            const method = id ? 'PUT' : 'POST';
+            $.ajax({
+                url,
+                method,
+                data: $(this).serialize(),
+                headers: { 'X-CSRF-TOKEN': csrfToken }
+            })
+                .done(res => {
+                    notify('success', res.message || 'State saved successfully.');
+                    stateModal.hide();
+                    stateTable.ajax.reload(null, false);
+                })
+                .fail(xhr => {
+                    const errors = xhr.responseJSON?.errors;
+                    const message = xhr.responseJSON?.message || 'Unable to save state.';
+                    showErrors('#stateErrors', errors);
+                    if (!errors) notify('error', message);
+                });
+        });
+
+        // Submit City Form
+        $('#cityForm').on('submit', function (event) {
+            event.preventDefault();
+            showErrors('#cityErrors', null);
+            const id = $('#cityId').val();
+            const url = id ? routes.cities.update(id) : routes.cities.store;
+            const method = id ? 'PUT' : 'POST';
+            $.ajax({
+                url,
+                method,
+                data: $(this).serialize(),
+                headers: { 'X-CSRF-TOKEN': csrfToken }
+            })
+                .done(res => {
+                    notify('success', res.message || 'City saved successfully.');
+                    cityModal.hide();
+                    cityTable.ajax.reload(null, false);
+                })
+                .fail(xhr => {
+                    const errors = xhr.responseJSON?.errors;
+                    const message = xhr.responseJSON?.message || 'Unable to save city.';
+                    showErrors('#cityErrors', errors);
+                    if (!errors) notify('error', message);
+                });
+        });
     }
 })();

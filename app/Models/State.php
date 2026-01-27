@@ -10,7 +10,7 @@ class State extends Model
     /** @use HasFactory<\Database\Factories\StateFactory> */
     use HasFactory;
 
-    protected $fillable = ['name', 'code'];
+    protected $fillable = ['name'];
 
     public function cities()
     {
