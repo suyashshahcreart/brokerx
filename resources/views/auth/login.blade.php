@@ -15,7 +15,7 @@
                     </a>
                 </div>
 
-                <h2 class="fw-bold text-uppercase text-center fs-18">Log In working</h2>
+                <h2 class="fw-bold text-uppercase text-center fs-18">Log In</h2>
                 <p class="text-muted text-center mt-1 mb-4">Enter your email, mobile and password to access admin
                     panel.</p>
 
@@ -84,7 +84,7 @@
                                     <i class='bx bx-hide' id="togglePasswordIcon"></i>
                                 </button>
                             </div>
-                            <div class="invalid-feedback" id="password-error">
+                            <div class="invalid-feedback @error('password') d-block @enderror ">
                                 @error('password')
                                     {{ $message }}
                                 @else
@@ -111,7 +111,6 @@
                                 <label class="form-check-label" for="checkbox-signin">Remember me</label>
                             </div>
                         </div>
-
                         <div class="mb-1 text-center d-grid">
                             <button id="btn-submit-login" class="btn btn-danger py-2 fw-medium" type="submit">
                                 <span class="btn-text">Sign In</span>
