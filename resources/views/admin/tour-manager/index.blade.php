@@ -14,6 +14,15 @@
                         </nav>
                         <h3 class="mb-0">Tour Management</h3>
                     </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <x-admin.back-button :classes="['btn', 'btn-soft-secondary']" :merge="false"
+                            icon="ri-arrow-go-back-line" />
+                        @can('booking_create')
+                            <a href="{{ route('admin.bookings.create') }}" class="btn btn-primary">
+                                <i class="ri-add-line me-1"></i> New Booking
+                            </a>
+                        @endcan
+                    </div>
                 </div>
             </div>
         </div>
@@ -22,7 +31,7 @@
             <div class="col-12">
                 <div class="card">
                     <div class="card-header">
-                        <h4 class="card-title mb-0">Bookings List</h4>
+                        <h4 class="card-title mb-0">Tours List</h4>
                     </div>
                     <div class="card-body">
                         <!-- Filters -->
@@ -47,7 +56,8 @@
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Date Range</label>
-                                <input type="text" class="form-control" id="filter-date-range" placeholder="Select date range">
+                                <input type="text" class="form-control" id="filter-date-range"
+                                    placeholder="Select date range">
                             </div>
                         </div>
 
@@ -64,7 +74,7 @@
 
                         <!-- DataTable -->
                         <div class="table-responsive">
-                               <table id="bookings-table" class="table table-hover dt-responsive nowrap w-100">
+                            <table id="bookings-table" class="table table-hover dt-responsive nowrap w-100">
                                 <thead class="table-light">
                                     <tr>
                                         <th>ID</th>

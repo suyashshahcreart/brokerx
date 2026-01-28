@@ -120,9 +120,14 @@
                     </div>
                     <div class="mb-3">
                         <label for="password" class="form-label">Password <small class="text-muted">(leave blank to keep current)</small></label>
-                        <input type="password" name="password" id="password" 
-                            class="form-control @error('password') is-invalid @enderror" 
-                            minlength="6">
+                        <div class="input-group">
+                            <input type="password" name="password" id="password"
+                                class="form-control @error('password') is-invalid @enderror"
+                                minlength="6" aria-describedby="togglePassword">
+                            <button class="btn btn-outline-secondary" type="button" id="togglePassword" title="Show password">
+                                <i class="ri-eye-line" id="togglePasswordIcon"></i>
+                            </button>
+                        </div>
                         <div class="invalid-feedback">
                             @error('password')
                                 {{ $message }}
@@ -196,6 +201,22 @@
             form.classList.add('was-validated');
         }, false);
     }
+})();
+
+(function() {
+    const toggleBtn = document.getElementById('togglePassword');
+    const pwdInput = document.getElementById('password');
+    const icon = document.getElementById('togglePasswordIcon');
+    if (!toggleBtn || !pwdInput) return;
+    toggleBtn.addEventListener('click', function() {
+        const isPassword = pwdInput.getAttribute('type') === 'password';
+        pwdInput.setAttribute('type', isPassword ? 'text' : 'password');
+        if (icon) {
+            icon.classList.toggle('ri-eye-line', !isPassword);
+            icon.classList.toggle('ri-eye-off-line', isPassword);
+        }
+        toggleBtn.setAttribute('title', isPassword ? 'Hide password' : 'Show password');
+    });
 })();
 </script>
 @endsection
