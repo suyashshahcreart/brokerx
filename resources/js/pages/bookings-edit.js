@@ -175,7 +175,7 @@ function clearAllPropertySelections() {
     });
     
     // Clear address fields
-    resetAddressFields();
+    // resetAddressFields();
     
     // Note: Billing details (firm name, GST) are NOT cleared - they persist when property type changes
 }
