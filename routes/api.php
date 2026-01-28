@@ -43,6 +43,10 @@ Route::middleware(['verify.tour.token'])->group(function () {
     Route::get('/tour/mobile/history/{tour_code}', [\App\Http\Controllers\Api\TourAccessController::class, 'getMobileHistory']);
 });
 
+// Tour Page Data API (Public route with internal token verification)
+// Used by remote index.php files to fetch tour data (SEO, GTM, JSON, etc.)
+Route::get('/tour/page_data/{tour_code}', [\App\Http\Controllers\Api\TourAccessController::class, 'getTourPageData']);
+
 // Booking APIs with token security
 Route::get('/bookings/list', [\App\Http\Controllers\Api\TourAccessController::class, 'getAllBookingsList']);
 Route::get('/booking/tour-code/{tour_code}', [\App\Http\Controllers\Api\TourAccessController::class, 'getBookingByTourCode']);
