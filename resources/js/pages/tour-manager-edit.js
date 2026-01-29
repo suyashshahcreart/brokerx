@@ -25,36 +25,6 @@ function updateUploadPaths() {
     } else {
         ftpFullUrlText.textContent = 'N/A';
     }
-    
-    // Validate upload button
-    validateUploadButton();
-}
-
-// Function to validate upload button state
-function validateUploadButton() {
-    const slugInput = document.getElementById('tour_slug');
-    const locationSelect = document.getElementById('tour_location');
-    const uploadBtn = document.getElementById('upload-btn');
-    const dropzoneEl = document.getElementById('tour-dropzone');
-    
-    if (!uploadBtn || !slugInput || !locationSelect) return;
-    
-    const slug = slugInput.value.trim();
-    const location = locationSelect.value.trim();
-    
-    let hasFiles = false;
-    if (dropzoneEl && Dropzone.forElement(dropzoneEl)) {
-        const dropzone = Dropzone.forElement(dropzoneEl);
-        hasFiles = dropzone && dropzone.files.length > 0;
-    }
-    
-    const hasExistingFiles = document.querySelector('.list-group-item') !== null;
-    
-    // Disable button if any required field is empty or no files
-    const isValid = slug && location && (hasFiles || hasExistingFiles);
-    
-    uploadBtn.disabled = !isValid;
-    uploadBtn.classList.toggle('disabled', !isValid);
 }
 
 // Setup dynamic path updates - ensure it runs after DOM is ready
@@ -115,7 +85,7 @@ if (document.getElementById('tour-dropzone') && !document.getElementById('tour-d
         const myDropzone = new Dropzone("#tour-dropzone", {
             url: "#", // Dummy URL since we'll submit via form
             paramName: "files",
-            maxFilesize: 500, // MB (increased for zip files)
+            maxFilesize: 1024, // MB (increased to 1GB for large zip files)
             maxFiles: 1, // Only single file allowed
             acceptedFiles: ".zip,application/zip,application/x-zip-compressed,application/x-zip", // Only ZIP files
             addRemoveLinks: true,
@@ -169,13 +139,11 @@ if (document.getElementById('tour-dropzone') && !document.getElementById('tour-d
                     
                     // Show file count
                     updateFileCount();
-                    validateUploadButton();
                 });
 
                 this.on("removedfile", function (file) {
                     console.log('File removed:', file.name);
                     updateFileCount();
-                    validateUploadButton();
                 });
                 
                 this.on("maxfilesexceeded", function(file) {
@@ -199,6 +167,367 @@ if (document.getElementById('tour-dropzone') && !document.getElementById('tour-d
                         countDisplay.textContent = `${fileCount} file(s) selected`;
                         countDisplay.style.display = fileCount > 0 ? 'block' : 'none';
                     }
+                }
+                
+                // Chunked upload function for large files
+                function uploadFileChunked(file, form, bookingId, loadingOverlay, folderStatus, folderProgressBar, submitBtn, originalBtnText) {
+                    const CHUNK_SIZE = 10 * 1024 * 1024; // 10MB chunks
+                    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+                    const baseUrl = window.location.origin;
+                    // Get admin path from current URL or default to /ppadmlog
+                    let adminPath = window.adminBasePath;
+                    if (!adminPath) {
+                        // Extract from current URL path
+                        const currentPath = window.location.pathname;
+                        const match = currentPath.match(/^\/([^\/]+)/);
+                        adminPath = match ? '/' + match[1] : '/ppadmlog';
+                    }
+                    // Ensure leading slash
+                    if (!adminPath.startsWith('/')) {
+                        adminPath = '/' + adminPath;
+                    }
+                    
+                    // Get form data for slug and location
+                    const formData = new FormData(form);
+                    const slug = formData.get('slug');
+                    const location = formData.get('location');
+                    
+                    // Construct full URL properly
+                    const initUrl = baseUrl + adminPath + '/tour-manager/chunked-upload/init';
+                    console.log('Chunked upload init URL:', initUrl);
+                    
+                    // Initialize chunked upload
+                    fetch(initUrl, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': csrfToken,
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            filename: file.name,
+                            total_size: file.size,
+                            booking_id: bookingId
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(initData => {
+                        if (!initData.success) {
+                            throw new Error(initData.message || 'Failed to initialize upload');
+                        }
+                        
+                        const uploadId = initData.upload_id;
+                        const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+                        
+                        // Update status
+                        if (folderStatus) {
+                            folderStatus.textContent = `Uploading file in ${totalChunks} chunks...`;
+                        }
+                        
+                        // Upload chunks sequentially
+                        let chunkNumber = 0;
+                        let folderIntervalId = null;
+                        
+                        function uploadNextChunk() {
+                            if (chunkNumber >= totalChunks) {
+                                // All chunks uploaded, finalize
+                                if (folderStatus) {
+                                    folderStatus.textContent = 'Finalizing upload...';
+                                }
+                                if (folderProgressBar) {
+                                    folderProgressBar.style.width = '100%';
+                                }
+                                
+                                // Finalize upload
+                                const finalizeUrl = baseUrl + adminPath + '/tour-manager/chunked-upload/finalize/' + bookingId;
+                                console.log('Chunked upload finalize URL:', finalizeUrl);
+                                fetch(finalizeUrl, {
+                                    method: 'POST',
+                                    headers: {
+                                        'X-CSRF-TOKEN': csrfToken,
+                                        'Accept': 'application/json',
+                                        'Content-Type': 'application/json'
+                                    },
+                                    body: JSON.stringify({
+                                        upload_id: uploadId,
+                                        slug: slug,
+                                        location: location
+                                    })
+                                })
+                                .then(response => response.json())
+                                .then(data => {
+                                    if (folderIntervalId) {
+                                        clearInterval(folderIntervalId);
+                                    }
+                                    
+                                if (data.success) {
+                                    if (folderStatus) {
+                                        if (data.processing) {
+                                            folderStatus.textContent = 'Upload complete! Processing in background...';
+                                        } else {
+                                            folderStatus.textContent = 'Upload complete!';
+                                        }
+                                    }
+                                    
+                                    setTimeout(() => {
+                                        if (loadingOverlay) loadingOverlay.style.display = 'none';
+                                        
+                                        if (typeof Swal !== 'undefined') {
+                                            const message = data.processing 
+                                                ? (data.message || 'File uploaded! Processing will continue in the background. You can check the status later.')
+                                                : (data.message || 'Tour updated successfully!');
+                                            
+                                            Swal.fire({
+                                                icon: data.processing ? 'info' : 'success',
+                                                title: data.processing ? 'Processing in Background' : 'Success',
+                                                text: message,
+                                                timer: data.processing ? 5000 : 2000,
+                                                showConfirmButton: true
+                                            }).then(() => {
+                                                window.location.href = data.redirect || (baseUrl + adminPath + '/tour-manager/' + bookingId);
+                                            });
+                                        } else {
+                                            alert(data.message || 'Tour updated successfully!');
+                                            window.location.reload();
+                                        }
+                                    }, 500);
+                                } else {
+                                    throw new Error(data.message || 'Finalization failed');
+                                }
+                                })
+                                .catch(error => {
+                                    console.error('Finalization error:', error);
+                                    if (folderIntervalId) {
+                                        clearInterval(folderIntervalId);
+                                    }
+                                    if (loadingOverlay) loadingOverlay.style.display = 'none';
+                                    submitBtn.disabled = false;
+                                    submitBtn.innerHTML = originalBtnText;
+                                    
+                                    if (typeof Swal !== 'undefined') {
+                                        Swal.fire({
+                                            icon: 'error',
+                                            title: 'Error',
+                                            text: error.message || 'Failed to finalize upload'
+                                        });
+                                    } else {
+                                        alert('Failed to finalize upload: ' + error.message);
+                                    }
+                                });
+                                return;
+                            }
+                            
+                            const start = chunkNumber * CHUNK_SIZE;
+                            const end = Math.min(start + CHUNK_SIZE, file.size);
+                            const chunk = file.slice(start, end);
+                            
+                            const chunkFormData = new FormData();
+                            chunkFormData.append('upload_id', uploadId);
+                            chunkFormData.append('chunk_number', chunkNumber);
+                            chunkFormData.append('chunk', chunk);
+                            
+                            // Update progress
+                            const progress = ((chunkNumber + 1) / totalChunks) * 100;
+                            if (folderProgressBar) {
+                                folderProgressBar.style.width = progress + '%';
+                            }
+                            if (folderStatus) {
+                                folderStatus.textContent = `Uploading chunk ${chunkNumber + 1} of ${totalChunks} (${Math.round(progress)}%)`;
+                            }
+                            
+                            const chunkUrl = baseUrl + adminPath + '/tour-manager/chunked-upload/chunk';
+                            console.log('Chunked upload chunk URL:', chunkUrl);
+                            fetch(chunkUrl, {
+                                method: 'POST',
+                                headers: {
+                                    'X-CSRF-TOKEN': csrfToken,
+                                    'Accept': 'application/json'
+                                },
+                                body: chunkFormData
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                if (!data.success) {
+                                    throw new Error(data.message || 'Chunk upload failed');
+                                }
+                                
+                                chunkNumber++;
+                                uploadNextChunk();
+                            })
+                            .catch(error => {
+                                console.error('Chunk upload error:', error);
+                                if (folderIntervalId) {
+                                    clearInterval(folderIntervalId);
+                                }
+                                if (loadingOverlay) loadingOverlay.style.display = 'none';
+                                submitBtn.disabled = false;
+                                submitBtn.innerHTML = originalBtnText;
+                                
+                                if (typeof Swal !== 'undefined') {
+                                    Swal.fire({
+                                        icon: 'error',
+                                        title: 'Upload Error',
+                                        text: error.message || 'Failed to upload chunk'
+                                    });
+                                } else {
+                                    alert('Failed to upload chunk: ' + error.message);
+                                }
+                            });
+                        }
+                        
+                        // Start uploading chunks
+                        uploadNextChunk();
+                    })
+                    .catch(error => {
+                        console.error('Init error:', error);
+                        if (loadingOverlay) loadingOverlay.style.display = 'none';
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = originalBtnText;
+                        
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: error.message || 'Failed to initialize upload'
+                            });
+                        } else {
+                            alert('Failed to initialize upload: ' + error.message);
+                        }
+                    });
+                }
+                
+                // Regular upload function for small files
+                function uploadFileRegular(files, form, loadingOverlay, folderStatus, folderProgressBar, submitBtn, originalBtnText) {
+                    // Create FormData from the form
+                    const formData = new FormData(form);
+                    
+                    // Add all dropzone files to FormData
+                    files.forEach(function(file) {
+                        formData.append('files[]', file);
+                    });
+                    
+                    // List of folders to display
+                    const folders = ['images', 'gallery', 'tiles', 'index.html', 'Json data'];
+                    let currentIndex = 0;
+                    let folderIntervalId = null;
+                    
+                    // Function to display folders in sequence
+                    function startFolderDisplay() {
+                        folderIntervalId = setInterval(() => {
+                            
+                            const folder = folders[currentIndex % folders.length];
+                            
+                            // Display folder name
+                            const currentFolderName = document.getElementById('current-folder-name');
+                            if (currentFolderName) {
+                                currentFolderName.textContent = folder;
+                            }
+                            
+                            if (folderStatus) {
+                                folderStatus.textContent = `Processing folder ${(currentIndex % folders.length) + 1} of ${folders.length}`;
+                            }
+                            
+                            // Reset and animate progress bar
+                            if (folderProgressBar) {
+                                folderProgressBar.style.width = '0%';
+                                let progress = 0;
+                                const progressInterval = setInterval(() => {
+                                    progress += 2; // Increment by 2% every 100ms = 5 seconds total
+                                    if (folderProgressBar) {
+                                        folderProgressBar.style.width = progress + '%';
+                                    }
+                                    
+                                    if (progress >= 100) {
+                                        clearInterval(progressInterval);
+                                    }
+                                }, 100);
+                            }
+                            
+                            currentIndex++;
+                        }, 5200); // 5 seconds per folder + 200ms pause
+                    }
+                    
+                    // Start displaying folders immediately
+                    startFolderDisplay();
+                    
+                    // Submit form via AJAX
+                    fetch(form.action, {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content'),
+                            'Accept': 'application/json'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        // Stop folder display animation
+                        if (folderIntervalId) {
+                            clearInterval(folderIntervalId);
+                        }
+                        
+                        if (data.success) {
+                            // Show completion message
+                            if (folderStatus) {
+                                if (data.processing) {
+                                    folderStatus.textContent = 'Upload complete! Processing in background...';
+                                } else {
+                                    folderStatus.textContent = 'Upload complete!';
+                                }
+                            }
+                            if (folderProgressBar) folderProgressBar.style.width = '100%';
+                            
+                            setTimeout(() => {
+                                if (loadingOverlay) loadingOverlay.style.display = 'none';
+                                
+                                if (typeof Swal !== 'undefined') {
+                                    const message = data.processing 
+                                        ? (data.message || 'File uploaded! Processing will continue in the background. You can check the status later.')
+                                        : (data.message || 'Tour updated successfully!');
+                                    
+                                    Swal.fire({
+                                        icon: data.processing ? 'info' : 'success',
+                                        title: data.processing ? 'Processing in Background' : 'Success',
+                                        text: message,
+                                        timer: data.processing ? 5000 : 2000,
+                                        showConfirmButton: true
+                                    }).then(() => {
+                                        window.location.href = data.redirect || form.action.replace(/\/\d+$/, '/' + data.booking_id);
+                                    });
+                                } else {
+                                    alert(data.message || 'Tour updated successfully!');
+                                    window.location.reload();
+                                }
+                            }, 500);
+                        } else {
+                            throw new Error(data.message || 'Update failed');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Submit error:', error);
+                        
+                        // Stop folder display animation
+                        if (folderIntervalId) {
+                            clearInterval(folderIntervalId);
+                        }
+                        
+                        // Hide loading overlay
+                        if (loadingOverlay) loadingOverlay.style.display = 'none';
+                        
+                        // Re-enable button
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = originalBtnText;
+                        
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: error.message || 'Failed to update tour'
+                            });
+                        } else {
+                            alert('Failed to update tour: ' + error.message);
+                        }
+                    });
                 }
                 
                 // Handle form submission
@@ -225,32 +554,16 @@ if (document.getElementById('tour-dropzone') && !document.getElementById('tour-d
                             return;
                         }
                         
-                        // Validate total file size
+                        // Check if we need chunked upload (files > 75MB)
+                        const CHUNKED_UPLOAD_THRESHOLD = 75 * 1024 * 1024; // 75MB
+                        let needsChunkedUpload = false;
                         let totalSize = 0;
+                        
                         files.forEach(function(file) {
                             totalSize += file.size;
-                        });
-                        
-                        const maxTotalSize = 200 * 1024 * 1024; // 200MB total
-                        if (totalSize > maxTotalSize) {
-                            if (typeof Swal !== 'undefined') {
-                                Swal.fire({
-                                    icon: 'error',
-                                    title: 'Total Size Too Large',
-                                    text: `Total file size exceeds 200MB. Please remove some files.`
-                                });
-                            } else {
-                                alert('Total file size exceeds 200MB. Please remove some files.');
+                            if (file.size > CHUNKED_UPLOAD_THRESHOLD) {
+                                needsChunkedUpload = true;
                             }
-                            return;
-                        }
-                        
-                        // Create FormData from the form
-                        const formData = new FormData(form);
-                        
-                        // Add all dropzone files to FormData
-                        files.forEach(function(file) {
-                            formData.append('files[]', file);
                         });
                         
                         // Show loading overlay with spinner
@@ -275,116 +588,22 @@ if (document.getElementById('tour-dropzone') && !document.getElementById('tour-d
                         submitBtn.disabled = true;
                         submitBtn.innerHTML = '<i class="ri-loader-4-line me-1"></i> Updating...';
                         
-                        // List of folders to display
-                        const folders = ['images', 'gallery', 'tiles', 'index.html', 'Json data'];
-                        let currentIndex = 0;
-                        let folderIntervalId = null;
+                        // Get booking ID from form action or URL
+                        const bookingIdMatch = form.action.match(/\/(\d+)$/);
+                        const bookingId = bookingIdMatch ? bookingIdMatch[1] : null;
                         
-                        // Function to display folders in sequence
-                        function startFolderDisplay() {
-                            folderIntervalId = setInterval(() => {
-                                
-                                const folder = folders[currentIndex % folders.length];
-                                
-                                // Display folder name
-                                if (currentFolderName) {
-                                    currentFolderName.textContent = folder;
-                                }
-                                
-                                if (folderStatus) {
-                                    folderStatus.textContent = `Processing folder ${(currentIndex % folders.length) + 1} of ${folders.length}`;
-                                }
-                                
-                                // Reset and animate progress bar
-                                if (folderProgressBar) {
-                                    folderProgressBar.style.width = '0%';
-                                    let progress = 0;
-                                    const progressInterval = setInterval(() => {
-                                        progress += 2; // Increment by 2% every 100ms = 5 seconds total
-                                        if (folderProgressBar) {
-                                            folderProgressBar.style.width = progress + '%';
-                                        }
-                                        
-                                        if (progress >= 100) {
-                                            clearInterval(progressInterval);
-                                        }
-                                    }, 100);
-                                }
-                                
-                                currentIndex++;
-                            }, 5200); // 5 seconds per folder + 200ms pause
+                        if (!bookingId) {
+                            throw new Error('Booking ID not found');
                         }
                         
-                        // Start displaying folders immediately
-                        startFolderDisplay();
-                        
-                        // Submit form via AJAX
-                        fetch(form.action, {
-                            method: 'POST',
-                            body: formData,
-                            headers: {
-                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content'),
-                                'Accept': 'application/json'
-                            }
-                        })
-                        .then(response => response.json())
-                        .then(data => {
-                            // Stop folder display animation
-                            if (folderIntervalId) {
-                                clearInterval(folderIntervalId);
-                            }
-                            
-                            if (data.success) {
-                                // Show completion message
-                                if (folderStatus) folderStatus.textContent = 'Upload complete!';
-                                if (folderProgressBar) folderProgressBar.style.width = '100%';
-                                
-                                setTimeout(() => {
-                                    if (loadingOverlay) loadingOverlay.style.display = 'none';
-                                    
-                                    if (typeof Swal !== 'undefined') {
-                                        Swal.fire({
-                                            icon: 'success',
-                                            title: 'Success',
-                                            text: data.message || 'Tour updated successfully!',
-                                            timer: 2000
-                                        }).then(() => {
-                                            window.location.href = data.redirect || form.action.replace(/\/\d+$/, '/' + data.booking_id);
-                                        });
-                                    } else {
-                                        alert(data.message || 'Tour updated successfully!');
-                                        window.location.reload();
-                                    }
-                                }, 500);
-                            } else {
-                                throw new Error(data.message || 'Update failed');
-                            }
-                        })
-                        .catch(error => {
-                            console.error('Submit error:', error);
-                            
-                            // Stop folder display animation
-                            if (folderIntervalId) {
-                                clearInterval(folderIntervalId);
-                            }
-                            
-                            // Hide loading overlay
-                            if (loadingOverlay) loadingOverlay.style.display = 'none';
-                            
-                            // Re-enable button
-                            submitBtn.disabled = false;
-                            submitBtn.innerHTML = originalBtnText;
-                            
-                            if (typeof Swal !== 'undefined') {
-                                Swal.fire({
-                                    icon: 'error',
-                                    title: 'Error',
-                                    text: error.message || 'Failed to update tour'
-                                });
-                            } else {
-                                alert('Failed to update tour: ' + error.message);
-                            }
-                        });
+                        // Use chunked upload for large files, regular upload for small files
+                        if (needsChunkedUpload && files.length > 0) {
+                            // Use chunked upload for the first (and only) file
+                            uploadFileChunked(files[0], form, bookingId, loadingOverlay, folderStatus, folderProgressBar, submitBtn, originalBtnText);
+                        } else {
+                            // Use regular upload for small files
+                            uploadFileRegular(files, form, loadingOverlay, folderStatus, folderProgressBar, submitBtn, originalBtnText);
+                        }
                     });
                 }
             }
