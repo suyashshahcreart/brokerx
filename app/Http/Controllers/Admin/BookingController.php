@@ -295,7 +295,7 @@ class BookingController extends Controller
     {
         $validated = $request->validate([
             'user_id' => ['required', 'exists:users,id'],
-            'owner_type' => ['required', 'in:Owner,Broker,Agent'],
+            'owner_type' => ['required', 'in:Owner,Broker,Agent,Other'],
             'property_type_id' => ['required', 'exists:property_types,id'],
             'property_sub_type_id' => ['required', 'exists:property_sub_types,id'],
             'other_option_details' => ['nullable', 'string', 'max:255'],
@@ -580,7 +580,7 @@ class BookingController extends Controller
     {
         $validated = $request->validate([
             'user_id' => ['required', 'exists:users,id'],
-            'owner_type' => ['required', 'in:Owner,Broker,Agent'],
+            'owner_type' => ['required', 'in:Owner,Broker,Agent,Other'],
             'property_type_id' => ['required', 'exists:property_types,id'],
             'property_sub_type_id' => ['required', 'exists:property_sub_types,id'],
             'other_option_details' => ['nullable', 'string', 'max:255'],

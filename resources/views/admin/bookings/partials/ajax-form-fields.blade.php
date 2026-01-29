@@ -66,6 +66,9 @@
                                 <div class="top-pill {{ ($booking->owner_type ?? '') == 'Broker' ? 'active' : '' }}" data-group="ownerType" data-value="Broker" onclick="topPillClick(this)">
                                     <i class="ri-briefcase-line me-1"></i> Broker
                                 </div>
+                                <div class="top-pill {{ ($booking->owner_type ?? '') == 'Other' ? 'active' : '' }}" data-group="ownerType" data-value="Other" onclick="topPillClick(this)">
+                                    <i class="ri-briefcase-line me-1"></i> Other
+                                </div>
                             </div>
                             <div id="err-ownerType" class="error">Owner Type is required.</div>
                         </div>
@@ -396,7 +399,7 @@
                             <div class="col-12">
                                 <!-- State -->
                                 <div class="mb-1">
-                                    <label class="form-label fw-semibold mb-0" for="state_id">State</label>
+                                    <label class="form-label fw-semibold mb-0" for="state_id">State <span class="text-danger">*</span> </label>
                                     <select name="state_id" id="state_id" class="form-select">
                                         <option value="">Select state</option>
                                         @foreach($states as $s)
@@ -408,7 +411,7 @@
                             <div class="col-12">
                                 <!-- City -->
                                 <div class="mb-1">
-                                    <label class="form-label fw-semibold mb-0" for="city_id">City</label>
+                                    <label class="form-label fw-semibold mb-0" for="city_id">City <span class="text-danger">*</span> </label>
                                     <select name="city_id" id="city_id" class="form-select">
                                         <option value="">Select city</option>
                                         @foreach($cities as $c)
