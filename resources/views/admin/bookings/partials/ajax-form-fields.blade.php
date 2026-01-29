@@ -20,7 +20,7 @@
             <div class="invalid-feedback">@error('user_id'){{ $message }}@else Please select a customer.@enderror</div>
         </div>
     </div>
-    <!-- <div class="col-4 d-none">
+    <!-- <div class="col-3">
         <div class="mb-1">
             <label class="form-label" for="status">Status <span class="text-danger">*</span></label>
             <select name="status" id="status" class="form-select @error('status') is-invalid @enderror" required>
@@ -32,7 +32,7 @@
             <div class="invalid-feedback">@error('status'){{ $message }}@else Please select a status.@enderror</div>
         </div>
     </div> -->
-    <div class="col-6">
+    <div class="col-3">
         <div class="mb-1">
             <label class="form-label" for="payment_status">Payment Status <span class="text-danger">*</span></label>
             <select name="payment_status" id="payment_status" class="form-select @error('payment_status') is-invalid @enderror" required>
@@ -79,24 +79,11 @@
                             <div class="section-title mb-0">Property Type <span class="text-danger">*</span></div>
                             <div class="d-flex flex-wrap gap mb-0" id="propertyTypeContainer">
                                 @php
-                                    // Define property type order and icons
-                                    $propertyTypeOrder = [
-                                        'Residential' => ['key' => 'res', 'icon' => 'ri-home-4-line', 'type' => 'ri'],
-                                        'Commercial'  => ['key' => 'com', 'icon' => 'ri-building-line', 'type' => 'ri'],
-                                        'Other'       => ['key' => 'oth', 'icon' => 'fa-ellipsis', 'type' => 'fa'],
-                                    ];
-                                    
-                                    // Sort property types by the defined order
-                                    $sortedPropertyTypes = collect($propertyTypes)->sortBy(function($pt) use ($propertyTypeOrder) {
-                                        return array_search($pt->name, array_keys($propertyTypeOrder));
-                                    });
-                                    
                                     $currentPropertyTypeName = $booking->propertyType->name ?? 'Residential';
                                 @endphp
                                 
-                                @foreach($sortedPropertyTypes as $pt)
+                                @foreach($propertyTypes as $pt)
                                     @php
-                                        $config = $propertyTypeOrder[$pt->name] ?? ['key' => 'oth', 'icon' => 'fa-circle', 'type' => 'fa'];
                                         $isActive = ($booking->property_type_id == $pt->id);
                                     @endphp
                                     <div
@@ -104,13 +91,10 @@
                                         id="pill{{ \Illuminate\Support\Str::studly($pt->name) }}"
                                         data-value="{{ $pt->name }}"
                                         data-type-id="{{ $pt->id }}"
-                                        onclick="handlePropertyTabChange('{{ $config['key'] }}')"
+                                        data-tab-connect="tab-{{ $pt->name }}"
+                                        onclick="handlePropertyTabChange(this)"
                                     >
-                                        @if($config['type'] === 'ri')
-                                            <i class="{{ $config['icon'] }} me-1"></i>
-                                        @else
-                                            <i class="fa-solid {{ $config['icon'] }} me-1"></i>
-                                        @endif
+                                        <i class="{{ $pt->icon }}"></i>
                                         {{ $pt->name }}
                                     </div>
                                 @endforeach
@@ -120,10 +104,6 @@
                     </div>
                 </div>
                 
-                        
-
-                        
-
                 @php
                     $currentPropertyType = $booking->propertyType->name ?? 'Residential';
                     $currentPropertySubTypeId = $booking->property_sub_type_id;
@@ -139,144 +119,65 @@
                     }
                 @endphp
 
-
-
-                <!-- RESIDENTIAL TAB -->
-                <div id="tab-res" class="{{ $currentPropertyType == 'Residential' ? '' : 'hidden' }}">
+                <!-- PROPERTY SUB TYPE AND OTHER DETAILS TAB -->
+                <div id="propertySubTypetab" class="{{ $currentPropertyType ? '' : 'hidden' }}">
                     <div class="row">
                         <div class="col-6">
                             <!-- Property Sub Type -->
                             <div class="mb-1">
                                 <div class="section-title mb-0">Property Sub Type <span class="text-danger">*</span></div>
-                                <div class="d-wrap" id="resTypeContainer">
-                                    @foreach($propertySubTypes as $pst)
-                                        @if($pst->property_type_id == ($propertyTypes->firstWhere('name', 'Residential')->id ?? null))
-                                            <div class="top-pill {{ $currentPropertyType == 'Residential' && $pst->id == $currentPropertySubTypeId ? 'active' : '' }}" data-group="resType" data-value="{{ $pst->id }}" onclick="selectCard(this)">
-                                                @if($pst->icon)
-                                                    @php
-                                                        $iconClass = str_starts_with($pst->icon, 'fa-') ? "fa {$pst->icon}" : "fa-solid fa-{$pst->icon}";
-                                                    @endphp
-                                                    <i class="{{ $iconClass }} me-1"></i>
-                                                @endif
-                                                {{ $pst->name }}
-                                            </div>
-                                        @endif
-                                    @endforeach
-                                </div>
+                                @foreach($propertyTypes as $pt)
+                                    <div class="d-wrap {{ $currentPropertyType == $pt->name ? '' : 'hidden' }}" id="tab-{{ $pt->name }}">
+                                        @foreach($propertySubTypes as $pst)
+                                            @if($pst->property_type_id == $pt->id)
+                                                <div class="top-pill {{ $currentPropertyType == $pt->name && $pst->id == $currentPropertySubTypeId ? 'active' : '' }}" data-group="resType" data-value="{{ $pst->id }}" data-subtype-name="{{ $pst->name }}" onclick="selectCard(this)">
+                                                    <i class="{{ $pst->icon }}"></i>
+                                                    {{ $pst->name }}
+                                                </div>
+                                            @endif
+                                        @endforeach
+                                    </div>
+                                @endforeach
                                 <div id="err-resType" class="error">Property Sub Type is required.</div>
                             </div>
                         </div>
-                        <div class="col-6">
+                        <div class="col-6" id="furnishRow">
                             <!-- Furnish Type -->
                             <div class="mb-1">
                                 <div class="section-title mb-0">Furnish Type <span class="text-danger">*</span></div>
                                 <div class="d-flex flex-wrap gap" id="resFurnishContainer">
-                                    <div class="chip {{ $currentPropertyType == 'Residential' && $normalizedFurnitureType == 'Furnished' ? 'active' : '' }}" data-group="resFurnish" data-value="Furnished" onclick="selectChip(this)"><i class="ri-sofa-line"></i> Fully Furnished</div>
-                                    <div class="chip {{ $currentPropertyType == 'Residential' && ($normalizedFurnitureType == 'Semi-Furnished' || $currentFurnitureType == 'Semi Furnished') ? 'active' : '' }}" data-group="resFurnish" data-value="Semi-Furnished" onclick="selectChip(this)"><i class="ri-lightbulb-line"></i> Semi Furnished</div>
-                                    <div class="chip {{ $currentPropertyType == 'Residential' && $normalizedFurnitureType == 'Unfurnished' ? 'active' : '' }}" data-group="resFurnish" data-value="Unfurnished" onclick="selectChip(this)"><i class="ri-door-line"></i> Unfurnished</div>
+                                    <div class="chip {{ $normalizedFurnitureType == 'Furnished' ? 'active' : '' }}" data-group="resFurnish" data-value="Furnished" onclick="selectChip(this)"><i class="ri-sofa-line"></i> Fully Furnished</div>
+                                    <div class="chip {{ ($normalizedFurnitureType == 'Semi-Furnished' || $currentFurnitureType == 'Semi Furnished') ? 'active' : '' }}" data-group="resFurnish" data-value="Semi-Furnished" onclick="selectChip(this)"><i class="ri-lightbulb-line"></i> Semi Furnished</div>
+                                    <div class="chip {{ $normalizedFurnitureType == 'Unfurnished' ? 'active' : '' }}" data-group="resFurnish" data-value="Unfurnished" onclick="selectChip(this)"><i class="ri-door-line"></i> Unfurnished</div>
                                 </div>
                                 <div id="err-resFurnish" class="error">Furnish Type is required.</div>
                             </div>
                         </div>
                     </div>
                     <div class="row">
-                        <div class="col-12">
+                        <div class="col-12" id="sizeRow">
                             <!-- Size (BHK/RK) -->
                             <div class="mb-1">
                                 <div class="section-title mb-0">Size (BHK / RK) <span class="text-danger">*</span></div>
                                 <div class="d-flex flex-wrap gap" id="resSizeContainer">
                                     @foreach($bhks as $bhk)
-                                        <div class="chip {{ $currentPropertyType == 'Residential' && $bhk->id == $currentBhkId ? 'active' : '' }}" data-group="resSize" data-value="{{ $bhk->id }}" onclick="selectChip(this)">{{ $bhk->name }}</div>
+                                        <div class="chip {{ $bhk->id == $currentBhkId ? 'active' : '' }}" data-group="resSize" data-value="{{ $bhk->id }}" onclick="selectChip(this)">{{ $bhk->name }}</div>
                                     @endforeach
                                 </div>
                                 <div id="err-resSize" class="error">Size (BHK / RK) is required.</div>
                             </div>
                         </div>
                     </div>
-                            
-
-                            
-
-                            
-                </div>
-
-                <!-- COMMERCIAL TAB -->
-                <div id="tab-com" class="{{ $currentPropertyType == 'Commercial' ? '' : 'hidden' }}">
-                    <div class="row">
-                        <div class="col-6">
-                            <!-- Property Sub Type -->
+                    
+                    <!-- Other Option Details (Hidden by default, shown when "Other" sub type is selected) -->
+                    <div class="row" id="otherDetailsRow" style="{{ ($booking->other_option_details) ? 'display: block;' : 'display: none;' }}">
+                        <div class="col-12">
                             <div class="mb-1">
-                                <div class="section-title mb-0">Property Sub Type <span class="text-danger">*</span></div>
-                                <div class="d-wrap" id="comTypeContainer">
-                                    @foreach($propertySubTypes as $pst)
-                                        @if($pst->property_type_id == ($propertyTypes->firstWhere('name', 'Commercial')->id ?? null))
-                                            <div class="top-pill {{ $currentPropertyType == 'Commercial' && $pst->id == $currentPropertySubTypeId ? 'active' : '' }}" data-group="comType" data-value="{{ $pst->id }}" onclick="selectCard(this)">
-                                                @if($pst->icon)
-                                                    @php
-                                                        $iconClass = str_starts_with($pst->icon, 'fa-') ? "fa {$pst->icon}" : "fa-solid fa-{$pst->icon}";
-                                                    @endphp
-                                                    <i class="{{ $iconClass }} me-1"></i>
-                                                @endif
-                                                {{ $pst->name }}
-                                            </div>
-                                        @endif
-                                    @endforeach
-                                </div>
-                                <div id="err-comType" class="error">Property Sub Type is required.</div>
+                                <div class="section-title mb-0">Other Option Details <span class="text-danger">*</span></div>
+                                <textarea name="other_option_details" id="othDesc" class="form-control @error('other_option_details') is-invalid @enderror" rows="3" placeholder="Enter other option details">{{ old('other_option_details', $booking->other_option_details ?? '') }}</textarea>
+                                <div id="err-othDesc" class="error @error('other_option_details') show @endif">@error('other_option_details'){{ $message }}@else Other Option Details is required.@enderror</div>
                             </div>
                         </div>
-                        <div class="col-6">
-                            <!-- Furnish Type -->
-                            <div class="mb-1">
-                                <div class="section-title mb-0">Furnish Type <span class="text-danger">*</span></div>
-                                <div class="d-flex flex-wrap gap" id="comFurnishContainer">
-                                    <div class="chip {{ $currentPropertyType == 'Commercial' && $normalizedFurnitureType == 'Furnished' ? 'active' : '' }}" data-group="comFurnish" data-value="Furnished" onclick="selectChip(this)">
-                                        <i class="ri-sofa-line me-1"></i> Fully Furnished
-                                    </div>
-                                    <div class="chip {{ $currentPropertyType == 'Commercial' && ($normalizedFurnitureType == 'Semi-Furnished' || $currentFurnitureType == 'Semi Furnished') ? 'active' : '' }}" data-group="comFurnish" data-value="Semi-Furnished" onclick="selectChip(this)">
-                                        <i class="ri-lightbulb-line me-1"></i> Semi Furnished
-                                    </div>
-                                    <div class="chip {{ $currentPropertyType == 'Commercial' && $normalizedFurnitureType == 'Unfurnished' ? 'active' : '' }}" data-group="comFurnish" data-value="Unfurnished" onclick="selectChip(this)">
-                                        <i class="ri-door-line me-1"></i> Unfurnished
-                                    </div>
-                                </div>
-                                <div id="err-comFurnish" class="error">Furnish Type is required.</div>
-                            </div>
-                        </div>
-                    </div>
-                            
-
-                            
-                </div>
-
-                <!-- OTHER TAB -->
-                <div id="tab-oth" class="{{ $currentPropertyType == 'Other' ? '' : 'hidden' }}">
-                    <!-- Looking For -->
-                    <div class="mb-1">
-                        <div class="section-title mb-0">Select Option <span class="text-danger">*</span></div>
-                        <div class="d-flex flex-wrap gap" id="othLookingContainer">
-                            @foreach($propertySubTypes as $pst)
-                                @if($pst->property_type_id == ($propertyTypes->firstWhere('name', 'Other')->id ?? null))
-                                    <div class="top-pill {{ $currentPropertyType == 'Other' && $pst->id == $currentPropertySubTypeId ? 'active' : '' }}" data-group="othLooking" data-value="{{ $pst->id }}" onclick="topPillClick(this)">
-                                        @if($pst->icon)
-                                            @php
-                                                $iconClass = str_starts_with($pst->icon, 'fa-') ? "fa {$pst->icon}" : "fa-solid fa-{$pst->icon}";
-                                            @endphp
-                                            <i class="fa {{ $iconClass }} me-1"></i>
-                                        @endif
-                                        {{ $pst->name }}
-                                    </div>
-                                @endif
-                            @endforeach
-                        </div>
-                        <div id="err-othLooking" class="error">Select Option is required.</div>
-                    </div>
-
-                    <!-- Other Option Details -->
-                    <div class="mb-1">
-                        <div class="section-title mb-0">Other Option Details</div>
-                        <textarea name="other_option_details" id="othDesc" class="form-control" rows="3" placeholder="Enter other option details">{{ $booking->other_option_details ?? '' }}</textarea>
-                        <div id="err-othDesc" class="error">Other Option Details is required.</div>
                     </div>
                 </div>
 

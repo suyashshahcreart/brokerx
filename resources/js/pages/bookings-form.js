@@ -306,6 +306,19 @@ window.selectCard = function(dom) {
     document.querySelectorAll(`[data-group="${group}"]`).forEach(n => n.classList.remove('active'));
     dom.classList.add('active');
     const v = dom.dataset.value;
+    const subtypeName = dom.dataset.subtypeName || '';
+    
+    // Show/hide Other Option Details based on property sub type
+    const otherDetailsRow = document.getElementById('otherDetailsRow');
+    if (subtypeName.toLowerCase().includes('other')) {
+        otherDetailsRow.style.display = 'block';
+        document.getElementById('othDesc').required = true;
+    } else {
+        otherDetailsRow.style.display = 'none';
+        document.getElementById('othDesc').required = false;
+        document.getElementById('othDesc').value = ''; // Clear the field
+        hideFieldError('othDesc', 'err-othDesc'); // Clear any errors
+    }
     
     // Clear errors when residential/commercial sub type is selected
     if (group === 'resType') {
@@ -524,6 +537,19 @@ function validateForm() {
             isValid = false;
         } else {
             hidePillContainerError('othLookingContainer', 'err-othLooking');
+            hideFieldError('othDesc', 'err-othDesc');
+        }
+    }
+    
+    // Validate Other Option Details if the row is visible
+    const otherDetailsRow = document.getElementById('otherDetailsRow');
+    if (otherDetailsRow && otherDetailsRow.style.display !== 'none') {
+        const othDesc = el('othDesc')?.value?.trim();
+        if (!othDesc) {
+            showFieldError('othDesc', 'err-othDesc');
+            errors.push('Other Option Details is required');
+            isValid = false;
+        } else {
             hideFieldError('othDesc', 'err-othDesc');
         }
     }
