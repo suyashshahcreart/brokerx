@@ -371,7 +371,7 @@ class TourAccessController extends Controller{
         ]);
 
         // Send OTP via SMS (mobile already includes country code)
-        $templateKey = 'login_otp'; // Using login_otp template as preferred for tour access
+        $templateKey = 'tour_access_otp'; // Using login_otp template as preferred for tour access
 
         try {
             $this->smsService->send(
