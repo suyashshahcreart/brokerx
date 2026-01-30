@@ -29,7 +29,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/tour-manager/customers', [TourManagerController::class, 'getCustomers']);
     Route::get('/tour-manager/tours-by-customer', [TourManagerController::class, 'getToursByCustomer']);
     Route::get('/tour-manager/tour/{tour_code}', [TourManagerController::class, 'getTourDetails']);
+    Route::get('/tour-manager/locations', [TourManagerController::class, 'getTourLocations']);
     Route::put('/tour-manager/working_json/{tour_code}', [TourManagerController::class, 'updateWorkingJson']);
+    
+    // Tour file upload APIs
+    Route::post('/tour-manager/upload-file', [TourManagerController::class, 'uploadFile']); // Unified upload - handles both simple and chunked internally
 });
 
 // Tour Access APIs (Protected by Dynamic Token)
