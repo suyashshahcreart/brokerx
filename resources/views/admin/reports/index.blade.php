@@ -97,13 +97,34 @@
                             </div>
                             <i class="ri-arrow-right-line"></i>
                         </a>
-                        <a href="{{ route('admin.reports.customers') }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
-                            <div>
-                                <h5 class="mb-1">Customers Report</h5>
-                                <small class="text-muted">Top customers by bookings and revenue</small>
-                            </div>
-                            <i class="ri-arrow-right-line"></i>
-                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Export Reports Card -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <div>
+                        <h4 class="card-title mb-1">Export Reports</h4>
+                        <p class="text-muted mb-0">Download reports in Excel format</p>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex gap-2 flex-wrap">
+                        <button type="button" class="btn btn-primary export-btn" 
+                                data-report-type="bookings" 
+                                data-export-url="{{ route('admin.reports.export.bookings') }}"
+                                data-bs-toggle="modal" 
+                                data-bs-target="#exportModal">
+                            <i class="ri-download-2-line me-1"></i> Export Bookings Report
+                        </button>
+                        <button type="button" class="btn btn-success export-btn" 
+                                data-report-type="sales" 
+                                data-export-url="{{ route('admin.reports.export.sales') }}"
+                                data-bs-toggle="modal" 
+                                data-bs-target="#exportModal">
+                            <i class="ri-download-2-line me-1"></i> Export Sales Report
+                        </button>
                     </div>
                 </div>
             </div>
@@ -138,4 +159,42 @@
             </div>
         </div>
     </div>
+
+    <!-- Export Modal -->
+    <div class="modal fade" id="exportModal" tabindex="-1" aria-labelledby="exportModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exportModalLabel">Export Report</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="exportForm">
+                        <div class="mb-3">
+                            <label for="exportDateRange" class="form-label">Select Date Range</label>
+                            <input type="text" class="form-control" id="exportDateRange" placeholder="Select date range" required>
+                        </div>
+                        <input type="hidden" id="exportFromDate">
+                        <input type="hidden" id="exportToDate">
+                        <input type="hidden" id="exportReportType">
+                        <input type="hidden" id="exportUrl">
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="exportConfirmBtn">Export</button>
+                </div>
+            </div>
+        </div>
+    </div>
+@endsection
+@section('scripts')
+    <!-- Date Range Picker CSS -->
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+    <!-- Moment JS (required by daterangepicker) -->
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/moment.min.js"></script>
+    <!-- Date Range Picker JS -->
+    <script src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    
+    @vite('resources/js/pages/report-index.js')
 @endsection

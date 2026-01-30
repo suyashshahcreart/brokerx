@@ -39,7 +39,7 @@ class ReportController extends Controller
             'totalTours' => $totalTours,
             'recentSales' => $recentSales,
         ]);
-    }
+    }   
 
     public function sales(Request $request)
     {
@@ -155,23 +155,6 @@ class ReportController extends Controller
         ]);
     }
 
-    public function customers()
-    {
-        $topCustomers = Booking::selectRaw('user_id, COUNT(*) as bookings, SUM(COALESCE(cashfree_payment_amount, price, 0)) as revenue')
-            ->with('user')
-            ->groupBy('user_id')
-            ->orderByDesc('bookings')
-            ->limit(15)
-            ->get();
-
-        $totalCustomers = User::count();
-
-        return view('admin.reports.customers', [
-            'topCustomers' => $topCustomers,
-            'totalCustomers' => $totalCustomers,
-        ]);
-    }
-
     /**
      * Export bookings report to Excel with all details
      */
@@ -180,13 +163,30 @@ class ReportController extends Controller
         $filters = [
             'state_id' => $request->state_id,
             'city_id' => $request->city_id,
+            'owner_type' => $request->owner_type,
+            'property_type_id' => $request->property_type_id,
+            'property_sub_type_id' => $request->property_sub_type_id,
+            'pin_code' => $request->pin_code,
             'status' => $request->status,
-            'date_from' => $request->date_from,
-            'date_to' => $request->date_to,
+            'from' => $request->from,
+            'to' => $request->to,
         ];
 
         $filename = 'bookings-report-' . now()->format('Y-m-d-His') . '.xlsx';
 
-        return Excel::download(new BookingsExport($filters), $filename);
+        return Excel::download(new BookingsExport($filters, auth()->user()), $filename);
+    }
+
+    /**
+     * Export sales report to Excel
+     */
+    public function exportSales(Request $request)
+    {
+        $from = $request->from ?? now()->subDays(30)->toDateString();
+        $to = $request->to ?? now()->toDateString();
+
+        // For now, redirect to bookings export
+        // You can create a separate SalesExport class later
+        return $this->exportBookings($request);
     }
 }
