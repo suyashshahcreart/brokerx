@@ -61,6 +61,10 @@ class BookingsExport implements FromCollection, WithHeadings, WithMapping, WithS
             $query->where('owner_type', $this->filters['owner_type']);
         }
 
+        if (!empty($this->filters['user_id'])) {
+            $query->where('user_id', $this->filters['user_id']);
+        }
+
         if (!empty($this->filters['property_type_id'])) {
             $query->where('property_type_id', $this->filters['property_type_id']);
         }

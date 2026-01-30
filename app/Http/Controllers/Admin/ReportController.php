@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\City;
 use App\Models\State;
+use App\Models\PropertyType;
+use App\Models\PropertySubType;
 use App\Models\Tour;
 use App\Models\User;
 use App\Exports\BookingsExport;
@@ -32,12 +34,34 @@ class ReportController extends Controller
             ->limit(5)
             ->get();
 
+        $ownerTypes = Booking::select('owner_type')
+            ->whereNotNull('owner_type')
+            ->where('owner_type', '!=', '')
+            ->distinct()
+            ->orderBy('owner_type')
+            ->pluck('owner_type');
+
+        $propertyTypes = PropertyType::orderBy('name')->get();
+        $propertySubTypes = PropertySubType::orderBy('name')->get();
+        $customers = User::orderBy('firstname')
+            ->orderBy('lastname')
+            ->select(['id', 'firstname', 'lastname', 'email','mobile'])
+            ->get();
+        $states = State::orderBy('name')->get();
+        $cities = City::orderBy('name')->get();
+
         return view('admin.reports.index', [
             'totalRevenue' => $totalRevenue,
             'totalBookings' => $totalBookings,
             'totalCustomers' => $totalCustomers,
             'totalTours' => $totalTours,
             'recentSales' => $recentSales,
+            'ownerTypes' => $ownerTypes,
+            'propertyTypes' => $propertyTypes,
+            'propertySubTypes' => $propertySubTypes,
+            'customers' => $customers,
+            'states' => $states,
+            'cities' => $cities,
         ]);
     }   
 
@@ -164,6 +188,7 @@ class ReportController extends Controller
             'state_id' => $request->state_id,
             'city_id' => $request->city_id,
             'owner_type' => $request->owner_type,
+            'user_id' => $request->user_id,
             'property_type_id' => $request->property_type_id,
             'property_sub_type_id' => $request->property_sub_type_id,
             'pin_code' => $request->pin_code,

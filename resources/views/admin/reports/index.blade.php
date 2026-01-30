@@ -176,6 +176,66 @@
                 <div class="modal-body">
                     <form id="exportForm">
                         <div class="mb-3">
+                            <label for="exportOwnerType" class="form-label">Owner Type</label>
+                            <select class="form-select" id="exportOwnerType">
+                                <option value="">All Owner Types</option>
+                                @foreach ($ownerTypes as $ownerType)
+                                    <option value="{{ $ownerType }}">{{ ucfirst($ownerType) }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="exportCustomer" class="form-label">Customer</label>
+                            <select class="form-select" id="exportCustomer">
+                                <option value="">All Customers</option>
+                                @foreach ($customers as $customer)
+                                    <option value="{{ $customer->id }}">
+                                       {{ $customer->firstname }} {{ $customer->lastname }} | {{ $customer->mobile }}@if($customer->email) | {{ $customer->email }}@endif
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="exportPropertyType" class="form-label">Property Type</label>
+                            <select class="form-select" id="exportPropertyType">
+                                <option value="">All Property Types</option>
+                                @foreach ($propertyTypes as $propertyType)
+                                    <option value="{{ $propertyType->id }}">{{ $propertyType->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="exportPropertySubType" class="form-label">Property Sub Type</label>
+                            <select class="form-select" id="exportPropertySubType">
+                                <option value="">All Property Sub Types</option>
+                                @foreach ($propertySubTypes as $propertySubType)
+                                    <option value="{{ $propertySubType->id }}">{{ $propertySubType->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="exportState" class="form-label">State</label>
+                            <select class="form-select" id="exportState">
+                                <option value="">All States</option>
+                                @foreach ($states as $state)
+                                    <option value="{{ $state->id }}">{{ $state->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="exportCity" class="form-label">City</label>
+                            <select class="form-select" id="exportCity">
+                                <option value="">All Cities</option>
+                                @foreach ($cities as $city)
+                                    <option value="{{ $city->id }}">{{ $city->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="exportPinCode" class="form-label">Pin Code</label>
+                            <input type="text" class="form-control" id="exportPinCode" placeholder="Enter pin code">
+                        </div>
+                        <div class="mb-3">
                             <label for="exportDateRange" class="form-label">Select Date Range</label>
                             <input type="text" class="form-control" id="exportDateRange" placeholder="Select date range" required>
                         </div>
