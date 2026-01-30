@@ -3,6 +3,7 @@
 <!-- Hidden Fields for Dynamic Data -->
 <input type="hidden" id="choice_ownerType" name="owner_type" value="{{ $booking->owner_type ?? '' }}">
 <input type="hidden" id="mainPropertyType" name="main_property_type" value="{{ $booking->propertyType->name ?? 'Residential' }}">
+<input type="hidden" id="propertySubTypeId" name="property_sub_type_id" value="{{ $booking->property_sub_type_id ?? '' }}">
 
 <!-- User Selection - Full Width -->
 <div class="row">
@@ -126,15 +127,13 @@
                             <!-- Property Sub Type -->
                             <div class="mb-1">
                                 <div class="section-title mb-0">Property Sub Type <span class="text-danger">*</span></div>
-                                @foreach($propertyTypes as $pt)
-                                    <div class="d-wrap {{ $currentPropertyType == $pt->name ? '' : 'hidden' }}" id="tab-{{ $pt->name }}">
-                                        @foreach($propertySubTypes as $pst)
-                                            @if($pst->property_type_id == $pt->id)
-                                                <div class="top-pill {{ $currentPropertyType == $pt->name && $pst->id == $currentPropertySubTypeId ? 'active' : '' }}" data-group="resType" data-value="{{ $pst->id }}" data-subtype-name="{{ $pst->name }}" onclick="selectCard(this)">
-                                                    <i class="{{ $pst->icon }}"></i>
-                                                    {{ $pst->name }}
-                                                </div>
-                                            @endif
+                                @foreach($propertySubTypes as $typeId => $subTypes)
+                                    <div class="d-wrap {{ $currentPropertyType == collect($propertyTypes)->firstWhere('id', $typeId)->name ? '' : 'hidden' }}" id="tab-{{ collect($propertyTypes)->firstWhere('id', $typeId)->name }}">
+                                        @foreach ($subTypes as $subType)
+                                            <div class="top-pill {{ $currentPropertyType == collect($propertyTypes)->firstWhere('id', $typeId)->name && $subType->id == $currentPropertySubTypeId ? 'active' : '' }}" data-group="resType" data-value="{{ $subType->id }}" data-subtype-name="{{ $subType->name }}" onclick="selectCard(this)">
+                                                <i class="{{ $subType->icon }}"></i>
+                                                {{ $subType->name }}
+                                            </div>
                                         @endforeach
                                     </div>
                                 @endforeach

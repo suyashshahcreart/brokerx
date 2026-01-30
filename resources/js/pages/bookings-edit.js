@@ -665,6 +665,12 @@ window.selectCard = function(dom) {
     const v = dom.dataset.value;
     const subtypeName = dom.dataset.subtypeName || '';
     
+    // Update the hidden field for property_sub_type_id
+    const propertySubTypeIdField = document.getElementById('propertySubTypeId');
+    if (propertySubTypeIdField) {
+        propertySubTypeIdField.value = v;
+    }
+    
     // Show/hide Other Option Details based on property sub type
     const otherDetailsRow = document.getElementById('otherDetailsRow');
     if (otherDetailsRow) {
