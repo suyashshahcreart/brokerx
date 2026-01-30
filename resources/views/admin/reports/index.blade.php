@@ -227,7 +227,7 @@
                             <select class="form-select" id="exportCity">
                                 <option value="">All Cities</option>
                                 @foreach ($cities as $city)
-                                    <option value="{{ $city->id }}">{{ $city->name }}</option>
+                                    <option value="{{ $city->id }}" data-state-id="{{ $city->state_id }}">{{ $city->name }}</option>
                                 @endforeach
                             </select>
                         </div>

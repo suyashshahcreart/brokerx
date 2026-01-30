@@ -41,14 +41,34 @@ class ReportController extends Controller
             ->orderBy('owner_type')
             ->pluck('owner_type');
 
-        $propertyTypes = PropertyType::orderBy('name')->get();
-        $propertySubTypes = PropertySubType::orderBy('name')->get();
+        $propertyTypes = PropertyType::whereIn('id', Booking::query()
+                ->whereNotNull('property_type_id')
+                ->select('property_type_id')
+            )
+            ->orderBy('name')
+            ->get();
+        $propertySubTypes = PropertySubType::whereIn('id', Booking::query()
+                ->whereNotNull('property_sub_type_id')
+                ->select('property_sub_type_id')
+            )
+            ->orderBy('name')
+            ->get();
         $customers = User::orderBy('firstname')
             ->orderBy('lastname')
             ->select(['id', 'firstname', 'lastname', 'email','mobile'])
             ->get();
-        $states = State::orderBy('name')->get();
-        $cities = City::orderBy('name')->get();
+        $states = State::whereIn('id', Booking::query()
+                ->whereNotNull('state_id')
+                ->select('state_id')
+            )
+            ->orderBy('name')
+            ->get();
+        $cities = City::whereIn('id', Booking::query()
+                ->whereNotNull('city_id')
+                ->select('city_id')
+            )
+            ->orderBy('name')
+            ->get();
 
         return view('admin.reports.index', [
             'totalRevenue' => $totalRevenue,

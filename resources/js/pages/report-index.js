@@ -71,6 +71,46 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
+    const filterCitiesByState = () => {
+        if (!exportCityInput) {
+            return;
+        }
+
+        const selectedStateId = exportStateInput ? exportStateInput.value : '';
+        const cityOptions = Array.from(exportCityInput.options);
+
+        cityOptions.forEach(option => {
+            if (!option.value) {
+                option.hidden = false;
+                option.disabled = false;
+                return;
+            }
+
+            if (!selectedStateId) {
+                option.hidden = false;
+                option.disabled = false;
+                return;
+            }
+
+            const optionStateId = option.getAttribute('data-state-id');
+            const shouldShow = optionStateId === selectedStateId;
+            option.hidden = !shouldShow;
+            option.disabled = !shouldShow;
+        });
+
+        if (exportCityInput.value) {
+            const currentOption = exportCityInput.options[exportCityInput.selectedIndex];
+            if (currentOption && currentOption.hidden) {
+                exportCityInput.value = '';
+            }
+        }
+    };
+
+    if (exportStateInput) {
+        exportStateInput.addEventListener('change', filterCitiesByState);
+        filterCitiesByState();
+    }
+
     // Handle export confirmation
     exportConfirmBtn.addEventListener('click', function () {
         const exportUrl = exportUrlInput.value;
