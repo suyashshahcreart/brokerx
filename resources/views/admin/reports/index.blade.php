@@ -18,9 +18,6 @@
                 </div>
                 <div class="d-flex align-items-center gap-2">
                     <x-admin.back-button :classes="['btn', 'btn-soft-secondary']" :merge="false" icon="ri-arrow-go-back-line" />
-                    <a href="{{ route('admin.reports.sales') }}" class="btn btn-primary">
-                        <i class="ri-bar-chart-2-line me-1"></i> Sales Report
-                    </a>
                 </div>
             </div>
         </div>
@@ -102,7 +99,7 @@
             </div>
 
             <!-- Export Reports Card -->
-            <div class="card mt-3">
+            <div class="card panel-card border-primary border-top mt-3">
                 <div class="card-header">
                     <div>
                         <h4 class="card-title mb-1">Export Reports</h4>
@@ -110,21 +107,29 @@
                     </div>
                 </div>
                 <div class="card-body">
-                    <div class="d-flex gap-2 flex-wrap">
-                        <button type="button" class="btn btn-primary export-btn" 
-                                data-report-type="bookings" 
-                                data-export-url="{{ route('admin.reports.export.bookings') }}"
-                                data-bs-toggle="modal" 
-                                data-bs-target="#exportModal">
-                            <i class="ri-download-2-line me-1"></i> Export Bookings Report
-                        </button>
-                        <button type="button" class="btn btn-success export-btn" 
-                                data-report-type="sales" 
-                                data-export-url="{{ route('admin.reports.export.sales') }}"
-                                data-bs-toggle="modal" 
-                                data-bs-target="#exportModal">
-                            <i class="ri-download-2-line me-1"></i> Export Sales Report
-                        </button>
+                    <div class="list-group list-group-flush">
+                        <a href="#" class="list-group-item list-group-item-action export-btn d-flex justify-content-between align-items-center" 
+                           data-report-type="bookings" 
+                           data-export-url="{{ route('admin.reports.export.bookings') }}"
+                           data-bs-toggle="modal" 
+                           data-bs-target="#exportModal">
+                            <div>
+                                <h5 class="mb-1"><i class="ri-download-2-line me-2"></i>Export Bookings Report</h5>
+                                <small class="text-muted">Download all bookings data</small>
+                            </div>
+                            <i class="ri-arrow-right-line"></i>
+                        </a>
+                        <a href="#" class="list-group-item list-group-item-action export-btn d-flex justify-content-between align-items-center" 
+                           data-report-type="sales" 
+                           data-export-url="{{ route('admin.reports.export.sales') }}"
+                           data-bs-toggle="modal" 
+                           data-bs-target="#exportModal">
+                            <div>
+                                <h5 class="mb-1"><i class="ri-download-2-line me-2"></i>Export Sales Report</h5>
+                                <small class="text-muted">Download sales data by date</small>
+                            </div>
+                            <i class="ri-arrow-right-line"></i>
+                        </a>
                     </div>
                 </div>
             </div>
