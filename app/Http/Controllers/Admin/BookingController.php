@@ -295,7 +295,7 @@ class BookingController extends Controller
     {
         $validated = $request->validate([
             'user_id' => ['required', 'exists:users,id'],
-            'owner_type' => ['required', 'in:Owner,Broker,Agent'],
+            'owner_type' => ['required', 'in:Owner,Broker,Agent,Other'],
             'property_type_id' => ['required', 'exists:property_types,id'],
             'property_sub_type_id' => ['required', 'exists:property_sub_types,id'],
             'other_option_details' => ['nullable', 'string', 'max:255'],
@@ -506,7 +506,10 @@ class BookingController extends Controller
     {
         $users = User::role('customer')->orderBy('firstname')->get();
         $propertyTypes = PropertyType::orderBy('name')->get();
-        $propertySubTypes = PropertySubType::orderBy('name')->get();
+        $propertySubTypes = PropertySubType::query()
+            ->orderBy('property_type_id')
+            ->get()
+            ->groupBy('property_type_id');
         $bhks = BHK::orderBy('name')->get();
         $cities = City::orderBy('name')->get();
         $states = State::orderBy('name')->get();
@@ -580,7 +583,7 @@ class BookingController extends Controller
     {
         $validated = $request->validate([
             'user_id' => ['required', 'exists:users,id'],
-            'owner_type' => ['required', 'in:Owner,Broker,Agent'],
+            'owner_type' => ['required', 'in:Owner,Broker,Agent,Other'],
             'property_type_id' => ['required', 'exists:property_types,id'],
             'property_sub_type_id' => ['required', 'exists:property_sub_types,id'],
             'other_option_details' => ['nullable', 'string', 'max:255'],
