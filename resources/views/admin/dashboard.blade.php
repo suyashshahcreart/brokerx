@@ -479,11 +479,11 @@
                                         <label class="form-check-label" for="customCheck1"></label>
                                     </div>
                                 </th>
-                                <th>Purchase ID</th>
-                                <th>Buyer Name</th>
-                                <th>Invoice</th>
-                                <th>Purchase Date</th>
-                                <th>Total Amount</th>
+                                <th>Booking ID</th>
+                                <th>Customer Name</th>
+                                <th>Booking Price</th>
+                                <th>Payment Amount</th>
+                                <th>Booking Date</th>
                                 <th>Payment Method</th>
                                 <th>Payment Status</th>
                                 <th>Action</th>
@@ -498,24 +498,24 @@
                                         <label class="form-check-label" for="customCheck{{ $index + 2 }}">&nbsp;</label>
                                     </div>
                                 </td>
-                                <td><a href="javascript: void(0);" class="text-dark fw-medium">#{{ $transaction->id }}</a></td>
+                                <td><a href="{{ route('admin.bookings.show', $transaction->id) }}" class="text-dark fw-medium">#{{ $transaction->id }}</a></td>
                                 <td>{{ $transaction->user->firstname ?? 'N/A' }} {{ $transaction->user->lastname ?? '' }}</td>
-                                <td>{{ $transaction->booking_id ? 'BK-' . $transaction->booking_id : 'N/A' }}</td>
-                                <td>{{ $transaction->created_at->format('d M, Y') }}</td>
-                                <td>₹{{ number_format($transaction->amount / 100, 2) }}</td>
-                                <td>{{ ucfirst($transaction->payment_method ?? $transaction->gateway) }}</td>
+                                <td>₹{{ number_format(($transaction->price ?? 0) / 100, 2) }}</td>
+                                <td>₹{{ number_format(($transaction->cashfree_payment_amount ?? $transaction->price ?? 0) / 100, 2) }}</td>
+                                <td>{{ $transaction->booking_date ? $transaction->booking_date->format('d M, Y') : 'N/A' }}</td>
+                                <td>{{ ucfirst($transaction->payment_method ?? $transaction->gateway ?? 'N/A') }}</td>
                                 <td>
-                                    @if($transaction->status == 'success' || $transaction->status == 'completed')
+                                    @if($transaction->payment_status == 'success' || $transaction->payment_status == 'completed')
                                         <span class="badge bg-success-subtle text-success py-1 px-2 fs-12">Completed</span>
-                                    @elseif($transaction->status == 'pending')
+                                    @elseif($transaction->payment_status == 'pending')
                                         <span class="badge bg-warning-subtle text-warning py-1 px-2 fs-12">Pending</span>
                                     @else
-                                        <span class="badge bg-danger-subtle text-danger px-2 py-1 fs-12">{{ ucfirst($transaction->status) }}</span>
+                                        <span class="badge bg-danger-subtle text-danger px-2 py-1 fs-12">{{ ucfirst($transaction->payment_status ?? 'N/A') }}</span>
                                     @endif
                                 </td>
                                 <td>
                                     <div class="d-flex gap-2">
-                                        <a href="{{ route('admin.bookings.show' ,$transaction->booking_id ) }}" class="btn btn-light btn-sm">
+                                        <a href="{{ route('admin.bookings.show', $transaction->id) }}" class="btn btn-light btn-sm">
                                             <iconify-icon icon="solar:eye-broken" class="align-middle fs-18"></iconify-icon>
                                         </a>
                                     </div>

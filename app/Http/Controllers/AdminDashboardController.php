@@ -63,8 +63,8 @@ class AdminDashboardController extends Controller
             ->whereYear('created_at', $currentYear)
             ->sum('amount');
 
-        // Fetch latest transactions
-        $latestTransactions = PaymentHistory::with(['user', 'booking'])
+        // Fetch latest transactions (bookings)
+        $latestTransactions = Booking::with(['user'])
             ->whereMonth('created_at', $currentMonth)
             ->whereYear('created_at', $currentYear)
             ->orderBy('created_at', 'desc')
@@ -153,8 +153,8 @@ class AdminDashboardController extends Controller
             ->whereYear('created_at', $currentYear)
             ->sum('amount');
 
-        // Fetch latest transactions
-        $latestTransactions = PaymentHistory::with(['user', 'booking'])
+        // Fetch latest transactions (bookings)
+        $latestTransactions = Booking::with(['user'])
             ->whereMonth('created_at', $currentMonth)
             ->whereYear('created_at', $currentYear)
             ->orderBy('created_at', 'desc')
