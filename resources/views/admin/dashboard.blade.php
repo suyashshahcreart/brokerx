@@ -1,4 +1,4 @@
-@extends('admin.layouts.vertical', ['title' => 'Dashboard demo','subTitle' => 'Admin Dashboard demo'])
+@extends('admin.layouts.vertical', ['title' => $title,'subTitle' => 'Admin Dashboard demo'])
 
 @section('content')
     <div class="row">
@@ -451,7 +451,8 @@
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <div>
-                        <h4 class="card-title">Latest Transaction</h4>
+                        <h4 class="card-title">Latest Bookings</h4>
+                        <p class="text-muted mb-0 fs-13">Last 10 bookings ordered by date</p>
                     </div>
                     <div class="dropdown">
                         <a href="#" class="dropdown-toggle btn btn-sm btn-outline-light rounded"
@@ -473,18 +474,11 @@
                         <table class="table align-middle text-nowrap table-hover table-centered mb-0">
                             <thead class="bg-light-subtle">
                             <tr>
-                                <th style="width: 20px;">
-                                    <div class="form-check">
-                                        <input type="checkbox" class="form-check-input" id="customCheck1">
-                                        <label class="form-check-label" for="customCheck1"></label>
-                                    </div>
-                                </th>
                                 <th>Booking ID</th>
-                                <th>Customer Name</th>
+                                <th>Customer Details</th>
                                 <th>Booking Price</th>
-                                <th>Payment Amount</th>
+                                <th>Payment Amount (Sales)</th>
                                 <th>Booking Date</th>
-                                <th>Payment Method</th>
                                 <th>Payment Status</th>
                                 <th>Action</th>
                             </tr>
@@ -493,20 +487,31 @@
                             @forelse($latestTransactions as $index => $transaction)
                             <tr>
                                 <td>
-                                    <div class="form-check">
-                                        <input type="checkbox" class="form-check-input" id="customCheck{{ $index + 2 }}">
-                                        <label class="form-check-label" for="customCheck{{ $index + 2 }}">&nbsp;</label>
+                                    <a href="{{ route('admin.bookings.show', $transaction->id) }}" class="text-dark fw-medium">
+                                        #{{ $transaction->id }}
+                                    </a>
+                                </td>
+                                <td>
+                                    <div>
+                                        <p class="mb-0 fw-medium text-dark">{{ $transaction->user->firstname ?? 'N/A' }} {{ $transaction->user->lastname ?? '' }}</p>
+                                        <small class="text-muted">
+                                            <i class="ri-phone-line"></i> {{ $transaction->user->mobile ?? 'N/A' }}
+                                        </small>
+                                        @if($transaction->user->email)
+                                            <br><small class="text-muted"><i class="ri-mail-line"></i> {{ $transaction->user->email }}</small>
+                                        @endif
                                     </div>
                                 </td>
-                                <td><a href="{{ route('admin.bookings.show', $transaction->id) }}" class="text-dark fw-medium">#{{ $transaction->id }}</a></td>
-                                <td>{{ $transaction->user->firstname ?? 'N/A' }} {{ $transaction->user->lastname ?? '' }}</td>
-                                <td>₹{{ number_format(($transaction->price ?? 0) / 100, 2) }}</td>
-                                <td>₹{{ number_format(($transaction->cashfree_payment_amount ?? $transaction->price ?? 0) / 100, 2) }}</td>
-                                <td>{{ $transaction->booking_date ? $transaction->booking_date->format('d M, Y') : 'N/A' }}</td>
-                                <td>{{ ucfirst($transaction->payment_method ?? $transaction->gateway ?? 'N/A') }}</td>
                                 <td>
-                                    @if($transaction->payment_status == 'success' || $transaction->payment_status == 'completed')
-                                        <span class="badge bg-success-subtle text-success py-1 px-2 fs-12">Completed</span>
+                                    <span class="fw-semibold text-dark">₹{{ number_format(($transaction->price ?? 0) / 100, 2) }}</span>
+                                </td>
+                                <td>
+                                    <span class="fw-semibold text-success">₹{{ number_format(($transaction->cashfree_payment_amount ?? $transaction->price ?? 0) / 100, 2) }}</span>
+                                </td>
+                                <td>{{ $transaction->booking_date ? $transaction->booking_date->format('d M, Y') : 'N/A' }}</td>
+                                <td>
+                                    @if($transaction->payment_status == 'paid' || $transaction->payment_status == 'completed')
+                                        <span class="badge bg-success-subtle text-success py-1 px-2 fs-12">Paid</span>
                                     @elseif($transaction->payment_status == 'pending')
                                         <span class="badge bg-warning-subtle text-warning py-1 px-2 fs-12">Pending</span>
                                     @else
@@ -515,7 +520,7 @@
                                 </td>
                                 <td>
                                     <div class="d-flex gap-2">
-                                        <a href="{{ route('admin.bookings.show', $transaction->id) }}" class="btn btn-light btn-sm">
+                                        <a href="{{ route('admin.bookings.show', $transaction->id) }}" class="btn btn-soft-success btn-sm" title="View Details">
                                             <iconify-icon icon="solar:eye-broken" class="align-middle fs-18"></iconify-icon>
                                         </a>
                                     </div>
@@ -523,7 +528,7 @@
                             </tr>
                             @empty
                             <tr>
-                                <td colspan="9" class="text-center py-4">No transactions found for this month</td>
+                                <td colspan="7" class="text-center py-4">No bookings found</td>
                             </tr>
                             @endforelse
                             </tbody>
@@ -536,7 +541,6 @@
 
     </div>
 @endsection
-
 @section('script')
     <script>
         window.weeklyLabels = @json($weeklyLabels);
