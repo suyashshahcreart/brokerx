@@ -75,7 +75,19 @@ document.addEventListener('DOMContentLoaded', function () {
                     cancelLabel: 'Clear',
                     format: 'YYYY-MM-DD'
                 },
-                opens: 'left'
+                opens: 'left',
+                ranges: {
+                    'Today': [window.moment(), window.moment()],
+                    'Yesterday': [window.moment().subtract(1, 'days'), window.moment().subtract(1, 'days')],
+                    'Last 7 Days': [window.moment().subtract(6, 'days'), window.moment()],
+                    'Last 30 Days': [window.moment().subtract(29, 'days'), window.moment()],
+                    'This Month': [window.moment().startOf('month'), window.moment().endOf('month')],
+                    'Last Month': [window.moment().subtract(1, 'month').startOf('month'), window.moment().subtract(1, 'month').endOf('month')],
+                    'This Year': [window.moment().startOf('year'), window.moment().endOf('year')],
+                    'Last Year': [window.moment().subtract(1, 'year').startOf('year'), window.moment().subtract(1, 'year').endOf('year')]
+                },
+                alwaysShowCalendars: true,
+                showCustomRangeLabel: true
             });
 
             input.on('apply.daterangepicker', function (ev, picker) {
@@ -122,14 +134,13 @@ document.addEventListener('DOMContentLoaded', function () {
             { data: 'id', name: 'id' },
             { data: 'user', name: 'user.firstname', orderable: false, searchable: false },
             { data: 'type_subtype', name: 'propertyType.name', orderable: false, searchable: false },
-            { data: 'bhk', name: 'bhk.name', orderable: false, searchable: false },
             { data: 'city_state', name: 'city.name', orderable: false, searchable: false },
             { data: 'area', name: 'area' },
             { data: 'price', name: 'price' },
             { data: 'booking_date', name: 'booking_date' },
             { data: 'status', name: 'status', orderable: false, searchable: false },
             { data: 'payment_status', name: 'payment_status', orderable: false, searchable: false },
-            { data: 'actions', name: 'actions', orderable: false, searchable: false, className: 'text-end' },
+            { data: 'actions', name: 'actions', orderable: false, searchable: false, className: 'text-start' },
         ],
         lengthMenu: [10, 25, 50, 100],
         responsive: true,
@@ -197,7 +208,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Export bookings to Excel with current filters
     $('#exportBookings').on('click', function () {
         const params = new URLSearchParams();
-        
+
         const stateId = $state.val();
         const cityId = $city.val();
         const status = $status.val();
@@ -206,7 +217,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (stateId) params.append('state_id', stateId);
         if (cityId) params.append('city_id', cityId);
         if (status) params.append('status', status);
-        
+
         if (dateRange) {
             const dates = dateRange.split(' - ');
             if (dates.length === 2) {
