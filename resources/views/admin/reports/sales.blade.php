@@ -46,28 +46,26 @@
             </div>
         </div>
         <div class="card-body">
-            <form method="GET" action="{{ route('admin.reports.sales') }}" class="row g-3 align-items-end mb-3">
-                <div class="col-md-3">
-                    <label for="from" class="form-label">From</label>
-                    <input type="date" class="form-control" id="from" name="from" value="{{ $from }}">
+            <div class="row g-3 align-items-end mb-3">
+                <div class="col-md-4">
+                    <label for="dateRange" class="form-label">Date Range</label>
+                    <input type="text" class="form-control" id="dateRange" name="dateRange" placeholder="Select date range">
+                    <input type="hidden" id="from" name="from" value="{{ $from }}">
+                    <input type="hidden" id="to" name="to" value="{{ $to }}">
                 </div>
                 <div class="col-md-3">
-                    <label for="to" class="form-label">To</label>
-                    <input type="date" class="form-control" id="to" name="to" value="{{ $to }}">
-                </div>
-                <div class="col-md-3">
-                    <button type="submit" class="btn btn-primary mt-1">
-                        <i class="ri-search-line me-1"></i> Apply
+                    <button type="button" class="btn btn-light border mt-1" id="resetFilters">
+                        <i class="ri-refresh-line me-1"></i> Reset
                     </button>
                 </div>
-            </form>
+            </div>
 
             <div class="row g-3 mb-3">
                 <div class="col-md-4">
                     <div class="card shadow-sm h-100">
                         <div class="card-body">
                             <p class="text-muted mb-1">Total Sales</p>
-                            <h4 class="fw-bold text-dark mb-0">{{ $formatRupees($totalSales) }}</h4>
+                            <h4 class="fw-bold text-dark mb-0" id="totalSalesDisplay">{{ $formatRupees($totalSales) }}</h4>
                         </div>
                     </div>
                 </div>
@@ -75,47 +73,42 @@
                     <div class="card shadow-sm h-100">
                         <div class="card-body">
                             <p class="text-muted mb-1">Total Bookings</p>
-                            <h4 class="fw-bold text-dark mb-0">{{ number_format($totalBookings) }}</h4>
+                            <h4 class="fw-bold text-dark mb-0" id="totalBookingsDisplay">{{ number_format($totalBookings) }}</h4>
                         </div>
                     </div>
                 </div>
                 <div class="col-md-4">
                     <div class="card shadow-sm h-100">
                         <div class="card-body">
-                            <p class="text-muted mb-1">Average Ticket Size</p>
+                            <p class="text-muted mb-1">Average Booking Price</p>
                             @php
                                 $avg = $totalBookings > 0 ? $totalSales / $totalBookings : 0;
                             @endphp
-                            <h4 class="fw-bold text-dark mb-0">{{ $formatRupees($avg) }}</h4>
+                            <h4 class="fw-bold text-dark mb-0" id="avgTicketDisplay">{{ $formatRupees($avg) }}</h4>
                         </div>
                     </div>
                 </div>
             </div>
 
             <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
+                <table class="table table-hover align-middle mb-0" id="salesDataTable" data-url-featch="{{ route('admin.reports.sales') }}">
                     <thead class="table-light">
                         <tr>
-                            <th scope="col">Date</th>
-                            <th scope="col" class="text-end">Sales</th>
-                            <th scope="col" class="text-end">Bookings</th>
+                            <th scope="col">Customer</th>
+                            <th scope="col">Booking ID</th>
+                            <th scope="col" class="text-end">Payment Amount</th>
+                            <th scope="col" class="text-end">Booking Price</th>
+                            <th scope="col">Booking Date</th>
+                            <th scope="col">Created At</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse ($dailySales as $row)
-                            <tr>
-                                <td>{{ \Carbon\Carbon::parse($row->sale_date)->format('d M Y') }}</td>
-                                <td class="text-end">{{ $formatRupees($row->total_amount) }}</td>
-                                <td class="text-end">{{ number_format($row->booking_count) }}</td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="3" class="text-center text-muted">No sales found for the selected period.</td>
-                            </tr>
-                        @endforelse
                     </tbody>
                 </table>
             </div>
         </div>
     </div>
+@endsection
+@section('scripts')
+@vite(['resources/js/pages/report-sales-index.js'])
 @endsection

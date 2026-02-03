@@ -252,8 +252,8 @@ Route::group(['prefix' => 'ppadmlog', 'as' => 'admin.', 'middleware' => ['web', 
         Route::get('/', [ReportController::class, 'index'])->name('index');
         Route::get('/sales', [ReportController::class, 'sales'])->name('sales');
         Route::get('/bookings', [ReportController::class, 'bookings'])->name('bookings');
-        Route::get('/bookings/export', [ReportController::class, 'exportBookings'])->name('bookings.export');
-        Route::get('/customers', [ReportController::class, 'customers'])->name('customers');
+        Route::post('/export/bookings', [ReportController::class, 'exportBookings'])->name('export.bookings');
+        Route::post('/export/sales', [ReportController::class, 'exportSales'])->name('export.sales');
     });
 
     // Settings AJAX/API routes

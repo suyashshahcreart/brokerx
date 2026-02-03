@@ -18,9 +18,6 @@
                 </div>
                 <div class="d-flex align-items-center gap-2">
                     <x-admin.back-button :classes="['btn', 'btn-soft-secondary']" :merge="false" icon="ri-arrow-go-back-line" />
-                    <a href="{{ route('admin.reports.sales') }}" class="btn btn-primary">
-                        <i class="ri-bar-chart-2-line me-1"></i> Sales Report
-                    </a>
                 </div>
             </div>
         </div>
@@ -97,10 +94,39 @@
                             </div>
                             <i class="ri-arrow-right-line"></i>
                         </a>
-                        <a href="{{ route('admin.reports.customers') }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Export Reports Card -->
+            <div class="card panel-card border-primary border-top mt-3">
+                <div class="card-header">
+                    <div>
+                        <h4 class="card-title mb-1">Export Reports</h4>
+                        <p class="text-muted mb-0">Download reports in Excel format</p>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="list-group list-group-flush">
+                        <a href="#" class="list-group-item list-group-item-action export-btn d-flex justify-content-between align-items-center" 
+                           data-report-type="bookings" 
+                           data-export-url="{{ route('admin.reports.export.bookings') }}"
+                           data-bs-toggle="modal" 
+                           data-bs-target="#exportModal">
                             <div>
-                                <h5 class="mb-1">Customers Report</h5>
-                                <small class="text-muted">Top customers by bookings and revenue</small>
+                                <h5 class="mb-1"><i class="ri-download-2-line me-2"></i>Export Bookings Report</h5>
+                                <small class="text-muted">Download all bookings data</small>
+                            </div>
+                            <i class="ri-arrow-right-line"></i>
+                        </a>
+                        <a href="#" class="list-group-item list-group-item-action export-btn d-flex justify-content-between align-items-center" 
+                           data-report-type="sales" 
+                           data-export-url="{{ route('admin.reports.export.sales') }}"
+                           data-bs-toggle="modal" 
+                           data-bs-target="#exportModal">
+                            <div>
+                                <h5 class="mb-1"><i class="ri-download-2-line me-2"></i>Export Sales Report</h5>
+                                <small class="text-muted">Download sales data by date</small>
                             </div>
                             <i class="ri-arrow-right-line"></i>
                         </a>
@@ -138,4 +164,102 @@
             </div>
         </div>
     </div>
+
+    <!-- Export Modal -->
+    <div class="modal fade" id="exportModal" tabindex="-1" aria-labelledby="exportModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exportModalLabel">Export Report</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="exportForm">
+                        <div class="mb-3">
+                            <label for="exportOwnerType" class="form-label">Owner Type</label>
+                            <select class="form-select" id="exportOwnerType">
+                                <option value="">All Owner Types</option>
+                                @foreach ($ownerTypes as $ownerType)
+                                    <option value="{{ $ownerType }}">{{ ucfirst($ownerType) }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="exportCustomer" class="form-label">Customer</label>
+                            <select class="form-select" id="exportCustomer">
+                                <option value="">All Customers</option>
+                                @foreach ($customers as $customer)
+                                    <option value="{{ $customer->id }}">
+                                       {{ $customer->firstname }} {{ $customer->lastname }} | {{ $customer->mobile }}@if($customer->email) | {{ $customer->email }}@endif
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="exportPropertyType" class="form-label">Property Type</label>
+                            <select class="form-select" id="exportPropertyType">
+                                <option value="">All Property Types</option>
+                                @foreach ($propertyTypes as $propertyType)
+                                    <option value="{{ $propertyType->id }}">{{ $propertyType->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="exportPropertySubType" class="form-label">Property Sub Type</label>
+                            <select class="form-select" id="exportPropertySubType">
+                                <option value="">All Property Sub Types</option>
+                                @foreach ($propertySubTypes as $propertySubType)
+                                    <option value="{{ $propertySubType->id }}">{{ $propertySubType->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="exportState" class="form-label">State</label>
+                            <select class="form-select" id="exportState">
+                                <option value="">All States</option>
+                                @foreach ($states as $state)
+                                    <option value="{{ $state->id }}">{{ $state->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="exportCity" class="form-label">City</label>
+                            <select class="form-select" id="exportCity">
+                                <option value="">All Cities</option>
+                                @foreach ($cities as $city)
+                                    <option value="{{ $city->id }}" data-state-id="{{ $city->state_id }}">{{ $city->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="exportPinCode" class="form-label">Pin Code</label>
+                            <input type="text" class="form-control" id="exportPinCode" placeholder="Enter pin code">
+                        </div>
+                        <div class="mb-3">
+                            <label for="exportDateRange" class="form-label">Select Date Range</label>
+                            <input type="text" class="form-control" id="exportDateRange" placeholder="Select date range" required>
+                        </div>
+                        <input type="hidden" id="exportFromDate">
+                        <input type="hidden" id="exportToDate">
+                        <input type="hidden" id="exportReportType">
+                        <input type="hidden" id="exportUrl">
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="exportConfirmBtn">Export</button>
+                </div>
+            </div>
+        </div>
+    </div>
+@endsection
+@section('scripts')
+    <!-- Date Range Picker CSS -->
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+    <!-- Moment JS (required by daterangepicker) -->
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/moment.min.js"></script>
+    <!-- Date Range Picker JS -->
+    <script src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    
+    @vite('resources/js/pages/report-index.js')
 @endsection

@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\City;
 use App\Models\State;
+use App\Models\PropertyType;
+use App\Models\PropertySubType;
 use App\Models\Tour;
 use App\Models\User;
 use App\Exports\BookingsExport;
@@ -32,24 +34,122 @@ class ReportController extends Controller
             ->limit(5)
             ->get();
 
+        $ownerTypes = Booking::select('owner_type')
+            ->whereNotNull('owner_type')
+            ->where('owner_type', '!=', '')
+            ->distinct()
+            ->orderBy('owner_type')
+            ->pluck('owner_type');
+
+        $propertyTypes = PropertyType::whereIn('id', Booking::query()
+                ->whereNotNull('property_type_id')
+                ->select('property_type_id')
+            )
+            ->orderBy('name')
+            ->get();
+        $propertySubTypes = PropertySubType::whereIn('id', Booking::query()
+                ->whereNotNull('property_sub_type_id')
+                ->select('property_sub_type_id')
+            )
+            ->orderBy('name')
+            ->get();
+        $customers = User::orderBy('firstname')
+            ->orderBy('lastname')
+            ->select(['id', 'firstname', 'lastname', 'email','mobile'])
+            ->get();
+        $states = State::whereIn('id', Booking::query()
+                ->whereNotNull('state_id')
+                ->select('state_id')
+            )
+            ->orderBy('name')
+            ->get();
+        $cities = City::whereIn('id', Booking::query()
+                ->whereNotNull('city_id')
+                ->select('city_id')
+            )
+            ->orderBy('name')
+            ->get();
+
         return view('admin.reports.index', [
             'totalRevenue' => $totalRevenue,
             'totalBookings' => $totalBookings,
             'totalCustomers' => $totalCustomers,
             'totalTours' => $totalTours,
             'recentSales' => $recentSales,
+            'ownerTypes' => $ownerTypes,
+            'propertyTypes' => $propertyTypes,
+            'propertySubTypes' => $propertySubTypes,
+            'customers' => $customers,
+            'states' => $states,
+            'cities' => $cities,
         ]);
-    }
+    }   
 
     public function sales(Request $request)
     {
         $from = Carbon::parse($request->get('from', now()->subDays(6)->toDateString()))->startOfDay();
         $to = Carbon::parse($request->get('to', now()->toDateString()))->endOfDay();
 
+        // Handle AJAX requests for DataTables
+        if ($request->ajax()) {
+            // Handle summary-only request
+            if ($request->get('summary') === 'true') {
+                $summary = Booking::whereBetween('created_at', [$from, $to])
+                    ->selectRaw('SUM(COALESCE(cashfree_payment_amount, price, 0)) as total_amount, COUNT(*) as booking_count')
+                    ->first();
+                return response()->json([
+                    'totalSales' => (float) ($summary->total_amount ?? 0),
+                    'totalBookings' => (int) ($summary->booking_count ?? 0),
+                ]);
+            }
+
+            // Handle DataTables pagination and sorting for individual bookings
+            $query = Booking::with('user')
+                ->whereBetween('created_at', [$from, $to]);
+
+            $totalRecords = $query->count();
+            
+            $order = $request->get('order');
+            $orderDir = isset($order[0]['dir']) ? $order[0]['dir'] : 'desc';
+            $orderColumn = isset($order[0]['column']) ? $order[0]['column'] : 0;
+            
+            $columns = ['user_id', 'id', 'cashfree_payment_amount', 'price', 'booking_date', 'created_at'];
+            if (isset($columns[$orderColumn])) {
+                $query->orderBy($columns[$orderColumn], $orderDir);
+            } else {
+                $query->orderBy('created_at', 'desc');
+            }
+            
+            $skip = $request->get('start', 0);
+            $take = $request->get('length', 10);
+            
+            $bookings = $query->skip($skip)->take($take)->get();
+
+            $formatRupees = fn($amount) => '₹' . number_format(($amount ?? 0) / 100, 2);
+            $data = $bookings->map(function ($booking) use ($formatRupees) {
+                return [
+                    'customer' => ($booking->user ? $booking->user->firstname . ' ' . $booking->user->lastname : 'N/A') . 
+                                  '<div class="text-muted small">' . ($booking->user?->mobile ?? 'N/A') . '</div>',
+                    'booking_info' => '#' . $booking->id . '<div class="text-muted small">Booking</div>',
+                    'payment_amount' => $formatRupees($booking->cashfree_payment_amount),
+                    'booking_price' => $formatRupees($booking->price),
+                    'booking_date' => $booking->booking_date ? $booking->booking_date->format('d M Y') : 'N/A',
+                    'created_at' => $booking->created_at->format('d M Y H:i'),
+                ];
+            });
+
+            return response()->json([
+                'draw' => (int) $request->get('draw', 0),
+                'recordsTotal' => $totalRecords,
+                'recordsFiltered' => $totalRecords,
+                'data' => $data,
+            ]);
+        }
+
+        // Initial page load
         $dailySales = Booking::selectRaw('DATE(created_at) as sale_date, SUM(COALESCE(cashfree_payment_amount, price, 0)) as total_amount, COUNT(*) as booking_count')
             ->whereBetween('created_at', [$from, $to])
             ->groupBy('sale_date')
-            ->orderBy('sale_date')
             ->get();
 
         $totalSales = (float) $dailySales->sum('total_amount');
@@ -121,7 +221,7 @@ class ReportController extends Controller
                 })
                 ->editColumn('area', fn(Booking $booking) => number_format($booking->area))
                 ->editColumn('price', fn(Booking $booking) => '₹ ' . number_format($booking->price))
-                ->editColumn('booking_date', fn(Booking $booking) => optional($booking->booking_date)->format('Y-m-d') ?? '-')
+                ->editColumn('booking_date', fn(Booking $booking) => optional($booking->booking_date)->format('d-m-Y') ?? '-')
                 ->editColumn('status', fn(Booking $booking) => '<span class="badge bg-secondary text-uppercase">' . $booking->status . '</span>')
                 ->editColumn('payment_status', fn(Booking $booking) => '<span class="badge bg-info text-uppercase">' . $booking->payment_status . '</span>')
                 ->addColumn('schedule', function (Booking $booking) {
@@ -155,23 +255,6 @@ class ReportController extends Controller
         ]);
     }
 
-    public function customers()
-    {
-        $topCustomers = Booking::selectRaw('user_id, COUNT(*) as bookings, SUM(COALESCE(cashfree_payment_amount, price, 0)) as revenue')
-            ->with('user')
-            ->groupBy('user_id')
-            ->orderByDesc('bookings')
-            ->limit(15)
-            ->get();
-
-        $totalCustomers = User::count();
-
-        return view('admin.reports.customers', [
-            'topCustomers' => $topCustomers,
-            'totalCustomers' => $totalCustomers,
-        ]);
-    }
-
     /**
      * Export bookings report to Excel with all details
      */
@@ -180,13 +263,31 @@ class ReportController extends Controller
         $filters = [
             'state_id' => $request->state_id,
             'city_id' => $request->city_id,
+            'owner_type' => $request->owner_type,
+            'user_id' => $request->user_id,
+            'property_type_id' => $request->property_type_id,
+            'property_sub_type_id' => $request->property_sub_type_id,
+            'pin_code' => $request->pin_code,
             'status' => $request->status,
-            'date_from' => $request->date_from,
-            'date_to' => $request->date_to,
+            'from' => $request->from,
+            'to' => $request->to,
         ];
 
         $filename = 'bookings-report-' . now()->format('Y-m-d-His') . '.xlsx';
 
-        return Excel::download(new BookingsExport($filters), $filename);
+        return Excel::download(new BookingsExport($filters, auth()->user()), $filename);
+    }
+
+    /**
+     * Export sales report to Excel
+     */
+    public function exportSales(Request $request)
+    {
+        $from = $request->from ?? now()->subDays(30)->toDateString();
+        $to = $request->to ?? now()->toDateString();
+
+        // For now, redirect to bookings export
+        // You can create a separate SalesExport class later
+        return $this->exportBookings($request);
     }
 }
