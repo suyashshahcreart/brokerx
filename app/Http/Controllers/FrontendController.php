@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\PhotographerVisitJob;
 use App\Models\Tour;
 use App\Models\QR;
 use Illuminate\Http\Request;
@@ -1058,13 +1057,6 @@ class FrontendController extends Controller
                         foreach ($existingAssignees as $assignee) {
                             $assignee->delete(); // Soft delete
                         }
-                        $assignmentRemoved = true;
-                    }
-
-                    // Also check and remove PhotographerVisitJob if exists
-                    $visitJob = PhotographerVisitJob::where('booking_id', $booking->id)->first();
-                    if ($visitJob) {
-                        $visitJob->delete(); // Soft delete
                         $assignmentRemoved = true;
                     }
 

@@ -157,13 +157,6 @@ class Booking extends Model
         return $this->hasMany(BookingAssignee::class);
     }
 
-    /**
-     * Get the photographer visit job for this booking
-     */
-    public function photographerVisitJob()
-    {
-        return $this->hasOne(PhotographerVisitJob::class);
-    }
     public function tours()
     {
         return $this->hasMany(Tour::class);
