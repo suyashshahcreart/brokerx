@@ -4,7 +4,7 @@ import {
 import laravel from 'laravel-vite-plugin';
 
 export default defineConfig({
-    base: '/',
+    base: '/propik_main/',
     plugins: [
         laravel({
             input: [
@@ -69,6 +69,7 @@ export default defineConfig({
                 'resources/js/pages/change-password-profile.js',
                 'resources/js/pages/bookings-report-index.js',
                 'resources/js/pages/report-index.js',
+                'resources/js/pages/report-sales-index.js',
 
                 //components
                 'resources/js/components/maps-google.js',
