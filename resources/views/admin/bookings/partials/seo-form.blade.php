@@ -1,10 +1,11 @@
-<form method="POST" id="seoForm" action="{{ route('admin.tours.updateSeo', $tour) }}" class="needs-validation" novalidate >
+<form method="POST" id="seoForm" action="{{ route('admin.tours.updateSeo', $tour) }}" class="needs-validation"
+    novalidate>
     @csrf
     @method('PUT')
     <!-- SEO Meta Tags -->
     <div class="card mb-3">
         <div class="card-header bg-primary-subtle border-primary">
-            <h5 class="card-title mb-0"> <i class="ri-bookmark-line"></i>  SEO Meta Tags</h5>
+            <h5 class="card-title mb-0"> <i class="ri-bookmark-line"></i> SEO Meta Tags</h5>
         </div>
         <div class="card-body">
             <div class="row">
@@ -12,16 +13,14 @@
                     <div class="mb-3">
                         <label class="form-label" for="tour_meta_title">Meta Title</label>
                         <input type="text" name="meta_title" id="tour_meta_title" class="form-control"
-                        placeholder="e.g, PROP PIK virtual Tour."
-                            value="{{ $tour->meta_title }}">
+                            placeholder="e.g, PROP PIK virtual Tour." value="{{ $tour->meta_title }}">
                     </div>
                 </div>
                 <div class="col-lg-6">
                     <div class="mb-3">
                         <label class="form-label" for="tour_meta_keywords">Meta Keywords</label>
                         <input type="text" name="meta_keywords" id="tour_meta_keywords" class="form-control"
-                        placeholder="e.g, Prop Pik virtua tour,India"
-                            value="{{ $tour->meta_keywords }}">
+                            placeholder="e.g, Prop Pik virtua tour,India" value="{{ $tour->meta_keywords }}">
                     </div>
                 </div>
             </div>
@@ -30,8 +29,8 @@
                 <div class="col-md-12 mb-3">
                     <label class="form-label" for="tour_meta_description">Meta Description</label>
                     <textarea name="meta_description" id="tour_meta_description" class="form-control"
-                    placeholder="e.g, Explore next-gen Web Virtual Reality powered by AI with PROP PiK. Create,view and share interactive virtual property tours instantly and professionally."
-                    rows="2">{{ $tour->meta_description }}</textarea>
+                        placeholder="e.g, Explore next-gen Web Virtual Reality powered by AI with PROP PiK. Create,view and share interactive virtual property tours instantly and professionally."
+                        rows="2">{{ $tour->meta_description }}</textarea>
                 </div>
             </div>
 
@@ -40,8 +39,7 @@
                     <div class="mb-3">
                         <label class="form-label" for="tour_canonical_url">Canonical URL</label>
                         <input type="url" name="canonical_url" id="tour_canonical_url" class="form-control"
-                        placeholder="e.g, https://www.example.com/your-tour"
-                            value="{{ $tour->canonical_url }}">
+                            placeholder="e.g, https://www.example.com/your-tour" value="{{ $tour->canonical_url }}">
                     </div>
                 </div>
                 <div class="col-lg-4">
@@ -54,17 +52,16 @@
                 <div class="col-md-4">
                     <label for="gtm_tag">GTM tag</label>
                     <input type="text" name="gtm_tag" id="gtm_tag" class="form-control"
-                    placeholder="e.g, GTM-Tag-7458945"
-                        value="{{ $tour->gtm_tag }}">
+                        placeholder="e.g, GTM-Tag-7458945" value="{{ $tour->gtm_tag }}">
                 </div>
             </div>
         </div>
     </div>
-    
+
     <!-- Open Graph / Social Media -->
     <div class="d-none card mb-3">
         <div class="card-header bg-secondary-subtle border-secondary">
-            <h5 class="card-title mb-0"> <i class="ri-twitter-line"></i>  Open Graph / Social Media</h5>
+            <h5 class="card-title mb-0"> <i class="ri-twitter-line"></i> Open Graph / Social Media</h5>
         </div>
         <div class="card-body">
             <div class="row">
@@ -157,7 +154,7 @@
             <div class="mb-3">
                 <label class="form-label" for="tour_header_code">Header Code (before &lt;/head&gt;)</label>
                 <textarea name="header_code" id="tour_header_code" class="form-control font-monospace"
-                placeholder="e.g, &lt;meta name='custom' content='value' /&gt;"
+                    placeholder="e.g, &lt;meta name='custom' content='value' /&gt;"
                     rows="4">{{ $tour->header_code }}</textarea>
                 <small class="text-muted">Custom HTML, CSS, or scripts to inject in the header</small>
             </div>
@@ -165,14 +162,16 @@
             <div class="mb-0">
                 <label class="form-label" for="tour_footer_code">Footer Code (before &lt;/body&gt;)</label>
                 <textarea name="footer_code" id="tour_footer_code" class="form-control font-monospace"
-                placeholder="e.g, console.log('Footer scripts loaded');"
+                    placeholder="e.g, console.log('Footer scripts loaded');"
                     rows="4">{{ $tour->footer_code }}</textarea>
                 <small class="text-muted">Custom HTML, CSS, or scripts to inject in the footer</small>
             </div>
         </div>
     </div>
 
-    <div class="d-flex justify-content-end mb-3">
-        <button type="submit" class="btn btn-success"><i class="ri-save-line me-1"></i> Update SEO</button>
+    <div class="d-flex gap-2 justify-content-end">
+        <a href="{{ route('admin.bookings.index') }}" class="btn btn-soft-secondary"><i class="ri-close-line me-1"></i>
+            Cancel</a>
+        <button type="submit" class="btn btn-primary"><i class="ri-save-line me-1"></i> Update SEO</button>
     </div>
 </form>

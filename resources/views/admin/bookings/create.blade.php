@@ -421,7 +421,7 @@
                                                 <div class="mb-1">
                                                     <div class="section-title mb-0">Property Sub Type <span class="text-danger">*</span></div>
                                                     @foreach($propertySubTypes as $typeId => $subTypes)
-                                                        <div class="d-wrap " id="tab-{{collect($propertyTypes)->firstWhere('id', $typeId)->name}}">
+                                                        <div class="d-wrap mt-0" id="tab-{{collect($propertyTypes)->firstWhere('id', $typeId)->name}}">
                                                             @foreach ($subTypes as $subType)
                                                                 <div class="top-pill" data-group="resType" data-value="{{ $subType->id }}" data-subtype-name="{{ $subType->name }}" onclick="selectCard(this)">
                                                                             <i class="{{ $subType->icon }}"></i>
