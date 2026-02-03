@@ -324,9 +324,6 @@
                                 </button>
                             </li>
                         </ul>
-                        <button class="btn btn-primary" id="top-update-btn" type="button">
-                            <i class="ri-save-line me-1"></i> Update
-                        </button>   
                     </div>
                 </div>
                 <div class="card-body pt-0">
@@ -403,6 +400,7 @@
 
 <!-- script section  -->
 @section('script')
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     @vite(['resources/js/pages/bookings-edit.js','resources/js/pages/edit-booking-tour.js'])
     @include('admin.bookings.partials.quick-actions-script')
     <script>

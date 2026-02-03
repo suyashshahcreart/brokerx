@@ -16,10 +16,8 @@ return [
         'work_completed_review' => '69295d3918ff385b39418e42',
         'final_link_delivered' => '69295cd5502ac933f4068bd2',
         'expert_running_late' => '69295c757219e807f10118f2',
-        'demo_101' => '69295c757219e807f1011830',
-        'demo_103' => '69295c757219e807f1011850',
-        'demo_104' => '69295c757219e807f1011860',
-        'demo_105' => '69295c757219e807f1011870',
+        'tour_access_otp' => '6979cf558c68297cf6363b36',
+    
     
     ],
 ];

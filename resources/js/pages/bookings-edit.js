@@ -19,75 +19,101 @@ const state = {
 const el = id => document.getElementById(id);
 
 function hideAllPropertyTabs() {
-    const tabRes = el('tab-res');
-    const tabCom = el('tab-com');
-    const tabOth = el('tab-oth');
+    // Hide the entire property subtype section
+    const subTypeSection = el('propertySubTypetab');
+    if (subTypeSection) {
+        subTypeSection.classList.add('hidden');
+    }
+
+    // Hide furnish and size rows by default
+    const furnishRow = el('furnishRow');
+    if (furnishRow) furnishRow.classList.add('hidden');
+    const sizeRow = el('sizeRow');
+    if (sizeRow) sizeRow.classList.add('hidden');
     
-    if (tabRes) tabRes.classList.add('hidden');
-    if (tabCom) tabCom.classList.add('hidden');
-    if (tabOth) tabOth.classList.add('hidden');
+    // Hide all property subtype tabs
+    document.querySelectorAll('[id^="tab-"]').forEach(tab => {
+        if (tab.id.startsWith('tab-') && tab.id !== 'propertySubTypetab') {
+            tab.classList.add('hidden');
+        }
+    });
     
     // Remove active state from all property type pills
-    ['pillResidential', 'pillCommercial', 'pillOther'].forEach(id => {
-        const pill = el(id);
-        if (pill) pill.classList.remove('active');
+    document.querySelectorAll('[data-tab-connect]').forEach(pill => {
+        pill.classList.remove('active');
     });
+    
     // Clear main property type hidden field
     const mainType = el('mainPropertyType');
     if (mainType) mainType.value = '';
     state.activePropertyTab = null;
 }
 
-function switchMainTab(key) {
-    if (!key) {
+function switchMainTab(tabId, propertyTypeName, propertyTypeId) {
+    if (!tabId) {
         hideAllPropertyTabs();
         return;
     }
-    state.activePropertyTab = key;
     
-    // Hide all tabs first
-    const tabRes = el('tab-res');
-    const tabCom = el('tab-com');
-    const tabOth = el('tab-oth');
+    // Show the propertySubTypetab section
+    const subTypeSection = el('propertySubTypetab');
+    if (subTypeSection) {
+        subTypeSection.classList.remove('hidden');
+    }
     
-    if (tabRes) tabRes.classList.add('hidden');
-    if (tabCom) tabCom.classList.add('hidden');
-    if (tabOth) tabOth.classList.add('hidden');
+    // Hide all property subtype tabs
+    document.querySelectorAll('[id^="tab-"]').forEach(tab => {
+        if (tab.id.startsWith('tab-') && tab.id !== 'propertySubTypetab') {
+            tab.classList.add('hidden');
+        }
+    });
     
     // Show the selected tab
-    if (key === 'res' && tabRes) {
-        tabRes.classList.remove('hidden');
+    const selectedTab = el(tabId);
+    if (selectedTab) {
+        selectedTab.classList.remove('hidden');
     }
-    if (key === 'com' && tabCom) {
-        tabCom.classList.remove('hidden');
-    }
-    if (key === 'oth' && tabOth) {
-        tabOth.classList.remove('hidden');
+
+    // Toggle Furnish and Size rows based on selected tab (residential/commercial/other)
+    const furnishRow = el('furnishRow');
+    const sizeRow = el('sizeRow');
+
+    // Determine property type using both human-readable name and tab id for safety
+    const typeKey = (propertyTypeName || '').toLowerCase();
+    const tabKey = (tabId || '').toLowerCase();
+    const isResidential = typeKey.includes('residential') || tabKey.includes('residential') || tabKey.includes('res');
+    const isCommercial = typeKey.includes('commercial') || tabKey.includes('commercial') || tabKey.includes('com');
+
+    if (isResidential) {
+        if (furnishRow) furnishRow.classList.remove('hidden');
+        if (sizeRow) sizeRow.classList.remove('hidden');
+    } else if (isCommercial) {
+        if (furnishRow) furnishRow.classList.remove('hidden');
+        if (sizeRow) sizeRow.classList.add('hidden');
+    } else {
+        if (furnishRow) furnishRow.classList.add('hidden');
+        if (sizeRow) sizeRow.classList.add('hidden');
     }
     
     // Update active state on property type pills
-    ['pillResidential', 'pillCommercial', 'pillOther'].forEach(id => {
-        const pill = el(id);
-        if (pill) pill.classList.remove('active');
+    document.querySelectorAll('[data-tab-connect]').forEach(pill => {
+        pill.classList.remove('active');
     });
     
-    if (key === 'res') {
-        const pill = el('pillResidential');
-        if (pill) pill.classList.add('active');
-    }
-    if (key === 'com') {
-        const pill = el('pillCommercial');
-        if (pill) pill.classList.add('active');
-    }
-    if (key === 'oth') {
-        const pill = el('pillOther');
-        if (pill) pill.classList.add('active');
+    // Find and activate the correct pill
+    const activePill = document.querySelector(`[data-tab-connect="${tabId}"]`);
+    if (activePill) {
+        activePill.classList.add('active');
     }
     
-    // Update main property type hidden field
-    const typeMap = { 'res': 'Residential', 'com': 'Commercial', 'oth': 'Other' };
+    // Update state
+    state.activePropertyTab = tabId;
+    
+    // Update hidden field for main property type
     const mainType = el('mainPropertyType');
-    if (mainType) mainType.value = typeMap[key] || 'Residential';
+    if (mainType) {
+        mainType.value = propertyTypeName || '';
+    }
 }
 
 // ========================
@@ -96,23 +122,26 @@ function switchMainTab(key) {
 function hasPropertyDataFilled() {
     if (!state.activePropertyTab) return false;
     
+    // Get the active tab ID (e.g., "tab-Residential", "tab-Commercial", "tab-Other")
+    const tabKey = (state.activePropertyTab || '').toLowerCase();
+    
+    // Check for any active property subtype
+    const anySubType = document.querySelector(`#${state.activePropertyTab} .top-pill.active`);
+    
     // Check based on active tab
-    if (state.activePropertyTab === 'res') {
-        const resType = document.querySelector('#resTypeContainer .top-pill.active');
+    if (tabKey.includes('residential')) {
         const resFurnish = document.querySelector('#resFurnishContainer .chip.active');
         const resSize = document.querySelector('#resSizeContainer .chip.active');
         const resArea = el('area')?.value?.trim();
-        return !!(resType || resFurnish || resSize || resArea);
-    } else if (state.activePropertyTab === 'com') {
-        const comType = document.querySelector('#comTypeContainer .top-pill.active');
-        const comFurnish = document.querySelector('#comFurnishContainer .chip.active');
+        return !!(anySubType || resFurnish || resSize || resArea);
+    } else if (tabKey.includes('commercial')) {
+        const comFurnish = document.querySelector('#resFurnishContainer .chip.active');
         const comArea = el('area')?.value?.trim();
-        return !!(comType || comFurnish || comArea);
-    } else if (state.activePropertyTab === 'oth') {
-        const othLooking = document.querySelector('#othLookingContainer .top-pill.active');
+        return !!(anySubType || comFurnish || comArea);
+    } else if (tabKey.includes('other')) {
         const othDesc = el('othDesc')?.value?.trim();
         const othArea = el('area')?.value?.trim();
-        return !!(othLooking || othDesc || othArea);
+        return !!(anySubType || othDesc || othArea);
     }
     
     return false;
@@ -332,15 +361,17 @@ function validateForm() {
     }
     
     // Validate based on active property tab
-    if (state.activePropertyTab === 'res') {
+    const tabKey = (state.activePropertyTab || '').toLowerCase();
+    
+    if (tabKey.includes('residential')) {
         // Residential validations
-        const resType = document.querySelector('#resTypeContainer .top-pill.active');
+        const resType = document.querySelector(`#${state.activePropertyTab} .top-pill.active`);
         if (!resType) {
-            showPillContainerError('resTypeContainer', 'err-resType');
+            showPillContainerError(state.activePropertyTab, 'err-resType');
             errors.push('Property Sub Type is required');
             isValid = false;
         } else {
-            hidePillContainerError('resTypeContainer', 'err-resType');
+            hidePillContainerError(state.activePropertyTab, 'err-resType');
         }
         
         const resFurnish = document.querySelector('#resFurnishContainer .chip.active');
@@ -360,37 +391,50 @@ function validateForm() {
         } else {
             hidePillContainerError('resSizeContainer', 'err-resSize');
         }
-    } else if (state.activePropertyTab === 'com') {
+    } else if (tabKey.includes('commercial')) {
         // Commercial validations
-        const comType = document.querySelector('#comTypeContainer .top-pill.active');
+        const comType = document.querySelector(`#${state.activePropertyTab} .top-pill.active`);
         if (!comType) {
-            showPillContainerError('comTypeContainer', 'err-comType');
+            showPillContainerError(state.activePropertyTab, 'err-resType');
             errors.push('Property Sub Type is required');
             isValid = false;
         } else {
-            hidePillContainerError('comTypeContainer', 'err-comType');
+            hidePillContainerError(state.activePropertyTab, 'err-resType');
         }
         
-        const comFurnish = document.querySelector('#comFurnishContainer .chip.active');
+        const comFurnish = document.querySelector('#resFurnishContainer .chip.active');
         if (!comFurnish) {
-            showPillContainerError('comFurnishContainer', 'err-comFurnish');
+            showPillContainerError('resFurnishContainer', 'err-resFurnish');
             errors.push('Furnish Type is required');
             isValid = false;
         } else {
-            hidePillContainerError('comFurnishContainer', 'err-comFurnish');
+            hidePillContainerError('resFurnishContainer', 'err-resFurnish');
         }
-    } else if (state.activePropertyTab === 'oth') {
+    } else if (tabKey.includes('other')) {
         // Other validations
-        const othLooking = document.querySelector('#othLookingContainer .top-pill.active');
+        const othLooking = document.querySelector(`#${state.activePropertyTab} .top-pill.active`);
         const othDesc = el('othDesc')?.value?.trim();
         
         if (!othLooking && !othDesc) {
-            showPillContainerError('othLookingContainer', 'err-othLooking');
+            showPillContainerError(state.activePropertyTab, 'err-resType');
             showFieldError('othDesc', 'err-othDesc');
             errors.push('Select Option or Other Option Details is required');
             isValid = false;
         } else {
-            hidePillContainerError('othLookingContainer', 'err-othLooking');
+            hidePillContainerError(state.activePropertyTab, 'err-resType');
+            hideFieldError('othDesc', 'err-othDesc');
+        }
+    }
+    
+    // Validate Other Option Details if the row is visible
+    const otherDetailsRow = document.getElementById('otherDetailsRow');
+    if (otherDetailsRow && otherDetailsRow.style.display !== 'none') {
+        const othDesc = el('othDesc')?.value?.trim();
+        if (!othDesc) {
+            showFieldError('othDesc', 'err-othDesc');
+            errors.push('Other Option Details is required');
+            isValid = false;
+        } else {
             hideFieldError('othDesc', 'err-othDesc');
         }
     }
@@ -532,21 +576,21 @@ function validateForm() {
 
 // Handle property type tab changes (Residential/Commercial/Other)
 window.handlePropertyTabChange = async function(domElement) {
-    // domElement is expected to be the clicked pill element
+    // Extract the tab ID from data-tab-connect attribute
     const tabId = domElement.dataset.tabConnect;
     const propertyTypeName = domElement.dataset.value;
     const propertyTypeId = domElement.dataset.typeId;
-
+    
     // Skip confirmation if we're restoring old values from validation error
     const skipConfirmation = window.isRestoringOldValues;
 
     // Check if property type was already set, user is trying to change it, AND there's actual data filled
     if (!skipConfirmation && state.activePropertyTab && state.activePropertyTab !== tabId && (hasPropertyDataFilled() || hasAddressDataFilled())) {
-        // Get current and new property type names
+        // Get current property type name from the active pill
         const currentPill = document.querySelector('[data-tab-connect].active');
         const currentType = currentPill ? currentPill.dataset.value : 'Current';
         const newType = propertyTypeName || 'New';
-
+        
         // Build message based on what data exists
         let messageParts = [];
         messageParts.push(`You are changing Property Type from <strong>${currentType}</strong> to <strong>${newType}</strong>.<br><br>`);
@@ -606,56 +650,8 @@ window.handlePropertyTabChange = async function(domElement) {
 
     // Proceed with property type change
     clearAllPropertySelections();
-
-    // Show the propertySubTypetab section
-    const subTypeSection = el('propertySubTypetab');
-    if (subTypeSection) subTypeSection.classList.remove('hidden');
-
-    // Hide all property subtype tabs and show the selected one
-    document.querySelectorAll('[id^="tab-"]').forEach(tab => {
-        if (tab.id.startsWith('tab-') && tab.id !== 'propertySubTypetab') {
-            tab.classList.add('hidden');
-        }
-    });
-
-    const selectedTab = el(tabId);
-    if (selectedTab) selectedTab.classList.remove('hidden');
-
-    // Toggle Furnish and Size rows based on selected tab
-    const furnishRow = el('furnishRow');
-    const sizeRow = el('sizeRow');
-
-    const typeKey = (propertyTypeName || '').toLowerCase();
-    const tabKey = (tabId || '').toLowerCase();
-    const isResidential = typeKey.includes('residential') || tabKey.includes('residential') || tabKey.includes('res');
-    const isCommercial = typeKey.includes('commercial') || tabKey.includes('commercial') || tabKey.includes('com');
-
-    if (isResidential) {
-        if (furnishRow) furnishRow.classList.remove('hidden');
-        if (sizeRow) sizeRow.classList.remove('hidden');
-    } else if (isCommercial) {
-        if (furnishRow) furnishRow.classList.remove('hidden');
-        if (sizeRow) sizeRow.classList.add('hidden');
-    } else {
-        if (furnishRow) furnishRow.classList.add('hidden');
-        if (sizeRow) sizeRow.classList.add('hidden');
-    }
-
-    // Update active state on property type pills
-    document.querySelectorAll('[data-tab-connect]').forEach(pill => pill.classList.remove('active'));
-    domElement.classList.add('active');
-
-    // Update state
-    state.activePropertyTab = tabId;
-
-    // Update hidden field for main property type
-    const mainType = el('mainPropertyType');
-    if (mainType) mainType.value = propertyTypeName;
-
-    // Show/hide Other Option Details depending on main type
-    const shouldShowOther = (propertyTypeName || '').toLowerCase() === 'other' || (tabKey || '').includes('oth');
-    toggleOtherDetails(shouldShowOther);
-
+    switchMainTab(tabId, propertyTypeName, propertyTypeId);
+    
     // Clear property type error when selected
     hidePillContainerError('propertyTypeContainer', 'err-propertyType');
 };
@@ -687,6 +683,27 @@ window.selectCard = function(dom) {
     document.querySelectorAll(`[data-group="${group}"]`).forEach(n => n.classList.remove('active'));
     dom.classList.add('active');
     const v = dom.dataset.value;
+    const subtypeName = dom.dataset.subtypeName || '';
+    
+    // Update the hidden field for property_sub_type_id
+    const propertySubTypeIdField = document.getElementById('propertySubTypeId');
+    if (propertySubTypeIdField) {
+        propertySubTypeIdField.value = v;
+    }
+    
+    // Show/hide Other Option Details based on property sub type
+    const otherDetailsRow = document.getElementById('otherDetailsRow');
+    if (otherDetailsRow) {
+        if (subtypeName.toLowerCase().includes('other')) {
+            otherDetailsRow.style.display = 'block';
+            document.getElementById('othDesc').required = true;
+        } else {
+            otherDetailsRow.style.display = 'none';
+            document.getElementById('othDesc').required = false;
+            document.getElementById('othDesc').value = ''; // Clear the field
+            hideFieldError('othDesc', 'err-othDesc'); // Clear any errors
+        }
+    }
     
     // Clear errors when residential/commercial sub type is selected
     if (group === 'resType') {
@@ -841,12 +858,11 @@ document.addEventListener('DOMContentLoaded', function () {
     // INITIALIZE ACTIVE TAB FROM BOOKING DATA
     // ========================
     // Check which property type is currently selected and set state
-    if (el('pillResidential')?.classList.contains('active')) {
-        state.activePropertyTab = 'res';
-    } else if (el('pillCommercial')?.classList.contains('active')) {
-        state.activePropertyTab = 'com';
-    } else if (el('pillOther')?.classList.contains('active')) {
-        state.activePropertyTab = 'oth';
+    const activePill = document.querySelector('[data-tab-connect].active');
+    if (activePill) {
+        state.activePropertyTab = activePill.dataset.tabConnect;
+        // Initialize property subtype tab visibility and furnish/size row visibility based on property type
+        switchMainTab(state.activePropertyTab, activePill?.dataset.value, activePill?.dataset.typeId);
     }
 
     // ========================
@@ -867,13 +883,8 @@ document.addEventListener('DOMContentLoaded', function () {
         
         // Wait a bit for tabs to be properly initialized
         setTimeout(() => {
-            // Determine which container to use based on active property tab
-            let furnishContainer = null;
-            if (state.activePropertyTab === 'res') {
-                furnishContainer = el('resFurnishContainer');
-            } else if (state.activePropertyTab === 'com') {
-                furnishContainer = el('comFurnishContainer');
-            }
+            // Both residential and commercial use the same furnish container (resFurnishContainer)
+            const furnishContainer = el('resFurnishContainer');
             
             if (furnishContainer) {
                 // Find the chip with matching data-value (use normalized value)
@@ -1031,30 +1042,21 @@ document.addEventListener('DOMContentLoaded', function () {
             let propertySubTypeId = null;
             let propertyTypeId = null;
             
-            if (state.activePropertyTab === 'res') {
-                const activePill = document.querySelector('#resTypeContainer .top-pill.active');
+            // Get the active property tab ID (e.g., "tab-Residential")
+            const tabKey = (state.activePropertyTab || '').toLowerCase();
+            
+            // Get the active property type pill to extract the property_type_id
+            const activePropertyPill = document.querySelector('[data-tab-connect].active');
+            if (activePropertyPill) {
+                propertyTypeId = activePropertyPill.dataset.typeId;
+            }
+            
+            // Get property subtype based on the active tab
+            if (state.activePropertyTab) {
+                const activePill = document.querySelector(`#${state.activePropertyTab} .top-pill.active`);
                 if (activePill) {
                     propertySubTypeId = activePill.dataset.value;
                 }
-                // Get property type ID for Residential
-                const resPill = el('pillResidential');
-                if (resPill) propertyTypeId = resPill.dataset.typeId;
-            } else if (state.activePropertyTab === 'com') {
-                const activePill = document.querySelector('#comTypeContainer .top-pill.active');
-                if (activePill) {
-                    propertySubTypeId = activePill.dataset.value;
-                }
-                // Get property type ID for Commercial
-                const comPill = el('pillCommercial');
-                if (comPill) propertyTypeId = comPill.dataset.typeId;
-            } else if (state.activePropertyTab === 'oth') {
-                const activePill = document.querySelector('#othLookingContainer .top-pill.active');
-                if (activePill) {
-                    propertySubTypeId = activePill.dataset.value;
-                }
-                // Get property type ID for Other
-                const othPill = el('pillOther');
-                if (othPill) propertyTypeId = othPill.dataset.typeId;
             }
             
             // Prepare FormData for AJAX submission
@@ -1070,19 +1072,15 @@ document.addEventListener('DOMContentLoaded', function () {
                 formData.set('property_sub_type_id', propertySubTypeId);
             }
             
-            // Add furniture_type based on active tab
-            const activeFurnishPill = state.activePropertyTab === 'res' 
-                ? document.querySelector('#resFurnishContainer .chip.active')
-                : (state.activePropertyTab === 'com' 
-                    ? document.querySelector('#comFurnishContainer .chip.active')
-                    : null);
+            // Add furniture_type based on active tab (works for both residential and commercial)
+            const activeFurnishPill = document.querySelector('#resFurnishContainer .chip.active');
                 
             if (activeFurnishPill) {
                 formData.set('furniture_type', activeFurnishPill.dataset.value);
             }
             
-            // Add bhk_id for residential
-            if (state.activePropertyTab === 'res') {
+            // Add bhk_id for residential (check if tab contains "residential")
+            if (tabKey.includes('residential')) {
                 const activeBhkPill = document.querySelector('#resSizeContainer .chip.active');
                 if (activeBhkPill) {
                     formData.set('bhk_id', activeBhkPill.dataset.value);

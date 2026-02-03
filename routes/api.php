@@ -29,7 +29,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/tour-manager/customers', [TourManagerController::class, 'getCustomers']);
     Route::get('/tour-manager/tours-by-customer', [TourManagerController::class, 'getToursByCustomer']);
     Route::get('/tour-manager/tour/{tour_code}', [TourManagerController::class, 'getTourDetails']);
+    Route::get('/tour-manager/locations', [TourManagerController::class, 'getTourLocations']);
     Route::put('/tour-manager/working_json/{tour_code}', [TourManagerController::class, 'updateWorkingJson']);
+    
+    // Tour file upload APIs
+    Route::post('/tour-manager/upload-file', [TourManagerController::class, 'uploadFile']); // Unified upload - handles both simple and chunked internally
 });
 
 // Tour Access APIs (Protected by Dynamic Token)
@@ -42,6 +46,10 @@ Route::middleware(['verify.tour.token'])->group(function () {
     Route::post('/tour/mobile/verify-otp', [\App\Http\Controllers\Api\TourAccessController::class, 'verifyOtp']);
     Route::get('/tour/mobile/history/{tour_code}', [\App\Http\Controllers\Api\TourAccessController::class, 'getMobileHistory']);
 });
+
+// Tour Page Data API (Public route with internal token verification)
+// Used by remote index.php files to fetch tour data (SEO, GTM, JSON, etc.)
+Route::get('/tour/page_data/{tour_code}', [\App\Http\Controllers\Api\TourAccessController::class, 'getTourPageData']);
 
 // Booking APIs with token security
 Route::get('/bookings/list', [\App\Http\Controllers\Api\TourAccessController::class, 'getAllBookingsList']);

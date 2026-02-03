@@ -423,7 +423,7 @@
                                                     @foreach($propertySubTypes as $typeId => $subTypes)
                                                         <div class="d-wrap mt-0" id="tab-{{collect($propertyTypes)->firstWhere('id', $typeId)->name}}">
                                                             @foreach ($subTypes as $subType)
-                                                                <div class="top-pill" data-group="resType" data-value="{{ $subType->id }}" onclick="selectCard(this)">
+                                                                <div class="top-pill" data-group="resType" data-value="{{ $subType->id }}" data-subtype-name="{{ $subType->name }}" onclick="selectCard(this)">
                                                                             <i class="{{ $subType->icon }}"></i>
                                                                             {{ $subType->name }}
                                                                 </div>
@@ -460,6 +460,17 @@
                                                 </div>
                                             </div>
                                         </div> 
+                                    </div>
+
+                                    <!-- Other Option Details (Hidden by default, shown when "Other" sub type is selected) -->
+                                    <div class="row" id="otherDetailsRow" style="display: none;">
+                                        <div class="col-12">
+                                            <div class="mb-1">
+                                                <div class="section-title mb-0">Other Option Details <span class="text-danger">*</span></div>
+                                                <textarea name="other_option_details" id="othDesc" class="form-control @error('other_option_details') is-invalid @enderror" rows="3" placeholder="Enter other option details">{{ old('other_option_details') }}</textarea>
+                                                <div id="err-othDesc" class="error @error('other_option_details') show @endif">@error('other_option_details'){{ $message }}@else Other Option Details is required.@enderror</div>
+                                            </div>
+                                        </div>
                                     </div>
 
                                     <div class="row">

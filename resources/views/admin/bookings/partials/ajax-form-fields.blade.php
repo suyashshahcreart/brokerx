@@ -3,6 +3,7 @@
 <!-- Hidden Fields for Dynamic Data -->
 <input type="hidden" id="choice_ownerType" name="owner_type" value="{{ $booking->owner_type ?? '' }}">
 <input type="hidden" id="mainPropertyType" name="main_property_type" value="{{ $booking->propertyType->name ?? 'Residential' }}">
+<input type="hidden" id="propertySubTypeId" name="property_sub_type_id" value="{{ $booking->property_sub_type_id ?? '' }}">
 
 <!-- User Selection - Full Width -->
 <div class="row">
@@ -20,7 +21,7 @@
             <div class="invalid-feedback">@error('user_id'){{ $message }}@else Please select a customer.@enderror</div>
         </div>
     </div>
-    <!-- <div class="col-4 d-none">
+    <!-- <div class="col-3">
         <div class="mb-1">
             <label class="form-label" for="status">Status <span class="text-danger">*</span></label>
             <select name="status" id="status" class="form-select @error('status') is-invalid @enderror" required>
@@ -32,7 +33,7 @@
             <div class="invalid-feedback">@error('status'){{ $message }}@else Please select a status.@enderror</div>
         </div>
     </div> -->
-    <div class="col-6">
+    <div class="col-3">
         <div class="mb-1">
             <label class="form-label" for="payment_status">Payment Status <span class="text-danger">*</span></label>
             <select name="payment_status" id="payment_status" class="form-select @error('payment_status') is-invalid @enderror" required>
@@ -66,7 +67,7 @@
                                 <div class="top-pill {{ ($booking->owner_type ?? '') == 'Broker' ? 'active' : '' }}" data-group="ownerType" data-value="Broker" onclick="topPillClick(this)">
                                     <i class="ri-briefcase-line me-1"></i> Broker
                                 </div>
-                                <div class="top-pill {{ ($booking->owner_type ?? '') == 'Other' ? 'active' : '' }} " data-group="ownerType" data-value="Other" onclick="topPillClick(this)">
+                                <div class="top-pill {{ ($booking->owner_type ?? '') == 'Other' ? 'active' : '' }}" data-group="ownerType" data-value="Other" onclick="topPillClick(this)">
                                     <i class="ri-briefcase-line me-1"></i> Other
                                 </div>
                             </div>
@@ -77,8 +78,15 @@
                         <!-- Property Type Tabs -->
                         <div class="mb-1">
                             <div class="section-title mb-0">Property Type <span class="text-danger">*</span></div>
-                            <div class="d-flex gap mb-0" id="propertyTypeContainer">
+                            <div class="d-flex flex-wrap gap mb-0" id="propertyTypeContainer">
+                                @php
+                                    $currentPropertyTypeName = $booking->propertyType->name ?? 'Residential';
+                                @endphp
+                                
                                 @foreach($propertyTypes as $pt)
+                                    @php
+                                        $isActive = ($booking->property_type_id == $pt->id);
+                                    @endphp
                                     <div
                                         class="top-pill"
                                         id="pill{{ \Illuminate\Support\Str::studly($pt->name) }}"
@@ -96,23 +104,38 @@
                         </div>
                     </div>
                 </div>
+                
+                @php
+                    $currentPropertyType = $booking->propertyType->name ?? 'Residential';
+                    $currentPropertySubTypeId = $booking->property_sub_type_id;
+                    $currentBhkId = $booking->bhk_id;
+                    $currentFurnitureType = $booking->furniture_type;
+                    // Normalize furniture type: handle both "Semi Furnished" (space) and "Semi-Furnished" (hyphen)
+                    // Also handle "Fully Furnished" -> "Furnished"
+                    $normalizedFurnitureType = $currentFurnitureType;
+                    if ($currentFurnitureType == 'Semi Furnished') {
+                        $normalizedFurnitureType = 'Semi-Furnished';
+                    } elseif ($currentFurnitureType == 'Fully Furnished') {
+                        $normalizedFurnitureType = 'Furnished';
+                    }
+                @endphp
 
                 <!-- PROPERTY SUB TYPE AND OTHER DETAILS TAB -->
-                <div id="propertySubTypetab" class="hidden">
+                <div id="propertySubTypetab" class="{{ $currentPropertyType ? '' : 'hidden' }}">
                     <div class="row">
                         <div class="col-6">
                             <!-- Property Sub Type -->
                             <div class="mb-1">
                                 <div class="section-title mb-0">Property Sub Type <span class="text-danger">*</span></div>
                                 @foreach($propertySubTypes as $typeId => $subTypes)
-                                    <div class="d-wrap " id="tab-{{collect($propertyTypes)->firstWhere('id', $typeId)->name}}">
+                                    <div class="d-wrap {{ $currentPropertyType == collect($propertyTypes)->firstWhere('id', $typeId)->name ? '' : 'hidden' }}" id="tab-{{ collect($propertyTypes)->firstWhere('id', $typeId)->name }}">
                                         @foreach ($subTypes as $subType)
-                                            <div class="top-pill" data-group="resType" data-value="{{ $subType->id }}" onclick="selectCard(this)">
-                                                        <i class="{{ $subType->icon }}"></i>
-                                                        {{ $subType->name }}
+                                            <div class="top-pill {{ $currentPropertyType == collect($propertyTypes)->firstWhere('id', $typeId)->name && $subType->id == $currentPropertySubTypeId ? 'active' : '' }}" data-group="resType" data-value="{{ $subType->id }}" data-subtype-name="{{ $subType->name }}" onclick="selectCard(this)">
+                                                <i class="{{ $subType->icon }}"></i>
+                                                {{ $subType->name }}
                                             </div>
-                                            @endforeach
-                                        </div>
+                                        @endforeach
+                                    </div>
                                 @endforeach
                                 <div id="err-resType" class="error">Property Sub Type is required.</div>
                             </div>
@@ -122,31 +145,42 @@
                             <div class="mb-1">
                                 <div class="section-title mb-0">Furnish Type <span class="text-danger">*</span></div>
                                 <div class="d-flex flex-wrap gap" id="resFurnishContainer">
-                                    <div class="chip" data-group="resFurnish" data-value="Furnished" onclick="selectChip(this)"><i class="ri-sofa-line"></i> Fully Furnished</div>
-                                    <div class="chip" data-group="resFurnish" data-value="Semi-Furnished" onclick="selectChip(this)"><i class="ri-lightbulb-line"></i> Semi Furnished</div>
-                                    <div class="chip" data-group="resFurnish" data-value="Unfurnished" onclick="selectChip(this)"><i class="ri-door-line"></i> Unfurnished</div>
+                                    <div class="chip {{ $normalizedFurnitureType == 'Furnished' ? 'active' : '' }}" data-group="resFurnish" data-value="Furnished" onclick="selectChip(this)"><i class="ri-sofa-line"></i> Fully Furnished</div>
+                                    <div class="chip {{ ($normalizedFurnitureType == 'Semi-Furnished' || $currentFurnitureType == 'Semi Furnished') ? 'active' : '' }}" data-group="resFurnish" data-value="Semi-Furnished" onclick="selectChip(this)"><i class="ri-lightbulb-line"></i> Semi Furnished</div>
+                                    <div class="chip {{ $normalizedFurnitureType == 'Unfurnished' ? 'active' : '' }}" data-group="resFurnish" data-value="Unfurnished" onclick="selectChip(this)"><i class="ri-door-line"></i> Unfurnished</div>
                                 </div>
                                 <div id="err-resFurnish" class="error">Furnish Type is required.</div>
                             </div>
                         </div>
                     </div>
                     <div class="row">
-                        <div class="col-12" id="sizeRow" >
+                        <div class="col-12" id="sizeRow">
                             <!-- Size (BHK/RK) -->
                             <div class="mb-1">
                                 <div class="section-title mb-0">Size (BHK / RK) <span class="text-danger">*</span></div>
                                 <div class="d-flex flex-wrap gap" id="resSizeContainer">
                                     @foreach($bhks as $bhk)
-                                        <div class="chip" data-group="resSize" data-value="{{ $bhk->id }}" onclick="selectChip(this)">{{ $bhk->name }}</div>
+                                        <div class="chip {{ $bhk->id == $currentBhkId ? 'active' : '' }}" data-group="resSize" data-value="{{ $bhk->id }}" onclick="selectChip(this)">{{ $bhk->name }}</div>
                                     @endforeach
                                 </div>
                                 <div id="err-resSize" class="error">Size (BHK / RK) is required.</div>
                             </div>
                         </div>
-                    </div> 
+                    </div>
+                    
+                    <!-- Other Option Details (Hidden by default, shown when "Other" sub type is selected) -->
+                    <div class="row" id="otherDetailsRow" style="{{ ($booking->other_option_details) ? 'display: block;' : 'display: none;' }}">
+                        <div class="col-12">
+                            <div class="mb-1">
+                                <div class="section-title mb-0">Other Option Details <span class="text-danger">*</span></div>
+                                <textarea name="other_option_details" id="othDesc" class="form-control @error('other_option_details') is-invalid @enderror" rows="3" placeholder="Enter other option details">{{ old('other_option_details', $booking->other_option_details ?? '') }}</textarea>
+                                <div id="err-othDesc" class="error @error('other_option_details') show @endif">@error('other_option_details'){{ $message }}@else Other Option Details is required.@enderror</div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                 <div class="row">
+                <div class="row">
                     <div class="col-6">
                         <!-- Area (Always Visible - Common Field) -->
                         <div class="mb-1">
@@ -270,7 +304,7 @@
                             <div class="col-12">
                                 <!-- State -->
                                 <div class="mb-1">
-                                    <label class="form-label fw-semibold mb-0" for="state_id">State</label>
+                                    <label class="form-label fw-semibold mb-0" for="state_id">State <span class="text-danger">*</span> </label>
                                     <select name="state_id" id="state_id" class="form-select">
                                         <option value="">Select state</option>
                                         @foreach($states as $s)
@@ -282,7 +316,7 @@
                             <div class="col-12">
                                 <!-- City -->
                                 <div class="mb-1">
-                                    <label class="form-label fw-semibold mb-0" for="city_id">City</label>
+                                    <label class="form-label fw-semibold mb-0" for="city_id">City <span class="text-danger">*</span> </label>
                                     <select name="city_id" id="city_id" class="form-select">
                                         <option value="">Select city</option>
                                         @foreach($cities as $c)
