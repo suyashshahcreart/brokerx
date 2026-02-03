@@ -34,6 +34,7 @@ document.addEventListener('DOMContentLoaded', function () {
         startDate: thirtyDaysAgo,
         endDate: today,
         opens: 'center',
+        drops: 'up',
         autoApply: false,
         locale: {
             format: 'DD/MM/YYYY'

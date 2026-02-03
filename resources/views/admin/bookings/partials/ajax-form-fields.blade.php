@@ -88,7 +88,7 @@
                                         $isActive = ($booking->property_type_id == $pt->id);
                                     @endphp
                                     <div
-                                        class="top-pill"
+                                        class="top-pill {{ $isActive ? 'active' : '' }}"
                                         id="pill{{ \Illuminate\Support\Str::studly($pt->name) }}"
                                         data-value="{{ $pt->name }}"
                                         data-type-id="{{ $pt->id }}"
@@ -199,15 +199,10 @@
                     </div>
                 </div>
 
-                <div class="row">
-                      <!-- Other Option Details -->
-                    <div class="col-12 mb-1 {{ ((($booking->propertyType->name ?? '') == 'Other') || !empty($booking->other_option_details)) ? '' : 'hidden' }}" id="othDetailsRow">
-                        <div class="section-title mb-0">Other Option Details</div>
-                        <textarea name="other_option_details" id="othDesc" class="form-control" rows="3" placeholder="Enter other option details">{{ $booking->other_option_details ?? '' }}</textarea>
-                        <div id="err-othDesc" class="error">Other Option Details is required.</div>
-                    </div>
-                </div>
                 
+
+                
+                        
                 <!-- Use Company Billing Details Checkbox -->
                 <div class="mb-1">
                     <div class="form-check">

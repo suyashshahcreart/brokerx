@@ -457,9 +457,11 @@
 
     <!-- Button of actions -->
     <div class="d-flex justify-content-end gap-2">
-        <a href="{{ route('admin.bookings.index') }}" class="btn btn-soft-secondary"><i class="ri-close-line me-1"></i> Cancel</a>
         <button class="btn btn-primary" type="submit">
             <i class="ri-save-line me-1"></i> Update Tour
+        </button>
+        <button class="btn btn-soft-secondary" type="button" onClick="window.location.reload();">
+            <i class="ri-link-unlink me-1"></i> Cancle
         </button>
     </div>
 
