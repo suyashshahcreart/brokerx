@@ -93,10 +93,11 @@ class BookingController extends Controller
             return DataTables::of($query)
                 ->addColumn('user', function (Booking $booking) {
                     $name = $booking->user ? $booking->user->firstname . ' ' . $booking->user->lastname : '-';
+                    $mobile = $booking->user ? $booking->user->mobile : '-';
                     $tourName = $booking->tours->first()?->name;
 
                     if ($tourName) {
-                        return '<div><strong>' . e($name) . '</strong><div class="text-muted small">' . e($tourName) . '</div></div>';
+                        return '<div><strong>' . e($name) . ' | ' . e($mobile) . '</strong><div class="text-muted small">' . e($tourName) . '</div></div>';
                     }
 
                     return e($name);

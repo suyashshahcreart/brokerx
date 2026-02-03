@@ -58,11 +58,6 @@
                         <h4 class="card-title mb-1">Bookings List</h4>
                         <p class="text-muted mb-0">Manage all bookings</p>
                     </div>
-                    <div>
-                        <button type="button" class="btn btn-success btn-sm" id="exportBookings">
-                            <i class="ri-file-excel-2-line me-1"></i> Export to Excel
-                        </button>
-                    </div>
                 </div>
                 <div class="card-body">
                     <!-- Filters Section -->
@@ -118,11 +113,12 @@
                                     <th>User</th>
                                     <th>Type / Subtype</th>
                                     <th>City</th>
+                                    <th>Area(Sq.ft)</th>
                                     <th>Price</th>
                                     <th>Date</th>
                                     <th>Status</th>
                                     <th>Payment</th>
-                                    <th class="text-end">Actions</th>
+                                    <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody></tbody>
@@ -136,7 +132,6 @@
 @section('script')
     <script>
         window.bookingReportUrl = '{{ route('admin.reports.bookings') }}';
-        window.exportBookingsUrl = '{{ route('admin.reports.bookings.export') }}';
     </script>
     @vite(['resources/js/pages/bookings-report-index.js'])
 @endsection
