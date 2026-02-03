@@ -302,15 +302,6 @@
                                     <h5 class="card-title mb-0"><i class="ri-building-line me-2"></i>Property Details</h5>
                                 </div>
                                 <div class="card-body">
-                                    @php
-                                        $currentPropertyType = $booking->propertyType->name ?? 'Residential';
-                                        $propertyTypeOrder = [
-                                            'Residential' => ['key' => 'res', 'icon' => 'ri-home-4-line', 'type' => 'ri'],
-                                            'Commercial' => ['key' => 'com', 'icon' => 'ri-building-line', 'type' => 'ri'],
-                                            'Other' => ['key' => 'oth', 'icon' => 'fa-ellipsis', 'type' => 'fa'],
-                                        ];
-                                    @endphp
-
                                     <div class="row">
                                         <div class="col-4">
                                             <!-- Owner Type -->
@@ -325,6 +316,10 @@
                                                         <div class="top-pill active" style="cursor: default;">
                                                             <i class="ri-briefcase-line me-1"></i> Broker
                                                         </div>
+                                                    @elseif($booking->owner_type == 'Other')
+                                                        <div class="top-pill active" style="cursor: default;">
+                                                            <i class="ri-shield-user-line me-1"></i> Other
+                                                        </div>
                                                     @else
                                                         <span>-</span>
                                                     @endif
@@ -336,17 +331,10 @@
                                             <div class="mb-2">
                                                 <div class="info-label">Property Type</div>
                                                 <div class="info-value">
-                                                    @php
-                                                        $config = $propertyTypeOrder[$currentPropertyType] ?? null;
-                                                    @endphp
-                                                    @if($config)
+                                                    @if($booking->propertyType)
                                                         <div class="top-pill active" style="cursor: default;">
-                                                            @if($config['type'] === 'ri')
-                                                                <i class="{{ $config['icon'] }} me-1"></i>
-                                                            @else
-                                                                <i class="fa-solid {{ $config['icon'] }} me-1"></i>
-                                                            @endif
-                                                            {{ $currentPropertyType }}
+                                                            <i class="{{ $booking->propertyType->icon }} me-1"></i>
+                                                            {{ $booking->propertyType->name }}
                                                         </div>
                                                     @else
                                                         <span>-</span>
@@ -357,17 +345,14 @@
                                         <div class="col-4">
                                             <div class="info-label"> Sub Type</div>
                                             <div class="info-value">
-                                                <div class="top-pill active" style="cursor: default;">
-                                                    @if($booking->propertySubType?->icon)
-                                                        @php
-                                                            $iconClass = str_starts_with($booking->propertySubType->icon, 'fa-')
-                                                                ? "fa {$booking->propertySubType->icon}"
-                                                                : "fa-solid fa-{$booking->propertySubType->icon}";
-                                                        @endphp
-                                                        <i class="{{ $iconClass }} me-1"></i>
-                                                    @endif
-                                                    {{ $booking->propertySubType?->name ?? '-' }}
-                                                </div>
+                                                @if($booking->propertySubType)
+                                                    <div class="top-pill active" style="cursor: default;">
+                                                        <i class="{{ $booking->propertySubType->icon }} me-1"></i>
+                                                        {{ $booking->propertySubType?->name ?? '-' }}
+                                                    </div>
+                                                @else
+                                                    <span>-</span>
+                                                @endif
                                             </div>
                                         </div>
                                     </div>
