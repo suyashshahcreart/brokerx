@@ -143,7 +143,7 @@ class BookingController extends Controller
                     $csrf = csrf_field();
                     $method = method_field('DELETE');
                     $schedule = '';
-                    if (auth()->user()->can('booking_schedule')) {
+                    if (auth()->user()->can('booking_schedule') && $booking->status != 'schedul_completed') {
                         if ($booking->status != 'tour_live') {
                             $schedule = '<a href="#" class="btn btn-soft-warning btn-sm schedule-booking-btn" data-booking-id="' . $booking->id . '" data-booking-date="' . ($booking->booking_date ? $booking->booking_date->format('Y-m-d') : '') . '" data-bs-toggle="tooltip" data-bs-placement="top" title="Schedule Booking"><iconify-icon icon="solar:calendar-broken" class="align-middle fs-18"></iconify-icon></a>';
                         }
