@@ -212,9 +212,6 @@
                             <button type="submit" class="btn btn-primary btn-lg">
                                 <i class="ri-upload-cloud-2-line me-1"></i> Upload Tour Files
                             </button>
-                            <a href="{{ route('admin.tour-manager.show', $booking) }}" class="btn btn-secondary">
-                                <i class="ri-close-line me-1"></i> Cancel
-                            </a>
                         </div>
                     </div>
                 </div>
