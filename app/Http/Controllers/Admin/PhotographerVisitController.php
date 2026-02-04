@@ -34,7 +34,6 @@ class PhotographerVisitController extends Controller
                     'booking',
                     'booking.assignees.user',
                     'photographer',
-                    'job',
                     'tour'
                 ])->orderBy('created_at', 'desc');
 
@@ -257,7 +256,6 @@ class PhotographerVisitController extends Controller
             'booking.state',
             'booking.propertyType',
             'booking.propertySubType',
-            'job',
             'tour'
         ]);
 

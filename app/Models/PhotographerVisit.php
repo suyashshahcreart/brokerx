@@ -55,14 +55,6 @@ class PhotographerVisit extends Model
     ];
 
     /**
-     * Get the job for this visit
-     */
-    public function job(): BelongsTo
-    {
-        return $this->belongsTo(PhotographerVisitJob::class, 'job_id');
-    }
-
-    /**
      * Get the photographer (user) assigned to this visit
      */
     public function photographer(): BelongsTo
