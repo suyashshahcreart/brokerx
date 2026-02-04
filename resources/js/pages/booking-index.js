@@ -139,7 +139,7 @@ document.addEventListener('DOMContentLoaded', function () {
 			{ data: 'booking_date', name: 'booking_date' },
 			{ data: 'status', name: 'status', orderable: false, searchable: false },
 			{ data: 'payment_status', name: 'payment_status', orderable: false, searchable: false },
-			{ data: 'actions', name: 'actions', orderable: false, searchable: false, className: 'text-end' },
+			{ data: 'actions', name: 'actions', orderable: false, searchable: false, className: 'text-center' },
 		],
 		language: {
 			search: '_INPUT_',

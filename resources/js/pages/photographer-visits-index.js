@@ -13,9 +13,9 @@ window.$ = $;
 window.jQuery = $;
 window.moment = moment;
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     'use strict';
-    
+
     const table = $('#visits-table');
     if (!table.length) return;
 
@@ -70,7 +70,19 @@ document.addEventListener('DOMContentLoaded', function() {
                     cancelLabel: 'Clear',
                     format: 'YYYY-MM-DD'
                 },
-                opens: 'left'
+                opens: 'left',
+                ranges: {
+                    'Today': [window.moment(), window.moment()],
+                    'Yesterday': [window.moment().subtract(1, 'days'), window.moment().subtract(1, 'days')],
+                    'Last 7 Days': [window.moment().subtract(6, 'days'), window.moment()],
+                    'Last 30 Days': [window.moment().subtract(29, 'days'), window.moment()],
+                    'This Month': [window.moment().startOf('month'), window.moment().endOf('month')],
+                    'Last Month': [window.moment().subtract(1, 'month').startOf('month'), window.moment().subtract(1, 'month').endOf('month')],
+                    'This Year': [window.moment().startOf('year'), window.moment().endOf('year')],
+                    'Last Year': [window.moment().subtract(1, 'year').startOf('year'), window.moment().subtract(1, 'year').endOf('year')]
+                },
+                alwaysShowCalendars: true,
+                showCustomRangeLabel: true
             });
 
             input.on('apply.daterangepicker', function (ev, picker) {
@@ -102,7 +114,7 @@ document.addEventListener('DOMContentLoaded', function() {
         ajax: {
             url: window.photographerVisitsConfig.indexRoute,
             type: 'GET',
-            data: function(d) {
+            data: function (d) {
                 d.status = $('#filter-status').val();
                 d.photographer_id = $('#filter-photographer').val();
 
@@ -116,10 +128,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 }
             },
-            dataSrc: function(json) {
+            dataSrc: function (json) {
                 return json.data;
             },
-            error: function(xhr, error, thrown) {
+            error: function (xhr, error, thrown) {
                 console.error('DataTables Error:', {
                     status: xhr.status,
                     statusText: xhr.statusText,
@@ -128,72 +140,72 @@ document.addEventListener('DOMContentLoaded', function() {
                     response: xhr.responseText,
                     responseJSON: xhr.responseJSON
                 });
-                
+
                 let errorMsg = 'Error loading data.';
                 if (xhr.responseJSON && xhr.responseJSON.message) {
                     errorMsg += ' ' + xhr.responseJSON.message;
                 } else if (xhr.responseJSON && xhr.responseJSON.error) {
                     errorMsg += ' ' + xhr.responseJSON.error;
                 }
-                
+
                 alert(errorMsg + ' Please check console for details.');
             }
         },
         columns: [
-            { 
-                data: 'id', 
-                name: 'id', 
+            {
+                data: 'id',
+                name: 'id',
                 width: '80px',
-                render: function(data, type, row) {
+                render: function (data, type, row) {
                     return data || '-';
                 }
             },
-            { 
-                data: 'photographer_name', 
+            {
+                data: 'photographer_name',
                 name: 'photographer.firstname',
-                render: function(data, type, row) {
+                render: function (data, type, row) {
                     return data || '-';
                 }
             },
-            { 
-                data: 'booking_info', 
+            {
+                data: 'booking_info',
                 name: 'booking_id',
-                render: function(data, type, row) {
+                render: function (data, type, row) {
                     return data || '-';
                 }
             },
-            { 
-                data: 'visit_date', 
+            {
+                data: 'visit_date',
                 name: 'visit_date',
-                render: function(data, type, row) {
+                render: function (data, type, row) {
                     return data || '-';
                 }
             },
-            { 
-                data: 'status', 
-                name: 'status', 
+            {
+                data: 'status',
+                name: 'status',
                 width: '120px',
-                render: function(data, type, row) {
+                render: function (data, type, row) {
                     return data || '-';
                 }
             },
-            { 
-                data: 'check_actions', 
-                name: 'check_actions', 
-                orderable: false, 
+            {
+                data: 'check_actions',
+                name: 'check_actions',
+                orderable: false,
                 searchable: false,
-                render: function(data, type, row) {
+                render: function (data, type, row) {
                     return data || '';
                 }
             },
-            { 
-                data: 'actions', 
-                name: 'actions', 
-                orderable: false, 
-                searchable: false, 
-                className: 'text-end', 
+            {
+                data: 'actions',
+                name: 'actions',
+                orderable: false,
+                searchable: false,
+                className: 'text-end',
                 width: '100px',
-                render: function(data, type, row) {
+                render: function (data, type, row) {
                     return data || '';
                 }
             }
@@ -214,7 +226,7 @@ document.addEventListener('DOMContentLoaded', function() {
         responsive: true,
         lengthMenu: [10, 25, 50, 100],
         responsive: true,
-        drawCallback: function(settings) {
+        drawCallback: function (settings) {
             // Reinitialize tooltips if they exist
             if (typeof bootstrap !== 'undefined' && bootstrap.Tooltip) {
                 const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
@@ -226,13 +238,13 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Filter change events
-    $('#filter-status, #filter-photographer').on('change', function() {
+    $('#filter-status, #filter-photographer').on('change', function () {
         dataTable.draw();
     });
 
     // Panel card refresh
-    $('[data-panel-action="refresh"]').on('click', function() {
+    $('[data-panel-action="refresh"]').on('click', function () {
         dataTable.ajax.reload();
     });
-    
+
 });

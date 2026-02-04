@@ -867,7 +867,7 @@
                     // Populate booking details
                     document.getElementById('modalCustomer').textContent = '{{ $booking->user ? $booking->user->firstname . " " . $booking->user->lastname : "-" }}';
                     document.getElementById('modalPincode').textContent = '{{ $booking->pin_code ?? "-" }}';
-                    document.getElementById('modalAddress').textContent = '{{ $booking->full_address ?? ($booking->house_no . ", " . $booking->building . ", " . ($booking->society_name ?? "") . ", " . ($booking->address_area ?? "")) }}';
+                    document.getElementById('modalAddress').textContent = `{{ $booking->full_address ?? ($booking->house_no . ", " . $booking->building . ", " . ($booking->society_name ?? "") . ", " . ($booking->address_area ?? "")) }}`;
                     document.getElementById('modalCity').textContent = '{{ $booking->city?->name ?? "-" }}';
                     document.getElementById('modalState').textContent = '{{ $booking->state?->name ?? "-" }}';
                     
