@@ -217,3 +217,169 @@
 #templatesTable .delete-template-btn {
     padding: 0.25rem 0.5rem;
 }
+
+/* ============================================
+   Select2 Custom Styling for Cloudflare Cache Purge
+   ============================================ */
+
+/* Ensure Select2 container is properly styled */
+#tourSelect + .select2-container {
+    width: 100% !important;
+    margin-bottom: 1rem;
+}
+
+/* Select2 single/multiple selection container */
+.select2-container--bootstrap-5 .select2-selection--multiple,
+.select2-container--default .select2-selection--multiple {
+    min-height: 38px;
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    background-color: #fff;
+    padding: 2px 8px;
+    cursor: text;
+}
+
+.select2-container--bootstrap-5 .select2-selection--multiple:focus,
+.select2-container--default .select2-selection--multiple:focus {
+    border-color: #86b7fe;
+    outline: 0;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+/* Select2 selected items (tags) */
+.select2-container--bootstrap-5 .select2-selection--multiple .select2-selection__choice,
+.select2-container--default .select2-selection--multiple .select2-selection__choice {
+    background-color: #0d6efd;
+    border: 1px solid #0d6efd;
+    color: #fff;
+    border-radius: 0.25rem;
+    padding: 2px 8px;
+    margin: 2px 4px 2px 0;
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    cursor: default;
+}
+
+/* Select2 choice remove button (X) */
+.select2-container--bootstrap-5 .select2-selection--multiple .select2-selection__choice__remove,
+.select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
+    color: #fff;
+    cursor: pointer;
+    display: inline-block;
+    font-weight: bold;
+    margin-right: 5px;
+    padding: 0 2px;
+    line-height: 1;
+    opacity: 0.8;
+}
+
+.select2-container--bootstrap-5 .select2-selection--multiple .select2-selection__choice__remove:hover,
+.select2-container--default .select2-selection--multiple .select2-selection__choice__remove:hover {
+    color: #fff;
+    opacity: 1;
+}
+
+/* Select2 search input inside selection */
+.select2-container--bootstrap-5 .select2-search--inline .select2-search__field,
+.select2-container--default .select2-search--inline .select2-search__field {
+    border: none;
+    outline: none;
+    background: transparent;
+    margin: 0;
+    padding: 0;
+    width: 100% !important;
+    min-width: 150px;
+    height: 32px;
+    font-size: 0.875rem;
+}
+
+/* Select2 dropdown */
+.select2-container--bootstrap-5 .select2-dropdown,
+.select2-container--default .select2-dropdown {
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    margin-top: 4px;
+}
+
+/* Select2 results */
+.select2-container--bootstrap-5 .select2-results__option,
+.select2-container--default .select2-results__option {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+}
+
+.select2-container--bootstrap-5 .select2-results__option--highlighted,
+.select2-container--default .select2-results__option--highlighted {
+    background-color: #0d6efd;
+    color: #fff;
+}
+
+.select2-container--bootstrap-5 .select2-results__option[aria-selected=true],
+.select2-container--default .select2-results__option[aria-selected=true] {
+    background-color: #e7f1ff;
+    color: #0d6efd;
+}
+
+/* Select2 placeholder */
+.select2-container--bootstrap-5 .select2-selection__placeholder,
+.select2-container--default .select2-selection__placeholder {
+    color: #6c757d;
+    margin-left: 8px;
+    margin-top: 4px;
+}
+
+/* Fix for Select2 in Bootstrap tabs */
+.tab-pane .select2-container {
+    z-index: 1000;
+}
+
+.tab-pane .select2-dropdown {
+    z-index: 10000;
+}
+
+/* Ensure Select2 doesn't break layout */
+.select2-container {
+    display: block;
+    width: 100% !important;
+}
+
+/* Fix for selected items display */
+.select2-selection--multiple .select2-selection__rendered {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+}
+
+/* Ensure proper spacing */
+.select2-selection--multiple .select2-selection__rendered li {
+    margin: 2px 4px 2px 0;
+}
+
+/* Loading state */
+.select2-container--bootstrap-5.select2-container--loading .select2-selection--multiple,
+.select2-container--default.select2-container--loading .select2-selection--multiple {
+    border-color: #86b7fe;
+}
+
+/* Disabled state */
+.select2-container--bootstrap-5.select2-container--disabled .select2-selection--multiple,
+.select2-container--default.select2-container--disabled .select2-selection--multiple {
+    background-color: #e9ecef;
+    cursor: not-allowed;
+    opacity: 0.65;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .select2-container--bootstrap-5 .select2-selection--multiple .select2-selection__choice,
+    .select2-container--default .select2-selection--multiple .select2-selection__choice {
+        font-size: 0.8rem;
+        padding: 1px 6px;
+    }
+}
