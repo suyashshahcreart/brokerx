@@ -37,7 +37,9 @@ class PhotographerVisitController extends Controller
                     'photographer',
                     'job',
                     'tour'
-                ])->orderBy('created_at', 'desc');
+                ])
+                ->visibleTo($request->user())
+                ->orderBy('created_at', 'desc');
 
                 // Apply filters
                 if ($request->filled('status')) {
@@ -71,8 +73,8 @@ class PhotographerVisitController extends Controller
                     ->addColumn('booking_info', function (PhotographerVisit $visit) {
                         if ($visit->booking) {
                             $location = $visit->booking->society_name ?? $visit->booking->address_area ?? ($visit->booking->city ? $visit->booking->city->name : '');
-                            return '<strong>#' . $visit->booking->id . '</strong>' . 
-                                   ($location ? '<br><small class=\"text-muted\">' . $location . '</small>' : '');
+                            return '<strong>#' . $visit->booking->id . '</strong>' .
+                                ($location ? '<br><small class=\"text-muted\">' . $location . '</small>' : '');
                         }
                         return '-';
                     })
@@ -252,6 +254,13 @@ class PhotographerVisitController extends Controller
      */
     public function show(PhotographerVisit $photographerVisit)
     {
+        $user = request()->user();
+        if ($user && method_exists($user, 'hasRole') && $user->hasRole('photographer') && $photographerVisit->photographer_id !== $user->id) {
+            // Improved error handling
+            return redirect()->route('admin.photographer-visits.index')
+                ->with('error', 'You do not have permission to view this photographer visit.');
+        }
+
         $photographerVisit->load([
             'photographer',
             'booking.city',

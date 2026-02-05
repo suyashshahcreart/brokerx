@@ -137,6 +137,18 @@ class PhotographerVisit extends Model
     }
 
     /**
+     * Scope to limit visits visible to a user
+     */
+    public function scopeVisibleTo($query, $user)
+    {
+        if ($user && method_exists($user, 'hasRole') && $user->hasRole('photographer')) {
+            return $query->where('photographer_id', $user->id);
+        }
+
+        return $query;
+    }
+
+    /**
      * Scope to get visits within a date range
      */
     public function scopeInDateRange($query, $startDate, $endDate)
