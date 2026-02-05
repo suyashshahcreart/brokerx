@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\PhotographerVisit;
 use App\Models\Booking;
-use App\Models\PhotographerVisitJob;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -35,7 +34,6 @@ class PhotographerVisitController extends Controller
                     'booking',
                     'booking.assignees.user',
                     'photographer',
-                    'job',
                     'tour'
                 ])->orderBy('created_at', 'desc');
 
@@ -258,7 +256,6 @@ class PhotographerVisitController extends Controller
             'booking.state',
             'booking.propertyType',
             'booking.propertySubType',
-            'job',
             'tour'
         ]);
 

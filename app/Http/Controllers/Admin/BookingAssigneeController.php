@@ -715,7 +715,7 @@ class BookingAssigneeController extends Controller
         $bookingAssignee->load(['booking.city', 'booking.state', 'booking.propertyType', 'booking.propertySubType', 'user']);
         $booking = $bookingAssignee->booking;
         $photographer = $bookingAssignee->user;
-        return view('admin.photographer-visit-jobs.check-in', compact('booking', 'photographer', 'bookingAssignee'));
+        return view('admin.photographer.check-in', compact('booking', 'photographer', 'bookingAssignee'));
     }
 
     /**
@@ -866,7 +866,7 @@ class BookingAssigneeController extends Controller
         $bookingAssignee->load(['booking.city', 'booking.state', 'booking.propertyType', 'booking.propertySubType', 'user']);
         $booking = $bookingAssignee->booking;
         $photographer = $bookingAssignee->user;
-        return view('admin.photographer-visit-jobs.check-out', compact('booking', 'photographer', 'bookingAssignee'));
+        return view('admin.photographer.check-out', compact('booking', 'photographer', 'bookingAssignee'));
     }
 
     /**

@@ -24,9 +24,9 @@
                 <li class="nav-item">
                     <a class="nav-link fw-medium text-uppercase" href="https://proppik.com/#how-it-works">How It Works</a>
                 </li>
-                <li class="nav-item">
+                <!-- <li class="nav-item">
                     <a class="nav-link fw-medium text-uppercase" href="https://proppik.com/our-portfolio.html">Portfolio</a>
-                </li>
+                </li> -->
                 <li class="nav-item">
                     <a class="nav-link fw-medium text-uppercase" href="https://proppik.com/#gallery">Gallery</a>
                 </li>

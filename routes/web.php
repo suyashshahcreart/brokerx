@@ -8,9 +8,7 @@ use App\Http\Controllers\OtpController;
 use App\Http\Controllers\EmailOtpController;
 use App\Http\Controllers\BrokerController;
 use App\Http\Controllers\UserController;
-use App\Http\Controllers\Photographer\JobController;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\RoutingController;
 use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\RoleController;
@@ -20,7 +18,6 @@ use App\Http\Controllers\Admin\BookingController;
 use App\Http\Controllers\Admin\BookingStatusController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\PendingScheduleController;
-use App\Http\Controllers\Admin\PortfolioController as AdminPortfolioController;
 use App\Http\Controllers\Admin\PhotographerVisitController;
 use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\TourController;
@@ -29,7 +26,6 @@ use App\Http\Controllers\Admin\TourNotificationController;
 use App\Http\Controllers\Admin\QRAnalyticsController;
 use App\Http\Controllers\Admin\ProfileController;
 use App\Http\Controllers\FrontendController;
-use App\Http\Controllers\PortfolioController;
 use App\Http\Controllers\BrokerX\BrokerXController;
 use App\Http\Controllers\QR\QRManageController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
@@ -112,11 +108,6 @@ Route::middleware(['auth'])->group(function () {
 // User routes (protected by auth middleware)
 Route::middleware('auth')->group(function () {
     Route::put('/user/{id}', [UserController::class, 'update'])->name('user.update');
-});
-
-// Frontend Portfolio routes (authenticated users)
-Route::middleware('auth')->group(function () {
-    Route::resource('portfolios', PortfolioController::class);
 });
 
 // Optional dashboard alias (to avoid Route [dashboard] not defined errors)
@@ -207,13 +198,8 @@ Route::group(['prefix' => 'ppadmlog', 'as' => 'admin.', 'middleware' => ['web', 
     Route::post('bookings/{booking}/reschedule', [BookingController::class, 'reschedule'])->name('admin.bookings.reschedule');
     Route::post('bookings/{booking}/update-ajax', [BookingController::class, 'updateAjax'])->name('admin.bookings.update-ajax');
 
-
-
-
     // PHOTOGRAPHER VISITS
     Route::resource('photographer-visits', PhotographerVisitController::class);
-    // Portfolios
-    Route::resource('portfolios', AdminPortfolioController::class);
     Route::resource('holidays', HolidayController::class);
     Route::resource('tours', TourController::class);
     Route::put('tours/{tour}/update-tour-details', [TourController::class, 'updateTourDetails'])->name('tours.updateTourDetails');
@@ -306,15 +292,6 @@ Route::group(['prefix' => 'ppadmlog', 'as' => 'admin.', 'middleware' => ['web', 
 
 Route::group(['prefix' => 'brokerx', 'as' => 'brokerx.', 'middleware' => ['web', 'auth']], function () {
     Route::get('/', [BrokerXController::class, 'index'])->name('index');
-});
-
-// Photographer routes
-Route::group(['prefix' => 'photo', 'as' => 'photographer.', 'middleware' => ['web', 'auth', 'role:photographer']], function () {
-    Route::get('/jobs', [JobController::class, 'index'])->name('jobs.index');
-    Route::get('/jobs/{job}', [JobController::class, 'show'])->name('jobs.show');
-    Route::post('/jobs/{job}/accept', [JobController::class, 'accept'])->name('jobs.accept');
-    Route::post('/jobs/{job}/complete', [JobController::class, 'complete'])->name('jobs.complete');
-    Route::get('/jobs/upcoming', [JobController::class, 'upcoming'])->name('jobs.upcoming');
 });
 
 // Public frontend routes

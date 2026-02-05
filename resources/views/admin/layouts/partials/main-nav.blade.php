@@ -159,20 +159,6 @@
                     </li>
                @endcan
 
-
-               @can('portfolio_view')
-               <li class="nav-item">
-                    <a class="nav-link d-none {{ request()->routeIs('admin.portfolios.*') ? 'active' : '' }}"
-                         href="{{ route('admin.portfolios.index') }}">
-                         <span class="nav-icon">
-                              <i class="ri-profile-line"></i>
-                         </span>
-                         <span class="nav-text">Portfolio</span>
-                    </a>
-               </li>
-               @endcan
-
-
                @canany(['user_view', 'role_view', 'permission_view', 'activity_view', 'media_view', 'setting_view', 'setting_booking_schedule', 'setting_photographer', 'setting_base_price', 'setting_payment_gateway', 'setting_sms_configuration', 'setting_ftp_configuration'])
                     <li class="menu-title">System</li>
 
