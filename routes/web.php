@@ -44,8 +44,8 @@ use App\Http\Controllers\Auth\AuthenticatedSessionController;
 // Check domain and route accordingly
 $domain = request()->getHost();
 
-// Routes for qr.proppik.com domain
-if (in_array($domain, ['qr.proppik.com', 'www.qr.proppik.com'])) {
+// Routes for qr.proppik.com and qr.proppik.cloud domains
+if (in_array($domain, ['qr.proppik.com', 'www.qr.proppik.com', 'qr.proppik.cloud', 'www.qr.proppik.cloud'])) {
     // Welcome page
     Route::get('/', [QRManageController::class, 'index'])->name('qr.welcome');
 

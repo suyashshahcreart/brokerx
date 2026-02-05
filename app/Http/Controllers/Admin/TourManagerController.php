@@ -2247,11 +2247,14 @@ PHP;
                     $host = preg_replace('#^ftps?://#', '', $ftpConfig->host);
 
                     // Prepend root if defined in FTP configuration for native call
+                    // Note: root is relative to FTP user's home directory (chroot)
                     $root = trim($ftpConfig->root ?? '', '/');
                     $remotePathWithRoot = $ftpRemotePath;
                     if (!empty($root)) {
                         $remotePathWithRoot = $root . '/' . ltrim($ftpRemotePath, '/');
                     }
+
+                    \Log::info("FTP upload path with root: {$remotePathWithRoot}");
 
                     $uploaded = $this->uploadToFtpNative(
                         $host,
@@ -2468,11 +2471,14 @@ PHP;
                     $host = preg_replace('#^ftps?://#', '', $ftpConfig->host);
                     
                     // Prepend root if defined in FTP configuration for native call
+                    // Note: root is relative to FTP user's home directory (chroot)
                     $root = trim($ftpConfig->root ?? '', '/');
                     $remotePathWithRoot = $ftpRemotePath;
                     if (!empty($root)) {
                         $remotePathWithRoot = $root . '/' . ltrim($ftpRemotePath, '/');
                     }
+
+                    \Log::info("sw.js FTP upload path with root: {$remotePathWithRoot}");
                     
                     $uploaded = $this->uploadToFtpNative(
                         $host,
@@ -2598,8 +2604,10 @@ PHP;
             if ($directoryPath !== '.' && $directoryPath !== '') {
                 \Log::info("Creating/Verifying directory structure: {$directoryPath}");
 
-                // Ensure we start from root
-                @ftp_chdir($connection, '/');
+                // For chrooted FTP users, we start from current directory (home directory)
+                // Don't use ftp_chdir('/') as it won't work with chroot
+                $currentDir = @ftp_pwd($connection);
+                \Log::info("Current FTP directory: " . ($currentDir ?: 'unknown'));
 
                 $pathParts = explode('/', ltrim($directoryPath, '/'));
                 $currentPath = '';
@@ -2615,9 +2623,13 @@ PHP;
                         $created = @ftp_mkdir($connection, $currentPath);
                         if ($created) {
                             \Log::info("✓ Created directory: {$currentPath}");
+                            // Change into the newly created directory
+                            @ftp_chdir($connection, $currentPath);
                         } else {
                             $error = error_get_last();
+                            $ftpError = @ftp_get_option($connection, FTP_TIMEOUT_SEC);
                             \Log::warning("Failed to create directory {$currentPath}: " . ($error['message'] ?? 'Unknown error'));
+                            // Try to continue anyway - directory might exist but chdir failed
                         }
                     } else {
                         \Log::info("Directory already exists: {$currentPath}");
@@ -2629,10 +2641,10 @@ PHP;
                             \Log::info("✓ Set permissions 0777 for {$currentPath}");
                         }
                     }
-
-                    // Always return to root for the next check if using cumulative currentPath
-                    @ftp_chdir($connection, '/');
                 }
+                
+                // Return to the directory where we need to upload the file
+                @ftp_chdir($connection, $directoryPath);
             }
 
             // Upload file

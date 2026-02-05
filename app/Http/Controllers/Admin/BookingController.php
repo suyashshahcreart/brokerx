@@ -362,7 +362,7 @@ class BookingController extends Controller
             'code' => $qrCode,
             'name' => 'Booking #' . $booking->id . ' - ' . $userName,
             'booking_id' => $booking->id,
-            'qr_link' => 'https://qr.proppik.com/' . $qrCode,
+            'qr_link' => getQrLinkBase() . $qrCode,
             'created_by' => $request->user()->id ?? null,
             'updated_by' => $request->user()->id ?? null,
         ]);

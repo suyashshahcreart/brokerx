@@ -72,7 +72,7 @@ class QRController extends Controller
                         if ($row->qr_link) {
                             return $qrCode->generate($row->qr_link);
                         }else{
-                            return $qrCode->generate('https://qr.proppik.com/'.$row->code);
+                            return $qrCode->generate(getQrLinkBase() . $row->code);
                         }
                     } catch (\Exception $e) {
                         \Log::error('QR Code Generation Error: ' . $e->getMessage());
@@ -129,7 +129,7 @@ class QRController extends Controller
                     if ($qr->qr_link) {
                         $qr->qr_code_svg = $qrCode->generate($qr->qr_link);
                     } else {
-                        $qr->qr_code_svg = $qrCode->generate('https://qr.proppik.com/'.$qr->code);
+                        $qr->qr_code_svg = $qrCode->generate(getQrLinkBase() . $qr->code);
                     }
                 } catch (\Exception $e) {
                     \Log::error('QR Code Generation Error: ' . $e->getMessage());

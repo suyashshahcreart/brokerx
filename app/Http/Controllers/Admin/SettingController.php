@@ -225,6 +225,12 @@ class SettingController extends Controller
             'updated_by' => $request->user()->id,
         ]);
 
+        // Clear cache for both old and new name (in case name changed)
+        clearSettingCache($oldData['name']);
+        if ($oldData['name'] !== $validated['name']) {
+            clearSettingCache($validated['name']);
+        }
+
         activity('settings')
             ->performedOn($setting)
             ->causedBy($request->user())

@@ -51,7 +51,9 @@ class VerifyTourToken
 
         // 3. Generate expected token
         // Formula: proppik + tour_code + created_at(Ymd\THis000000\Z)
-        $formattedDate = $tour->created_at->format('Ymd\THis000000\Z');
+        // IMPORTANT: Use UTC timezone to match API response format
+        $createdAtUtc = $tour->created_at->setTimezone('UTC');
+        $formattedDate = $createdAtUtc->format('Ymd\THis000000\Z');
         $expectedToken = 'proppik' . $tour_code . $formattedDate;
         
         // 4. Convert expected token to MD5 hash
