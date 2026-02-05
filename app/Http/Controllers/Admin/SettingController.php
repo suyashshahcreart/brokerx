@@ -112,6 +112,7 @@ class SettingController extends Controller
         $canSmsConfiguration = $request->user()->can('setting_sms_configuration');
         $canFtpConfiguration = $request->user()->can('setting_ftp_configuration');
         $canPropertyType = true; // Allow property type tab for all admins
+        $canPortfolioApi = $request->user()->can('setting_edit'); // Use setting_edit permission for portfolio API
         
         return view('admin.settings.index', compact(
             'settings', 
@@ -128,7 +129,8 @@ class SettingController extends Controller
             'canPaymentGateway',
             'canSmsConfiguration',
             'canFtpConfiguration',
-            'canPropertyType'
+            'canPropertyType',
+            'canPortfolioApi'
         ));
     }
 
@@ -432,6 +434,7 @@ class SettingController extends Controller
                                   'razorpay_status', 'razorpay_key', 'razorpay_secret', 'razorpay_mode', 'active_payment_gateway'];
         $smsFields = ['active_sms_gateway', 'msg91_templates'];
         $ftpFields = ['ftp_configuration']; // FTP is handled separately via API routes
+        $portfolioApiFields = ['portfolio_api_mobile', 'portfolio_api_token_validity_minutes', 'portfolio_api_enabled'];
         
         // Check which sections are being updated and validate permissions
         $fieldsToCheck = array_keys($settingsData);
@@ -496,6 +499,101 @@ class SettingController extends Controller
                     'success' => false,
                     'message' => 'You do not have permission to update SMS Configuration settings.'
                 ], 403);
+            }
+        }
+        
+        // Check Portfolio API permissions
+        if (array_intersect($fieldsToCheck, $portfolioApiFields)) {
+            if (!$request->user()->can('setting_edit')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You do not have permission to update Portfolio API settings.'
+                ], 403);
+            }
+            
+            // Validate portfolio_api_enabled (should be 0 or 1)
+            // Always ensure this field is set, even if checkbox was unchecked
+            if (!isset($settingsData['portfolio_api_enabled'])) {
+                // If not set, default to current value or '0'
+                $currentValue = Setting::where('name', 'portfolio_api_enabled')->value('value');
+                $settingsData['portfolio_api_enabled'] = ($currentValue === '1') ? '1' : '0';
+            } else {
+                // Normalize the value to '1' or '0'
+                $settingsData['portfolio_api_enabled'] = ($settingsData['portfolio_api_enabled'] === true || 
+                                                          $settingsData['portfolio_api_enabled'] === '1' || 
+                                                          $settingsData['portfolio_api_enabled'] === 1 ||
+                                                          $settingsData['portfolio_api_enabled'] === 'on') ? '1' : '0';
+            }
+            
+            // Validate mobile numbers format (comma-separated with country codes)
+            if (isset($settingsData['portfolio_api_mobile'])) {
+                $mobileString = trim($settingsData['portfolio_api_mobile']);
+                
+                if (empty($mobileString)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'At least one mobile number is required.'
+                    ], 400);
+                }
+                
+                // Split by comma, trim each, filter empty
+                $mobiles = array_filter(
+                    array_map('trim', explode(',', $mobileString)),
+                    function($mobile) {
+                        return !empty($mobile);
+                    }
+                );
+                
+                if (empty($mobiles)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'At least one valid mobile number is required.'
+                    ], 400);
+                }
+                
+                // Validate each mobile number format (E.164: +[country_code][number], 8-15 digits after +)
+                $validMobiles = [];
+                $invalidMobiles = [];
+                
+                foreach ($mobiles as $mobile) {
+                    // Check format: must start with +, followed by 1-3 digit country code, then 7-12 digit number
+                    // Total: 8-15 digits after +
+                    if (preg_match('/^\+[1-9]\d{7,14}$/', $mobile)) {
+                        $validMobiles[] = $mobile;
+                    } else {
+                        $invalidMobiles[] = $mobile;
+                    }
+                }
+                
+                if (!empty($invalidMobiles)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Invalid mobile number format(s): ' . implode(', ', $invalidMobiles) . '. Format must be +[country_code][number] (e.g., +919876543210).'
+                    ], 400);
+                }
+                
+                if (empty($validMobiles)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'At least one valid mobile number is required.'
+                    ], 400);
+                }
+                
+                // Remove duplicates and store as comma-separated string
+                $uniqueMobiles = array_unique($validMobiles);
+                $settingsData['portfolio_api_mobile'] = implode(', ', $uniqueMobiles);
+            }
+            
+            // Validate token validity (1-1440 minutes)
+            if (isset($settingsData['portfolio_api_token_validity_minutes'])) {
+                $validity = (int) $settingsData['portfolio_api_token_validity_minutes'];
+                if ($validity < 1 || $validity > 1440) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Token validity must be between 1 and 1440 minutes.'
+                    ], 400);
+                }
+                $settingsData['portfolio_api_token_validity_minutes'] = (string) $validity;
             }
         }
         
@@ -679,6 +777,14 @@ class SettingController extends Controller
             }
         }
 
+        // Define status/boolean fields that can have '0' value
+        $statusFields = array_merge($smsStatusFields, [
+            'portfolio_api_enabled',
+            'cashfree_status',
+            'payu_status',
+            'razorpay_status'
+        ]);
+        
         // Loop through each setting and update/create
         foreach ($settingsData as $key => $value) {
             // Skip empty keys (but allow '0' for status fields)
@@ -686,10 +792,11 @@ class SettingController extends Controller
                 continue;
             }
             
-            // Allow '0' value for SMS gateway status fields
-            if (in_array($key, $smsStatusFields) && $value === '0') {
-                // This is fine, continue processing
-            } elseif (empty($value) && !in_array($key, $smsStatusFields) && $key !== 'msg91_templates') {
+            // Allow '0' value for status/boolean fields
+            if (in_array($key, $statusFields) && ($value === '0' || $value === 0 || $value === false)) {
+                // This is fine, continue processing - explicitly set to '0'
+                $value = '0';
+            } elseif (empty($value) && !in_array($key, $statusFields) && $key !== 'msg91_templates') {
                 // Skip empty values for non-status fields (but allow msg91_templates which is JSON)
                 continue;
             }

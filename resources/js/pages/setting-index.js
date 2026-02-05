@@ -66,17 +66,23 @@ import '../../css/pages/setting-index.css';
             submitBtn.innerHTML = '<i class="ri-loader-4-line me-1 spin"></i> Updating...';
 
             const formData = new FormData(form);
+            
             // Handle checkboxes explicitly for known forms
-            if (form.id === 'cashfreeForm' || form.id === 'payuForm' || form.id === 'razorpayForm') {
+            // Checkboxes don't send values when unchecked, so we need to explicitly add them
+            if (form.id === 'cashfreeForm' || form.id === 'payuForm' || form.id === 'razorpayForm' || form.id === 'portfolioApiForm') {
                 const checkboxIdMap = {
                     'cashfreeForm': 'cashfree_status',
                     'payuForm': 'payu_status',
-                    'razorpayForm': 'razorpay_status'
+                    'razorpayForm': 'razorpay_status',
+                    'portfolioApiForm': 'portfolio_api_enabled'
                 };
                 const checkboxId = checkboxIdMap[form.id];
                 const checkbox = document.getElementById(checkboxId);
-                if (checkbox && !checkbox.checked) {
-                    formData.set(checkboxId, '0');
+                if (checkbox) {
+                    // Remove existing value if present (in case it was added by form)
+                    formData.delete(checkboxId);
+                    // Always set the value - '1' if checked, '0' if not checked
+                    formData.append(checkboxId, checkbox.checked ? '1' : '0');
                 }
             }
 
@@ -85,15 +91,23 @@ import '../../css/pages/setting-index.css';
                 if (token) formData.append('_token', token);
             }
 
+            // Get CSRF token from meta tag or form attribute
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || 
+                            form.getAttribute('data-csrf') || '';
+            
+            // Ensure CSRF token is in formData
+            if (!formData.has('_token') && csrfToken) {
+                formData.append('_token', csrfToken);
+            }
+
             fetch(form.action, {
                 method: 'POST',
                 body: formData,
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest',
-                    'Accept': 'application/json'
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken
                 },
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
-                encription: 'multipart/form-data',
                 credentials: 'same-origin'
             })
                 .then(async response => {
@@ -113,18 +127,39 @@ import '../../css/pages/setting-index.css';
                 })
                 .then(data => {
                     if (data.success) {
+                        // Handle "No changes detected" response
+                        const message = data.message || (form.dataset.message || 'Settings updated successfully');
+                        const isNoChanges = message.toLowerCase().includes('no changes') || 
+                                           message.toLowerCase().includes('no settings to update') ||
+                                           (data.data && Array.isArray(data.data) && data.data.length === 0);
+                        
                         if (typeof Swal !== 'undefined') {
                             Swal.fire({
-                                icon: 'success',
-                                title: 'Success!',
-                                text: (form.dataset.message || 'Settings updated successfully'),
-                                timer: 2000,
+                                icon: isNoChanges ? 'info' : 'success',
+                                title: isNoChanges ? 'No Changes' : 'Success!',
+                                text: message,
+                                timer: isNoChanges ? 2500 : 2000,
                                 showConfirmButton: false,
-                                timerProgressBar: true
+                                timerProgressBar: true,
+                                toast: true,
+                                position: 'top-end'
                             });
+                        } else {
+                            alert(message);
                         }
-                        if (activeTab) localStorage.setItem('settingsActiveTab', activeTab);
-                        setTimeout(() => window.location.reload(), 1200);
+                        
+                        // Only reload if there were actual changes (not "no changes detected")
+                        // Check if data.data exists and has items, or if message indicates changes were made
+                        const hasChanges = !isNoChanges && (
+                            (data.data && Array.isArray(data.data) && data.data.length > 0) ||
+                            message.toLowerCase().includes('updated') ||
+                            message.toLowerCase().includes('saved')
+                        );
+                        
+                        if (hasChanges) {
+                            if (activeTab) localStorage.setItem('settingsActiveTab', activeTab);
+                            setTimeout(() => window.location.reload(), 1200);
+                        }
                     } else {
                         throw { data };
                     }
@@ -421,6 +456,11 @@ import '../../css/pages/setting-index.css';
         const tourForm = document.getElementById('tourForm');
         const saveTourBtn = document.getElementById('saveTourSettingsBtn');
         if (tourForm && saveTourBtn) handleFormSubmit(tourForm, saveTourBtn);
+
+        // Portfolio API settings form
+        const portfolioApiForm = document.getElementById('portfolioApiForm');
+        const updatePortfolioApiBtn = document.getElementById('updatePortfolioApiSettingsBtn');
+        if (portfolioApiForm && updatePortfolioApiBtn) handleFormSubmit(portfolioApiForm, updatePortfolioApiBtn);
 
         // Payment gateway logic
         const cashfreeForm = document.getElementById('cashfreeForm');
