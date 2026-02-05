@@ -1530,7 +1530,7 @@
                                     @elseif($booking->qr->code)
                                         @php
                                             // Generate QR code from code if qr_link doesn't exist
-                                            $qrUrl = 'https://qr.proppik.com/' . $booking->qr->code;
+                                            $qrUrl = getQrLinkBase() . $booking->qr->code;
                                             $qrCodeSvg = \SimpleSoftwareIO\QrCode\Facades\QrCode::size(200)
                                                 ->format('svg')
                                                 ->color(40, 41, 115)
@@ -1557,8 +1557,8 @@
                                     </div>
                                     <div class="col-12 mb-2">
                                         <small class="text-muted d-block" style="font-size: 10px;">QR LINK</small>
-                                        <a href="https://qr.proppik.com/{{ $booking->qr->code }}" target="_blank" class="text-break small">
-                                            https://qr.proppik.com/{{ $booking->qr->code }}
+                                        <a href="{{ getQrLinkBase() }}{{ $booking->qr->code }}" target="_blank" class="text-break small">
+                                            {{ getQrLinkBase() }}{{ $booking->qr->code }}
                                             <i class="ri-external-link-line ms-1"></i>
                                         </a>
                                     </div>

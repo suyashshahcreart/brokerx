@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Cache;
 use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Activitylog\LogOptions;
 
@@ -63,5 +64,43 @@ class Setting extends Model
             ->logOnly(['name', 'value', 'created_by', 'updated_by'])
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs();
+    }
+
+    /**
+     * Boot the model.
+     */
+    protected static function booted(): void
+    {
+        // Clear cache when setting is saved (created or updated)
+        static::saved(function ($setting) {
+            $cacheKey = "setting_{$setting->name}";
+            try {
+                Cache::store('redis')->forget($cacheKey);
+            } catch (\Exception $e) {
+                // Fallback to database cache if Redis unavailable
+                try {
+                    Cache::store('database')->forget($cacheKey);
+                } catch (\Exception $dbException) {
+                    // If database cache also fails, continue silently
+                    \Log::warning("Cache clearing failed for setting {$setting->name}: " . $dbException->getMessage());
+                }
+            }
+        });
+        
+        // Clear cache when setting is deleted
+        static::deleted(function ($setting) {
+            $cacheKey = "setting_{$setting->name}";
+            try {
+                Cache::store('redis')->forget($cacheKey);
+            } catch (\Exception $e) {
+                // Fallback to database cache if Redis unavailable
+                try {
+                    Cache::store('database')->forget($cacheKey);
+                } catch (\Exception $dbException) {
+                    // If database cache also fails, continue silently
+                    \Log::warning("Cache clearing failed for setting {$setting->name}: " . $dbException->getMessage());
+                }
+            }
+        });
     }
 }

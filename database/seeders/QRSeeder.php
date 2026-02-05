@@ -25,7 +25,7 @@ class QRSeeder extends Seeder
                 'name' => 'QR Code ' . ($existingCount + $i + 1),
                 'code' => $code,
                 'image' => null,
-                'qr_link' => 'https://qr.proppik.com/' . $code,
+                'qr_link' => getQrLinkBase() . $code,
                 'booking_id' => null,
                 'created_by' => 1,
                 'updated_by' => 1,
