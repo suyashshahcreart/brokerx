@@ -137,9 +137,9 @@
                                 <div class="mt-4 mt-lg-0">
                                     <div id="calendar" data-booking-api="{{ route('api.booking-assignees.all-bookings') }}"
                                         data-is-admin="{{ auth()->check() && auth()->user()->hasRole('admin') ? '1' : '0' }}"
-                                        data-check-in-route="{{ url('admin/booking-assignees') }}/:id/check-in"
-                                        data-check-out-route="{{ url('admin/booking-assignees') }}/:id/check-out"
-                                        data-booking-show-route="{{ route('admin.bookings.index') }}/:id"></div>
+                                        data-check-in-route="{{ route('admin.booking-assignees.check-in-form',':id') }}"
+                                        data-check-out-route="{{ route('admin.booking-assignees.check-out-form',':id') }}"
+                                        data-booking-show-route="{{ route('admin.bookings.index',':id') }}"></div>
                                 </div>
                             </div> <!-- end col -->
                         @endif

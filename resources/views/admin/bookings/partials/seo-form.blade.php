@@ -48,7 +48,7 @@
                     <div class="mb-0">
                         <label class="form-label" for="tour_meta_robots">Meta Robots</label>
                         <input type="text" name="meta_robots" id="tour_meta_robots" class="form-control"
-                            value="{{ $tour->meta_robots }}" placeholder="index, follow">
+                            value="{{ $tour->meta_robots }}" placeholder="e.g, index, follow">
                     </div>
                 </div>
                 <div class="col-md-4">
@@ -173,6 +173,6 @@
     </div>
 
     <div class="d-flex justify-content-end mb-3">
-        <button type="submit" class="btn btn-success"><i class="ri-save-line me-1"></i> Update SEO</button>
+        <button type="submit" class="btn btn-primary"><i class="ri-save-line me-1"></i> Update SEO</button>
     </div>
 </form>
