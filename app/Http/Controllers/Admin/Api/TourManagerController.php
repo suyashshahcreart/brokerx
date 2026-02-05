@@ -81,9 +81,9 @@ class TourManagerController extends Controller
         // Get bookings for this user
         $bookingIds = Booking::where('user_id', $data['user_id'])->pluck('id');
         // Get API, QR, and S3 base URLs from settings
-        $apiBaseUrl = Setting::where('name', 'api_base_url')->value('value') ?? 'https://dev.proppik.in/api/';
-        $qrLinkBase = Setting::where('name', 'qr_link_base')->value('value') ?? 'https://qr.proppik.com/';
-        $s3LinkBase = Setting::where('name', 's3_link_base')->value('value') ?? 'https://creartimages.s3.ap-south-1.amazonaws.com/';
+        $apiBaseUrl = getApiBaseUrl();
+        $qrLinkBase = getQrLinkBase();
+        $s3LinkBase = getS3LinkBase();
         
         // Get tours for these bookings
         $tours = Tour::whereIn('booking_id', $bookingIds)->with('booking')->get();
@@ -155,9 +155,9 @@ class TourManagerController extends Controller
         $tour->setRelation('booking', $booking);
 
         // Get API, QR, and S3 base URLs from settings
-        $apiBaseUrl = Setting::where('name', 'api_base_url')->value('value') ?? 'https://dev.proppik.in/api/';
-        $qrLinkBase = Setting::where('name', 'qr_link_base')->value('value') ?? 'https://qr.proppik.com/';
-        $s3LinkBase = Setting::where('name', 's3_link_base')->value('value') ?? 'https://creartimages.s3.ap-south-1.amazonaws.com/';
+        $apiBaseUrl = getApiBaseUrl();
+        $qrLinkBase = getQrLinkBase();
+        $s3LinkBase = getS3LinkBase();
 
         // Format tour details (matching mapping logic in getToursByCustomer)
         $tour->footer_brand_logo = $tour->footer_brand_logo ? $s3LinkBase . $tour->footer_brand_logo : null;

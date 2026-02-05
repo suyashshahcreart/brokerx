@@ -621,7 +621,7 @@ class FrontendController extends Controller
             'code' => $qrCode,
             'name' => 'Booking #' . $booking->id . ' - ' . ($validated['name'] ?? 'Property'),
             'booking_id' => $booking->id,
-            'qr_link' => 'https://qr.proppik.com/' . $qrCode,
+            'qr_link' => getQrLinkBase() . $qrCode,
             'created_by' => $user->id,
             'updated_by' => $user->id,
         ]);
@@ -822,7 +822,7 @@ class FrontendController extends Controller
                 'code' => $qrCode,
                 'name' => 'Booking #' . $booking->id . ' - ' . ($validated['name'] ?? 'Property'),
                 'booking_id' => $booking->id,
-                'qr_link' => 'https://qr.proppik.com/' . $qrCode,
+                'qr_link' => getQrLinkBase() . $qrCode,
                 'created_by' => $user->id,
                 'updated_by' => $user->id,
             ]);

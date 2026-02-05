@@ -15,7 +15,9 @@
         "league/flysystem-ftp": "^3.29",
         "league/flysystem-sftp-v3": "^3.0",
         "maatwebsite/excel": "^3.1",
+        "maennchen/zipstream-php": "^2.1",
         "phpseclib/phpseclib": "^3.0",
+        "predis/predis": "~2.0",
         "simplesoftwareio/simple-qrcode": "^4.2",
         "spatie/laravel-activitylog": "^4.10",
         "spatie/laravel-permission": "^6.23",
@@ -34,7 +36,10 @@
             "App\\": "app/",
             "Database\\Factories\\": "database/factories/",
             "Database\\Seeders\\": "database/seeders/"
-        }
+        },
+        "files": [
+            "app/Helpers/SettingsHelper.php"
+        ]
     },
     "autoload-dev": {
         "psr-4": {
