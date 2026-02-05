@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\BookingApiController;
 use App\Http\Controllers\Api\TourApiController;
 use App\Http\Controllers\Admin\ajax\BookingAssigneController;
 use App\Http\Controllers\Admin\Api\TourManagerController;
+use App\Http\Controllers\Api\PortfolioApiController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -54,6 +55,17 @@ Route::get('/tour/page_data/{tour_code}', [\App\Http\Controllers\Api\TourAccessC
 // Booking APIs with token security
 Route::get('/bookings/list', [\App\Http\Controllers\Api\TourAccessController::class, 'getAllBookingsList']);
 Route::get('/booking/tour-code/{tour_code}', [\App\Http\Controllers\Api\TourAccessController::class, 'getBookingByTourCode']);
+
+// Portfolio API Routes
+// Public OTP endpoints (no authentication required)
+Route::post('/portfolio/send-otp', [PortfolioApiController::class, 'sendOtp']);
+Route::post('/portfolio/verify-otp', [PortfolioApiController::class, 'verifyOtp']);
+
+// Protected Portfolio API endpoints (require valid access token)
+Route::middleware(['verify.portfolio.api.token'])->group(function () {
+    Route::get('/portfolio/list', [PortfolioApiController::class, 'list']);
+    Route::get('/portfolio/filters/property-types', [PortfolioApiController::class, 'getPropertyTypeFilters']);
+});
 
 // Route::middleware('auth')->group(function () {
 // });

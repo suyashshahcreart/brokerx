@@ -217,6 +217,30 @@ class SettingsSeeder extends Seeder
                     'created_at' => now(),
                     'updated_at' => now(),
                 ],
+                [
+                    'name' => 'portfolio_api_mobile',
+                    'value' => '',
+                    'created_by' => $userId,
+                    'updated_by' => $userId,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ],
+                [
+                    'name' => 'portfolio_api_token_validity_minutes',
+                    'value' => '30',
+                    'created_by' => $userId,
+                    'updated_by' => $userId,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ],
+                [
+                    'name' => 'portfolio_api_enabled',
+                    'value' => '1',
+                    'created_by' => $userId,
+                    'updated_by' => $userId,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ],
             ];
 
             foreach ($settings as $setting) {

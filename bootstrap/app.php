@@ -24,6 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
             'not.customer' => \App\Http\Middleware\BlockCustomerRole::class,
             'verify.tour.token' => \App\Http\Middleware\VerifyTourToken::class,
+            'verify.portfolio.api.token' => \App\Http\Middleware\VerifyPortfolioApiToken::class,
         ]);
 
         // Exclude API routes from CSRF verification for Postman testing

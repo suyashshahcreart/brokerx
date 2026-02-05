@@ -64,6 +64,8 @@
                                             $firstActiveTab = 'vl-pills-settings';
                                         } elseif ($canSmsConfiguration) {
                                             $firstActiveTab = 'vl-pills-sms';
+                                        } elseif ($canPortfolioApi) {
+                                            $firstActiveTab = 'vl-pills-portfolio-api';
                                         } elseif ($canFtpConfiguration) {
                                             $firstActiveTab = 'vl-pills-ftp';
                                         } elseif ($canPropertyType) {
@@ -112,6 +114,13 @@
                                         <a class="nav-link {{ ($firstActiveTab === 'vl-pills-sms') ? 'active show' : '' }}" id="vl-pills-sms-tab" data-bs-toggle="pill" href="#vl-pills-sms" role="tab" aria-controls="vl-pills-sms" aria-selected="{{ ($firstActiveTab === 'vl-pills-sms') ? 'true' : 'false' }}">
                                             <i class="ri-message-3-line me-2"></i>
                                             <span>SMS Configuration</span>
+                                        </a>
+                                    @endif
+                                    
+                                    @if($canPortfolioApi)
+                                        <a class="nav-link {{ ($firstActiveTab === 'vl-pills-portfolio-api') ? 'active show' : '' }}" id="vl-pills-portfolio-api-tab" data-bs-toggle="pill" href="#vl-pills-portfolio-api" role="tab" aria-controls="vl-pills-portfolio-api" aria-selected="{{ ($firstActiveTab === 'vl-pills-portfolio-api') ? 'true' : 'false' }}">
+                                            <i class="ri-pages-line me-2"></i>
+                                            <span>Portfolio API</span>
                                         </a>
                                     @endif
                                     
@@ -681,6 +690,58 @@
                                         </div>
                                     </div>
                                     @endif
+                                    
+                                    @if($canPortfolioApi)
+                                    <div class="tab-pane fade {{ ($firstActiveTab === 'vl-pills-portfolio-api') ? 'active show' : '' }}" id="vl-pills-portfolio-api" role="tabpanel" aria-labelledby="vl-pills-portfolio-api-tab">
+                                        <form id="portfolioApiForm" action="{{ route('admin.api.settings.update') }}" method="POST"
+                                            class="needs-validation" novalidate data-csrf="{{ csrf_token() }}">
+                                            @csrf
+                                            
+                                            <!-- Portfolio API Enabled -->
+                                            <div class="mb-3">
+                                                <label class="form-label">Portfolio API Status</label>
+                                                <div class="form-check form-switch">
+                                                    <input class="form-check-input" type="checkbox" id="portfolio_api_enabled" 
+                                                        name="portfolio_api_enabled" value="1"
+                                                        {{ ($settings['portfolio_api_enabled'] ?? '1') === '1' ? 'checked' : '' }}>
+                                                    <label class="form-check-label" for="portfolio_api_enabled">
+                                                        Enable Portfolio API
+                                                    </label>
+                                                </div>
+                                                <small class="form-text text-muted">When enabled, the Portfolio API endpoints will be accessible. When disabled, all API requests will be rejected.</small>
+                                            </div>
+
+                                            <!-- Portfolio API Mobile Numbers -->
+                                            <div class="mb-3">
+                                                <label for="portfolio_api_mobile" class="form-label">Mobile Numbers for OTP <span class="text-danger">*</span></label>
+                                                <textarea name="portfolio_api_mobile" id="portfolio_api_mobile" 
+                                                    class="form-control" rows="3" 
+                                                    placeholder="e.g., +919876543210, +1234567890" required>{{ $settings['portfolio_api_mobile'] ?? '' }}</textarea>
+                                                <small class="form-text text-muted">Enter mobile numbers with country code (include + prefix). Separate multiple numbers with commas. Example: +919876543210, +1234567890. OTP will be sent to all configured numbers.</small>
+                                            </div>
+
+                                            <!-- Token Validity -->
+                                            <div class="mb-3">
+                                                <label for="portfolio_api_token_validity_minutes" class="form-label">Token Validity (Minutes) <span class="text-danger">*</span></label>
+                                                <input type="number" name="portfolio_api_token_validity_minutes" id="portfolio_api_token_validity_minutes"
+                                                    value="{{ $settings['portfolio_api_token_validity_minutes'] ?? '30' }}" class="form-control"
+                                                    placeholder="e.g., 30" min="1" max="1440" required>
+                                                <small class="form-text text-muted">Duration in minutes for which the access token will be valid after OTP verification. Default is 30 minutes. Maximum is 1440 minutes (24 hours).</small>
+                                            </div>
+
+                                            <!-- Submit buttons -->
+                                            <div class="d-flex gap-2 justify-content-end pt-4">
+                                                <a href="{{ route('admin.settings.index') }}" class="btn btn-outline-secondary">
+                                                    <i class="ri-close-line me-1"></i> Cancel
+                                                </a>
+                                                <button type="submit" class="btn btn-primary" id="updatePortfolioApiSettingsBtn">
+                                                    <i class="ri-save-line me-1"></i> Update Settings
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                    @endif
+                                    
                                     @if($canFtpConfiguration)
                                     <div class="tab-pane fade {{ ($firstActiveTab === 'vl-pills-ftp') ? 'active show' : '' }}" id="vl-pills-ftp" role="tabpanel" aria-labelledby="vl-pills-ftp-tab">
                                         <div class="d-flex justify-content-between align-items-center mb-3">
