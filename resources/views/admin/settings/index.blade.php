@@ -70,6 +70,8 @@
                                             $firstActiveTab = 'vl-pills-ftp';
                                         } elseif ($canPropertyType) {
                                             $firstActiveTab = 'vl-pills-property-types';
+                                        } elseif ($canCloudflareCache) {
+                                            $firstActiveTab = 'vl-pills-cloudflare-cache';
                                         } elseif ($canFtpConfiguration) {
                                             $firstActiveTab = 'vl-pills-state-city';
                                         }
@@ -135,6 +137,13 @@
                                         <a class="nav-link {{ ($firstActiveTab === 'vl-pills-property-types') ? 'active show' : '' }}" id="vl-pills-property-types-tab" data-bs-toggle="pill" href="#vl-pills-property-types" role="tab" aria-controls="vl-pills-property-types" aria-selected="{{ ($firstActiveTab === 'vl-pills-property-types') ? 'true' : 'false' }}">
                                             <i class="ri-home-4-line me-2"></i>
                                             <span>Property Types</span>
+                                        </a>
+                                    @endif
+
+                                    @if($canCloudflareCache)
+                                        <a class="nav-link {{ ($firstActiveTab === 'vl-pills-cloudflare-cache') ? 'active show' : '' }}" id="vl-pills-cloudflare-cache-tab" data-bs-toggle="pill" href="#vl-pills-cloudflare-cache" role="tab" aria-controls="vl-pills-cloudflare-cache" aria-selected="{{ ($firstActiveTab === 'vl-pills-cloudflare-cache') ? 'true' : 'false' }}">
+                                            <i class="ri-cloud-line me-2"></i>
+                                            <span>CloudFlare Cache</span>
                                         </a>
                                     @endif
 
@@ -831,6 +840,108 @@
                                                         </thead>
                                                         <tbody></tbody>
                                                     </table>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    @endif
+
+                                    @if($canCloudflareCache)
+                                    <div class="tab-pane fade {{ ($firstActiveTab === 'vl-pills-cloudflare-cache') ? 'active show' : '' }}" id="vl-pills-cloudflare-cache" role="tabpanel" aria-labelledby="vl-pills-cloudflare-cache-tab">
+                                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                                            <div>
+                                                <h5 class="mb-1">CloudFlare Cache Management</h5>
+                                                <p class="text-muted mb-0 small">Configure Cloudflare settings and purge cache for tours.</p>
+                                            </div>
+                                        </div>
+
+                                        <ul class="nav nav-tabs" role="tablist">
+                                            <li class="nav-item" role="presentation">
+                                                <button class="nav-link active" id="cloudflare-config-inner-tab" data-bs-toggle="tab" data-bs-target="#cloudflare-config-tabpane" type="button" role="tab" aria-controls="cloudflare-config-tabpane" aria-selected="true">Cache Configuration</button>
+                                            </li>
+                                            <li class="nav-item" role="presentation">
+                                                <button class="nav-link" id="cloudflare-purge-inner-tab" data-bs-toggle="tab" data-bs-target="#cloudflare-purge-tabpane" type="button" role="tab" aria-controls="cloudflare-purge-tabpane" aria-selected="false">Purge Cache</button>
+                                            </li>
+                                        </ul>
+
+                                        <div class="tab-content pt-3">
+                                            <!-- Cache Configuration Tab -->
+                                            <div class="tab-pane fade show active" id="cloudflare-config-tabpane" role="tabpanel" aria-labelledby="cloudflare-config-inner-tab">
+                                                <form id="cloudflareConfigForm" action="{{ route('admin.api.settings.update') }}" method="POST" class="needs-validation" novalidate data-csrf="{{ csrf_token() }}">
+                                                    @csrf
+                                                    <div class="card border-0 shadow-sm">
+                                                        <div class="card-body">
+                                                            <h6 class="card-title mb-3">Cloudflare API Configuration</h6>
+                                                            
+                                                            <div class="mb-3">
+                                                                <label for="cloudflare_zone_id" class="form-label">Zone ID <span class="text-danger">*</span></label>
+                                                                <input type="text" name="cloudflare_zone_id" id="cloudflare_zone_id" 
+                                                                    value="{{ $settings['cloudflare_zone_id'] ?? '' }}" 
+                                                                    class="form-control" 
+                                                                    placeholder="e.g. 71dbf13488372a88e641e854d1ebaab9" 
+                                                                    maxlength="255">
+                                                                <small class="form-text text-muted">Your Cloudflare Zone ID. Found in Cloudflare dashboard under your domain's overview page.</small>
+                                                            </div>
+
+                                                            <div class="mb-3">
+                                                                <label for="cloudflare_api_token" class="form-label">API Token <span class="text-danger">*</span></label>
+                                                                <input type="password" name="cloudflare_api_token" id="cloudflare_api_token" 
+                                                                    value="{{ $settings['cloudflare_api_token'] ?? '' }}" 
+                                                                    class="form-control" 
+                                                                    placeholder="e.g. qY-ki-IsglyRnNtsLIK_oS5aFgVz75a3eYchTRXo" 
+                                                                    maxlength="255">
+                                                                <small class="form-text text-muted">Your Cloudflare API Token with Cache Purge permissions. Keep this secure.</small>
+                                                                <div class="form-check mt-2">
+                                                                    <input class="form-check-input" type="checkbox" id="showCloudflareToken">
+                                                                    <label class="form-check-label" for="showCloudflareToken">
+                                                                        Show API Token
+                                                                    </label>
+                                                                </div>
+                                                            </div>
+
+                                                            <div class="d-flex justify-content-end">
+                                                                <button type="submit" class="btn btn-primary" id="saveCloudflareConfigBtn">
+                                                                    <i class="ri-save-line me-1"></i> Save Configuration
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </form>
+                                            </div>
+
+                                            <!-- Purge Cache Tab -->
+                                            <div class="tab-pane fade" id="cloudflare-purge-tabpane" role="tabpanel" aria-labelledby="cloudflare-purge-inner-tab">
+                                                <div class="card border-0 shadow-sm">
+                                                    <div class="card-body">
+                                                        <h6 class="card-title mb-3">Purge Cloudflare Cache</h6>
+                                                        
+                                                        <!-- Purge Everything Section -->
+                                                        <div class="mb-4 p-3 border rounded">
+                                                            <h6 class="mb-3">Purge Everything</h6>
+                                                            <p class="text-muted small mb-3">This will purge all cache for tours and settings directories.</p>
+                                                            <button type="button" class="btn btn-danger" id="purgeEverythingBtn">
+                                                                <i class="ri-delete-bin-line me-1"></i> Purge Everything
+                                                            </button>
+                                                        </div>
+
+                                                        <!-- Custom Purge Section -->
+                                                        <div class="p-3 border rounded">
+                                                            <h6 class="mb-3">Custom Purge</h6>
+                                                            <p class="text-muted small mb-3">Select specific tours to purge their cache.</p>
+                                                            
+                                                            <div class="mb-3">
+                                                                <label for="tourSelect" class="form-label">Select Tours</label>
+                                                                <select id="tourSelect" class="form-select" multiple>
+                                                                    <option value="" disabled>Loading tours...</option>
+                                                                </select>
+                                                                <small class="form-text text-muted">Select multiple tours to purge their cache. Tours are displayed as: Tour Code - Title (Name)</small>
+                                                            </div>
+
+                                                            <button type="button" class="btn btn-primary" id="purgeSelectedBtn" disabled>
+                                                                <i class="ri-delete-bin-line me-1"></i> Purge Selected Tours
+                                                            </button>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>

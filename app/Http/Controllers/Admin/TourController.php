@@ -625,6 +625,64 @@ class TourController extends Controller
         // Update the tour with new data DB
         $tour->update($updateData);
 
+        // Auto-purge Cloudflare cache for this tour
+        try {
+            // Refresh tour to ensure we have fresh relationships
+            $tour->refresh();
+            
+            // Load booking relationship if not already loaded
+            if (!$tour->relationLoaded('booking')) {
+                $tour->load('booking');
+            }
+            
+            $booking = $tour->booking;
+            if ($booking && !empty($booking->tour_code)) {
+                // Check if Cloudflare credentials are configured
+                $zoneId = getCloudflareZoneId();
+                $apiToken = getCloudflareApiToken();
+                
+                if (!$zoneId || !$apiToken) {
+                    \Log::info('Cloudflare cache purge skipped - credentials not configured', [
+                        'tour_id' => $tour->id,
+                        'tour_code' => $booking->tour_code
+                    ]);
+                } else {
+                    $cloudflareService = app(\App\Services\CloudflareCacheService::class);
+                    $prefix = $cloudflareService->buildTourPrefix($booking->tour_code);
+                    $purgeResult = $cloudflareService->purgeByPrefixes([$prefix]);
+                    
+                    // Log purge result (success or failure) but don't fail the request
+                    if (!$purgeResult['success']) {
+                        \Log::warning('Cloudflare cache purge failed after tour update', [
+                            'tour_id' => $tour->id,
+                            'tour_code' => $booking->tour_code,
+                            'prefix' => $prefix,
+                            'error' => $purgeResult['message']
+                        ]);
+                    } else {
+                        \Log::info('Cloudflare cache purged successfully after tour update', [
+                            'tour_id' => $tour->id,
+                            'tour_code' => $booking->tour_code,
+                            'prefix' => $prefix
+                        ]);
+                    }
+                }
+            } else {
+                \Log::debug('Cloudflare cache purge skipped - no booking or tour_code found', [
+                    'tour_id' => $tour->id,
+                    'has_booking' => $booking !== null,
+                    'tour_code' => $booking->tour_code ?? null
+                ]);
+            }
+        } catch (\Exception $e) {
+            // Don't fail the request if Cloudflare purge fails
+            \Log::error('Exception during Cloudflare cache purge after tour update', [
+                'tour_id' => $tour->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+        }
+
         // If final_json was empty originally, only persist DB changes and skip S3
         if ($finalJsonWasEmpty) {
             if ($request->expectsJson()) {

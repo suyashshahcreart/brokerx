@@ -113,6 +113,7 @@ class SettingController extends Controller
         $canFtpConfiguration = $request->user()->can('setting_ftp_configuration');
         $canPropertyType = true; // Allow property type tab for all admins
         $canPortfolioApi = $request->user()->can('setting_edit'); // Use setting_edit permission for portfolio API
+        $canCloudflareCache = $request->user()->can('setting_edit'); // Use setting_edit permission for Cloudflare Cache
         
         return view('admin.settings.index', compact(
             'settings', 
@@ -130,7 +131,8 @@ class SettingController extends Controller
             'canSmsConfiguration',
             'canFtpConfiguration',
             'canPropertyType',
-            'canPortfolioApi'
+            'canPortfolioApi',
+            'canCloudflareCache'
         ));
     }
 
@@ -1090,5 +1092,103 @@ class SettingController extends Controller
             'success' => true,
             'message' => 'FTP configuration deleted successfully'
         ]);
+    }
+
+    /**
+     * Purge Cloudflare cache
+     */
+    public function apiPurgeCache(Request $request)
+    {
+        // Check permission
+        if (!$request->user()->can('setting_edit')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You do not have permission to purge Cloudflare cache.'
+            ], 403);
+        }
+
+        $cloudflareService = app(\App\Services\CloudflareCacheService::class);
+
+        // Check if purge everything is requested
+        if ($request->has('purge_everything') && $request->purge_everything) {
+            $result = $cloudflareService->purgeEverything();
+            return response()->json($result, $result['success'] ? 200 : 400);
+        }
+
+        // Custom purge with tour codes
+        if ($request->has('tour_codes') && is_array($request->tour_codes) && !empty($request->tour_codes)) {
+            $prefixes = [];
+            foreach ($request->tour_codes as $tourCode) {
+                if (!empty($tourCode)) {
+                    $prefixes[] = $cloudflareService->buildTourPrefix($tourCode);
+                }
+            }
+
+            if (empty($prefixes)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No valid tour codes provided.'
+                ], 400);
+            }
+
+            $result = $cloudflareService->purgeByPrefixes($prefixes);
+            return response()->json($result, $result['success'] ? 200 : 400);
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Invalid request. Please specify purge_everything or tour_codes.'
+        ], 400);
+    }
+
+    /**
+     * Get bookings with tours for Cloudflare purge dropdown
+     */
+    public function apiGetBookingsWithTours(Request $request)
+    {
+        // Check permission
+        if (!$request->user()->can('setting_edit')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You do not have permission to view bookings.'
+            ], 403);
+        }
+
+        try {
+            $bookings = \App\Models\Booking::with(['tours' => function($query) {
+                $query->select('id', 'booking_id', 'name', 'title')
+                      ->orderBy('created_at', 'desc')
+                      ->limit(1);
+            }])
+            ->whereNotNull('tour_code')
+            ->where('tour_code', '!=', '')
+            ->select('id', 'tour_code')
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function($booking) {
+                $tour = $booking->tours->first();
+                return [
+                    'booking_id' => $booking->id,
+                    'tour_code' => $booking->tour_code,
+                    'tour_name' => $tour ? $tour->name : 'N/A',
+                    'tour_title' => $tour ? $tour->title : 'N/A'
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'data' => $bookings
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error fetching bookings with tours', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to load bookings: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }

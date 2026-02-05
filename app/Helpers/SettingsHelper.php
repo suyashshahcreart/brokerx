@@ -73,6 +73,30 @@ if (!function_exists('getS3LinkBase')) {
     }
 }
 
+if (!function_exists('getCloudflareZoneId')) {
+    /**
+     * Get Cloudflare Zone ID from settings with Redis caching
+     * 
+     * @return string|null
+     */
+    function getCloudflareZoneId(): ?string
+    {
+        return getSetting('cloudflare_zone_id', null);
+    }
+}
+
+if (!function_exists('getCloudflareApiToken')) {
+    /**
+     * Get Cloudflare API Token from settings with Redis caching
+     * 
+     * @return string|null
+     */
+    function getCloudflareApiToken(): ?string
+    {
+        return getSetting('cloudflare_api_token', null);
+    }
+}
+
 if (!function_exists('clearSettingCache')) {
     /**
      * Clear cache for a specific setting

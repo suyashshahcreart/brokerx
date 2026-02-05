@@ -265,6 +265,10 @@ Route::group(['prefix' => 'ppadmlog', 'as' => 'admin.', 'middleware' => ['web', 
         Route::put('/property-sub-types/{propertySubType}', [PropertySettingController::class, 'updatePropertySubType'])->name('property-sub-types.update');
         Route::delete('/property-sub-types/{propertySubType}', [PropertySettingController::class, 'deletePropertySubType'])->name('property-sub-types.destroy');
 
+        // Cloudflare Cache routes
+        Route::post('/cloudflare/purge', [SettingController::class, 'apiPurgeCache'])->name('cloudflare.purge');
+        Route::get('/cloudflare/bookings-with-tours', [SettingController::class, 'apiGetBookingsWithTours'])->name('cloudflare.bookings-with-tours');
+
         // State & City routes (AJAX)
         Route::get('/states', [\App\Http\Controllers\Admin\Api\StateController::class, 'index'])->name('states.index');
         Route::get('/states/options', [\App\Http\Controllers\Admin\Api\StateController::class, 'options'])->name('states.options');

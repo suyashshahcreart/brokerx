@@ -1,5 +1,9 @@
-// css Import; CSS for Settings page
+// CSS Import: CSS for Settings page
 import '../../css/pages/setting-index.css';
+
+// NOTE: jQuery and Select2 are loaded globally by app.js via Vite
+// We will wait for them to be available rather than importing again
+// This ensures we use the same instances and avoid conflicts
 
 // Settings page JS — consolidated from Blade inline script
 (function () {
@@ -420,6 +424,578 @@ import '../../css/pages/setting-index.css';
         }
     }
 
+    // Cloudflare Cache handlers
+    function initCloudflareCacheHandlers() {
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+        const tourSelect = document.getElementById('tourSelect');
+        const purgeSelectedBtn = document.getElementById('purgeSelectedBtn');
+        let tourSelect2Instance = null; // Store Select2 instance
+        
+        // Show/Hide API Token
+        const showCloudflareToken = document.getElementById('showCloudflareToken');
+        const cloudflareApiToken = document.getElementById('cloudflare_api_token');
+        if (showCloudflareToken && cloudflareApiToken) {
+            showCloudflareToken.addEventListener('change', function() {
+                cloudflareApiToken.type = this.checked ? 'text' : 'password';
+            });
+        }
+
+        // Inject critical Select2 CSS if not already loaded
+        function ensureSelect2CSS() {
+            // Check if Select2 CSS is loaded by looking for Select2 styles
+            const testEl = document.createElement('div');
+            testEl.className = 'select2-container';
+            testEl.style.position = 'absolute';
+            testEl.style.visibility = 'hidden';
+            document.body.appendChild(testEl);
+            const computedStyle = window.getComputedStyle(testEl);
+            const hasSelect2CSS = computedStyle.position !== 'static' || document.querySelector('link[href*="select2"]');
+            document.body.removeChild(testEl);
+            
+            if (!hasSelect2CSS) {
+                console.warn('⚠️ Select2 CSS not detected, injecting critical styles...');
+                const style = document.createElement('style');
+                style.id = 'select2-critical-css';
+                style.textContent = `
+                    .select2-container { width: 100% !important; display: block; }
+                    .select2-selection--multiple { min-height: 38px; border: 1px solid #ced4da; border-radius: 0.375rem; padding: 2px 8px; }
+                    .select2-selection--multiple .select2-selection__choice { background-color: #0d6efd; border: 1px solid #0d6efd; color: #fff; border-radius: 0.25rem; padding: 2px 8px; margin: 2px 4px 2px 0; display: inline-flex; align-items: center; }
+                    .select2-selection--multiple .select2-selection__choice__remove { color: #fff; cursor: pointer; margin-right: 5px; opacity: 0.8; }
+                    .select2-selection--multiple .select2-selection__choice__remove:hover { opacity: 1; }
+                    .select2-dropdown { border: 1px solid #ced4da; border-radius: 0.375rem; box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15); }
+                    .select2-results__option { padding: 0.5rem 0.75rem; }
+                    .select2-results__option--highlighted { background-color: #0d6efd; color: #fff; }
+                `;
+                document.head.appendChild(style);
+            }
+        }
+        
+        // Initialize Select2 for tour select
+        function initSelect2(retryCount = 0) {
+            if (!tourSelect) {
+                console.warn('initSelect2: tourSelect element not found');
+                return;
+            }
+            
+            const maxRetries = 10; // Wait up to 12 seconds total (60 * 200ms)
+            const retryDelay = 100; // Delay between retries
+            const cdnFallbackDelay = 10; // Start CDN fallback after 2 seconds (10 retries)
+            
+            // Get jQuery instance (from app.js)
+            const $jq = window.$ || window.jQuery;
+            
+            // Check if jQuery and Select2 are available
+            const hasJQuery = typeof $jq !== 'undefined';
+            const hasSelect2 = hasJQuery && typeof $jq.fn !== 'undefined' && typeof $jq.fn.select2 !== 'undefined';
+            
+            // Start CDN fallback early if Select2 isn't available
+            if (retryCount === cdnFallbackDelay && !hasSelect2 && !window.__select2CDNLoading && !window.__select2CDNLoaded) {
+                console.warn('⚠️ Select2 not available from app.js after 2 seconds. Loading from CDN as fallback...');
+                loadSelect2FromCDN();
+            }
+            
+            // Debug logging (reduced frequency)
+            if (retryCount === 0 || retryCount % 15 === 0 || retryCount >= maxRetries - 3) {
+                console.log(`initSelect2: Attempt ${retryCount + 1}/${maxRetries + 1}`);
+                console.log('  jQuery available:', hasJQuery);
+                console.log('  Select2 plugin available:', hasSelect2);
+            }
+            
+            if (hasJQuery && hasSelect2) {
+                try {
+                    // Ensure CSS is loaded before initializing
+                    ensureSelect2CSS();
+                    
+                    // Destroy existing Select2 instance if it exists
+                    if (tourSelect2Instance) {
+                        try {
+                            $jq(tourSelect).select2('destroy');
+                        } catch (e) {
+                            // Ignore destroy errors
+                        }
+                        tourSelect2Instance = null;
+                    }
+                    
+                    // Ensure element is visible and ready
+                    if (tourSelect.offsetParent === null && tourSelect.style.display === 'none') {
+                        // Element might be hidden in tab, wait a bit more
+                        if (retryCount < maxRetries) {
+                            setTimeout(() => {
+                                initSelect2(retryCount + 1);
+                            }, retryDelay);
+                        }
+                        return;
+                    }
+                    
+                    // Initialize Select2 with proper configuration
+                    const select2Config = {
+                        width: '100%',
+                        placeholder: 'Select tours to purge...',
+                        allowClear: false,
+                        closeOnSelect: false,
+                        dropdownParent: $jq(tourSelect).closest('.tab-pane, .card-body, body')
+                    };
+                    
+                    // Try Bootstrap 5 theme, fallback to default
+                    try {
+                        tourSelect2Instance = $jq(tourSelect).select2({
+                            ...select2Config,
+                            theme: 'bootstrap-5'
+                        });
+                    } catch (e) {
+                        console.warn('Bootstrap 5 theme not available, using default theme');
+                        tourSelect2Instance = $jq(tourSelect).select2(select2Config);
+                    }
+                    
+                    // Force apply styles after initialization
+                    setTimeout(() => {
+                        const container = $jq(tourSelect).next('.select2-container');
+                        if (container.length) {
+                            container.css({
+                                'width': '100%',
+                                'display': 'block'
+                            });
+                            const selection = container.find('.select2-selection--multiple');
+                            if (selection.length) {
+                                selection.css({
+                                    'min-height': '38px',
+                                    'border': '1px solid #ced4da',
+                                    'border-radius': '0.375rem',
+                                    'padding': '2px 8px'
+                                });
+                            }
+                        }
+                    }, 100);
+                    
+                    console.log('✅ Select2 initialized successfully for tour select');
+                    
+                    // Update button state when selection changes
+                    $jq(tourSelect).off('change.select2-cloudflare').on('change.select2-cloudflare', function() {
+                        const selectedValues = $jq(this).val();
+                        if (purgeSelectedBtn) {
+                            purgeSelectedBtn.disabled = !selectedValues || selectedValues.length === 0;
+                        }
+                    });
+                    
+                    // Mark as successfully initialized
+                    window.__select2Initialized = true;
+                } catch (error) {
+                    console.error('❌ Error initializing Select2:', error);
+                    console.error('Error details:', error.message);
+                    // Continue retrying on error
+                    if (retryCount < maxRetries) {
+                        setTimeout(() => {
+                            initSelect2(retryCount + 1);
+                        }, retryDelay);
+                    }
+                }
+            } else {
+                // Retry if Select2 is not yet available
+                if (retryCount < maxRetries) {
+                    setTimeout(() => {
+                        initSelect2(retryCount + 1);
+                    }, retryDelay);
+                } else {
+                    // Final failure - this should not happen if CDN loads successfully
+                    console.error('❌ CRITICAL: Select2 not available after all retries.');
+                    console.error('Final check - jQuery:', hasJQuery, 'Select2:', hasSelect2);
+                    if (!hasJQuery) {
+                        console.error('❌ jQuery is not available. This is a critical error.');
+                    }
+                }
+            }
+        }
+        
+        // Fallback: Load Select2 from CDN if app.js didn't load it
+        function loadSelect2FromCDN() {
+            // Check if already loading or loaded
+            if (window.__select2CDNLoading || window.__select2CDNLoaded) {
+                return;
+            }
+            window.__select2CDNLoading = true;
+            
+            console.log('📦 Loading Select2 from CDN...');
+            
+            // Check if CSS is already loaded
+            const existingCSS = document.querySelector('link[href*="select2"]');
+            if (!existingCSS) {
+                // Load Select2 base CSS first
+                const cssLink = document.createElement('link');
+                cssLink.rel = 'stylesheet';
+                cssLink.href = 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css';
+                cssLink.onload = function() {
+                    console.log('✅ Select2 base CSS loaded');
+                    // Load Bootstrap 5 theme CSS
+                    const themeCSS = document.createElement('link');
+                    themeCSS.rel = 'stylesheet';
+                    themeCSS.href = 'https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css';
+                    themeCSS.onload = function() {
+                        console.log('✅ Select2 Bootstrap 5 theme CSS loaded');
+                    };
+                    themeCSS.onerror = function() {
+                        console.warn('⚠️ Select2 Bootstrap 5 theme CSS failed to load, using base styles');
+                    };
+                    document.head.appendChild(themeCSS);
+                };
+                cssLink.onerror = function() {
+                    console.error('❌ Failed to load Select2 CSS from CDN');
+                    // Try alternative CDN
+                    const altCSS = document.createElement('link');
+                    altCSS.rel = 'stylesheet';
+                    altCSS.href = 'https://cdnjs.cloudflare.com/ajax/libs/select2/4.1.0-rc.0/css/select2.min.css';
+                    document.head.appendChild(altCSS);
+                };
+                document.head.appendChild(cssLink);
+            } else {
+                console.log('✅ Select2 CSS already loaded');
+            }
+            
+            // Load Select2 JS
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js';
+            script.onload = function() {
+                console.log('✅ Select2 loaded from CDN successfully');
+                window.__select2CDNLoading = false;
+                window.__select2CDNLoaded = true;
+                
+                // Verify Select2 attached to jQuery
+                const $jq = window.$ || window.jQuery;
+                if ($jq && typeof $jq.fn !== 'undefined' && typeof $jq.fn.select2 !== 'undefined') {
+                    console.log('✅ Select2 attached to jQuery from CDN');
+                    // Retry initialization immediately
+                    setTimeout(() => {
+                        initSelect2(0); // Retry from beginning
+                    }, 100);
+                } else {
+                    console.error('❌ Select2 loaded from CDN but did not attach to jQuery');
+                }
+            };
+            script.onerror = function() {
+                console.error('❌ Failed to load Select2 JS from CDN');
+                window.__select2CDNLoading = false;
+                // Try alternative CDN
+                console.warn('⚠️ Trying alternative CDN...');
+                const altScript = document.createElement('script');
+                altScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/select2/4.1.0-rc.0/js/select2.min.js';
+                altScript.onload = function() {
+                    console.log('✅ Select2 loaded from alternative CDN');
+                    window.__select2CDNLoaded = true;
+                    setTimeout(() => {
+                        initSelect2(0);
+                    }, 100);
+                };
+                document.head.appendChild(altScript);
+            };
+            document.head.appendChild(script);
+        }
+
+        // Load bookings with tours for Custom Purge dropdown
+        function loadBookingsWithTours() {
+            if (!tourSelect) return;
+
+            // Show loading state
+            const $jq = window.$ || window.jQuery;
+            if (tourSelect2Instance && $jq && typeof $jq.fn !== 'undefined' && typeof $jq.fn.select2 !== 'undefined') {
+                try {
+                    $jq(tourSelect).select2('destroy');
+                } catch (e) {
+                    console.warn('Error destroying Select2:', e);
+                }
+                tourSelect2Instance = null;
+            }
+            tourSelect.innerHTML = '<option value="" disabled>Loading tours...</option>';
+
+            fetch(getAdminApiUrl('/cloudflare/bookings-with-tours'), {
+                method: 'GET',
+                headers: {
+                    'X-CSRF-TOKEN': csrfToken,
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.data) {
+                    tourSelect.innerHTML = '';
+                    if (data.data.length === 0) {
+                        tourSelect.innerHTML = '<option value="" disabled>No tours available</option>';
+                    } else {
+                        data.data.forEach(booking => {
+                            const option = document.createElement('option');
+                            option.value = booking.tour_code;
+                            option.textContent = `${booking.tour_code} - ${booking.tour_title} (${booking.tour_name})`;
+                            tourSelect.appendChild(option);
+                        });
+                    }
+                    
+                    // Initialize Select2 after options are loaded (small delay to ensure DOM is ready)
+                    setTimeout(() => {
+                        initSelect2();
+                    }, 50);
+                } else {
+                    tourSelect.innerHTML = '<option value="" disabled>Error loading tours</option>';
+                    setTimeout(() => {
+                        initSelect2();
+                    }, 50);
+                }
+            })
+            .catch(error => {
+                console.error('Error loading tours:', error);
+                tourSelect.innerHTML = '<option value="" disabled>Error loading tours</option>';
+                setTimeout(() => {
+                    initSelect2();
+                }, 50);
+            });
+        }
+
+        // Load tours when Purge Cache tab is shown
+        const cloudflarePurgeTab = document.getElementById('cloudflare-purge-inner-tab');
+        if (cloudflarePurgeTab) {
+            // Check if tab is already active on page load
+            const purgeTabPane = document.getElementById('cloudflare-purge-tabpane');
+            if (purgeTabPane && purgeTabPane.classList.contains('active')) {
+                // Wait a bit for tab to be fully rendered
+                setTimeout(() => {
+                    loadBookingsWithTours();
+                }, 100);
+            }
+            
+            // Load when tab is shown
+            cloudflarePurgeTab.addEventListener('shown.bs.tab', function() {
+                // Wait a bit for tab animation to complete
+                setTimeout(() => {
+                    loadBookingsWithTours();
+                }, 100);
+            });
+        }
+
+        // Enable/disable Purge Selected button based on selection (fallback for non-Select2)
+        if (tourSelect && purgeSelectedBtn && (typeof $ === 'undefined' || typeof $.fn.select2 === 'undefined')) {
+            tourSelect.addEventListener('change', function() {
+                purgeSelectedBtn.disabled = this.selectedOptions.length === 0;
+            });
+        }
+
+        // Purge Everything button
+        const purgeEverythingBtn = document.getElementById('purgeEverythingBtn');
+        if (purgeEverythingBtn) {
+            purgeEverythingBtn.addEventListener('click', function() {
+                if (typeof Swal === 'undefined') {
+                    if (!confirm('Are you sure you want to purge all cache? This action cannot be undone.')) {
+                        return;
+                    }
+                } else {
+                    Swal.fire({
+                        title: 'Purge Everything?',
+                        text: 'This will purge all cache for tours and settings. This action cannot be undone.',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#d33',
+                        cancelButtonColor: '#3085d6',
+                        confirmButtonText: 'Yes, purge everything!'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            performPurgeEverything();
+                        }
+                    });
+                    return;
+                }
+                performPurgeEverything();
+            });
+        }
+
+        // Purge Selected button
+        if (purgeSelectedBtn) {
+            purgeSelectedBtn.addEventListener('click', function() {
+                if (!tourSelect) return;
+                
+                // Get selected values from Select2 if available, otherwise use native select
+                let selectedTours = [];
+                const $jq = window.$ || window.jQuery;
+                if ($jq && typeof $jq.fn !== 'undefined' && typeof $jq.fn.select2 !== 'undefined' && tourSelect2Instance) {
+                    try {
+                        selectedTours = $jq(tourSelect).val() || [];
+                        selectedTours = selectedTours.filter(v => v); // Remove empty values
+                    } catch (e) {
+                        console.warn('Error getting Select2 values, falling back to native select:', e);
+                        selectedTours = Array.from(tourSelect.selectedOptions).map(opt => opt.value).filter(v => v);
+                    }
+                } else {
+                    selectedTours = Array.from(tourSelect.selectedOptions).map(opt => opt.value).filter(v => v);
+                }
+                
+                if (selectedTours.length === 0) {
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'No Selection',
+                            text: 'Please select at least one tour to purge.'
+                        });
+                    } else {
+                        alert('Please select at least one tour to purge.');
+                    }
+                    return;
+                }
+
+                console.log('Selected tours for purge:', selectedTours); // Debug log
+
+                if (typeof Swal === 'undefined') {
+                    if (!confirm(`Are you sure you want to purge cache for ${selectedTours.length} selected tour(s)?`)) {
+                        return;
+                    }
+                } else {
+                    Swal.fire({
+                        title: 'Purge Selected Tours?',
+                        text: `This will purge cache for ${selectedTours.length} selected tour(s).`,
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#d33',
+                        cancelButtonColor: '#3085d6',
+                        confirmButtonText: 'Yes, purge selected!'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            performCustomPurge(selectedTours);
+                        }
+                    });
+                    return;
+                }
+                performCustomPurge(selectedTours);
+            });
+        }
+
+        function performPurgeEverything() {
+            const btn = purgeEverythingBtn;
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="ri-loader-4-line me-1 spin"></i> Purging...';
+
+            fetch(getAdminApiUrl('/cloudflare/purge'), {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': csrfToken,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    purge_everything: true
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Success!',
+                            text: data.message || 'Cache purged successfully.',
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+                    } else {
+                        alert(data.message || 'Cache purged successfully.');
+                    }
+                } else {
+                    throw new Error(data.message || 'Failed to purge cache.');
+                }
+            })
+            .catch(error => {
+                const errorMessage = error.message || 'Failed to purge cache. Please try again.';
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error!',
+                        text: errorMessage
+                    });
+                } else {
+                    alert(errorMessage);
+                }
+            })
+            .finally(() => {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            });
+        }
+
+        function performCustomPurge(tourCodes) {
+            const btn = purgeSelectedBtn;
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="ri-loader-4-line me-1 spin"></i> Purging...';
+
+            console.log('Purging tours:', tourCodes); // Debug log
+
+            fetch(getAdminApiUrl('/cloudflare/purge'), {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': csrfToken,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    tour_codes: tourCodes
+                })
+            })
+            .then(response => {
+                console.log('Purge response status:', response.status); // Debug log
+                return response.json();
+            })
+            .then(data => {
+                console.log('Purge response data:', data); // Debug log
+                if (data.success) {
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Success!',
+                            text: data.message || 'Cache purged successfully.',
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+                    } else {
+                        alert(data.message || 'Cache purged successfully.');
+                    }
+                    // Clear selection - use Select2 API if available
+                    const $jq = window.$ || window.jQuery;
+                    if ($jq && typeof $jq.fn !== 'undefined' && typeof $jq.fn.select2 !== 'undefined' && tourSelect2Instance) {
+                        try {
+                            $jq(tourSelect).val(null).trigger('change');
+                        } catch (e) {
+                            console.warn('Error clearing Select2, falling back to native select:', e);
+                            if (tourSelect) {
+                                Array.from(tourSelect.options).forEach(option => {
+                                    option.selected = false;
+                                });
+                            }
+                        }
+                    } else if (tourSelect) {
+                        // Clear all selections in native multi-select
+                        Array.from(tourSelect.options).forEach(option => {
+                            option.selected = false;
+                        });
+                    }
+                    purgeSelectedBtn.disabled = true;
+                } else {
+                    throw new Error(data.message || 'Failed to purge cache.');
+                }
+            })
+            .catch(error => {
+                console.error('Purge error:', error); // Debug log
+                const errorMessage = error.message || 'Failed to purge cache. Please try again.';
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error!',
+                        text: errorMessage
+                    });
+                } else {
+                    alert(errorMessage);
+                }
+            })
+            .finally(() => {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            });
+        }
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
         // Restore active tab
         const savedTab = localStorage.getItem('settingsActiveTab');
@@ -461,6 +1037,14 @@ import '../../css/pages/setting-index.css';
         const portfolioApiForm = document.getElementById('portfolioApiForm');
         const updatePortfolioApiBtn = document.getElementById('updatePortfolioApiSettingsBtn');
         if (portfolioApiForm && updatePortfolioApiBtn) handleFormSubmit(portfolioApiForm, updatePortfolioApiBtn);
+
+        // Cloudflare Cache Configuration form
+        const cloudflareConfigForm = document.getElementById('cloudflareConfigForm');
+        const saveCloudflareConfigBtn = document.getElementById('saveCloudflareConfigBtn');
+        if (cloudflareConfigForm && saveCloudflareConfigBtn) handleFormSubmit(cloudflareConfigForm, saveCloudflareConfigBtn);
+
+        // Cloudflare Cache handlers
+        initCloudflareCacheHandlers();
 
         // Payment gateway logic
         const cashfreeForm = document.getElementById('cashfreeForm');
