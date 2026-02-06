@@ -27,6 +27,7 @@ class DatabaseSeeder extends Seeder
         $this->call(BHKSeeder::class);
 
         // Seed location data
+        $this->call(CountrySeeder::class);
         $this->call(StateSeeder::class);
         $this->call(CitySeeder::class);
 

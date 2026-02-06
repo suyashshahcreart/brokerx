@@ -25,6 +25,9 @@ class User extends Authenticatable
         'firstname',
         'lastname',
         'mobile',
+        'base_mobile',
+        'country_code',
+        'country_id',
         'email',
         'password',
         'mobile_verified_at',
@@ -110,6 +113,11 @@ class User extends Authenticatable
     public function bookings()
     {
         return $this->hasMany(Booking::class);
+    }
+
+    public function country()
+    {
+        return $this->belongsTo(Country::class);
     }
 
     /**
