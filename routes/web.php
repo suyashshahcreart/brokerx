@@ -269,6 +269,14 @@ Route::group(['prefix' => 'ppadmlog', 'as' => 'admin.', 'middleware' => ['web', 
         Route::post('/cloudflare/purge', [SettingController::class, 'apiPurgeCache'])->name('cloudflare.purge');
         Route::get('/cloudflare/bookings-with-tours', [SettingController::class, 'apiGetBookingsWithTours'])->name('cloudflare.bookings-with-tours');
 
+        // Country, State & City routes (AJAX)
+        Route::get('/countries', [\App\Http\Controllers\Admin\Api\CountryController::class, 'index'])->name('countries.index');
+        Route::get('/countries/options', [\App\Http\Controllers\Admin\Api\CountryController::class, 'options'])->name('countries.options');
+        Route::post('/countries', [\App\Http\Controllers\Admin\Api\CountryController::class, 'store'])->name('countries.store');
+        Route::get('/countries/{country}', [\App\Http\Controllers\Admin\Api\CountryController::class, 'show'])->name('countries.show');
+        Route::put('/countries/{country}', [\App\Http\Controllers\Admin\Api\CountryController::class, 'update'])->name('countries.update');
+        Route::delete('/countries/{country}', [\App\Http\Controllers\Admin\Api\CountryController::class, 'destroy'])->name('countries.destroy');
+
         // State & City routes (AJAX)
         Route::get('/states', [\App\Http\Controllers\Admin\Api\StateController::class, 'index'])->name('states.index');
         Route::get('/states/options', [\App\Http\Controllers\Admin\Api\StateController::class, 'options'])->name('states.options');

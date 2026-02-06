@@ -73,7 +73,7 @@
                                         } elseif ($canCloudflareCache) {
                                             $firstActiveTab = 'vl-pills-cloudflare-cache';
                                         } elseif ($canFtpConfiguration) {
-                                            $firstActiveTab = 'vl-pills-state-city';
+                                            $firstActiveTab = 'vl-pills-regions-management';
                                         }
                                     @endphp
                                     
@@ -148,9 +148,9 @@
                                     @endif
 
                                     @if($canFtpConfiguration)
-                                        <a class="nav-link {{ ($firstActiveTab === 'vl-pills-state-city') ? 'active show' : '' }}" id="vl-pills-state-city-tab" data-bs-toggle="pill" href="#vl-pills-state-city" role="tab" aria-controls="vl-pills-state-city" aria-selected="{{ ($firstActiveTab === 'vl-pills-state-city') ? 'true' : 'false' }}">
+                                        <a class="nav-link {{ ($firstActiveTab === 'vl-pills-regions-management') ? 'active show' : '' }}" id="vl-pills-regions-management-tab" data-bs-toggle="pill" href="#vl-pills-regions-management" role="tab" aria-controls="vl-pills-regions-management" aria-selected="{{ ($firstActiveTab === 'vl-pills-regions-management') ? 'true' : 'false' }}">
                                             <i class="ri-map-pin-line me-2"></i>
-                                            <span>State City</span>
+                                            <span>Regions Management</span>
                                         </a>
                                     @endif
 
@@ -949,14 +949,17 @@
                                     @endif
 
                                     @if($canFtpConfiguration)
-                                    <div class="tab-pane fade {{ ($firstActiveTab === 'vl-pills-state-city') ? 'active show' : '' }}" id="vl-pills-state-city" role="tabpanel" aria-labelledby="vl-pills-state-city-tab">
+                                    <div class="tab-pane fade {{ ($firstActiveTab === 'vl-pills-regions-management') ? 'active show' : '' }}" id="vl-pills-regions-management" role="tabpanel" aria-labelledby="vl-pills-regions-management-tab">
                                         <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
                                             <div>
-                                                <h5 class="mb-1">State & City Management</h5>
-                                                <p class="text-muted mb-0 small">Manage states and cities for location-based operations.</p>
+                                                <h5 class="mb-1">Regions Management</h5>
+                                                <p class="text-muted mb-0 small">Manage countries, states, and cities for location-based operations.</p>
                                             </div>
                                             <div class="d-flex gap-2">
-                                                <button type="button" class="btn btn-primary btn-sm" id="openStateModal">
+                                                <button type="button" class="btn btn-primary btn-sm" id="openCountryModal">
+                                                    <i class="ri-add-line me-1"></i> Add Country
+                                                </button>
+                                                <button type="button" class="btn btn-outline-primary btn-sm" id="openStateModal">
                                                     <i class="ri-add-line me-1"></i> Add State
                                                 </button>
                                                 <button type="button" class="btn btn-outline-primary btn-sm" id="openCityModal">
@@ -967,7 +970,10 @@
 
                                         <ul class="nav nav-tabs" role="tablist">
                                             <li class="nav-item" role="presentation">
-                                                <button class="nav-link active" id="states-inner-tab" data-bs-toggle="tab" data-bs-target="#states-tabpane" type="button" role="tab" aria-controls="states-tabpane" aria-selected="true">States</button>
+                                                <button class="nav-link active" id="countries-inner-tab" data-bs-toggle="tab" data-bs-target="#countries-tabpane" type="button" role="tab" aria-controls="countries-tabpane" aria-selected="true">Countries</button>
+                                            </li>
+                                            <li class="nav-item" role="presentation">
+                                                <button class="nav-link" id="states-inner-tab" data-bs-toggle="tab" data-bs-target="#states-tabpane" type="button" role="tab" aria-controls="states-tabpane" aria-selected="false">States</button>
                                             </li>
                                             <li class="nav-item" role="presentation">
                                                 <button class="nav-link" id="cities-inner-tab" data-bs-toggle="tab" data-bs-target="#cities-tabpane" type="button" role="tab" aria-controls="cities-tabpane" aria-selected="false">Cities</button>
@@ -975,7 +981,25 @@
                                         </ul>
 
                                         <div class="tab-content pt-3">
-                                            <div class="tab-pane fade show active" id="states-tabpane" role="tabpanel" aria-labelledby="states-inner-tab">
+                                            <div class="tab-pane fade show active" id="countries-tabpane" role="tabpanel" aria-labelledby="countries-inner-tab">
+                                                <div class="table-responsive">
+                                                    <table class="table table-hover align-middle" id="countries-table">
+                                                        <thead class="table-light">
+                                                            <tr>
+                                                                <th>Name</th>
+                                                                <th>Code</th>
+                                                                <th>Dial Code</th>
+                                                                <th>Status</th>
+                                                                <th>Updated At</th>
+                                                                <th class="text-end">Actions</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody></tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+
+                                            <div class="tab-pane fade" id="states-tabpane" role="tabpanel" aria-labelledby="states-inner-tab">
                                                 <div class="table-responsive">
                                                     <table class="table table-hover align-middle" id="states-table">
                                                         <thead class="table-light">
@@ -1204,6 +1228,49 @@
                                         <div class="modal-footer">
                                             <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
                                             <button type="submit" class="btn btn-primary" id="savePropertySubTypeBtn">Save</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Country Modal -->
+                        <div class="modal fade" id="countryModal" tabindex="-1" aria-labelledby="countryModalLabel" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="countryModalLabel">Add Country</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <form id="countryForm">
+                                        @csrf
+                                        <input type="hidden" name="country_id" id="countryId">
+                                        <div class="modal-body">
+                                            <div class="alert alert-danger d-none" id="countryErrors"></div>
+                                            <div class="mb-3">
+                                                <label for="countryName" class="form-label">Country Name <span class="text-danger">*</span></label>
+                                                <input type="text" class="form-control" id="countryName" name="name" placeholder="e.g., India" required maxlength="255">
+                                            </div>
+                                            <div class="row g-3">
+                                                <div class="col-6">
+                                                    <label for="countryCode" class="form-label">Country Code <span class="text-danger">*</span></label>
+                                                    <input type="text" class="form-control" id="countryCode" name="country_code" placeholder="e.g., IN" required maxlength="2">
+                                                </div>
+                                                <div class="col-6">
+                                                    <label for="countryDialCode" class="form-label">Dial Code <span class="text-danger">*</span></label>
+                                                    <input type="text" class="form-control" id="countryDialCode" name="dial_code" placeholder="e.g., +91" required maxlength="8">
+                                                </div>
+                                            </div>
+                                            <div class="mt-3">
+                                                <div class="form-check form-switch">
+                                                    <input class="form-check-input" type="checkbox" id="countryIsActive" name="is_active" value="1" checked>
+                                                    <label class="form-check-label" for="countryIsActive">Active</label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                                            <button type="submit" class="btn btn-primary" id="saveCountryBtn">Save</button>
                                         </div>
                                     </form>
                                 </div>
@@ -1502,6 +1569,11 @@
 
     // State and City routes for JavaScript
     window.stateCityRoutes = {
+        countriesList: '{{ route('admin.api.countries.index') }}',
+        countriesOptions: '{{ route('admin.api.countries.options') }}',
+        countriesStore: '{{ route('admin.api.countries.store') }}',
+        countriesUpdate: '{{ route('admin.api.countries.update', ['country' => '__ID__']) }}',
+        countriesDestroy: '{{ route('admin.api.countries.destroy', ['country' => '__ID__']) }}',
         statesList: '{{ route('admin.api.states.index') }}',
         statesOptions: '{{ route('admin.api.states.options') }}',
         statesStore: '{{ route('admin.api.states.store') }}',

@@ -1782,6 +1782,13 @@ import '../../css/pages/setting-index.css';
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
 
         const routes = {
+            countries: {
+                list: window.stateCityRoutes.countriesList,
+                options: window.stateCityRoutes.countriesOptions,
+                store: window.stateCityRoutes.countriesStore,
+                update: id => window.stateCityRoutes.countriesUpdate.replace('__ID__', id),
+                destroy: id => window.stateCityRoutes.countriesDestroy.replace('__ID__', id)
+            },
             states: {
                 list: window.stateCityRoutes.statesList,
                 options: window.stateCityRoutes.statesOptions,
@@ -1798,15 +1805,51 @@ import '../../css/pages/setting-index.css';
             }
         };
 
-        const stateModal = new bootstrap.Modal(document.getElementById('stateModal'));
-        const cityModal = new bootstrap.Modal(document.getElementById('cityModal'));
+        const countryModalEl = document.getElementById('countryModal');
+        const stateModalEl = document.getElementById('stateModal');
+        const cityModalEl = document.getElementById('cityModal');
 
+        const countryModal = countryModalEl ? new bootstrap.Modal(countryModalEl) : null;
+        const stateModal = stateModalEl ? new bootstrap.Modal(stateModalEl) : null;
+        const cityModal = cityModalEl ? new bootstrap.Modal(cityModalEl) : null;
+
+        const countryTableEl = $('#countries-table');
         const stateTableEl = $('#states-table');
         const cityTableEl = $('#cities-table');
-        if (!stateTableEl.length || !cityTableEl.length) return;
+        if (!countryTableEl.length && !stateTableEl.length && !cityTableEl.length) return;
+
+        // Countries DataTable
+        const countryTable = countryTableEl.length ? countryTableEl.DataTable({
+            processing: true,
+            serverSide: true,
+            ajax: routes.countries.list,
+            order: [[0, 'asc']],
+            columns: [
+                { data: 'name', name: 'name', className: 'fw-semibold' },
+                { data: 'country_code', name: 'country_code' },
+                { data: 'dial_code', name: 'dial_code' },
+                {
+                    data: 'is_active',
+                    name: 'is_active',
+                    className: 'text-center',
+                    render: value => value ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-secondary">Inactive</span>'
+                },
+                { data: 'updated_at', name: 'updated_at' },
+                {
+                    data: null,
+                    orderable: false,
+                    searchable: false,
+                    className: 'text-end',
+                    render: row => actionButtons('country', row)
+                }
+            ],
+            language: { search: '_INPUT_', searchPlaceholder: 'Search countries...' },
+            lengthMenu: [10, 25, 50, 100],
+            responsive: true
+        }) : null;
 
         // States DataTable
-        const stateTable = stateTableEl.DataTable({
+        const stateTable = stateTableEl.length ? stateTableEl.DataTable({
             processing: true,
             serverSide: true,
             ajax: routes.states.list,
@@ -1826,10 +1869,10 @@ import '../../css/pages/setting-index.css';
             language: { search: '_INPUT_', searchPlaceholder: 'Search states...' },
             lengthMenu: [10, 25, 50, 100],
             responsive: true
-        });
+        }) : null;
 
         // Cities DataTable
-        const cityTable = cityTableEl.DataTable({
+        const cityTable = cityTableEl.length ? cityTableEl.DataTable({
             processing: true,
             serverSide: true,
             ajax: routes.cities.list,
@@ -1849,12 +1892,16 @@ import '../../css/pages/setting-index.css';
             language: { search: '_INPUT_', searchPlaceholder: 'Search cities...' },
             lengthMenu: [10, 25, 50, 100],
             responsive: true
-        });
+        }) : null;
 
         function actionButtons(kind, data) {
-            const editClass = kind === 'state' ? 'btn-edit-state' : 'btn-edit-city';
-            const deleteClass = kind === 'state' ? 'btn-delete-state' : 'btn-delete-city';
-            const label = kind === 'state' ? 'State' : 'City';
+            const editClass = kind === 'country'
+                ? 'btn-edit-country'
+                : (kind === 'state' ? 'btn-edit-state' : 'btn-edit-city');
+            const deleteClass = kind === 'country'
+                ? 'btn-delete-country'
+                : (kind === 'state' ? 'btn-delete-state' : 'btn-delete-city');
+            const label = kind === 'country' ? 'Country' : (kind === 'state' ? 'State' : 'City');
             return `
                 <div class="btn-group btn-group-sm" role="group">
                     <button type="button" class="btn btn-soft-primary ${editClass}" data-id="${data.id}" title="Edit ${label}">
@@ -1900,6 +1947,18 @@ import '../../css/pages/setting-index.css';
             $('#saveStateBtn').text(data ? 'Update' : 'Save');
         }
 
+        function resetCountryForm(data = null) {
+            $('#countryForm')[0].reset();
+            $('#countryErrors').addClass('d-none').empty();
+            $('#countryId').val(data ? data.id : '');
+            $('#countryName').val(data ? data.name : '');
+            $('#countryCode').val(data ? data.country_code : '');
+            $('#countryDialCode').val(data ? data.dial_code : '');
+            $('#countryIsActive').prop('checked', data ? !!data.is_active : true);
+            $('#countryModalLabel').text(data ? 'Edit Country' : 'Add Country');
+            $('#saveCountryBtn').text(data ? 'Update' : 'Save');
+        }
+
         function resetCityForm(data = null) {
             $('#cityForm')[0].reset();
             $('#cityErrors').addClass('d-none').empty();
@@ -1931,8 +1990,18 @@ import '../../css/pages/setting-index.css';
         }
 
         // Open modals
-        $('#openStateModal').on('click', () => { resetStateForm(); stateModal.show(); });
-        $('#openCityModal').on('click', () => { resetCityForm(); cityModal.show(); });
+        $('#openCountryModal').on('click', () => { resetCountryForm(); if (countryModal) countryModal.show(); });
+        $('#openStateModal').on('click', () => { resetStateForm(); if (stateModal) stateModal.show(); });
+        $('#openCityModal').on('click', () => { resetCityForm(); if (cityModal) cityModal.show(); });
+
+        // Edit Country
+        $('#countries-table').on('click', '.btn-edit-country', function () {
+            if (!countryTable) return;
+            const data = getRowData(countryTable, this);
+            if (!data) return;
+            resetCountryForm(data);
+            if (countryModal) countryModal.show();
+        });
 
         // Edit State
         $('#states-table').on('click', '.btn-edit-state', function () {
@@ -1958,6 +2027,14 @@ import '../../css/pages/setting-index.css';
             confirmAndDelete('state', data.id, data.name);
         });
 
+        // Delete Country
+        $('#countries-table').on('click', '.btn-delete-country', function () {
+            if (!countryTable) return;
+            const data = getRowData(countryTable, this);
+            if (!data) return;
+            confirmAndDelete('country', data.id, data.name);
+        });
+
         // Delete City
         $('#cities-table').on('click', '.btn-delete-city', function () {
             const data = getRowData(cityTable, this);
@@ -1966,9 +2043,9 @@ import '../../css/pages/setting-index.css';
         });
 
         function confirmAndDelete(kind, id, name) {
-            const label = kind === 'state' ? 'state' : 'city';
-            const table = kind === 'state' ? stateTable : cityTable;
-            const url = kind === 'state' ? routes.states.destroy(id) : routes.cities.destroy(id);
+            const label = kind === 'country' ? 'country' : (kind === 'state' ? 'state' : 'city');
+            const table = kind === 'country' ? countryTable : (kind === 'state' ? stateTable : cityTable);
+            const url = kind === 'country' ? routes.countries.destroy(id) : (kind === 'state' ? routes.states.destroy(id) : routes.cities.destroy(id));
 
             const proceed = () => {
                 $.ajax({
@@ -1978,9 +2055,10 @@ import '../../css/pages/setting-index.css';
                 })
                     .done(res => {
                         notify('success', res.message || `${label} deleted successfully.`);
-                        table.ajax.reload(null, false);
-                        // Reload the other table if it's a state (cities might be affected)
-                        if (kind === 'state') cityTable.ajax.reload(null, false);
+                        if (table) table.ajax.reload(null, false);
+                        // Reload related tables when needed
+                        if (kind === 'state' && cityTable) cityTable.ajax.reload(null, false);
+                        if (kind === 'country' && stateTable) stateTable.ajax.reload(null, false);
                     })
                     .fail(xhr => {
                         const message = xhr.responseJSON?.message || `Unable to delete ${label}.`;
@@ -2025,6 +2103,36 @@ import '../../css/pages/setting-index.css';
                     const errors = xhr.responseJSON?.errors;
                     const message = xhr.responseJSON?.message || 'Unable to save state.';
                     showErrors('#stateErrors', errors);
+                    if (!errors) notify('error', message);
+                });
+        });
+
+        // Submit Country Form
+        $('#countryForm').on('submit', function (event) {
+            event.preventDefault();
+            showErrors('#countryErrors', null);
+            const id = $('#countryId').val();
+            const url = id ? routes.countries.update(id) : routes.countries.store;
+            const method = id ? 'PUT' : 'POST';
+            const isActive = $('#countryIsActive').is(':checked') ? '1' : '0';
+            const formData = $(this).serializeArray().filter(item => item.name !== 'is_active');
+            formData.push({ name: 'is_active', value: isActive });
+            const data = $.param(formData);
+            $.ajax({
+                url,
+                method,
+                data,
+                headers: { 'X-CSRF-TOKEN': csrfToken }
+            })
+                .done(res => {
+                    notify('success', res.message || 'Country saved successfully.');
+                    if (countryModal) countryModal.hide();
+                    if (countryTable) countryTable.ajax.reload(null, false);
+                })
+                .fail(xhr => {
+                    const errors = xhr.responseJSON?.errors;
+                    const message = xhr.responseJSON?.message || 'Unable to save country.';
+                    showErrors('#countryErrors', errors);
                     if (!errors) notify('error', message);
                 });
         });
