@@ -26,6 +26,7 @@ class CustomerController extends Controller
         if ($request->ajax()) {
             // Filter only users with 'customer' role and load bookings count
             $query = User::role('customer')
+                ->with(['country:id,name,country_code,dial_code'])
                 ->withCount('bookings');
             $canEdit = $request->user()->can('customer_edit');
             $canDelete = $request->user()->can('customer_delete');
@@ -47,7 +48,15 @@ class CustomerController extends Controller
                         ->orderBy('firstname', $direction)
                         ->orderBy('lastname', $direction);
                 })
-                ->editColumn('mobile', fn(User $user) => e($user->mobile))
+                ->editColumn('mobile', fn(User $user) => $user->country?->dial_code .' '. e($user->base_mobile))
+                ->addColumn('country', function (User $user) {
+                    $name = $user->country?->name;
+                    $code = $user->country_code ?? $user->country?->country_code;
+                    if ($name && $code) {
+                        return e($name . ' (' . $code . ')');
+                    }
+                    return e($name ?: ($code ?: '-'));
+                })
                 ->addColumn('bookings_count', function (User $user) {
                     $count = $user->bookings_count ?? 0;
                     return '<span class="badge bg-primary">' . $count . '</span>';

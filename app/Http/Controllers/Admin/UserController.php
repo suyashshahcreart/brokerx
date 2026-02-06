@@ -28,18 +28,16 @@ class UserController extends Controller
             $query = User::query()->with('roles');
             // Filter: exclude users who have ONLY customer role
             // Show users who: don't have customer role OR have customer role + other roles
-            $query->where(function($q) {
-                // Users without customer role
-                $q->whereDoesntHave('roles', function($q2) {
+            $query->where(function ($q) {
+                $q->whereDoesntHave('roles', function ($q2) {
                     $q2->where('name', 'customer');
                 })
-                // OR users with customer role but also have other roles (more than 1 role total)
-                ->orWhere(function($q2) {
-                    $q2->whereHas('roles', function($q3) {
-                        $q3->where('name', 'customer');
-                    })->has('roles', '>', 1); // Has more than 1 role total
-                });
-            });
+                    ->orWhere(function ($q2) {
+                        $q2->whereHas('roles', function ($q3) {
+                            $q3->where('name', 'customer');
+                        })->has('roles', '>', 1); // Has more than 1 role total
+                    });
+            })->with(['country:id,name,country_code,dial_code']);
             $canEdit = $request->user()->can('user_edit');
             $canDelete = $request->user()->can('user_delete');
 
@@ -59,7 +57,15 @@ class UserController extends Controller
                         ->orderBy('firstname', $direction)
                         ->orderBy('lastname', $direction);
                 })
-                ->editColumn('mobile', fn(User $user) => e($user->mobile))
+                ->editColumn('mobile', fn(User $user) => $user->country?->dial_code . ' ' . e($user->base_mobile))
+                ->addColumn('country', function (User $user) {
+                    $name = $user->country?->name;
+                    $code = $user->country_code ?? $user->country?->country_code;
+                    if ($name && $code) {
+                        return e($name . ' (' . $code . ')');
+                    }
+                    return e($name ?: ($code ?: '-'));
+                })
                 ->addColumn('roles_badges', function (User $user) {
                     $user->loadMissing('roles');
                     return view('admin.users.partials.roles', ['roles' => $user->roles])->render();
