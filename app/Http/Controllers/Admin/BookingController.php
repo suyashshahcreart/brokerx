@@ -9,6 +9,7 @@ use App\Models\Booking;
 use App\Models\BookingAssignee;
 use App\Models\BookingHistory;
 use App\Models\City;
+use App\Models\Country;
 use App\Models\PropertySubType;
 use App\Models\PropertyType;
 use App\Models\QR;
@@ -57,7 +58,7 @@ class BookingController extends Controller
                 ->leftJoin('users', 'bookings.user_id', '=', 'users.id')
                 ->leftJoin('cities', 'bookings.city_id', '=', 'cities.id')
                 ->select('bookings.*')
-                ->with(['propertyType', 'propertySubType', 'state', 'assignees', 'qr', 'tours']);
+                ->with(['propertyType', 'propertySubType', 'state', 'country', 'assignees', 'qr', 'tours']);
 
             // Filter bookings based on user role
             if (auth()->user()->hasRole('admin')) {
@@ -122,7 +123,10 @@ class BookingController extends Controller
                     return '<span class="text-muted">N/A</span>';
                 })
                 ->addColumn('city_state', function (Booking $booking) {
-                    return ($booking->city?->name ?? '-') . '<div class="text-muted small">' . ($booking->state?->name ?? '-') . '</div>';
+                    $city = $booking->city?->name ?? '-';
+                    $state = $booking->state?->name ?? '-';
+                    $country = $booking->country?->name ?? '-';
+                    return $city . '<div class="text-muted small">' . $state . ' | ' . $country . '</div>';
                 })
                 ->editColumn('area', fn(Booking $booking) => number_format($booking->area))
                 ->editColumn('price', fn(Booking $booking) => '₹ ' . number_format($booking->price))
@@ -274,6 +278,13 @@ class BookingController extends Controller
         $bhks = BHK::orderBy('name')->get();
         $cities = City::orderBy('name')->get();
         $states = State::orderBy('name')->get();
+        $countries = Country::where('is_active', true)->orderBy('name')->get();
+        $defaultCountryId = old('country_id');
+        if (!$defaultCountryId) {
+            $defaultCountryId = optional($countries->first(function ($country) {
+                return strcasecmp($country->name, 'India') === 0 || strtoupper($country->country_code) === 'IN';
+            }))->id;
+        }
         $paymentStatuses = ['pending', 'paid', 'failed', 'refunded'];
         $statuses = ['pending', 'confirmed', 'cancelled', 'completed'];
 
@@ -286,6 +297,8 @@ class BookingController extends Controller
             'bhks',
             'cities',
             'states',
+            'countries',
+            'defaultCountryId',
             'paymentStatuses',
             'statuses'
         ));
@@ -302,6 +315,7 @@ class BookingController extends Controller
             'bhk_id' => ['nullable', 'exists:b_h_k_s,id'],
             'city_id' => ['required', 'exists:cities,id'],
             'state_id' => ['required', 'exists:states,id'],
+            'country_id' => ['required', 'exists:countries,id'],
             'furniture_type' => ['nullable', 'string', 'max:255'],
             'area' => ['required', 'integer', 'min:0'],
             'price' => ['required', 'integer', 'min:0'],
@@ -487,6 +501,13 @@ class BookingController extends Controller
         $bhks = BHK::orderBy('name')->get();
         $cities = City::orderBy('name')->get();
         $states = State::orderBy('name')->get();
+        $countries = Country::where('is_active', true)->orderBy('name')->get();
+        $defaultCountryId = old('country_id', $booking->country_id);
+        if (!$defaultCountryId) {
+            $defaultCountryId = optional($countries->first(function ($country) {
+                return strcasecmp($country->name, 'India') === 0 || strtoupper($country->country_code) === 'IN';
+            }))->id;
+        }
 
         $paymentStatuses = ['pending', 'paid', 'failed', 'refunded'];
         $statuses = ['pending', 'confirmed', 'cancelled', 'completed'];
@@ -537,6 +558,8 @@ class BookingController extends Controller
             'bhks',
             'cities',
             'states',
+            'countries',
+            'defaultCountryId',
             'paymentStatuses',
             'statuses',
             'qr_code',
@@ -564,6 +587,7 @@ class BookingController extends Controller
             'bhk_id' => ['nullable', 'exists:b_h_k_s,id'],
             'city_id' => ['required', 'exists:cities,id'],
             'state_id' => ['required', 'exists:states,id'],
+            'country_id' => ['required', 'exists:countries,id'],
             'furniture_type' => ['nullable', 'string', 'max:255'],
             'area' => ['required', 'integer', 'min:0'],
             'price' => ['required', 'integer', 'min:0'],
@@ -1024,6 +1048,7 @@ class BookingController extends Controller
             'bhk_id' => ['nullable', 'exists:b_h_k_s,id'],
             'city_id' => ['nullable', 'exists:cities,id'],
             'state_id' => ['nullable', 'exists:states,id'],
+            'country_id' => ['nullable', 'exists:countries,id'],
             'furniture_type' => ['nullable', 'string'],
             'booking_date' => ['nullable', 'date'],
             'house_no' => ['nullable', 'string', 'max:255'],

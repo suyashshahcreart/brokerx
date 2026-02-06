@@ -148,6 +148,7 @@ function hasPropertyDataFilled() {
 }
 
 function hasAddressDataFilled() {
+    const c = el('country_id')?.value?.trim();
     const h = el('house_no')?.value?.trim();
     const b = el('building')?.value?.trim();
     const s = el('society_name')?.value?.trim();
@@ -155,7 +156,7 @@ function hasAddressDataFilled() {
     const l = el('landmark')?.value?.trim();
     const p = el('pin_code')?.value?.trim();
     const f = el('full_address')?.value?.trim();
-    return !!(h || b || s || a || l || p || f);
+    return !!(c || h || b || s || a || l || p || f);
 }
 
 function clearAllPropertySelections() {
@@ -204,7 +205,7 @@ function clearAllPropertySelections() {
 }
 
 function resetAddressFields() {
-    ['house_no', 'building', 'society_name', 'address_area', 'landmark', 'pin_code', 'full_address', 'city_id', 'state_id'].forEach(id => {
+    ['house_no', 'building', 'society_name', 'address_area', 'landmark', 'pin_code', 'full_address', 'city_id', 'state_id', 'country_id'].forEach(id => {
         const input = el(id);
         if (input) {
             input.value = '';
