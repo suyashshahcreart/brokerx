@@ -148,6 +148,7 @@ class UserController extends Controller
             'mobile' => $fullMobile,
             'base_mobile' => $validated['base_mobile'],
             'country_code' => strtoupper($country->country_code),
+            'dial_code' => $country->dial_code,
             'country_id' => $country->id,
             'email' => $validated['email'],
             'password' => Hash::make($validated['password'])
@@ -259,6 +260,7 @@ class UserController extends Controller
             'mobile' => $fullMobile,
             'base_mobile' => $validated['base_mobile'],
             'country_code' => strtoupper($country->country_code),
+            'dial_code' => $country->dial_code,
             'country_id' => $country->id,
             'email' => $validated['email']
         ];

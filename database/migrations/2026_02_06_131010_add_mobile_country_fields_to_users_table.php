@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::table('users', function (Blueprint $table) {
             $table->string('base_mobile', 20)->nullable()->after('mobile');
             $table->char('country_code', 2)->nullable()->after('base_mobile');
+            $table->char('dial_code', 6)->nullable()->after('lastname');
             $table->foreignId('country_id')
                 ->nullable()
                 ->constrained('countries')

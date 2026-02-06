@@ -27,6 +27,7 @@ class User extends Authenticatable
         'mobile',
         'base_mobile',
         'country_code',
+        'dial_code',
         'country_id',
         'email',
         'password',
