@@ -1814,15 +1814,37 @@ import '../../css/pages/setting-index.css';
         const cityModal = cityModalEl ? new bootstrap.Modal(cityModalEl) : null;
 
         const countryTableEl = $('#countries-table');
+        const countryStatusFilter = document.getElementById('countryStatusFilter');
+        const countryStatusFilterLabel = document.getElementById('countryStatusFilterLabel');
         const stateTableEl = $('#states-table');
         const cityTableEl = $('#cities-table');
         if (!countryTableEl.length && !stateTableEl.length && !cityTableEl.length) return;
+
+        const getCountryStatusFilter = () => {
+            if (!countryStatusFilter) return null;
+            return countryStatusFilter.checked ? 'active' : 'inactive';
+        };
+
+        const syncCountryStatusLabel = () => {
+            if (!countryStatusFilterLabel || !countryStatusFilter) return;
+            countryStatusFilterLabel.textContent = countryStatusFilter.checked ? 'Active' : 'Inactive';
+        };
+
+        syncCountryStatusLabel();
 
         // Countries DataTable
         const countryTable = countryTableEl.length ? countryTableEl.DataTable({
             processing: true,
             serverSide: true,
-            ajax: routes.countries.list,
+            ajax: {
+                url: routes.countries.list,
+                data: function (d) {
+                    const status = getCountryStatusFilter();
+                    if (status) {
+                        d.status = status;
+                    }
+                }
+            },
             order: [[0, 'asc']],
             columns: [
                 { data: 'name', name: 'name', className: 'fw-semibold' },
@@ -1993,6 +2015,13 @@ import '../../css/pages/setting-index.css';
         $('#openCountryModal').on('click', () => { resetCountryForm(); if (countryModal) countryModal.show(); });
         $('#openStateModal').on('click', () => { resetStateForm(); if (stateModal) stateModal.show(); });
         $('#openCityModal').on('click', () => { resetCityForm(); if (cityModal) cityModal.show(); });
+
+        if (countryStatusFilter) {
+            countryStatusFilter.addEventListener('change', function () {
+                syncCountryStatusLabel();
+                if (countryTable) countryTable.ajax.reload(null, false);
+            });
+        }
 
         // Edit Country
         $('#countries-table').on('click', '.btn-edit-country', function () {

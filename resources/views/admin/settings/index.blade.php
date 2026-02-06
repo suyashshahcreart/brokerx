@@ -982,6 +982,14 @@
 
                                         <div class="tab-content pt-3">
                                             <div class="tab-pane fade show active" id="countries-tabpane" role="tabpanel" aria-labelledby="countries-inner-tab">
+                                                <div class="d-flex align-items-center justify-content-end mb-2">
+                                                    <div class="form-check form-switch">
+                                                        <input class="form-check-input" type="checkbox" checked="true" id="countryStatusFilter">
+                                                        <label class="form-check-label" for="countryStatusFilter">
+                                                            Status: <span id="countryStatusFilterLabel"></span>
+                                                        </label>
+                                                    </div>
+                                                </div>
                                                 <div class="table-responsive">
                                                     <table class="table table-hover align-middle" id="countries-table">
                                                         <thead class="table-light">

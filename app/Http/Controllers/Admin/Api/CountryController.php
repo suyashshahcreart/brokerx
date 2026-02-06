@@ -18,6 +18,12 @@ class CountryController extends Controller
     {
         if ($request->ajax()) {
             $countries = Country::query();
+            $status = $request->input('status');
+            if ($status === 'active') {
+                $countries->where('is_active', true);
+            } elseif ($status === 'inactive') {
+                $countries->where('is_active', false);
+            }
 
             return DataTables::of($countries)
                 ->editColumn('is_active', function ($country) {
