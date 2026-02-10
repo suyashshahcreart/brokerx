@@ -56,7 +56,12 @@ class BookingController extends Controller
             $query = Booking::query()
                 ->leftJoin('users', 'bookings.user_id', '=', 'users.id')
                 ->leftJoin('cities', 'bookings.city_id', '=', 'cities.id')
+                ->leftJoin('tours', function ($join) {
+                    $join->on('tours.booking_id', '=', 'bookings.id')
+                        ->whereNull('tours.deleted_at');
+                })
                 ->select('bookings.*')
+                ->distinct()
                 ->with(['propertyType', 'propertySubType', 'state', 'assignees', 'qr', 'tours']);
 
             // Filter bookings based on user role
@@ -90,9 +95,17 @@ class BookingController extends Controller
             }
 
             return DataTables::of($query)
+                ->filterColumn('user', function ($query, $keyword) {
+                    $query->where(function ($subQuery) use ($keyword) {
+                        $subQuery->where('users.firstname', 'like', "%{$keyword}%")
+                            ->orWhere('users.lastname', 'like', "%{$keyword}%")
+                            ->orWhere('users.mobile', 'like', "%{$keyword}%")
+                            ->orWhere('tours.name', 'like', "%{$keyword}%");
+                    });
+                })
                 ->addColumn('user', function (Booking $booking) {
                     $name = $booking->user ? $booking->user->firstname . ' ' . $booking->user->lastname : '-';
-                    $mobile = $booking->user ? $booking->user->mobile : '-';
+                    $mobile = $booking->user ? $booking->user->base_mobile : '-';
                     $tourName = $booking->tours->first()?->name;
 
                     if ($tourName) {
