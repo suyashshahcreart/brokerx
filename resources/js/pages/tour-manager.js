@@ -56,9 +56,9 @@ $(document).ready(function () {
         },
         columns: [
             { data: 'booking_id', name: 'id' },
-            { data: 'booking_info', name: 'id' },
+            { data: 'booking_info', name: 'booking_info' },
             { data: 'customer', name: 'user.firstname' },
-            { data: 'location', name: 'location' },
+            { data: 'location', name: 'location'},
             { data: 'city_state', name: 'city.name' },
             { data: 'qr_code', name: 'qr.code', orderable: false, searchable: false },
             { data: 'created_at', name: 'created_at' },

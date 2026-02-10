@@ -68,6 +68,11 @@ class TourManagerController extends Controller
                 $query->whereDate('booking_date', '<=', $request->date_to);
             }
             return DataTables::of($query)
+                ->filterColumn('booking_info', function ($query, $keyword) {
+                    $query->whereHas('tours', function ($tourQuery) use ($keyword) {
+                        $tourQuery->where('name', 'like', "%{$keyword}%");
+                    });
+                })
                 ->addColumn('booking_id', function (Booking $booking) {
                     return '<strong>#' . $booking->id . '</strong>';
                 })
@@ -102,7 +107,7 @@ class TourManagerController extends Controller
                 ->addColumn('customer', function (Booking $booking) {
                     $name = $booking->user ? $booking->user->firstname . ' ' . $booking->user->lastname : '-';
                     return '<strong>' . e($name) . '</strong><br>' .
-                        '<small class="text-muted">' . e($booking->user->mobile ?? '') . '</small>';
+                        '<small class="text-muted">' . e($booking->user->base_mobile     ?? '') . '</small>';
                 })
                 ->addColumn('location', function (Booking $booking) {
                     $location = [];
