@@ -79,35 +79,35 @@ class TourManagerController extends Controller
             }
 
             return DataTables::of($query)
-                // Global search filter - searches across users, tours, bookings
-                ->filter(function ($query) {
-                    if (request()->has('search') && !empty(request()->input('search.value'))) {
-                        $keyword = request()->input('search.value');
-                        $query->where(function ($subQuery) use ($keyword) {
-                            $subQuery
-                                // user related to booking
-                                ->where('users.firstname', 'like', "%{$keyword}%")
-                                ->orWhere('users.lastname', 'like', "%{$keyword}%")
-                                ->orWhere('users.mobile', 'like', "%{$keyword}%")
-                                // tour related to booking
-                                ->orWhere('tours.name', 'like', "%{$keyword}%")
-                                ->orWhere('tours.title', 'like', "%{$keyword}%")
-                                ->orWhere('tours.slug', 'like', "%{$keyword}%")
-                                // seo related search
-                                ->orWhere('tours.meta_keywords', 'like', "%{$keyword}%")
-                                ->orWhere('tours.meta_title', 'like', "%{$keyword}%")
-                                ->orWhere('tours.meta_description', 'like', "%{$keyword}%")
-                                // booking address
-                                ->orWhere('bookings.address_area', 'like', "%{$keyword}%")
-                                ->orWhere('bookings.full_address', 'like', "%{$keyword}%")
-                                ->orWhere('bookings.pin_code', 'like', "%{$keyword}%")
-                                // qr code
-                                ->orWhere('qr_code.code', 'like', "%{$keyword}%")
-                                // city name
-                                ->orWhere('cities.name', 'like', "%{$keyword}%");
-                        });
-                    }
-                }, true)
+                // Global search filter - uses filterColumn on 'customer' which is searchable
+                ->filterColumn('customer', function ($query, $keyword) {
+                    $query->where(function ($subQuery) use ($keyword) {
+                        $subQuery
+                            // user related to booking
+                            ->where('users.firstname', 'like', "%{$keyword}%")
+                            ->orWhere('users.lastname', 'like', "%{$keyword}%")
+                            ->orWhere('users.mobile', 'like', "%{$keyword}%")
+                            // tour related to booking
+                            ->orWhere('tours.name', 'like', "%{$keyword}%")
+                            ->orWhere('tours.title', 'like', "%{$keyword}%")
+                            ->orWhere('tours.slug', 'like', "%{$keyword}%")
+                            // seo related search
+                            ->orWhere('tours.meta_keywords', 'like', "%{$keyword}%")
+                            ->orWhere('tours.meta_title', 'like', "%{$keyword}%")
+                            ->orWhere('tours.meta_description', 'like', "%{$keyword}%")
+                            // booking address
+                            ->orWhere('bookings.address_area', 'like', "%{$keyword}%")
+                            ->orWhere('bookings.full_address', 'like', "%{$keyword}%")
+                            ->orWhere('bookings.pin_code', 'like', "%{$keyword}%")
+                            // qr code
+                            ->orWhere('qr_code.code', 'like', "%{$keyword}%")
+                            // city name
+                            ->orWhere('cities.name', 'like', "%{$keyword}%");
+                    });
+                })
+                ->filterColumn('qr_code', function ($query, $keyword) {
+                    $query->where('qr_code.code', 'like', "%{$keyword}%");
+                })
                 ->addColumn('booking_id', function (Booking $booking) {
                     return '<strong>#' . $booking->id . '</strong>';
                 })

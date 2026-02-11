@@ -127,7 +127,7 @@
                                     <th>User</th>
                                     <th>Type / Subtype</th>
                                     <th>QR Code</th>
-                                    <th>City / State</th>
+                                    <th>City / State / Country</th>
                                     <th>Area</th>
                                     <th>Price</th>
                                     <th>Date</th>

@@ -82,18 +82,31 @@
                     <div class="row">
                         <div class="col-lg-6">
                             <div class="mb-3">
-                                <label for="mobile" class="form-label">Mobile <span class="text-danger">*</span></label>
-                                <input type="tel" name="mobile" id="mobile" value="{{ old('mobile') }}"
-                                     class="form-control @error('mobile') is-invalid @enderror" placeholder="e.g, 9876543120"
-                                    required inputmode="numeric" pattern="[0-9]{10}" minlength="10" maxlength="10">
+                                <label for="base_mobile" class="form-label">Mobile <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <select class="form-select @error('country_id') is-invalid @enderror" id="country_id" name="country_id" style="max-width: 140px;" required>
+                                        <option value="">Country</option>
+                                        @foreach($countries as $country)
+                                            <option value="{{ $country->id }}" @selected($defaultCountryId == $country->id)>
+                                                {{ $country->name }} ({{ $country->dial_code }})
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    <input type="tel" name="base_mobile" id="base_mobile" value="{{ old('base_mobile') }}"
+                                        class="form-control @error('base_mobile') is-invalid @enderror" placeholder="e.g, 9876543120"
+                                        required inputmode="numeric" pattern="[0-9]{6,15}" minlength="6" maxlength="15">
+                                </div>
+                                @error('country_id')
+                                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                                @enderror
                                 <div class="invalid-feedback">
-                                    @error('mobile')
+                                    @error('base_mobile')
                                         {{ $message }}
                                     @else
-                                        Mobile number must be exactly 10 digits.
+                                        Mobile number must be between 6 and 15 digits.
                                     @enderror
                                 </div>
-                                @if(!$errors->has('mobile'))
+                                @if(!$errors->has('base_mobile'))
                                     <div class="valid-feedback">Looks good!</div>
                                 @endif
                             </div>

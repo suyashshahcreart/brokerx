@@ -20,6 +20,7 @@ class Booking extends Model
         'bhk_id',
         'city_id',
         'state_id',
+        'country_id',
         'furniture_type',
         'other_option_details',
         'firm_name',
@@ -102,6 +103,11 @@ class Booking extends Model
     public function state()
     {
         return $this->belongsTo(State::class);
+    }
+
+    public function country()
+    {
+        return $this->belongsTo(Country::class);
     }
 
     public function creator()

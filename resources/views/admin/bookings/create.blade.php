@@ -587,6 +587,19 @@
                                         <div class="col-4">
                                             <div class="row">
                                                 <div class="col-12">
+                                                    <!-- Country -->
+                                                    <div class="mb-1">
+                                                        <label class="form-label fw-semibold mb-0" for="country_id">Country <span class="text-danger">*</span></label>
+                                                        <select name="country_id" id="country_id" class="form-select @error('country_id') is-invalid @enderror" required>
+                                                            <option value="">Select country</option>
+                                                            @foreach($countries as $country)
+                                                                <option value="{{ $country->id }}" @selected(($defaultCountryId)==$country->id)>{{ $country->name }}</option>
+                                                            @endforeach
+                                                        </select>
+                                                        <div class="invalid-feedback">@error('country_id'){{ $message }}@else Please select a country.@enderror</div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12">
                                                     <!-- State -->
                                                     <div class="mb-1">
                                                         @php
@@ -605,7 +618,7 @@
                                                                 }))->id;
                                                             }
                                                         @endphp
-                                                        <label class="form-label fw-semibold mb-0" for="state_id">State</label>
+                                                        <label class="form-label fw-semibold mb-0" for="state_id">State <span class="text-danger">*</span></label>
                                                         <select name="state_id" id="state_id" class="form-select">
                                                             <option value="">Select state</option>
                                                             @foreach($states as $s)
@@ -617,7 +630,7 @@
                                                 <div class="col-12">
                                                     <!-- City -->
                                                     <div class="mb-1">
-                                                        <label class="form-label fw-semibold mb-0" for="city_id">City</label>
+                                                        <label class="form-label fw-semibold mb-0" for="city_id">City <span class="text-danger">*</span></label>
                                                         <select name="city_id" id="city_id" class="form-select">
                                                             <option value="">Select city</option>
                                                             @foreach($cities as $c)
@@ -641,21 +654,7 @@
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
-
-                                    
-
-                                            
-
-                                            
-
-                                            
-
-                                            
-
-                                            
-
-                                                    
+                                    </div>           
                                 </div>
                             </div>
                         </div>
@@ -689,6 +688,7 @@
             property_sub_type_id: '{{ old("property_sub_type_id") }}',
             furniture_type: '{{ old("furniture_type") }}',
             bhk_id: '{{ old("bhk_id") }}',
+            country_id: '{{ $defaultCountryId ?? '' }}',
             state_id: '{{ $defaultStateId ?? '' }}',
             city_id: '{{ $defaultCityId ?? '' }}',
             different_billing_name: '{{ old("different_billing_name") }}',
@@ -792,6 +792,12 @@
 
             // Restore State and City independently
             setTimeout(function() {
+                if (window.bookingOldValues.country_id) {
+                    const countrySelect = document.getElementById('country_id');
+                    if (countrySelect) {
+                        countrySelect.value = window.bookingOldValues.country_id;
+                    }
+                }
                 if (window.bookingOldValues.state_id) {
                     const stateSelect = document.getElementById('state_id');
                     if (stateSelect) {

@@ -440,6 +440,7 @@
             property_sub_type_id: '{{ old("property_sub_type_id", $booking->property_sub_type_id) }}',
             furniture_type: '{{ old("furniture_type", $booking->furniture_type) }}',
             bhk_id: '{{ old("bhk_id", $booking->bhk_id) }}',
+            country_id: '{{ old("country_id", $defaultCountryId ?? "") }}',
             state_id: '{{ old("state_id", $booking->state_id) }}',
             city_id: '{{ old("city_id", $booking->city_id) }}',
             different_billing_name: '{{ old("different_billing_name", ($booking->firm_name || $booking->gst_no) ? "on" : "") }}',
@@ -552,6 +553,12 @@
 
             // Restore State and City independently
             setTimeout(function() {
+                if (window.bookingOldValues.country_id) {
+                    const countrySelect = document.getElementById('country_id');
+                    if (countrySelect) {
+                        countrySelect.value = window.bookingOldValues.country_id;
+                    }
+                }
                 if (window.bookingOldValues.state_id) {
                     const stateSelect = document.getElementById('state_id');
                     if (stateSelect) {

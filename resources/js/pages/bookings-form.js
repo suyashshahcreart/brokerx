@@ -156,7 +156,7 @@ function clearAllPropertySelections(options = {}) {
 }
 
 function resetAddressFields() {
-    ['house_no', 'building', 'society_name', 'address_area', 'landmark', 'pin_code', 'full_address', 'city_id', 'state_id'].forEach(id => {
+    ['house_no', 'building', 'society_name', 'address_area', 'landmark', 'pin_code', 'full_address', 'city_id', 'state_id', 'country_id'].forEach(id => {
         const input = el(id);
         if (input) {
             input.value = '';

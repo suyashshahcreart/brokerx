@@ -54,6 +54,7 @@
                             <thead class="table-light">
                                 <tr>
                                     <th>Full Name</th>
+                                    <th>Country</th>
                                     <th>Mobile</th>
                                     <th>Email</th>
                                     <th>Roles</th>
@@ -91,6 +92,7 @@
                 order: [[0, 'asc']],
                 columns: [
                     { data: 'name', name: 'name', className: 'fw-semibold' },
+                    { data: 'country', name: 'country', orderable: false, searchable: false },
                     { data: 'mobile', name: 'mobile' },
                     { data: 'email', name: 'email' },
                     { data: 'roles_badges', name: 'roles.name', orderable: false, searchable: false },

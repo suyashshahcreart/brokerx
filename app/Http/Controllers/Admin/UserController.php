@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Country;
 use App\Models\User;
 use App\Models\Role;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Validator;
 use Spatie\Activitylog\Models\Activity;
 use Yajra\DataTables\Facades\DataTables;
 
@@ -26,18 +28,16 @@ class UserController extends Controller
             $query = User::query()->with('roles');
             // Filter: exclude users who have ONLY customer role
             // Show users who: don't have customer role OR have customer role + other roles
-            $query->where(function($q) {
-                // Users without customer role
-                $q->whereDoesntHave('roles', function($q2) {
+            $query->where(function ($q) {
+                $q->whereDoesntHave('roles', function ($q2) {
                     $q2->where('name', 'customer');
                 })
-                // OR users with customer role but also have other roles (more than 1 role total)
-                ->orWhere(function($q2) {
-                    $q2->whereHas('roles', function($q3) {
-                        $q3->where('name', 'customer');
-                    })->has('roles', '>', 1); // Has more than 1 role total
-                });
-            });
+                    ->orWhere(function ($q2) {
+                        $q2->whereHas('roles', function ($q3) {
+                            $q3->where('name', 'customer');
+                        })->has('roles', '>', 1); // Has more than 1 role total
+                    });
+            })->with(['country:id,name,country_code,dial_code']);
             $canEdit = $request->user()->can('user_edit');
             $canDelete = $request->user()->can('user_delete');
 
@@ -57,7 +57,15 @@ class UserController extends Controller
                         ->orderBy('firstname', $direction)
                         ->orderBy('lastname', $direction);
                 })
-                ->editColumn('mobile', fn(User $user) => e($user->mobile))
+                ->editColumn('mobile', fn(User $user) => $user->country?->dial_code . ' ' . e($user->base_mobile))
+                ->addColumn('country', function (User $user) {
+                    $name = $user->country?->name;
+                    $code = $user->country_code ?? $user->country?->country_code;
+                    if ($name && $code) {
+                        return e($name . ' (' . $code . ')');
+                    }
+                    return e($name ?: ($code ?: '-'));
+                })
                 ->addColumn('roles_badges', function (User $user) {
                     $user->loadMissing('roles');
                     return view('admin.users.partials.roles', ['roles' => $user->roles])->render();
@@ -81,7 +89,15 @@ class UserController extends Controller
         $canManageRoles = auth()->user()->can('user_manage_roles');
         $roles = $canManageRoles ? Role::orderBy('name')->get() : collect();
 
-        return view('admin.users.create', compact('roles', 'canManageRoles'));
+        $countries = Country::where('is_active', true)->orderBy('name')->get();
+        $defaultCountryId = old('country_id');
+        if (!$defaultCountryId) {
+            $defaultCountryId = optional($countries->first(function ($country) {
+                return strcasecmp($country->name, 'India') === 0 || strtoupper($country->country_code) === 'IN';
+            }))->id;
+        }
+
+        return view('admin.users.create', compact('roles', 'canManageRoles', 'countries', 'defaultCountryId'));
     }
 
     public function store(Request $request)
@@ -89,7 +105,8 @@ class UserController extends Controller
         $rules = [
             'firstname' => ['required', 'string', 'max:255'],
             'lastname' => ['required', 'string', 'max:255'],
-            'mobile' => ['required', 'numeric', 'digits:10', 'unique:users,mobile'],
+            'base_mobile' => ['required', 'numeric', 'digits_between:6,15'],
+            'country_id' => ['required', 'exists:countries,id'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'min:6'],
         ];
@@ -101,12 +118,38 @@ class UserController extends Controller
             $rules['roles'] = ['prohibited'];
         }
 
-        $validated = $request->validate($rules);
+        $validator = Validator::make($request->all(), $rules, [
+            'base_mobile.required' => 'Mobile number is required.',
+            'base_mobile.digits_between' => 'Mobile number must be between 6 and 15 digits.',
+            'country_id.required' => 'Country is required.',
+        ]);
+
+        $country = null;
+        if ($validator->passes()) {
+            $country = Country::find($request->country_id);
+            if ($country) {
+                $dialCode = ltrim($country->dial_code, '+');
+                $fullMobile = $dialCode . $request->base_mobile;
+                if (User::where('mobile', $fullMobile)->exists()) {
+                    $validator->errors()->add('base_mobile', 'This mobile number already exists.');
+                }
+            } else {
+                $validator->errors()->add('country_id', 'Selected country does not exist.');
+            }
+        }
+
+        $validated = $validator->validate();
+        $dialCode = ltrim($country->dial_code, '+');
+        $fullMobile = $dialCode . $validated['base_mobile'];
 
         $user = User::create([
             'firstname' => $validated['firstname'],
             'lastname' => $validated['lastname'],
-            'mobile' => $validated['mobile'],
+            'mobile' => $fullMobile,
+            'base_mobile' => $validated['base_mobile'],
+            'country_code' => strtoupper($country->country_code),
+            'dial_code' => $country->dial_code,
+            'country_id' => $country->id,
             'email' => $validated['email'],
             'password' => Hash::make($validated['password'])
         ]);
@@ -143,7 +186,15 @@ class UserController extends Controller
         $canManageRoles = auth()->user()->can('user_manage_roles');
         $roles = $canManageRoles ? Role::orderBy('name')->get() : collect();
         $user->load('roles');
-        return view('admin.users.edit', compact('user', 'roles', 'canManageRoles'));
+        $countries = Country::where('is_active', true)->orderBy('name')->get();
+        $defaultCountryId = old('country_id', $user->country_id);
+        if (!$defaultCountryId) {
+            $defaultCountryId = optional($countries->first(function ($country) {
+                return strcasecmp($country->name, 'India') === 0 || strtoupper($country->country_code) === 'IN';
+            }))->id;
+        }
+
+        return view('admin.users.edit', compact('user', 'roles', 'canManageRoles', 'countries', 'defaultCountryId'));
     }
 
     public function update(Request $request, User $user)
@@ -151,7 +202,8 @@ class UserController extends Controller
         $rules = [
             'firstname' => ['required', 'string', 'max:255'],
             'lastname' => ['required', 'string', 'max:255'],
-            'mobile' => ['required', 'numeric', 'digits:10', 'unique:users,mobile,' . $user->id],
+            'base_mobile' => ['required', 'numeric', 'digits_between:6,15'],
+            'country_id' => ['required', 'exists:countries,id'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email,' . $user->id],
             'password' => ['nullable', 'string', 'min:6'],
         ];
@@ -163,7 +215,32 @@ class UserController extends Controller
             $rules['roles'] = ['prohibited'];
         }
 
-        $validated = $request->validate($rules);
+        $validator = Validator::make($request->all(), $rules, [
+            'base_mobile.required' => 'Mobile number is required.',
+            'base_mobile.digits_between' => 'Mobile number must be between 6 and 15 digits.',
+            'country_id.required' => 'Country is required.',
+        ]);
+
+        $country = null;
+        if ($validator->passes()) {
+            $country = Country::find($request->country_id);
+            if ($country) {
+                $dialCode = ltrim($country->dial_code, '+');
+                $fullMobile = $dialCode . $request->base_mobile;
+                $exists = User::where('mobile', $fullMobile)
+                    ->where('id', '!=', $user->id)
+                    ->exists();
+                if ($exists) {
+                    $validator->errors()->add('base_mobile', 'This mobile number already exists.');
+                }
+            } else {
+                $validator->errors()->add('country_id', 'Selected country does not exist.');
+            }
+        }
+
+        $validated = $validator->validate();
+        $dialCode = ltrim($country->dial_code, '+');
+        $fullMobile = $dialCode . $validated['base_mobile'];
 
         // Capture before state
         $user->load('roles');
@@ -180,7 +257,11 @@ class UserController extends Controller
         $data = [
             'firstname' => $validated['firstname'],
             'lastname' => $validated['lastname'],
-            'mobile' => $validated['mobile'],
+            'mobile' => $fullMobile,
+            'base_mobile' => $validated['base_mobile'],
+            'country_code' => strtoupper($country->country_code),
+            'dial_code' => $country->dial_code,
+            'country_id' => $country->id,
             'email' => $validated['email']
         ];
 

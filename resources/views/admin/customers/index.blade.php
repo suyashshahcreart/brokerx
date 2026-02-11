@@ -54,6 +54,7 @@
                                 <tr>
                                     <th>#ID</th>
                                     <th>Full Name</th>
+                                    <th>Country</th>
                                     <th>Mobile</th>
                                     <th>Email</th>
                                     <th>Total Bookings</th>
@@ -93,6 +94,7 @@
                 columns: [
                     { data: 'id', name: 'id', orderable: true, searchable: false },
                     { data: 'name', name: 'name', className: 'fw-semibold' },
+                    { data: 'country', name: 'country', orderable: false, searchable: false },
                     { data: 'mobile', name: 'mobile' },
                     { data: 'email', name: 'email' },
                     { data: 'bookings_count', name: 'bookings_count', orderable: true, searchable: false },

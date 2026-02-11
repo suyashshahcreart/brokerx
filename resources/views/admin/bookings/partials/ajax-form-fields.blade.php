@@ -297,6 +297,18 @@
                     <div class="col-4">
                         <div class="row">
                             <div class="col-12">
+                                <!-- Country -->
+                                <div class="mb-1">
+                                    <label class="form-label fw-semibold mb-0" for="country_id">Country <span class="text-danger">*</span> </label>
+                                    <select name="country_id" id="country_id" class="form-select" required>
+                                        <option value="">Select country</option>
+                                        @foreach($countries as $country)
+                                            <option value="{{ $country->id }}" @selected($defaultCountryId == $country->id)>{{ $country->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-12">
                                 <!-- State -->
                                 <div class="mb-1">
                                     <label class="form-label fw-semibold mb-0" for="state_id">State <span class="text-danger">*</span> </label>
