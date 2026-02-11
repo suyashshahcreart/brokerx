@@ -38,7 +38,7 @@ class AdminDashboardController extends Controller
         $totalCustomers = User::whereHas('roles', function($q) {
             $q->where('name', 'customer');
         })->count();
-        $liveTours = Booking::whereNotNull('tour_final_link')->count();
+        $liveTours = Booking::where('status', 'tour_live')->count();
         $totalRevenue = PaymentHistory::where('status', 'completed')->sum('amount');
 
         // Get current date info
