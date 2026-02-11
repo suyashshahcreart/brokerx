@@ -58,26 +58,34 @@ public function BookingsAnalyticChartData(Request $request)
     }
 
     /**
-     * WEEK → group by day
+     * WEEK → last 6 days + today (same as Sales Analytic)
      */
     private function weekData()
     {
-        $start = now()->startOfWeek();
-        $end = now()->endOfWeek();
+        // Last 6 days + today
+        $start = now()->subDays(6)->startOfDay();
+        $end = now()->endOfDay();
 
-        $labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+        // Generate labels for the last 7 days
+        $labels = [];
+        $dates = [];
+        for ($i = 6; $i >= 0; $i--) {
+            $date = now()->subDays($i);
+            $labels[] = $date->format('D');
+            $dates[] = $date->format('Y-m-d');
+        }
 
         $customers = User::whereBetween('created_at', [$start, $end])
-            ->selectRaw('DAYOFWEEK(created_at) as day, COUNT(*) as total')
-            ->groupBy('day')
-            ->pluck('total', 'day');
+            ->selectRaw('DATE(created_at) as date, COUNT(*) as total')
+            ->groupBy('date')
+            ->pluck('total', 'date');
 
         $bookings = Booking::whereBetween('created_at', [$start, $end])
-            ->selectRaw('DAYOFWEEK(created_at) as day, COUNT(*) as total')
-            ->groupBy('day')
-            ->pluck('total', 'day');
+            ->selectRaw('DATE(created_at) as date, COUNT(*) as total')
+            ->groupBy('date')
+            ->pluck('total', 'date');
 
-        return $this->normalizeWeek($labels, $customers, $bookings);
+        return $this->normalizeDays($labels, $dates, $customers, $bookings);
     }
 
     /**
@@ -149,6 +157,25 @@ public function BookingsAnalyticChartData(Request $request)
         foreach ($order as $day) {
             $customerData[] = $customers[$day] ?? 0;
             $bookingData[] = $bookings[$day] ?? 0;
+        }
+
+        return [
+            'categories' => $labels,
+            'series' => [
+                ['name' => 'Customers', 'data' => $customerData],
+                ['name' => 'Bookings', 'data' => $bookingData],
+            ]
+        ];
+    }
+
+    private function normalizeDays($labels, $dates, $customers, $bookings)
+    {
+        $customerData = [];
+        $bookingData = [];
+
+        foreach ($dates as $date) {
+            $customerData[] = $customers[$date] ?? 0;
+            $bookingData[] = $bookings[$date] ?? 0;
         }
 
         return [
