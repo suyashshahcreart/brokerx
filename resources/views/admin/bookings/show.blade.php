@@ -382,7 +382,7 @@
                                         @endif
 
                                         <!-- Size (BHK) - For Residential -->
-                                        @if($booking->bhk_id && $currentPropertyType == 'Residential')
+                                        @if($booking->bhk_id && $booking->propertyType->name == 'Residential')
                                             <div class="col-6">
                                                 <div class="info-label">Size (BHK / RK)</div>
                                                 <div class="info-value">
