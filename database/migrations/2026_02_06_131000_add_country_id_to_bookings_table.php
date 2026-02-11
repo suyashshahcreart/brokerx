@@ -14,10 +14,9 @@ return new class extends Migration
         Schema::table('bookings', function (Blueprint $table) {
             $table->foreignId('country_id')
                 ->nullable()
-                ->constrained('countries')
-                ->nullOnDelete()
                 ->after('state_id')
-                ->index();
+                ->constrained('countries')
+                ->nullOnDelete();
         });
     }
 

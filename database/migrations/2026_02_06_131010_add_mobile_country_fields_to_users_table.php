@@ -17,10 +17,9 @@ return new class extends Migration
             $table->char('dial_code', 6)->nullable()->after('lastname');
             $table->foreignId('country_id')
                 ->nullable()
-                ->constrained('countries')
-                ->nullOnDelete()
                 ->after('country_code')
-                ->index();
+                ->constrained('countries')
+                ->nullOnDelete();
         });
     }
 
