@@ -60,6 +60,7 @@ class BookingController extends Controller
                     $join->on('tours.booking_id', '=', 'bookings.id')
                         ->whereNull('tours.deleted_at');
                 })
+                ->leftJoin('qr_code', 'qr_code.booking_id', '=', 'bookings.id')
                 ->select('bookings.*')
                 ->distinct()
                 ->with(['propertyType', 'propertySubType', 'state', 'assignees', 'qr', 'tours']);
@@ -97,10 +98,31 @@ class BookingController extends Controller
             return DataTables::of($query)
                 ->filterColumn('user', function ($query, $keyword) {
                     $query->where(function ($subQuery) use ($keyword) {
-                        $subQuery->where('users.firstname', 'like', "%{$keyword}%")
+                        $subQuery
+                            // user related to booking
+                            ->where('users.firstname', 'like', "%{$keyword}%")
                             ->orWhere('users.lastname', 'like', "%{$keyword}%")
                             ->orWhere('users.mobile', 'like', "%{$keyword}%")
-                            ->orWhere('tours.name', 'like', "%{$keyword}%");
+                            // tour related to booking
+                            ->orWhere('tours.name', 'like', "%{$keyword}%")
+                            ->orWhere('tours.title', 'like', "%{$keyword}%")
+                            ->orWhere('tours.slug', 'like', "%{$keyword}%")
+                            // seo relarted search
+                            ->orWhere('tours.meta_keywords', 'like', "%{$keyword}%")
+                            ->orWhere('tours.meta_title', 'like', "%{$keyword}%")
+                            ->orWhere('tours.meta_description', 'like', "%{$keyword}%")
+                            // booking address
+                            ->orWhere('bookings.address_area', 'like', "%{$keyword}%")
+                            ->orWhere('bookings.full_address', 'like', "%{$keyword}%")
+                            ->orWhere('bookings.pin_code', 'like', "%{$keyword}%")
+                            ;
+                    });
+                })
+                ->filterColumn('qr_code', function ($query, $keyword) {
+                    $query->where(function ($subQuery) use ($keyword) {
+                        $subQuery
+                            // qr code                            
+                            ->orWhere('qr_code.code', 'like', "%{$keyword}%");
                     });
                 })
                 ->addColumn('user', function (Booking $booking) {
@@ -135,7 +157,7 @@ class BookingController extends Controller
                     return '<span class="text-muted">N/A</span>';
                 })
                 ->addColumn('city_state', function (Booking $booking) {
-                    return ($booking->city?->name ?? '-') . '<div class="text-muted small">' . ($booking->state?->name ?? '-') . '</div>';
+                    return ($booking->city?->name ?? '-') . ' / <div class="text-muted small">' . ($booking->state?->name ?? '-') . '</div>';
                 })
                 ->editColumn('area', fn(Booking $booking) => number_format($booking->area))
                 ->editColumn('price', fn(Booking $booking) => '₹ ' . number_format($booking->price))
