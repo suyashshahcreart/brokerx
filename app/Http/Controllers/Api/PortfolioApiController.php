@@ -114,7 +114,7 @@ class PortfolioApiController extends Controller
                 }
             ])->select([
                 'id', 'status', 'owner_type', 
-                'property_type_id', 'property_sub_type_id'
+                'property_type_id', 'property_sub_type_id', 'user_id'
             ]);
 
             // Apply property type filter
@@ -278,12 +278,25 @@ class PortfolioApiController extends Controller
         // Get the latest tour for this booking
         $tour = $booking->tours->first();
 
+        // Get booking live link
+        $bookingLiveLink = $booking->getTourLiveUrl();
+
+        // Get tour live link if tour exists
+        // Ensure booking relationship is set on tour for getTourLiveUrl() to work
+        $tourLiveLink = '#';
+        if ($tour) {
+            // Set the booking relationship on the tour so getTourLiveUrl() can access booking->user_id
+            $tour->setRelation('booking', $booking);
+            $tourLiveLink = $tour->getTourLiveUrl();
+        }
+
         return [
             'booking_id' => $booking->id,
             'booking_status' => $booking->status,
             'owner_type' => $booking->owner_type,
             'property_type' => $booking->propertyType ? $booking->propertyType->name : null,
             'property_sub_type' => $booking->propertySubType ? $booking->propertySubType->name : null,
+            'booking_live_link' => $bookingLiveLink,
             'tour' => $tour ? [
                 'name' => $tour->name,
                 'title' => $tour->title,
@@ -295,6 +308,7 @@ class PortfolioApiController extends Controller
                 'is_mobile_validation' => (bool) $tour->is_mobile_validation,
                 'is_hosted' => (bool) $tour->is_hosted,
                 'hosted_link' => $tour->hosted_link,
+                'tour_live_link' => $tourLiveLink,
             ] : null,
         ];
     }
