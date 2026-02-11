@@ -40,6 +40,8 @@ $(document).ready(function () {
         ajax: {
             url: window.location.href,
             data: function (d) {
+                d.state_id = $('#filter-state').val();
+                d.city_id = $('#filter-city').val();
                 d.status = $('#filter-status').val();
                 d.payment_status = $('#filter-payment-status').val();
                 
@@ -56,11 +58,11 @@ $(document).ready(function () {
         },
         columns: [
             { data: 'booking_id', name: 'id' },
-            { data: 'booking_info', name: 'id' },
+            { data: 'booking_info', name: 'booking_info' },
             { data: 'customer', name: 'user.firstname' },
-            { data: 'location', name: 'location' },
+            { data: 'location', name: 'location'},
             { data: 'city_state', name: 'city.name' },
-            { data: 'qr_code', name: 'qr.code', orderable: false, searchable: false },
+            { data: 'qr_code', name: 'qr.code', orderable: false, searchable: true },
             { data: 'created_at', name: 'created_at' },
             { data: 'status', name: 'status' },
             { data: 'payment_status', name: 'payment_status' },
@@ -92,10 +94,34 @@ $(document).ready(function () {
 
     // Reset filters
     $('#reset-filters').on('click', function () {
+        $('#filter-state').val('');
+        $('#filter-city').val('');
+        $('#filter-city').find('option').show();
         $('#filter-status').val('');
         $('#filter-payment-status').val('');
         $('#filter-date-range').val('');
         table.draw();
+    });
+
+    // Filter state - cascade cities
+    $('#filter-state').on('change', function () {
+        const stateId = $(this).val();
+        const citySelect = $('#filter-city');
+
+        if (stateId) {
+            citySelect.find('option').each(function () {
+                const $option = $(this);
+                if ($option.val() === '' || $option.data('state') == stateId) {
+                    $option.show();
+                } else {
+                    $option.hide();
+                }
+            });
+            citySelect.val('');
+        } else {
+            citySelect.find('option').show();
+            citySelect.val('');
+        }
     });
 
     // Schedule tour modal

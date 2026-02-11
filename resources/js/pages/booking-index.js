@@ -130,9 +130,9 @@ document.addEventListener('DOMContentLoaded', function () {
 		order: [[0, 'desc']],
 		columns: [
 			{ data: 'id', name: 'id' },
-			{ data: 'user', name: 'users.firstname', searchable: true },
+			{ data: 'user', name: 'user', searchable: true },
 			{ data: 'type_subtype', name: 'property_types.name', orderable: false, searchable: false },
-			{ data: 'qr_code', name: 'qr.code', orderable: false, searchable: false },
+			{ data: 'qr_code', name: 'qr.code', orderable: false, searchable: true },
 			{ data: 'city_state', name: 'cities.name', orderable: false, searchable: true },
 			{ data: 'area', name: 'area' },
 			{ data: 'price', name: 'price' },
