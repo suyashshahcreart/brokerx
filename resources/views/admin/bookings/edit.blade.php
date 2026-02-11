@@ -1,12 +1,9 @@
 @extends('admin.layouts.vertical', ['title' => 'Edit Booking', 'subTitle' => 'Property'])
-
 @section('css')
     <!-- Font Awesome for dynamic icons from database -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-
     <!-- Choices.js CSS -->
     @vite(['node_modules/choices.js/public/assets/styles/choices.min.css'])
-
     <style>
         /* Pill and Chip Styles */
         .top-pill, .chip {
@@ -263,7 +260,6 @@
         }
     </style>
 @endsection
-
 @section('content')
     <div class="row">
         <div class="col-12">

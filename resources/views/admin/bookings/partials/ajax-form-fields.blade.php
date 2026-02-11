@@ -67,7 +67,7 @@
                                 <div class="top-pill {{ ($booking->owner_type ?? '') == 'Broker' ? 'active' : '' }}" data-group="ownerType" data-value="Broker" onclick="topPillClick(this)">
                                     <i class="ri-briefcase-line me-1"></i> Broker
                                 </div>
-                                <div class="top-pill {{ ($booking->owner_type ?? '') == 'Other' ? 'active' : '' }}" data-group="ownerType" data-value="Other" onclick="topPillClick(this)">
+                                <div class="top-pill d-none {{ ($booking->owner_type ?? '') == 'Other' ? 'active' : '' }}" data-group="ownerType" data-value="Other" onclick="topPillClick(this)">
                                     <i class="ri-shield-user-line me-1"></i> Other
                                 </div>
                             </div>

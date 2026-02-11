@@ -50,44 +50,58 @@ function hideAllPropertyTabs() {
 // ========================
 // DATA CHECKING FUNCTIONS
 // ========================
+function getFilledPropertyFields() {
+    // Collect only populated property fields for reset warnings.
+    const filled = [];
+    const hasSubType = document.querySelector('[data-group="resType"].active,[data-group="comType"].active,[data-group="othLooking"].active');
+    if (hasSubType) filled.push('Property Sub Type');
+
+    const hasFurnish = document.querySelector('#resFurnishContainer .chip.active');
+    if (hasFurnish) filled.push('Furnish Type');
+
+    const hasSize = document.querySelector('#resSizeContainer .chip.active');
+    if (hasSize) filled.push('Size (BHK / RK)');
+
+    const areaValue = el('area')?.value?.trim();
+    if (areaValue) filled.push('Super Built-up Area');
+
+    const othDescValue = el('othDesc')?.value?.trim();
+    if (othDescValue) filled.push('Other Option Details');
+
+    return filled;
+}
+
+function getFilledAddressFields() {
+    // Collect only populated address fields for full reset warnings.
+    const fields = [
+        { id: 'house_no', label: 'House / Office No' },
+        { id: 'building', label: 'Society / Building Name' },
+        { id: 'society_name', label: 'Society / Complex Name' },
+        { id: 'address_area', label: 'Area / Locality' },
+        { id: 'landmark', label: 'Landmark' },
+        { id: 'pin_code', label: 'PIN Code' },
+        { id: 'state_id', label: 'State' },
+        { id: 'city_id', label: 'City' },
+        { id: 'full_address', label: 'Full Address' }
+    ];
+
+    return fields.reduce((acc, field) => {
+        const value = el(field.id)?.value?.trim();
+        if (value) acc.push(field.label);
+        return acc;
+    }, []);
+}
+
 function hasPropertyDataFilled() {
-    if (!state.activePropertyTab) return false;
-    
-    // Check based on active tab
-    if (state.activePropertyTab === 'res') {
-        const resType = document.querySelector('#resTypeContainer .top-pill.active');
-        const resFurnish = document.querySelector('#resFurnishContainer .chip.active');
-        const resSize = document.querySelector('#resSizeContainer .chip.active');
-        const resArea = el('area')?.value?.trim();
-        return !!(resType || resFurnish || resSize || resArea);
-    } else if (state.activePropertyTab === 'com') {
-        const comType = document.querySelector('#comTypeContainer .top-pill.active');
-        const comFurnish = document.querySelector('#comFurnishContainer .chip.active');
-        const comArea = el('area')?.value?.trim();
-        return !!(comType || comFurnish || comArea);
-    } else if (state.activePropertyTab === 'oth') {
-        const othLooking = document.querySelector('#othLookingContainer .top-pill.active');
-        const othDesc = el('othDesc')?.value?.trim();
-        const othArea = el('area')?.value?.trim();
-        return !!(othLooking || othDesc || othArea);
-    }
-    
-    return false;
+    return getFilledPropertyFields().length > 0;
 }
 
 function hasAddressDataFilled() {
-    const c = el('country_id')?.value?.trim();
-    const h = el('house_no')?.value?.trim();
-    const b = el('building')?.value?.trim();
-    const s = el('society_name')?.value?.trim();
-    const a = el('address_area')?.value?.trim();
-    const l = el('landmark')?.value?.trim();
-    const p = el('pin_code')?.value?.trim();
-    const f = el('full_address')?.value?.trim();
-    return !!(c || h || b || s || a || l || p || f);
+    return getFilledAddressFields().length > 0;
 }
 
-function clearAllPropertySelections() {
+function clearAllPropertySelections(options = {}) {
+    const { resetAddress = false } = options;
     // Skip clearing if we're restoring old values from validation error
     if (window.isRestoringOldValues) {
         return;
@@ -103,6 +117,13 @@ function clearAllPropertySelections() {
     if (areaField) {
         areaField.value = '';
         areaField.classList.remove('is-valid', 'is-invalid');
+    }
+
+    // Clear price field when property details reset
+    const priceField = el('price');
+    if (priceField) {
+        priceField.value = '';
+        priceField.classList.remove('is-valid', 'is-invalid');
     }
     
     // Clear other option details
@@ -126,8 +147,10 @@ function clearAllPropertySelections() {
         if (container) container.classList.remove('has-error');
     });
     
-    // Clear address fields
-    resetAddressFields();
+    // Clear address fields only for full reset
+    if (resetAddress) {
+        resetAddressFields();
+    }
     
     // Note: Billing details (firm name, GST) are NOT cleared - they persist when property type changes
 }
@@ -157,45 +180,29 @@ window.handlePropertyTabChange = async function(domElement) {
     const skipConfirmation = window.isRestoringOldValues;
     
     // Check if property type was already set, user is trying to change it, AND there's actual data filled
-    if (!skipConfirmation && state.activePropertyTab && state.activePropertyTab !== tabId && (hasPropertyDataFilled() || hasAddressDataFilled())) {
+    const filledPropertyFields = getFilledPropertyFields();
+    const filledAddressFields = getFilledAddressFields();
+    const hasAnyFilled = filledPropertyFields.length > 0 || filledAddressFields.length > 0;
+
+    if (!skipConfirmation && state.activePropertyTab && state.activePropertyTab !== tabId && hasAnyFilled) {
         // Get current and new property type names
         const currentPill = document.querySelector('[data-tab-connect].active');
         const currentType = currentPill ? currentPill.dataset.value : 'Current';
         const newType = propertyTypeName || 'New';
         
         // Build message based on what data exists
-        let messageParts = [];
+        const messageParts = [];
         messageParts.push(`You are changing Property Type from <strong>${currentType}</strong> to <strong>${newType}</strong>.<br><br>`);
-        
-        if (hasPropertyDataFilled()) {
-            messageParts.push(`This will clear the following property details:<br>
-                • Property Sub Type<br>
-                • Furnish Type<br>
-                • Size (BHK/RK)<br>
-                • Super Built-up Area<br>`);
+
+        if (filledPropertyFields.length > 0) {
+            messageParts.push(`<strong>Property details to reset:</strong><br>${filledPropertyFields.map(item => `• ${item}`).join('<br>')}<br><br>`);
         }
-        
-        if (hasAddressDataFilled()) {
-            if (hasPropertyDataFilled()) {
-                messageParts.push(`<br>This will also clear the following address details:<br>
-                    • House / Office No.<br>
-                    • Society / Building Name<br>
-                    • Area / Locality<br>
-                    • Landmark<br>
-                    • Pincode<br>
-                    • Full Address<br>`);
-            } else {
-                messageParts.push(`This will clear the following address details:<br>
-                    • House / Office No.<br>
-                    • Society / Building Name<br>
-                    • Area / Locality<br>
-                    • Landmark<br>
-                    • Pincode<br>
-                    • Full Address<br>`);
-            }
+
+        if (filledAddressFields.length > 0) {
+            messageParts.push(`<strong>Address details to reset (Full Reset only):</strong><br>${filledAddressFields.map(item => `• ${item}`).join('<br>')}<br><br>`);
         }
-        
-        messageParts.push(`<br><strong>Note:</strong> Your billing details (Company Name, GST No) will be preserved.`);
+
+        messageParts.push(`<strong>Note:</strong> Your billing details (Company Name, GST No) will be preserved.`);
         
         // Show confirmation dialog only if there's data that will be lost
         const result = await Swal.fire({
@@ -205,23 +212,31 @@ window.handlePropertyTabChange = async function(domElement) {
                 ${messageParts.join('')}
             </div>`,
             showCancelButton: true,
-            confirmButtonColor: '#0d6efd',
+            showDenyButton: true,
+            confirmButtonColor: '#e74c3c',
+            denyButtonColor: '#0d6efd',
             cancelButtonColor: '#6c757d',
-            confirmButtonText: 'Yes, Change It',
+            confirmButtonText: 'Full Reset (Property + Address)',
+            denyButtonText: 'Reset Property Details',
             cancelButtonText: 'Cancel',
             buttonsStyling: true,
             allowOutsideClick: true,
             allowEscapeKey: true
         });
         
-        // If user cancels, don't change property type
-        if (!result.isConfirmed) {
+        if (result.isConfirmed) {
+            clearAllPropertySelections({ resetAddress: true });
+        } else if (result.isDenied) {
+            clearAllPropertySelections({ resetAddress: false });
+        } else {
             return;
         }
     }
     
     // Proceed with property type change
-    clearAllPropertySelections();
+    if (!hasAnyFilled) {
+        clearAllPropertySelections({ resetAddress: false });
+    }
     
     // Show the propertySubTypetab section
     const subTypeSection = el('propertySubTypetab');

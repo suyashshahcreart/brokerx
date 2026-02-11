@@ -35,38 +35,56 @@
                     </div>
                     <div class="card-body">
                         <!-- Filters -->
-                        <div class="row mb-3">
-                            <div class="col-md-3">
+                        <div class="row mb-3 g-3" id="filtersSection">
+                            <div class="col-md-2">
+                                <label class="form-label">State</label>
+                                <select class="form-select form-select-sm" id="filter-state">
+                                    <option value="">All States</option>
+                                    @foreach($states ?? [] as $state)
+                                        <option value="{{ $state->id }}">{{ $state->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">City</label>
+                                <select class="form-select form-select-sm" id="filter-city">
+                                    <option value="">All Cities</option>
+                                    @foreach($cities ?? [] as $city)
+                                        <option value="{{ $city->id }}" data-state="{{ $city->state_id }}">{{ $city->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-2">
                                 <label class="form-label">Status</label>
-                                <select class="form-select" id="filter-status">
+                                <select class="form-select form-select-sm" id="filter-status">
                                     <option value="">All Status</option>
                                     @foreach($statuses as $status)
                                         <option value="{{ $status }}">{{ ucfirst($status) }}</option>
                                     @endforeach
                                 </select>
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-2">
                                 <label class="form-label">Payment Status</label>
-                                <select class="form-select" id="filter-payment-status">
+                                <select class="form-select form-select-sm" id="filter-payment-status">
                                     <option value="">All Payment Status</option>
                                     @foreach($paymentStatuses as $paymentStatus)
                                         <option value="{{ $paymentStatus }}">{{ ucfirst($paymentStatus) }}</option>
                                     @endforeach
                                 </select>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-2">
                                 <label class="form-label">Date Range</label>
-                                <input type="text" class="form-control" id="filter-date-range"
+                                <input type="text" class="form-control form-control-sm" id="filter-date-range"
                                     placeholder="Select date range">
                             </div>
                         </div>
 
                         <div class="row mb-3">
                             <div class="col-md-12">
-                                <button type="button" class="btn btn-primary" id="apply-filters">
+                                <button type="button" class="btn btn-sm btn-primary" id="apply-filters">
                                     <i class="ri-filter-line me-1"></i>Apply Filters
                                 </button>
-                                <button type="button" class="btn btn-secondary" id="reset-filters">
+                                <button type="button" class="btn btn-sm btn-secondary" id="reset-filters">
                                     <i class="ri-refresh-line me-1"></i>Reset
                                 </button>
                             </div>
