@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
+use App\Models\City;
 use App\Models\QR;
 use App\Models\Setting;
+use App\Models\State;
 use App\Models\Tour;
 use App\Models\FtpConfiguration;
 use App\Jobs\UploadTourAssetsToS3;
@@ -33,46 +35,79 @@ class TourManagerController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $query = Booking::with([
-                'user',
-                'propertyType',
-                'propertySubType',
-                'bhk',
-                'city',
-                'state',
-                'tours'
-            ])->orderBy('created_at', 'desc');
+            // Add joins for searchable columns to enable global search
+            $query = Booking::query()
+                ->leftJoin('users', 'bookings.user_id', '=', 'users.id')
+                ->leftJoin('cities', 'bookings.city_id', '=', 'cities.id')
+                ->leftJoin('tours', function ($join) {
+                    $join->on('tours.booking_id', '=', 'bookings.id')
+                        ->whereNull('tours.deleted_at');
+                })
+                ->leftJoin('qr_code', 'qr_code.booking_id', '=', 'bookings.id')
+                ->select('bookings.*')
+                ->distinct()
+                ->with(['user', 'propertyType', 'propertySubType', 'bhk', 'city', 'state', 'tours', 'qr'])
+                ->orderBy('bookings.created_at', 'desc');
 
             // Apply filters
-            if ($request->filled('status')) {
-                $query->where('status', $request->status);
-            }
-
-            if ($request->filled('payment_status')) {
-                $query->where('payment_status', $request->payment_status);
-            }
-
-            if ($request->filled('property_type_id')) {
-                $query->where('property_type_id', $request->property_type_id);
+            if ($request->filled('state_id')) {
+                $query->where('bookings.state_id', $request->state_id);
             }
 
             if ($request->filled('city_id')) {
-                $query->where('city_id', $request->city_id);
+                $query->where('bookings.city_id', $request->city_id);
+            }
+
+            if ($request->filled('status')) {
+                $query->where('bookings.status', $request->status);
+            }
+
+            if ($request->filled('payment_status')) {
+                $query->where('bookings.payment_status', $request->payment_status);
+            }
+
+            if ($request->filled('property_type_id')) {
+                $query->where('bookings.property_type_id', $request->property_type_id);
             }
 
             if ($request->filled('date_from')) {
-                $query->whereDate('booking_date', '>=', $request->date_from);
+                $query->whereDate('bookings.booking_date', '>=', $request->date_from);
             }
 
             if ($request->filled('date_to')) {
-                $query->whereDate('booking_date', '<=', $request->date_to);
+                $query->whereDate('bookings.booking_date', '<=', $request->date_to);
             }
+
             return DataTables::of($query)
-                ->filterColumn('booking_info', function ($query, $keyword) {
-                    $query->whereHas('tours', function ($tourQuery) use ($keyword) {
-                        $tourQuery->where('name', 'like', "%{$keyword}%");
-                    });
-                })
+                // Global search filter - searches across users, tours, bookings
+                ->filter(function ($query) {
+                    if (request()->has('search') && !empty(request()->input('search.value'))) {
+                        $keyword = request()->input('search.value');
+                        $query->where(function ($subQuery) use ($keyword) {
+                            $subQuery
+                                // user related to booking
+                                ->where('users.firstname', 'like', "%{$keyword}%")
+                                ->orWhere('users.lastname', 'like', "%{$keyword}%")
+                                ->orWhere('users.mobile', 'like', "%{$keyword}%")
+                                // tour related to booking
+                                ->orWhere('tours.name', 'like', "%{$keyword}%")
+                                ->orWhere('tours.title', 'like', "%{$keyword}%")
+                                ->orWhere('tours.slug', 'like', "%{$keyword}%")
+                                // seo related search
+                                ->orWhere('tours.meta_keywords', 'like', "%{$keyword}%")
+                                ->orWhere('tours.meta_title', 'like', "%{$keyword}%")
+                                ->orWhere('tours.meta_description', 'like', "%{$keyword}%")
+                                // booking address
+                                ->orWhere('bookings.address_area', 'like', "%{$keyword}%")
+                                ->orWhere('bookings.full_address', 'like', "%{$keyword}%")
+                                ->orWhere('bookings.pin_code', 'like', "%{$keyword}%")
+                                // qr code
+                                ->orWhere('qr_code.code', 'like', "%{$keyword}%")
+                                // city name
+                                ->orWhere('cities.name', 'like', "%{$keyword}%");
+                        });
+                    }
+                }, true)
                 ->addColumn('booking_id', function (Booking $booking) {
                     return '<strong>#' . $booking->id . '</strong>';
                 })
@@ -195,8 +230,10 @@ class TourManagerController extends Controller
         $statuses = ['pending', 'confirmed', 'scheduled', 'completed', 'cancelled'];
         $paymentStatuses = ['pending', 'paid', 'failed', 'refunded'];
         $canEdit = $request->user()->can('tour_manager_edit');
+        $states = State::orderBy('name')->get();
+        $cities = City::orderBy('name')->get();
 
-        return view('admin.tour-manager.index', compact('statuses', 'paymentStatuses', 'canEdit'));
+        return view('admin.tour-manager.index', compact('statuses', 'paymentStatuses', 'canEdit', 'states', 'cities'));
     }
 
     /**
