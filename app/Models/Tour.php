@@ -276,7 +276,8 @@ class Tour extends Model
 
         // Otherwise, use FTP URL logic
         // Check if tour has required data for FTP URL
-        if (!$this->location || !$this->slug || !$booking->user_id) {
+        $customerId = $booking->customer_id ?? $booking->user_id;
+        if (!$this->location || !$this->slug || !$customerId) {
             return '#';
         }   
 
@@ -288,7 +289,7 @@ class Tour extends Model
         }
 
         // Generate FTP URL
-        $fullFtpUrl = $ftpConfig->getUrlForTour($this->slug, $booking->user_id);
+        $fullFtpUrl = $ftpConfig->getUrlForTour($this->slug, $customerId);
         $tourFtpUrl = rtrim($fullFtpUrl, '/');
         
         // Remove /index.php if present

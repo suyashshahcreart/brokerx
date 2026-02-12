@@ -29,7 +29,7 @@
                 <div class="card-header d-flex justify-content-between align-items-start flex-wrap gap-2">
                     <div>
                         <h4 class="card-title mb-1">Customers List</h4>
-                        <p class="text-muted mb-0">Manage customers with customer role only</p>
+                        <p class="text-muted mb-0">Manage customers in the system</p>
                     </div>
                     <div class="panel-actions d-flex gap-2">
                         <button type="button" class="btn btn-light border" data-panel-action="refresh" title="Refresh">
@@ -132,8 +132,6 @@
                 const button = $(this);
                 const form = button.closest('form');
                 const userName = button.data('user-name');
-                const hasAdminRole = String(button.data('has-admin-role')) === '1';
-
                 const submitForm = () => {
                     form.trigger('submit');
                 };
@@ -146,22 +144,14 @@
 
                 const showFinalConfirm = () => {
                     if (typeof Swal === 'undefined') {
-                        const message = hasAdminRole
-                            ? `${userName} has the admin role. Deleting may fail if they are the last admin. Proceed with deletion?`
-                            : `Delete ${userName}?`;
-                        fallbackConfirm(message, submitForm);
+                        fallbackConfirm(`Delete ${userName}?`, submitForm);
                         return;
                     }
 
-                    const title = hasAdminRole ? 'Admin User' : 'Delete Customer';
-                    const text = hasAdminRole
-                        ? `${userName} currently has the admin role. Deleting will be blocked if they are the last admin.`
-                        : `Are you sure you want to delete ${userName}?`;
-
                     Swal.fire({
-                        title,
-                        text,
-                        icon: hasAdminRole ? 'warning' : 'question',
+                        title: 'Delete Customer',
+                        text: `Are you sure you want to delete ${userName}?`,
+                        icon: 'question',
                         showCancelButton: true,
                         confirmButtonText: 'Delete',
                         cancelButtonText: 'Cancel',

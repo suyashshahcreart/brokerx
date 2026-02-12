@@ -15,8 +15,8 @@ return new class extends Migration
             $table->id();
 
             // Foreign keys
-            $table->foreignId('user_id')
-                ->constrained('users')
+            $table->foreignId('customer_id')
+                ->constrained('customers')
                 ->cascadeOnDelete();
 
             $table->foreignId('property_type_id')
@@ -81,7 +81,7 @@ return new class extends Migration
             $table->softDeletes();
 
             // Indexes
-            $table->index(['user_id', 'booking_date']);
+            $table->index(['customer_id', 'booking_date']);
             $table->index('status');
             $table->index('payment_status');
             $table->index(['city_id', 'state_id']);

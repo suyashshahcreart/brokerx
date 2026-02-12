@@ -124,7 +124,7 @@
                             <thead class="table-light">
                                 <tr>
                                     <th>ID</th>
-                                    <th>User</th>
+                                    <th>Customer</th>
                                     <th>Type / Subtype</th>
                                     <th>QR Code</th>
                                     <th>City / State / Country</th>

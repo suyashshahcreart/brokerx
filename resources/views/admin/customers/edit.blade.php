@@ -9,7 +9,7 @@
                     <ol class="breadcrumb mb-0">
                         <li class="breadcrumb-item"><a href="{{ route('admin.index') }}">Home</a></li>
                         <li class="breadcrumb-item"><a href="#">System</a></li>
-                        <li class="breadcrumb-item"><a href="{{ route('admin.users.index') }}">Customer</a></li>
+                        <li class="breadcrumb-item"><a href="{{ route('admin.customer.index') }}">Customer</a></li>
                         <li class="breadcrumb-item active" aria-current="page">Edit</li>
                     </ol>
                 </nav>
@@ -152,10 +152,9 @@
                             <div class="valid-feedback">Looks good!</div>
                         @endif
                     </div>
-                    <input class="d-none" name="roles[]" value="customer" id="role_5}">
                     <div class="d-flex gap-2">
-                        <button class="btn btn-primary" type="submit"><i class="ri-save-line me-1"></i> Update User</button>
-                        <a href="{{ route('admin.users.index') }}" class="btn btn-soft-secondary"><i class="ri-close-line me-1"></i> Cancel</a>
+                        <button class="btn btn-primary" type="submit"><i class="ri-save-line me-1"></i> Update Customer</button>
+                        <a href="{{ route('admin.customer.index') }}" class="btn btn-soft-secondary"><i class="ri-close-line me-1"></i> Cancel</a>
                     </div>
                 </form>
             </div>

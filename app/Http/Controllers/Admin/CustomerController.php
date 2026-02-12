@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\Country;
-use App\Models\User;
+use App\Models\Customer;
 use Hash;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -25,7 +25,7 @@ class CustomerController extends Controller
     {
         if ($request->ajax()) {
             // Filter only users with 'customer' role and load bookings count
-            $query = User::role('customer')
+            $query = Customer::query()
                 ->with(['country:id,name,country_code,dial_code'])
                 ->withCount('bookings');
             $canEdit = $request->user()->can('customer_edit');
@@ -33,8 +33,8 @@ class CustomerController extends Controller
             $canShow = $request->user()->can('customer_view');
 
             return DataTables::of($query)
-                ->addColumn('name', function (User $user) {
-                    return e($user->name);
+                ->addColumn('name', function (Customer $customer) {
+                    return e($customer->name);
                 })
                 ->filterColumn('name', function ($query, $keyword) {
                     $query->where(function ($subQuery) use ($keyword) {
@@ -48,23 +48,23 @@ class CustomerController extends Controller
                         ->orderBy('firstname', $direction)
                         ->orderBy('lastname', $direction);
                 })
-                ->editColumn('mobile', fn(User $user) => $user->country?->dial_code .' '. e($user->base_mobile))
-                ->addColumn('country', function (User $user) {
-                    $name = $user->country?->name;
-                    $code = $user->country_code ?? $user->country?->country_code;
+                ->editColumn('mobile', fn(Customer $customer) => $customer->country?->dial_code . ' ' . e($customer->base_mobile))
+                ->addColumn('country', function (Customer $customer) {
+                    $name = $customer->country?->name;
+                    $code = $customer->country_code ?? $customer->country?->country_code;
                     if ($name && $code) {
                         return e($name . ' (' . $code . ')');
                     }
                     return e($name ?: ($code ?: '-'));
                 })
-                ->addColumn('bookings_count', function (User $user) {
-                    $count = $user->bookings_count ?? 0;
+                ->addColumn('bookings_count', function (Customer $customer) {
+                    $count = $customer->bookings_count ?? 0;
                     return '<span class="badge bg-primary">' . $count . '</span>';
                 })
-                ->addColumn('actions', function (User $user) use ($canEdit, $canDelete, $canShow) {
-                    return view('admin.customers.partials.actions', compact('user', 'canEdit', 'canDelete', 'canShow'))->render();
+                ->addColumn('actions', function (Customer $customer) use ($canEdit, $canDelete, $canShow) {
+                    return view('admin.customers.partials.actions', compact('customer', 'canEdit', 'canDelete', 'canShow'))->render();
                 })
-                ->editColumn('email', fn(User $user) => e($user->email))
+                ->editColumn('email', fn(Customer $customer) => e($customer->email))
                 ->rawColumns(['bookings_count', 'actions'])
                 ->toJson();
         }
@@ -78,16 +78,16 @@ class CustomerController extends Controller
     }
     /* 
     show function of a customer show all the booking and tour details of the custoner
-    @paramer User $customer
+    @paramer Customer $customer
     */
-    public function show(Request $request, User $customer)
+    public function show(Request $request, Customer $customer)
     {
         if ($request->ajax()) {
             // DataTable AJAX for bookings
             $query = $customer->bookings()->latest();
             return DataTables::of($query)
                 ->addColumn('user', function (Booking $booking) {
-                    return $booking->user ? $booking->user->firstname . ' ' . $booking->user->lastname : '-';
+                    return $booking->customer ? $booking->customer->name : '-';
                 })
                 ->addColumn('type_subtype', function (Booking $booking) {
                     return $booking->propertyType?->name . '<div class="text-muted small">' . ($booking->propertySubType?->name ?? '-') . '</div>';
@@ -152,16 +152,9 @@ class CustomerController extends Controller
             'lastname' => ['required', 'string', 'max:255'],
             'base_mobile' => ['required', 'numeric', 'digits_between:6,15'],
             'country_id' => ['required', 'exists:countries,id'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'email' => ['required', 'email', 'max:255', 'unique:customers,email'],
             'password' => ['required', 'string', 'min:6'],
         ];
-
-        if ($request->user()->can('user_manage_roles')) {
-            $rules['roles'] = ['array'];
-            $rules['roles.*'] = ['string', 'exists:roles,name'];
-        } else {
-            $rules['roles'] = ['prohibited'];
-        }
 
         $validator = Validator::make($request->all(), $rules, [
             'base_mobile.required' => 'Mobile number is required.',
@@ -175,7 +168,7 @@ class CustomerController extends Controller
             if ($country) {
                 $dialCode = ltrim($country->dial_code, '+');
                 $fullMobile = $dialCode . $request->base_mobile;
-                if (User::where('mobile', $fullMobile)->exists()) {
+                if (Customer::where('mobile', $fullMobile)->exists()) {
                     $validator->errors()->add('base_mobile', 'This mobile number already exists.');
                 }
             } else {
@@ -187,7 +180,7 @@ class CustomerController extends Controller
         $dialCode = ltrim($country->dial_code, '+');
         $fullMobile = $dialCode . $validated['base_mobile'];
 
-        $user = User::create([
+        $customer = Customer::create([
             'firstname' => $validated['firstname'],
             'lastname' => $validated['lastname'],
             'mobile' => $fullMobile,
@@ -196,29 +189,22 @@ class CustomerController extends Controller
             'dial_code' => $country->dial_code,
             'country_id' => $country->id,
             'email' => $validated['email'],
-            'password' => Hash::make($validated['password'])
+            'password' => Hash::make($validated['password']),
+            'created_by' => $request->user()->id,
+            'updated_by' => $request->user()->id,
         ]);
 
-        $selectedRoles = [];
-        if ($request->user()->can('user_manage_roles')) {
-            $selectedRoles = array_values(array_filter($request->input('roles', [])));
-        }
-
-        $user->syncRoles($selectedRoles);
-        $user->load('roles');
-
         activity('Customers')
-            ->performedOn($user)
+            ->performedOn($customer)
             ->causedBy($request->user())
             ->withProperties([
                 'event' => 'created',
                 'after' => [
-                    'name' => $user->name,
-                    'firstname' => $user->firstname,
-                    'lastname' => $user->lastname,
-                    'mobile' => $user->mobile,
-                    'email' => $user->email,
-                    'roles' => $user->roles->pluck('name')->toArray()
+                    'name' => $customer->name,
+                    'firstname' => $customer->firstname,
+                    'lastname' => $customer->lastname,
+                    'mobile' => $customer->mobile,
+                    'email' => $customer->email,
                 ]
             ])
             ->log('Customer created');
@@ -228,9 +214,9 @@ class CustomerController extends Controller
 
     /* 
     Edit the customer details form
-    @paramer User $customer
+    @paramer Customer $customer
     */
-    public function edit(User $customer)
+    public function edit(Customer $customer)
     {
         // Permission check is handled by middleware
         $countries = Country::where('is_active', true)->orderBy('name')->get();
@@ -246,25 +232,18 @@ class CustomerController extends Controller
 
     /* 
     Update the customer details in DB
-    @paramer Request $request, User $customer
+    @paramer Request $request, Customer $customer
      */
-    public function update(Request $request, User $customer)
+    public function update(Request $request, Customer $customer)
     {
         $rules = [
             'firstname' => ['required', 'string', 'max:255'],
             'lastname' => ['required', 'string', 'max:255'],
             'base_mobile' => ['required', 'numeric', 'digits_between:6,15'],
             'country_id' => ['required', 'exists:countries,id'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email,' . $customer->id],
+            'email' => ['required', 'email', 'max:255', 'unique:customers,email,' . $customer->id],
             'password' => ['nullable', 'string', 'min:6'],
         ];
-
-        if ($request->user()->can('user_manage_roles')) {
-            $rules['roles'] = ['array'];
-            $rules['roles.*'] = ['string', 'exists:roles,name'];
-        } else {
-            $rules['roles'] = ['prohibited'];
-        }
 
         $validator = Validator::make($request->all(), $rules, [
             'base_mobile.required' => 'Mobile number is required.',
@@ -278,7 +257,7 @@ class CustomerController extends Controller
             if ($country) {
                 $dialCode = ltrim($country->dial_code, '+');
                 $fullMobile = $dialCode . $request->base_mobile;
-                $exists = User::where('mobile', $fullMobile)
+                $exists = Customer::where('mobile', $fullMobile)
                     ->where('id', '!=', $customer->id)
                     ->exists();
                 if ($exists) {
@@ -294,14 +273,12 @@ class CustomerController extends Controller
         $fullMobile = $dialCode . $validated['base_mobile'];
 
         // Capture before state
-        $customer->load('roles');
         $before = [
             'name' => $customer->name,
             'firstname' => $customer->firstname,
             'lastname' => $customer->lastname,
             'mobile' => $customer->mobile,
             'email' => $customer->email,
-            'roles' => $customer->roles->pluck('name')->sort()->values()->toArray(),
         ];
 
         // Prepare update data
@@ -313,7 +290,8 @@ class CustomerController extends Controller
             'country_code' => strtoupper($country->country_code),
             'dial_code' => $country->dial_code,
             'country_id' => $country->id,
-            'email' => $validated['email']
+            'email' => $validated['email'],
+            'updated_by' => $request->user()->id,
         ];
 
         if (!empty($validated['password'])) {
@@ -331,7 +309,6 @@ class CustomerController extends Controller
             'lastname' => $customer->lastname,
             'mobile' => $customer->mobile,
             'email' => $customer->email,
-            'roles' => $customer->roles->pluck('name')->sort()->values()->toArray(),
         ];
 
         if (!empty($validated['password'])) {
@@ -365,24 +342,17 @@ class CustomerController extends Controller
 
     /* 
     Delete the customer from DB
-    @paramer Request $request, User $customer
+    @paramer Request $request, Customer $customer
     */
-    public function destroy(Request $request, User $customer)
+    public function destroy(Request $request, Customer $customer)
     {
-        // Verify the user has customer role
-        if (!$customer->hasRole('customer')) {
-            return redirect()->route('admin.customer.index')->with('error', 'This user is not a customer.');
-        }
-
         // Capture before deletion
-        $customer->load('roles');
         $before = [
             'name' => $customer->name,
             'firstname' => $customer->firstname,
             'lastname' => $customer->lastname,
             'mobile' => $customer->mobile,
             'email' => $customer->email,
-            'roles' => $customer->roles->pluck('name')->sort()->values()->toArray(),
         ];
 
         $customerId = $customer->id;

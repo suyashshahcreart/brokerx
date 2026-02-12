@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use App\Models\Booking;
 use App\Models\BookingAssignee;
 use App\Models\BookingHistory;
+use App\Models\Customer;
 use App\Models\PaymentHistory;
 use App\Models\User;
 use App\Models\City;
@@ -528,6 +529,8 @@ class FrontendController extends Controller
             ]
         );
 
+        $customer = $this->resolveCustomerFromNamePhone($validated['name'], $validated['phone']);
+
         // Get city (default to Ahmedabad)
         $city = City::where('name', $validated['city'])->first();
         if (!$city) {
@@ -544,6 +547,7 @@ class FrontendController extends Controller
         // Create booking (aligned to bookings schema)
         $booking = Booking::create([
             'user_id' => $user->id,
+            'customer_id' => $customer->id,
             'property_type_id' => $propertyData['property_type_id'],
             'property_sub_type_id' => $propertyData['property_sub_type_id'],
             'owner_type' => $validated['owner_type'],
@@ -721,6 +725,8 @@ class FrontendController extends Controller
             $user->assignRole($customerRole);
         }
 
+        $customer = $this->resolveCustomerFromNamePhone($validated['name'], $validated['phone']);
+
         // Resolve property mapping
         $mapping = $this->mapPropertyData($validated);
 
@@ -740,6 +746,7 @@ class FrontendController extends Controller
         $isNewBooking = !$validated['booking_id'];
 
         $booking->user_id = $user->id;
+        $booking->customer_id = $booking->customer_id ?? $customer->id;
         $booking->property_type_id = $mapping['property_type_id'];
         $booking->property_sub_type_id = $mapping['property_sub_type_id'];
         $booking->owner_type = $validated['owner_type'];
@@ -1513,6 +1520,30 @@ class FrontendController extends Controller
     /**
      * Internal helper: map property request data to DB ids
      */
+    protected function resolveCustomerFromNamePhone(string $name, string $phone): Customer
+    {
+        $name = trim($name);
+        $nameParts = preg_split('/\s+/', $name, 2);
+        $firstname = $nameParts[0] ?? null;
+        $lastname = $nameParts[1] ?? null;
+
+        $customer = Customer::firstOrCreate(
+            ['mobile' => $phone],
+            [
+                'firstname' => $firstname,
+                'lastname' => $lastname,
+                'base_mobile' => $phone,
+            ]
+        );
+
+        if (empty($customer->base_mobile)) {
+            $customer->base_mobile = $phone;
+            $customer->save();
+        }
+
+        return $customer;
+    }
+
     protected function mapPropertyData(array $data): array
     {
         $main = $data['main_property_type'] ?? null;
@@ -1571,7 +1602,7 @@ class FrontendController extends Controller
             'other_option_details' => $otherDetails,
         ];
     }
-
+            // Step 2 logic
     /**
      * Simple dynamic price estimator (same logic as frontend)
      * Uses settings from database for dynamic pricing

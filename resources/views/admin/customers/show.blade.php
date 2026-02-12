@@ -7,14 +7,14 @@
                     <nav aria-label="breadcrumb" class="mb-0">
                         <ol class="breadcrumb mb-0">
                             <li class="breadcrumb-item"><a href="{{ route('admin.index') }}">Home</a></li>
-                            <li class="breadcrumb-item"><a href="{{ route('admin.bookings.index') }}">Customer</a></li>
+                            <li class="breadcrumb-item"><a href="{{ route('admin.customer.index') }}">Customer</a></li>
                             <li class="breadcrumb-item active" aria-current="page">#{{ $customer->id }}</li>
                         </ol>
                     </nav>
-                    <h3 class="mb-0">customer #{{ $customer->id }}</h3>
+                    <h3 class="mb-0">Customer #{{ $customer->id }}</h3>
                 </div>
                 <div class="d-flex align-items-center gap-2">
-                    <x-admin.back-button :fallback="route('admin.bookings.index')" :classes="['btn', 'btn-soft-secondary']"
+                    <x-admin.back-button :fallback="route('admin.customer.index')" :classes="['btn', 'btn-soft-secondary']"
                         :merge="false" icon="ri-arrow-go-back-line" />
                     <a href="{{ route('admin.customer.edit', $customer) }}" class="btn btn-primary"><i
                             class="ri-edit-line me-1"></i> Edit Customer</a>
@@ -52,7 +52,7 @@
                                     <p class="mb-1"><strong>Email:</strong> {{ $customer->email }}</p>
                                 </div>
                                 <div class="col-6">
-                                    <p class="mb-1"><strong>mobile:</strong> {{ $customer->mobile }}</p>
+                                    <p class="mb-1"><strong>Mobile:</strong> {{ $customer->mobile }}</p>
                                 </div>
                             </div>
                         </div>
@@ -97,7 +97,7 @@
                            <thead class="table-light">
                                 <tr>
                                     <th>ID</th>
-                                    <th>User</th>
+                                    <th>Customer</th>
                                     <th>Type / Subtype</th>
                                     <th>BHK</th>
                                     <th>City / State</th>

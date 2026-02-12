@@ -10,6 +10,7 @@ use App\Models\BookingAssignee;
 use App\Models\BookingHistory;
 use App\Models\City;
 use App\Models\Country;
+use App\Models\Customer;
 use App\Models\PropertySubType;
 use App\Models\PropertyType;
 use App\Models\QR;
@@ -55,7 +56,7 @@ class BookingController extends Controller
         if ($request->ajax()) {
             // Add joins for searchable columns to avoid "Column not found" errors
             $query = Booking::query()
-                ->leftJoin('users', 'bookings.user_id', '=', 'users.id')
+                ->leftJoin('customers', 'bookings.customer_id', '=', 'customers.id')
                 ->leftJoin('cities', 'bookings.city_id', '=', 'cities.id')
                 ->leftJoin('tours', function ($join) {
                     $join->on('tours.booking_id', '=', 'bookings.id')
@@ -97,13 +98,14 @@ class BookingController extends Controller
             }
 
             return DataTables::of($query)
-                ->filterColumn('user', function ($query, $keyword) {
+                ->filterColumn('customer', function ($query, $keyword) {
                     $query->where(function ($subQuery) use ($keyword) {
                         $subQuery
-                            // user related to booking
-                            ->where('users.firstname', 'like', "%{$keyword}%")
-                            ->orWhere('users.lastname', 'like', "%{$keyword}%")
-                            ->orWhere('users.mobile', 'like', "%{$keyword}%")
+                            // customer related to booking
+                            ->where('customers.firstname', 'like', "%{$keyword}%")
+                            ->orWhere('customers.lastname', 'like', "%{$keyword}%")
+                            ->orWhere('customers.mobile', 'like', "%{$keyword}%")
+                            ->orWhere('customers.base_mobile', 'like', "%{$keyword}%")
                             // tour related to booking
                             ->orWhere('tours.name', 'like', "%{$keyword}%")
                             ->orWhere('tours.title', 'like', "%{$keyword}%")
@@ -126,9 +128,9 @@ class BookingController extends Controller
                             ->orWhere('qr_code.code', 'like', "%{$keyword}%");
                     });
                 })
-                ->addColumn('user', function (Booking $booking) {
-                    $name = $booking->user ? $booking->user->firstname . ' ' . $booking->user->lastname : '-';
-                    $mobile = $booking->user ? $booking->user->base_mobile : '-';
+                ->addColumn('customer', function (Booking $booking) {
+                    $name = $booking->customer ? $booking->customer->firstname . ' ' . $booking->customer->lastname : '-';
+                    $mobile = $booking->customer ? $booking->customer->base_mobile : '-';
                     $tourName = $booking->tours->first()?->name;
 
                     if ($tourName) {
@@ -192,7 +194,7 @@ class BookingController extends Controller
                         '<form action="' . $delete . '" method="POST" class="d-inline">' . $csrf . $method .
                         '<button type="submit" class="btn btn-soft-danger btn-sm" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete Booking" onclick="return confirm(\'Delete this booking?\')"><iconify-icon icon="solar:trash-bin-minimalistic-broken" class="align-middle fs-18"></iconify-icon></button></form></div>';
                 })
-                ->rawColumns(['user', 'type_subtype', 'city_state', 'qr_code', 'status', 'payment_status', 'actions', 'schedule'])
+                ->rawColumns(['customer', 'type_subtype', 'city_state', 'qr_code', 'status', 'payment_status', 'actions', 'schedule'])
                 ->toJson();
         }
 
@@ -304,7 +306,7 @@ class BookingController extends Controller
 
     public function create()
     {
-        $users = User::role('customer')->orderBy('firstname')->get();
+        $users = Customer::orderBy('firstname')->get();
         $propertyTypes = PropertyType::orderBy('name')->get();
         $propertySubTypes = PropertySubType::query()
             ->orderBy('property_type_id')
@@ -342,7 +344,7 @@ class BookingController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'user_id' => ['required', 'exists:users,id'],
+            'customer_id' => ['required', 'exists:customers,id'],
             'owner_type' => ['required', 'in:Owner,Broker,Agent,Other'],
             'property_type_id' => ['required', 'exists:property_types,id'],
             'property_sub_type_id' => ['required', 'exists:property_sub_types,id'],
@@ -403,7 +405,7 @@ class BookingController extends Controller
         $qrCode = $this->generateUniqueQrCode();
 
         // Get user name for QR code naming
-        $user = User::find($validated['user_id']);
+        $user = Customer::find($validated['customer_id']);
         $userName = $user ? ($user->firstname . ' ' . $user->lastname) : 'Customer';
 
         // Create QR code for this booking

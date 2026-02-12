@@ -321,16 +321,16 @@
                     <div class="row">
                         <div class="col-4">
                             <div class="mb-1">
-                                <label class="form-label" for="user_id">Select Customer <span class="text-danger">*</span></label>
-                                <select name="user_id" id="user_id" data-choices class="form-select @error('user_id') is-invalid @enderror" required>
+                                <label class="form-label" for="customer_id">Select Customer <span class="text-danger">*</span></label>
+                                <select name="customer_id" id="customer_id" data-choices class="form-select @error('customer_id') is-invalid @enderror" required>
                                     <option value="">Choose a customer...</option>
                                     @foreach($users as $u)
-                                        <option value="{{ $u->id }}" @selected(old('user_id')==$u->id)>
+                                        <option value="{{ $u->id }}" @selected(old('customer_id')==$u->id)>
                                             {{ $u->firstname }} {{ $u->lastname }} | {{ $u->mobile }}@if($u->email) | {{ $u->email }}@endif
                                         </option>
                                     @endforeach
                                 </select>
-                                <div class="invalid-feedback">@error('user_id'){{ $message }}@else Please select a customer.@enderror</div>
+                                <div class="invalid-feedback">@error('customer_id'){{ $message }}@else Please select a customer.@enderror</div>
                             </div>
                         </div>
                         <div class="col-4">
