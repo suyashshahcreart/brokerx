@@ -56,79 +56,60 @@ class QRTrackingService
             // Collect user data (pass GPS coordinates)
             $userData = $this->collectUserData($request, $gpsLat, $gpsLng);
             
-            // Get geolocation data - always get IP-based data as fallback
-            $geoDataResult = $this->getGeolocationData($userData['user_ip'], $request);
-            $geoData = $geoDataResult['data'] ?? [];
-            $apiResponse = $geoDataResult['api_response'] ?? null;
-            $apiService = $geoDataResult['service'] ?? null;
+            $geoData = [];
+            $apiResponse = null;
+            $apiService = null;
             
-            // If we have GPS coordinates, use reverse geocoding to get accurate address details
-            $reverseGeoData = [];
+            // PRIORITY 1: GPS-based location - perfect accuracy, full address details
+            // When GPS is available from browser, always use it first (skip IP lookup)
             if ($hasGPS && $latitude && $longitude) {
-                Log::info("QR Tracking: Using GPS coordinates for reverse geocoding", [
-                    'lat' => $latitude, 
+                Log::info("QR Tracking: Using GPS coordinates (first priority) - reverse geocoding for full accuracy", [
+                    'lat' => $latitude,
                     'lng' => $longitude
                 ]);
                 $reverseGeoData = $this->reverseGeocode($latitude, $longitude);
-                // Override IP-based data with GPS-based reverse geocoding data
                 if (!empty($reverseGeoData)) {
-                    $geoData['country'] = $reverseGeoData['country'] ?? $geoData['country'] ?? null;
-                    $geoData['city'] = $reverseGeoData['city'] ?? $geoData['city'] ?? null;
-                    $geoData['region'] = $reverseGeoData['region'] ?? $geoData['region'] ?? null;
+                    $geoData['country'] = $reverseGeoData['country'] ?? null;
+                    $geoData['city'] = $reverseGeoData['city'] ?? null;
+                    $geoData['region'] = $reverseGeoData['region'] ?? null;
                     $geoData['full_address'] = $reverseGeoData['full_address'] ?? null;
                     $geoData['pincode'] = $reverseGeoData['pincode'] ?? null;
-                    Log::info("QR Tracking: Reverse geocoding successful", $reverseGeoData);
+                    $geoData['timezone'] = $reverseGeoData['timezone'] ?? null;
+                    Log::info("QR Tracking: GPS reverse geocoding successful - full accuracy", $reverseGeoData);
                 } else {
-                    Log::warning("QR Tracking: Reverse geocoding returned empty", [
-                        'lat' => $latitude, 
-                        'lng' => $longitude
+                    Log::warning("QR Tracking: GPS reverse geocoding returned empty, keeping coordinates", [
+                        'lat' => $latitude, 'lng' => $longitude
                     ]);
                 }
-            } else {
-                Log::info("QR Tracking: No GPS coordinates, using IP-based geolocation", [
-                    'hasGPS' => $hasGPS,
-                    'gpsLat' => $gpsLat,
-                    'gpsLng' => $gpsLng,
-                    'api_service' => $apiService
-                ]);
             }
             
-            // If no GPS, check if permission was denied or GPS unavailable
-            // Use IP-based location data when GPS is not available
-            $permissionDenied = $request->input('permission_denied', false);
-            $gpsUnavailable = $request->input('gps_unavailable', false);
-            $locationAction = $request->input('location_action'); // 'allow', 'block', or 'close'
-            
-            // If no GPS, use IP-based geolocation data
+            // PRIORITY 2: IP-based fallback - only when GPS is NOT available
             if (!$hasGPS) {
-                // GPS not available - use IP-based location data
+                $permissionDenied = $request->input('permission_denied', false);
+                $gpsUnavailable = $request->input('gps_unavailable', false);
+                $locationAction = $request->input('location_action');
+                
+                $geoDataResult = $this->getGeolocationData($userData['user_ip'], $request);
+                $geoData = $geoDataResult['data'] ?? [];
+                $apiResponse = $geoDataResult['api_response'] ?? null;
+                $apiService = $geoDataResult['service'] ?? null;
+                
                 if (!empty($geoData) && isset($geoData['latitude']) && isset($geoData['longitude'])) {
-                    // Use IP-based coordinates
                     $latitude = $geoData['latitude'];
                     $longitude = $geoData['longitude'];
-                    Log::info("QR Tracking: Using IP-based geolocation data", [
-                        'permission_denied' => $permissionDenied,
-                        'gps_unavailable' => $gpsUnavailable,
-                        'hasGPS' => $hasGPS,
-                        'location_action' => $locationAction,
-                        'api_service' => $apiService,
-                        'latitude' => $latitude,
-                        'longitude' => $longitude
+                    Log::info("QR Tracking: Using IP-based geolocation (GPS not available)", [
+                        'api_service' => $apiService, 'latitude' => $latitude, 'longitude' => $longitude
                     ]);
                 } else {
-                    // No IP-based data available either
                     $latitude = null;
                     $longitude = null;
-                    $geoData['country'] = null;
-                    $geoData['city'] = null;
-                    $geoData['region'] = null;
-                    $geoData['full_address'] = null;
-                    $geoData['pincode'] = null;
+                    $geoData['country'] = $geoData['country'] ?? null;
+                    $geoData['city'] = $geoData['city'] ?? null;
+                    $geoData['region'] = $geoData['region'] ?? null;
+                    $geoData['full_address'] = $geoData['full_address'] ?? null;
+                    $geoData['pincode'] = $geoData['pincode'] ?? null;
                     Log::info("QR Tracking: No GPS and no IP-based data available", [
-                        'permission_denied' => $permissionDenied,
-                        'gps_unavailable' => $gpsUnavailable,
-                        'hasGPS' => $hasGPS,
-                        'location_action' => $locationAction
+                        'permission_denied' => $permissionDenied, 'gps_unavailable' => $gpsUnavailable
                     ]);
                 }
             }
@@ -360,16 +341,16 @@ class QRTrackingService
         // Try multiple services in order of preference for better accuracy
         $services = [
             'ipapi' => function($ip) {
-                // ipapi.co - Generally more accurate
+                // ipapi.co - Generally more accurate (2s timeout for fast redirect)
                 $url = "https://ipapi.co/{$ip}/json/";
                 $context = stream_context_create([
                     'http' => [
-                        'timeout' => 5,
+                        'timeout' => 2,
                         'user_agent' => 'QR-Tracker/1.0',
                         'method' => 'GET'
                     ],
                     'https' => [
-                        'timeout' => 5,
+                        'timeout' => 2,
                         'user_agent' => 'QR-Tracker/1.0',
                         'method' => 'GET'
                     ]
@@ -396,16 +377,16 @@ class QRTrackingService
                 return null;
             },
             'ipinfo' => function($ip) {
-                // ipinfo.io - Good accuracy
+                // ipinfo.io - Good accuracy (2s timeout for fast redirect)
                 $url = "https://ipinfo.io/{$ip}/json";
                 $context = stream_context_create([
                     'http' => [
-                        'timeout' => 5,
+                        'timeout' => 2,
                         'user_agent' => 'QR-Tracker/1.0',
                         'method' => 'GET'
                     ],
                     'https' => [
-                        'timeout' => 5,
+                        'timeout' => 2,
                         'user_agent' => 'QR-Tracker/1.0',
                         'method' => 'GET'
                     ]
@@ -442,11 +423,11 @@ class QRTrackingService
                 return null;
             },
             'ipapi_com' => function($ip) {
-                // ip-api.com - Fallback service
+                // ip-api.com - Fallback service (2s timeout for fast redirect)
                 $url = "http://ip-api.com/json/{$ip}?fields=status,message,country,countryCode,region,regionName,city,lat,lon,timezone";
                 $context = stream_context_create([
                     'http' => [
-                        'timeout' => 5,
+                        'timeout' => 2,
                         'user_agent' => 'QR-Tracker/1.0',
                         'method' => 'GET'
                     ]
