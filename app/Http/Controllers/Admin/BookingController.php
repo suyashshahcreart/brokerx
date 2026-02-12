@@ -529,7 +529,7 @@ class BookingController extends Controller
 
     public function edit(Booking $booking)
     {
-        $users = User::role('customer')->orderBy('firstname')->get();
+        $users = Customer::orderBy('firstname')->get();
         $propertyTypes = PropertyType::orderBy('name')->get();
         $propertySubTypes = PropertySubType::query()
             ->orderBy('property_type_id')
@@ -616,7 +616,7 @@ class BookingController extends Controller
     public function update(Request $request, Booking $booking)
     {
         $validated = $request->validate([
-            'user_id' => ['required', 'exists:users,id'],
+            'customer_id' => ['required', 'exists:customers,id'],
             'owner_type' => ['required', 'in:Owner,Broker,Agent,Other'],
             'property_type_id' => ['required', 'exists:property_types,id'],
             'property_sub_type_id' => ['required', 'exists:property_sub_types,id'],
