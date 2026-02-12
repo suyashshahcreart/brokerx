@@ -79,15 +79,13 @@ class QRManageController extends Controller
                 $validRedirectUrl = $redirectUrl && trim($redirectUrl) !== '' && $redirectUrl !== '#';
                 
                 if ($validRedirectUrl) {
-                    // IMMEDIATE REDIRECT: 302 redirect for 0-2 second load time
-                    // Tracking runs in background after response sent (no GPS wait)
-                    dispatch(function () use ($request, $tour_code) {
-                        try {
-                            app(QRTrackingService::class)->trackVisit($request, $tour_code, 'tour_code');
-                        } catch (\Exception $e) {
-                            \Log::error('QR background tracking error: ' . $e->getMessage());
-                        }
-                    })->afterResponse();
+                    // Track visit BEFORE redirect - ensures qr_analytics record is saved
+                    // (afterResponse was unreliable - request/session invalid after response sent)
+                    try {
+                        $this->trackingService->trackVisit($request, $tour_code, 'tour_code');
+                    } catch (\Exception $e) {
+                        \Log::error('QR redirect tracking error: ' . $e->getMessage());
+                    }
                     
                     return redirect()->away($redirectUrl);
                 }
