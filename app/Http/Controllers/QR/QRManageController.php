@@ -54,11 +54,14 @@ class QRManageController extends Controller
      * Handle dynamic tour_code parameter
      * Route: /{tour_code}
      * Example: /1234Aber
+     * 
+     * When tour is live and has valid redirect URL: immediate 302 redirect (0-2 sec)
+     * Tracking runs in background after response is sent - no GPS wait
      */
     public function showByTourCode(Request $request, $tour_code)
     {
-        // Check if tour_code exists in bookings table
-        $booking = Booking::where('tour_code', $tour_code)->first();
+        // Check if tour_code exists in bookings table (eager load tour for faster redirect)
+        $booking = Booking::with('tours')->where('tour_code', $tour_code)->first();
         
         if ($booking) {
             // Get the tour associated with this booking
@@ -67,24 +70,32 @@ class QRManageController extends Controller
             // Build redirect URL based on tour location and slug (same logic as edit.blade.php)
             $redirectUrl = null;
             if ($tour) {
-                if ($tour->location === 'creart_qr' && $tour->slug) {
-                    $redirectUrl = 'http://creart.in/qr/' . $tour->slug . '/index.php';
-                } elseif ($tour->location === 'tours' && $tour->slug) {
-                    $redirectUrl = 'https://tour.proppik.in/' . $tour->slug . '/index.php';
-                } elseif ($tour->location && $tour->slug) {
-                    $redirectUrl = 'https://' . $tour->location . '.proppik.com/' . $tour->slug . '/index.php';
-                }
                 $redirectUrl = $tour->getTourLiveUrl();
             }
             
             // Check if booking status is 'tour_live'
             if ($booking->status === 'tour_live') {
-                // Tour is live - show tour found page
-                // Note: Tracking will happen via AJAX after GPS coordinates are captured
+                // Validate redirect URL (must be non-empty and not placeholder)
+                $validRedirectUrl = $redirectUrl && trim($redirectUrl) !== '' && $redirectUrl !== '#';
+                
+                if ($validRedirectUrl) {
+                    // IMMEDIATE REDIRECT: 302 redirect for 0-2 second load time
+                    // Tracking runs in background after response sent (no GPS wait)
+                    dispatch(function () use ($request, $tour_code) {
+                        try {
+                            app(QRTrackingService::class)->trackVisit($request, $tour_code, 'tour_code');
+                        } catch (\Exception $e) {
+                            \Log::error('QR background tracking error: ' . $e->getMessage());
+                        }
+                    })->afterResponse();
+                    
+                    return redirect()->away($redirectUrl);
+                }
+                
+                // Tour live but no valid redirect URL - show tour found page
                 return view('qr.tour-found', compact('booking', 'tour_code', 'tour', 'redirectUrl'));
             } else {
                 // Tour code found but status is not 'tour_live' - show coming soon page
-                // Note: Tracking will happen via AJAX after GPS coordinates are captured
                 return view('qr.tour-coming-soon', compact('booking', 'tour_code', 'tour', 'redirectUrl'));
             }
         } else {
