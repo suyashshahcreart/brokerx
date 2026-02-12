@@ -39,7 +39,7 @@ class BookingAssigneeController extends Controller
         if ($request->ajax()) {
             // Add joins for searchable columns to avoid "Column not found" errors
             $query = Booking::query()
-                ->leftJoin('users', 'bookings.user_id', '=', 'users.id')
+                ->leftJoin('customers', 'bookings.customer_id', '=', 'customers.id')
                 ->leftJoin('property_types', 'bookings.property_type_id', '=', 'property_types.id')
                 ->leftJoin('cities', 'bookings.city_id', '=', 'cities.id')
                 ->leftJoin('users as creator', 'bookings.created_by', '=', 'creator.id')
