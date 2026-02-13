@@ -101,7 +101,7 @@ return new class extends Migration
 
         Schema::table('bookings', function (Blueprint $table) {
             if (Schema::hasColumn('bookings', 'user_id')) {
-                $table->dropConstrainedForeignId('user_id');
+                // $table->dropConstrainedForeignId('user_id');
                 $table->dropIndex(['user_id', 'booking_date']);
             }
             $table->index(['customer_id', 'booking_date']);
