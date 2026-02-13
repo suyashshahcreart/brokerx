@@ -7,11 +7,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Laravel\Sanctum\HasApiTokens;
 
 class Customer extends Model
 {
-    use HasFactory;
-    use SoftDeletes;
+    use HasFactory,SoftDeletes, HasApiTokens;
 
     protected $fillable = [
         'firstname',
@@ -30,7 +30,10 @@ class Customer extends Model
         'cover_photo',
         'profile_photo',
         'company_name',
+        'company_website',
         'tag_line',
+        'designation',
+        'social_link',
         'is_active',
         'created_by',
         'updated_by',
@@ -47,6 +50,7 @@ class Customer extends Model
         'otp_expires_at' => 'datetime',
         'is_active' => 'bool',
         'password' => 'hashed',
+        'social_link' => 'array',
     ];
 
     public function getNameAttribute(): string

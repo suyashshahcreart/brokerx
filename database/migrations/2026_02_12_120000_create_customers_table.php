@@ -33,6 +33,9 @@ return new class extends Migration
             $table->string('profile_photo')->nullable();
             $table->string('company_name')->nullable();
             $table->string('tag_line')->nullable();
+            $table->string('company_website')->nullable()->after('company_name');
+            $table->string('designation')->nullable()->after('tag_line');
+            $table->json('social_link')->nullable()->after('designation');
             $table->boolean('is_active')->default(true)->index();
 
             $table->timestamps();
