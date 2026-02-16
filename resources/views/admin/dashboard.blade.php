@@ -497,8 +497,8 @@
                                         <small class="text-muted">
                                             <i class="ri-phone-line"></i> {{ $transaction->user->mobile ?? 'N/A' }}
                                         </small>
-                                        @if($transaction->user->email)
-                                            <br><small class="text-muted"><i class="ri-mail-line"></i> {{ $transaction->user->email }}</small>
+                                        @if($transaction->customer->email)
+                                            <br><small class="text-muted"><i class="ri-mail-line"></i> {{ $transaction->customer->email }}</small>
                                         @endif
                                     </div>
                                 </td>
