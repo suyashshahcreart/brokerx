@@ -14,7 +14,7 @@ class TourApiController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Tour::with(['booking:id,user_id,booking_date'])->select('id', 'title', 'name', 'location', 'status','tour_thumbnail');
+        $query = Tour::with(['booking:id,customer_id,booking_date'])->select('id', 'title', 'name', 'location', 'status','tour_thumbnail');
 
         // Filter by category (mapped to tour location)
         if ($request->filled('category')) {

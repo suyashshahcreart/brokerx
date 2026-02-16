@@ -66,7 +66,7 @@ class BookingApiController extends Controller
     public function show($id)
     {
         $query = Booking::with([
-            'user',
+            'customer',
             'propertyType',
             'propertySubType',
             'bhk',
@@ -276,10 +276,10 @@ class BookingApiController extends Controller
                     'bhk:id,name',
                     'city:id,name',
                     'state:id,name',
-                    'user:id,firstname,lastname,email'
+                    'customer:id,firstname,lastname,email'
                 ]);
             },
-            'user:id,firstname,lastname,email'
+            'customer:id,firstname,lastname,email'
         ]);
 
         // Apply date range filter on booking_assignees.date

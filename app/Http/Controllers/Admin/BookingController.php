@@ -223,7 +223,7 @@ class BookingController extends Controller
     public function apiList(Request $request)
     {
         $query = Booking::query()
-            ->with(['user', 'propertyType', 'propertySubType'])
+            ->with(['customer', 'propertyType', 'propertySubType'])
             ->whereDoesntHave('qr');
         // Filters
         if ($request->filled('status')) {
@@ -239,7 +239,7 @@ class BookingController extends Controller
             $search = $request->input('search');
             $query->where(function ($q) use ($search) {
                 $q->where('id', 'like', "%$search%")
-                    ->orWhereHas('user', function ($uq) use ($search) {
+                    ->orWhereHas('customer', function ($uq) use ($search) {
                         $uq->where('firstname', 'like', "%$search%")
                             ->orWhere('lastname', 'like', "%$search%")
                             ->orWhere('email', 'like', "%$search%")
@@ -282,12 +282,12 @@ class BookingController extends Controller
             'booking_id' => 'required|exists:bookings,id',
         ]);
 
-        $booking = Booking::with(['user', 'propertyType', 'propertySubType', 'bhk', 'city', 'state'])
+        $booking = Booking::with(['customer', 'propertyType', 'propertySubType', 'bhk', 'city', 'state'])
             ->findOrFail($request->booking_id);
 
         $bookingData = [
             'id' => $booking->id,
-            'customer' => $booking->user ? $booking->user->firstname . ' ' . $booking->user->lastname : null,
+            'customer' => $booking->customer ? $booking->customer->firstname . ' ' . $booking->customer->lastname : null,
             'property_type' => $booking->propertyType?->name,
             'property_sub_type' => $booking->propertySubType?->name,
             'bhk' => $booking->bhk?->name,
