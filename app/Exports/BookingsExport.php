@@ -39,7 +39,7 @@ class BookingsExport implements FromCollection, WithHeadings, WithMapping, WithS
     public function collection()
     {
         $query = Booking::with([
-            'user',
+            'customer',
             'propertyType',
             'propertySubType',
             'bhk',
@@ -63,6 +63,10 @@ class BookingsExport implements FromCollection, WithHeadings, WithMapping, WithS
 
         if (!empty($this->filters['user_id'])) {
             $query->where('user_id', $this->filters['user_id']);
+        }
+        
+        if (!empty($this->filters['customer_id'])) {
+            $query->where('customer_id', $this->filters['customer_id']);
         }
 
         if (!empty($this->filters['property_type_id'])) {
@@ -137,9 +141,9 @@ class BookingsExport implements FromCollection, WithHeadings, WithMapping, WithS
 
         return [
             $serial,
-            $booking->user ? $booking->user->firstname . ' ' . $booking->user->lastname : 'N/A',
-            $booking->user?->mobile ?? 'N/A',
-            $booking->user?->email ?? 'N/A',
+            $booking->customer ? $booking->customer->firstname . ' ' . $booking->customer->lastname : 'N/A',
+            $booking->customer?->base_mobile ?? 'N/A',
+            $booking->customer?->email ?? 'N/A',
             $booking->owner_type ? ucfirst($booking->owner_type) : 'N/A',
             $booking->propertyType?->name ?? 'N/A',
             $booking->propertySubType?->name ?? 'N/A',

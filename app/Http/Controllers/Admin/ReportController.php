@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\City;
+use App\Models\Customer;
 use App\Models\State;
 use App\Models\PropertyType;
 use App\Models\PropertySubType;
@@ -29,7 +30,7 @@ class ReportController extends Controller
         $totalCustomers = User::count();
         $totalTours = Tour::count();
 
-        $recentSales = Booking::select(['id', 'user_id', 'cashfree_payment_amount', 'price', 'status', 'created_at'])
+        $recentSales = Booking::select(['id', 'customer_id', 'cashfree_payment_amount', 'price', 'status', 'created_at'])
             ->latest()
             ->limit(5)
             ->get();
@@ -53,8 +54,7 @@ class ReportController extends Controller
             )
             ->orderBy('name')
             ->get();
-        $customers = User::orderBy('firstname')
-            ->orderBy('lastname')
+        $customers = Customer::orderBy('lastname')
             ->select(['id', 'firstname', 'lastname', 'email','mobile'])
             ->get();
         $states = State::whereIn('id', Booking::query()
@@ -176,7 +176,7 @@ class ReportController extends Controller
         $cities = City::orderBy('name')->get();
 
         if ($request->ajax()) {
-            $query = Booking::with(['user', 'propertyType', 'propertySubType', 'bhk', 'city', 'state', 'assignees']);
+            $query = Booking::with(['customer', 'propertyType', 'propertySubType', 'bhk', 'city', 'state', 'assignees']);
 
             // Filter bookings based on user role
             if (auth()->user()->hasRole('admin')) {
@@ -210,7 +210,7 @@ class ReportController extends Controller
 
             return DataTables::of($query)
                 ->addColumn('user', function (Booking $booking) {
-                    return $booking->user ? $booking->user->firstname . ' ' . $booking->user->lastname : '-';
+                    return $booking->customer ? $booking->customer->firstname . ' ' . $booking->customer->lastname : '-';
                 })
                 ->addColumn('type_subtype', function (Booking $booking) {
                     return $booking->propertyType?->name . '<div class="text-muted small">' . ($booking->propertySubType?->name ?? '-') . '</div>';

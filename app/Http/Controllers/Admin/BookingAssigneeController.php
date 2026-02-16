@@ -73,8 +73,8 @@ class BookingAssigneeController extends Controller
                     return '<span class="badge bg-primary">#' . $booking->id . '</span>';
                 })
                 ->addColumn('user', function (Booking $booking) {
-                    if ($booking->user) {
-                        return $booking->user->name;
+                    if ($booking->customer) {
+                        return $booking->customer->name .' | '. $booking->customer->mobile ;
                     }
                     return '<span class="text-muted">-</span>';
                 })
