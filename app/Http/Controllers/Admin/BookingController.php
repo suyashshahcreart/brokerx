@@ -480,7 +480,7 @@ class BookingController extends Controller
 
     public function show(Request $request, Booking $booking)
     {
-        $booking->load(['user', 'propertyType', 'propertySubType', 'bhk', 'city', 'state', 'creator', 'assignees.user']);
+        $booking->load(['customer', 'propertyType', 'propertySubType', 'bhk', 'city', 'state', 'creator', 'assignees.user']);
 
         // Get photographers for assignment modal
         $photographers = User::whereHas('roles', function ($q) {
