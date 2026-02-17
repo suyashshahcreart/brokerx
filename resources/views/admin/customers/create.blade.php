@@ -16,15 +16,15 @@
                 <h3 class="mb-0">Create New Customer</h3>
             </div>
             <div class="d-flex align-items-center gap-2">
-                <x-admin.back-button :fallback="route('admin.users.index')" :classes="['btn', 'btn-soft-secondary']" :merge="false" icon="ri-arrow-go-back-line" />
+                <x-admin.back-button :fallback="route('admin.customer.index')" :classes="['btn', 'btn-soft-secondary']" :merge="false" icon="ri-arrow-go-back-line" />
             </div>
         </div>
 
         <div class="card panel-card border-primary border-top" data-panel-card>
             <div class="card-header d-flex justify-content-between align-items-start flex-wrap gap-2">
                 <div>
-                    <h4 class="card-title mb-1">User Details</h4>
-                    <p class="text-muted mb-0">Provide basic information and assign roles</p>
+                    <h4 class="card-title mb-1">Customer Details</h4>
+                    <p class="text-muted mb-0">Provide basic customer information</p>
                 </div>
                 <div class="panel-actions d-flex gap-2">
                     <button type="button" class="btn btn-light border" data-panel-action="collapse" title="Collapse">
@@ -151,10 +151,9 @@
                             <div class="valid-feedback">Looks good!</div>
                         @endif
                     </div>
-                    <input class="d-none" name="roles[]" value="customer" id="role_5">
                     <div class="d-flex gap-2">
-                        <button class="btn btn-primary" type="submit"><i class="ri-check-line me-1"></i> Save User</button>
-                        <a href="{{ route('admin.users.index') }}" class="btn btn-soft-secondary"><i class="ri-close-line me-1"></i> Cancel</a>
+                        <button class="btn btn-primary" type="submit"><i class="ri-check-line me-1"></i> Save Customer</button>
+                        <a href="{{ route('admin.customer.index') }}" class="btn btn-soft-secondary"><i class="ri-close-line me-1"></i> Cancel</a>
                     </div>
                 </form>
             </div>

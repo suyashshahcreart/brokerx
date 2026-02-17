@@ -37,7 +37,7 @@ class TourManagerController extends Controller
         if ($request->ajax()) {
             // Add joins for searchable columns to enable global search
             $query = Booking::query()
-                ->leftJoin('users', 'bookings.user_id', '=', 'users.id')
+                ->leftJoin('customers', 'bookings.customer_id', '=', 'customers.id')
                 ->leftJoin('cities', 'bookings.city_id', '=', 'cities.id')
                 ->leftJoin('tours', function ($join) {
                     $join->on('tours.booking_id', '=', 'bookings.id')
@@ -84,9 +84,9 @@ class TourManagerController extends Controller
                     $query->where(function ($subQuery) use ($keyword) {
                         $subQuery
                             // user related to booking
-                            ->where('users.firstname', 'like', "%{$keyword}%")
-                            ->orWhere('users.lastname', 'like', "%{$keyword}%")
-                            ->orWhere('users.mobile', 'like', "%{$keyword}%")
+                            ->where('customers.firstname', 'like', "%{$keyword}%")
+                            ->orWhere('customers.lastname', 'like', "%{$keyword}%")
+                            ->orWhere('customers.mobile', 'like', "%{$keyword}%")
                             // tour related to booking
                             ->orWhere('tours.name', 'like', "%{$keyword}%")
                             ->orWhere('tours.title', 'like', "%{$keyword}%")
@@ -140,9 +140,9 @@ class TourManagerController extends Controller
                     return $info;
                 })
                 ->addColumn('customer', function (Booking $booking) {
-                    $name = $booking->user ? $booking->user->firstname . ' ' . $booking->user->lastname : '-';
+                    $name = $booking->customer ? $booking->customer->firstname . ' ' . $booking->customer->lastname : '-';
                     return '<strong>' . e($name) . '</strong><br>' .
-                        '<small class="text-muted">' . e($booking->user->base_mobile     ?? '') . '</small>';
+                        '<small class="text-muted">' . e($booking->customer->base_mobile     ?? '') . '</small>';
                 })
                 ->addColumn('location', function (Booking $booking) {
                     $location = [];

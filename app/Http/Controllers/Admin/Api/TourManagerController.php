@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin\Api;
 
 
 use App\Models\Booking;
+use App\Models\Customer;
 use App\Models\Tour;
 use App\Models\User;
 use App\Models\Setting;
@@ -63,7 +64,7 @@ class TourManagerController extends Controller
      */
     public function getCustomers(Request $request)
     {
-        $customers = User::role('customer')->get(['id', 'firstname', 'lastname', 'email', 'mobile']);
+        $customers = Customer::query()->get(['id', 'firstname', 'lastname', 'email', 'mobile']);
         return response()->json([
             'success' => true,
             'customers' => $customers
@@ -76,10 +77,28 @@ class TourManagerController extends Controller
     public function getToursByCustomer(Request $request)
     {
         $data = $request->validate([
-            'user_id' => 'required|integer|exists:users,id',
+            'customer_id' => 'nullable|integer|exists:customers,id',
+            'user_id' => 'nullable|integer|exists:users,id',
         ]);
-        // Get bookings for this user
-        $bookingIds = Booking::where('user_id', $data['user_id'])->pluck('id');
+
+        $customerId = $data['customer_id'] ?? null;
+        $userId = $data['user_id'] ?? null;
+
+        if (!$customerId && !$userId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'customer_id or user_id is required'
+            ], 422);
+        }
+
+        $bookingQuery = Booking::query();
+        if ($customerId) {
+            $bookingQuery->where('customer_id', $customerId);
+        } else {
+            $bookingQuery->where('user_id', $userId);
+        }
+
+        $bookingIds = $bookingQuery->pluck('id');
         // Get API, QR, and S3 base URLs from settings
         $apiBaseUrl = getApiBaseUrl();
         $qrLinkBase = getQrLinkBase();
