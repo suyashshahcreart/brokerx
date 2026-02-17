@@ -305,6 +305,16 @@
                                 </button>
                             </li>
                             <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="contact-info-tab" data-bs-toggle="tab" data-bs-target="#contact-info-pane" type="button" role="tab" aria-controls="contact-info-pane" aria-selected="false">
+                                    <i class="ri-map-pin-line me-1"></i> Contact Info 
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="tour-setting-tab" data-bs-toggle="tab" data-bs-target="#tour-setting-pane" type="button" role="tab" aria-controls="tour-setting-pane" aria-selected="false">
+                                    <i class="ri-map-pin-line me-1"></i> Tour Settings
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
                                 <button class="nav-link" id="tour-tab" data-bs-toggle="tab" data-bs-target="#tour-pane" type="button" role="tab" aria-controls="tour-pane" aria-selected="false">
                                     <i class="ri-map-pin-line me-1"></i> Tour Details
                                 </button>
@@ -363,7 +373,17 @@
                         <div class="tab-pane fade" id="quick-actions-pane" role="tabpanel" aria-labelledby="quick-actions-tab" tabindex="0">
                             @include('admin.bookings.partials.quick-actions')
                         </div>
+                       
+                        <!-- contact-info-tab -->
+                        <div class="tab-pane fade" id="contact-info-pane" role="tabpanel" aria-labelledby="tour-setting-tab" tabindex="0">
+                            @include('admin.bookings.partials.tour-contact-form')
+                        </div>
 
+                         <!-- tour-setting-tab -->
+                        <div class="tab-pane fade" id="tour-setting-pane" role="tabpanel" aria-labelledby="contact-info-tab" tabindex="0">
+                            @include('admin.bookings.partials.tour-setting-form')
+                        </div>
+                        
                         <!-- Tour Tab -->
                         <div class="tab-pane fade" id="tour-pane" role="tabpanel" aria-labelledby="tour-tab" tabindex="0">
                             @if($tour ?? null)

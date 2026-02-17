@@ -284,36 +284,55 @@
                     </div>
                 </div>
 
-                <div class="col-md-12 d-flex gap-3 align-items-center mb-3">
-                    <div class="col-md-4">
-                        <label for="sidebar_footer_link_show" class="form-label">Footer button Show</label>
-                        <select name="sidebar_footer_link_show" id="sidebar_footer_link_show" class="form-select">
-                            <option value="1"
-                                {{ old('sidebar_footer_link_show', $tour->sidebar_footer_link_show) == 1 ? 'selected' : '' }}>
-                                Show</option>
-                            <option value="0"
-                                {{ old('sidebar_footer_link_show', $tour->sidebar_footer_link_show) == 0 ? 'selected' : '' }}>
-                                Hide</option>
-                        </select>
-                        @error('sidebar_footer_link_show')<div class="text-danger">{{ $message }}</div>@enderror
+                <div class="col-md-12">
+                    <h6 class="mb-3">Sidebar Tag <span class="text-muted">(optional)</span></h6>
+                    <p class="text-muted mb-3">Vertical tag on the right side of the sidebar. Leave empty to hide.</p>
+                </div>
+
+                <div class="col-md-12">
+                    <div class="mb-3">
+                        <label for="sidebar_tag_text" class="form-label">Tag Title</label>
+                        <input type="text" name="sidebar_tag_text" id="sidebar_tag_text" class="form-control"
+                            placeholder="e.g, sold out"
+                            value="{{ old('sidebar_tag_text', $tour->sidebar_tag_text ?? '') }}">
+                        @error('sidebar_tag_text')<div class="text-danger">{{ $message }}</div>@enderror
                     </div>
-                    <div class="col-md-8" id="sidebar-footer-fields" style="display: none;">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <label for="sidebar_footer_text" class="form-label">Footer button Text</label>
-                                <input type="text" name="sidebar_footer_text" id="sidebar_footer_text"
-                                    class="form-control" placeholder="e.g, Designed By Prop Pik"
-                                    value="{{ old('sidebar_footer_text', $tour->sidebar_footer_text) }}">
-                                @error('sidebar_footer_text')<div class="text-danger">{{ $message }}</div>@enderror
-                            </div>
-                            <div class="col-md-6">
-                                <label for="sidebar_footer_link" class="form-label">Footer button Link</label>
-                                <input type="text" name="sidebar_footer_link" id="sidebar_footer_link"
-                                    class="form-control" placeholder="e.g, https://www.proppik.com/contact.html"
-                                    value="{{ old('sidebar_footer_link', $tour->sidebar_footer_link) }}">
-                                @error('sidebar_footer_link')<div class="text-danger">{{ $message }}</div>@enderror
-                            </div>
+                </div>
+
+                <div class="col-md-12">
+                    <div class="mb-3">
+                        <label class="form-label" for="sidebar_tag_bg_color">Tag Background Color</label>
+                        <div class="input-group">
+                            <span class="input-group-text p-1">
+                                <input type="color" id="sidebar_tag_bg_color_picker" class="form-control form-control-color"
+                                    value="{{ old('sidebar_tag_bg_color', $tour->sidebar_tag_bg_color ?? '#ff000d') }}"
+                                    onchange="document.getElementById('sidebar_tag_bg_color').value = this.value">
+                            </span>
+                            <input type="text" name="sidebar_tag_bg_color" id="sidebar_tag_bg_color" class="form-control"
+                                placeholder="e.g. #ff000d"
+                                value="{{ old('sidebar_tag_bg_color', $tour->sidebar_tag_bg_color ?? '#ff000d') }}">
                         </div>
+                        @error('sidebar_tag_bg_color')<div class="text-danger">{{ $message }}</div>@enderror
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="made_by_text" class="form-label">Made by text <span class="text-muted">(optional)</span></label>
+                        <input type="text" name="made_by_text" id="made_by_text" class="form-control"
+                            placeholder="ketan"
+                            value="{{ old('made_by_text', $tour->made_by_text ?? '') }}">
+                        @error('made_by_text')<div class="text-danger">{{ $message }}</div>@enderror
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="made_by_link" class="form-label">Made by link <span class="text-danger">*</span></label>
+                        <input type="url" name="made_by_link" id="made_by_link" class="form-control"
+                            placeholder="https://proppik.com/contact"
+                            value="{{ old('made_by_link', $tour->made_by_link ?? '') }}">
+                        @error('made_by_link')<div class="text-danger">{{ $message }}</div>@enderror
                     </div>
                 </div>
             </div>
@@ -347,36 +366,123 @@
                         @error('footer_logo')<div class="text-danger">{{ $message }}</div>@enderror
                     </div>
                 </div>
-                <!-- <div class="col-md-6">
-                    <div class="mb-3">
-                        <label for="footer_info_type" class="form-label">Footer Info Type</label>
-                        <select name="footer_info_type" id="footer_info_type" class="form-select">
-                            <option value="company"
-                                {{ old('footer_info_type', $tour->footer_info_type) == 'company' ? 'selected' : '' }}>
-                                Company</option>
-                            <option value="agent"
-                                {{ old('footer_info_type', $tour->footer_info_type) == 'agent' ? 'selected' : '' }}>
-                                Agent</option>
-                        </select>
-                        @error('footer_info_type')<div class="text-danger">{{ $message }}</div>@enderror
-                    </div>
-                </div> -->
-                <div class="col-md-6">
-                    <div class="mb-3">
-                        <label for="footer_name" class="form-label">Top Title</label>
-                        <input type="text" name="footer_name" id="footer_name" class="form-control" placeholder="e.g, Ramesh Mehta"
-                            value="{{ old('footer_name', $tour->footer_name) }}">
-                        @error('footer_name')<div class="text-danger">{{ $message }}</div>@enderror
+            </div>
+
+            <!-- Language tabs -->
+            <ul class="nav nav-tabs mb-3" id="footerLanguageTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="footer-lang-english-tab" data-bs-toggle="tab" data-bs-target="#footer-lang-english-pane"
+                        type="button" role="tab" aria-controls="footer-lang-english-pane" aria-selected="true">
+                        <span class="badge bg-success me-2">✓</span>English
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="footer-lang-gujarati-tab" data-bs-toggle="tab" data-bs-target="#footer-lang-gujarati-pane"
+                        type="button" role="tab" aria-controls="footer-lang-gujarati-pane" aria-selected="false">
+                        <span class="badge bg-success me-2">✓</span>Gujarati
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="footer-lang-hindi-tab" data-bs-toggle="tab" data-bs-target="#footer-lang-hindi-pane"
+                        type="button" role="tab" aria-controls="footer-lang-hindi-pane" aria-selected="false">
+                        <span class="badge bg-success me-2">✓</span>Hindi
+                    </button>
+                </li>
+            </ul>
+
+            <div class="tab-content" id="footerLanguageTabsContent">
+                <div class="tab-pane fade show active" id="footer-lang-english-pane" role="tabpanel" aria-labelledby="footer-lang-english-tab" tabindex="0">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="footer_name_en" class="form-label">Top Title (English) <span class="text-danger">*</span></label>
+                                <input type="text" name="footer_name_en" id="footer_name_en" class="form-control" placeholder="e.g, Ramesh Mehta"
+                                    value="{{ old('footer_name_en', $tour->footer_name_en ?? '') }}">
+                                @error('footer_name_en')<div class="text-danger">{{ $message }}</div>@enderror
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="footer_subtitle_en" class="form-label">Top Sub Title (English) <span class="text-danger">*</span></label>
+                                <input type="text" name="footer_subtitle_en" id="footer_subtitle_en" class="form-control" placeholder="e.g, JK Real Estate"
+                                    value="{{ old('footer_subtitle_en', $tour->footer_subtitle_en ?? '') }}">
+                                @error('footer_subtitle_en')<div class="text-danger">{{ $message }}</div>@enderror
+                            </div>
+                        </div>
+                        <div class="col-md-12">
+                            <div class="mb-3">
+                                <label for="footer_decription_en" class="form-label">Top Description (English) <span class="text-muted">(optional)</span></label>
+                                <textarea name="footer_decription_en" id="footer_decription_en" class="form-control"
+                                 placeholder="e.g, For Reant / For Sell / For Lease"
+                                    rows="2">{{ old('footer_decription_en', $tour->footer_decription_en ?? '') }}</textarea>
+                                @error('footer_decription_en')<div class="text-danger">{{ $message }}</div>@enderror
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="col-md-6">
-                    <div class="mb-3">
-                        <label for="footer_subtitle" class="form-label">Top Subtitle</label>
-                        <input type="text" name="footer_subtitle" id="footer_subtitle" class="form-control" placeholder="e.g, JK Real Estate"
-                            value="{{ old('footer_subtitle', $tour->footer_subtitle) }}">
-                        @error('footer_subtitle')<div class="text-danger">{{ $message }}</div>@enderror
+
+                <div class="tab-pane fade" id="footer-lang-gujarati-pane" role="tabpanel" aria-labelledby="footer-lang-gujarati-tab" tabindex="0">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="footer_name_gu" class="form-label">Top Title (Gujarati) <span class="text-danger">*</span></label>
+                                <input type="text" name="footer_name_gu" id="footer_name_gu" class="form-control" placeholder="e.g, રમેશ મહતા"
+                                    value="{{ old('footer_name_gu', $tour->footer_name_gu ?? '') }}">
+                                @error('footer_name_gu')<div class="text-danger">{{ $message }}</div>@enderror
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="footer_subtitle_gu" class="form-label">Top Sub Title (Gujarati) <span class="text-danger">*</span></label>
+                                <input type="text" name="footer_subtitle_gu" id="footer_subtitle_gu" class="form-control" placeholder="e.g, જે કે રીયલ એસ્ટેટ"
+                                    value="{{ old('footer_subtitle_gu', $tour->footer_subtitle_gu ?? '') }}">
+                                @error('footer_subtitle_gu')<div class="text-danger">{{ $message }}</div>@enderror
+                            </div>
+                        </div>
+                        <div class="col-md-12">
+                            <div class="mb-3">
+                                <label for="footer_decription_gu" class="form-label">Top Description (Gujarati) <span class="text-muted">(optional)</span></label>
+                                <textarea name="footer_decription_gu" id="footer_decription_gu" class="form-control"
+                                 placeholder="e.g, ભાડે માટે / વેચવા માટે / ભાડે માટે"
+                                    rows="2">{{ old('footer_decription_gu', $tour->footer_decription_gu ?? '') }}</textarea>
+                                @error('footer_decription_gu')<div class="text-danger">{{ $message }}</div>@enderror
+                            </div>
+                        </div>
                     </div>
                 </div>
+
+                <div class="tab-pane fade" id="footer-lang-hindi-pane" role="tabpanel" aria-labelledby="footer-lang-hindi-tab" tabindex="0">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="footer_name_hi" class="form-label">Top Title (Hindi) <span class="text-danger">*</span></label>
+                                <input type="text" name="footer_name_hi" id="footer_name_hi" class="form-control" placeholder="e.g, रमेश मेहता"
+                                    value="{{ old('footer_name_hi', $tour->footer_name_hi ?? '') }}">
+                                @error('footer_name_hi')<div class="text-danger">{{ $message }}</div>@enderror
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="footer_subtitle_hi" class="form-label">Top Sub Title (Hindi) <span class="text-danger">*</span></label>
+                                <input type="text" name="footer_subtitle_hi" id="footer_subtitle_hi" class="form-control" placeholder="e.g, जे के रीयल एस्टेट"
+                                    value="{{ old('footer_subtitle_hi', $tour->footer_subtitle_hi ?? '') }}">
+                                @error('footer_subtitle_hi')<div class="text-danger">{{ $message }}</div>@enderror
+                            </div>
+                        </div>
+                        <div class="col-md-12">
+                            <div class="mb-3">
+                                <label for="footer_decription_hi" class="form-label">Top Description (Hindi) <span class="text-muted">(optional)</span></label>
+                                <textarea name="footer_decription_hi" id="footer_decription_hi" class="form-control"
+                                 placeholder="e.g, किराए के लिए / बिक्री के लिए / पट्टे के लिए"
+                                    rows="2">{{ old('footer_decription_hi', $tour->footer_decription_hi ?? '') }}</textarea>
+                                @error('footer_decription_hi')<div class="text-danger">{{ $message }}</div>@enderror
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row mt-4">
                 <div class="col-md-6">
                     <div class="mb-3">
                         <label for="footer_email" class="form-label">Contact Email</label>
@@ -387,19 +493,10 @@
                 </div>
                 <div class="col-md-6">
                     <div class="mb-3">
-                        <label for="footer_mobile" class="form-label">Contact Mobile</label>
-                        <input type="number" name="footer_mobile" id="footer_mobile" class="form-control"
+                        <label for="footer_mobile" class="form-label">Contact Number</label>
+                        <input type="text" name="footer_mobile" id="footer_mobile" class="form-control"
                             value="{{ old('footer_mobile', $tour->footer_mobile) }}" placeholder="eg.+91 9898 363026">
                         @error('footer_mobile')<div class="text-danger">{{ $message }}</div>@enderror
-                    </div>
-                </div>
-                <div class="col-md-12">
-                    <div class="mb-3">
-                        <label for="footer_decription" class="form-label">Top Description</label>
-                        <textarea name="footer_decription" id="footer_decription" class="form-control"
-                        placeholder="e.g, For Reant / For Sell / For Lease"
-                            rows="2">{{ old('footer_decription', $tour->footer_decription) }}</textarea>
-                        @error('footer_decription')<div class="text-danger">{{ $message }}</div>@enderror
                     </div>
                 </div>
             </div>
@@ -469,6 +566,35 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // Color sync function for sidebar tag
+        function bindColorSync(textId, pickerId) {
+            const textInput = document.getElementById(textId);
+            const pickerInput = document.getElementById(pickerId);
+
+            if (!textInput || !pickerInput) {
+                return;
+            }
+
+            const applyToPicker = function (value) {
+                if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(value)) {
+                    pickerInput.value = value;
+                }
+            };
+
+            textInput.addEventListener('input', function (event) {
+                applyToPicker(event.target.value.trim());
+            });
+
+            pickerInput.addEventListener('input', function (event) {
+                textInput.value = event.target.value;
+            });
+
+            applyToPicker(textInput.value.trim());
+        }
+
+        // Bind sidebar tag color sync
+        bindColorSync('sidebar_tag_bg_color', 'sidebar_tag_bg_color_picker');
+
         // Get Tour Active checkbox and related fields
         const isActive = document.getElementById('is_active');
         const credentialsRequiredField = document.getElementById('credentials-required-field');
