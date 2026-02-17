@@ -378,7 +378,7 @@
         async function acceptScheduleFromShow() {
             const requestedDate = '{{ $booking->booking_date ? $booking->booking_date->format("F j, Y") : "Not specified" }}';
             const customerNotes = '{{ addslashes($booking->booking_notes ?? "") }}';
-            const customerName = '{{ $booking->user ? $booking->user->firstname . " " . $booking->user->lastname : "N/A" }}';
+            const customerName = '{{ $booking->customer ? $booking->customer->firstname . " " . $booking->customer->lastname : "N/A" }}';
 
             // Escape HTML to prevent XSS
             const escapeHtml = (text) => {
@@ -467,7 +467,7 @@
         async function declineScheduleFromShow() {
             const requestedDate = '{{ $booking->booking_date ? $booking->booking_date->format("F j, Y") : "Not specified" }}';
             const customerNotes = '{{ addslashes($booking->booking_notes ?? "") }}';
-            const customerName = '{{ $booking->user ? $booking->user->firstname . " " . $booking->user->lastname : "N/A" }}';
+            const customerName = '{{ $booking->customer ? $booking->customer->firstname . " " . $booking->customer->lastname : "N/A" }}';
 
             // Escape HTML to prevent XSS
             const escapeHtml = (text) => {
@@ -865,7 +865,7 @@
             if (assignModalEl) {
                 assignModalEl.addEventListener('show.bs.modal', function () {
                     // Populate booking details
-                    document.getElementById('modalCustomer').textContent = '{{ $booking->user ? $booking->user->firstname . " " . $booking->user->lastname : "-" }}';
+                    document.getElementById('modalCustomer').textContent = '{{ $booking->customer ? $booking->customer->firstname . " " . $booking->customer->lastname : "-" }}';
                     document.getElementById('modalPincode').textContent = '{{ $booking->pin_code ?? "-" }}';
                     document.getElementById('modalAddress').textContent = `{{ $booking->full_address ?? ($booking->house_no . ", " . $booking->building . ", " . ($booking->society_name ?? "") . ", " . ($booking->address_area ?? "")) }}`;
                     document.getElementById('modalCity').textContent = '{{ $booking->city?->name ?? "-" }}';

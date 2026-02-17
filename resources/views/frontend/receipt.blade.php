@@ -316,15 +316,15 @@
                     <div class="kv">
                         <div class="item">
                             <div class="label">Name</div>
-                            <div class="value">{{ trim(($user->firstname ?? '') . ' ' . ($user->lastname ?? '')) ?: 'N/A' }}</div>
+                            <div class="value">{{ trim(($customer->firstname ?? '') . ' ' . ($customer->lastname ?? '')) ?: 'N/A' }}</div>
                         </div>
                         <div class="item">
                             <div class="label">Mobile</div>
-                            <div class="value">{{ $user->mobile ?? 'N/A' }}</div>
+                            <div class="value">{{ $customer->mobile ?? 'N/A' }}</div>
                         </div>
                         <div class="item" style="grid-column:1 / -1;">
                             <div class="label">Email</div>
-                            <div class="value">{{ $user->email ?? 'N/A' }}</div>
+                            <div class="value">{{ $customer->email ?? 'N/A' }}</div>
                         </div>
                     </div>
                 </div>

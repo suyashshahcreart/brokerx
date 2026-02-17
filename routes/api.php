@@ -10,6 +10,9 @@ use App\Http\Controllers\Api\TourApiController;
 use App\Http\Controllers\Admin\ajax\BookingAssigneController;
 use App\Http\Controllers\Admin\Api\TourManagerController;
 use App\Http\Controllers\Api\PortfolioApiController;
+use App\Http\Controllers\Api\CustomerAuthController;
+use App\Http\Controllers\Api\CustomerPortfolioController;
+use App\Http\Controllers\Api\CustomerProfileController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -65,6 +68,19 @@ Route::post('/portfolio/verify-otp', [PortfolioApiController::class, 'verifyOtp'
 Route::middleware(['verify.portfolio.api.token'])->group(function () {
     Route::get('/portfolio/list', [PortfolioApiController::class, 'list']);
     Route::get('/portfolio/filters/property-types', [PortfolioApiController::class, 'getPropertyTypeFilters']);
+});
+
+// Customer Auth APIs
+Route::post('/customer/register', [CustomerAuthController::class, 'register']);
+Route::post('/customer/login/send-otp', [CustomerAuthController::class, 'sendOtp']);
+Route::post('/customer/login/verify-otp', [CustomerAuthController::class, 'verifyOtp']);
+
+// Customer Portfolio API (requires customer token)
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/customer/portfolio', [CustomerPortfolioController::class, 'list']);
+    Route::get('/customer/profile', [CustomerProfileController::class, 'show']);
+    Route::match(['post', 'patch'], '/customer/profile', [CustomerProfileController::class, 'update']);
+    Route::post('/customer/profile/images', [CustomerProfileController::class, 'updateImages']);
 });
 
 // Route::middleware('auth')->group(function () {

@@ -167,7 +167,7 @@
                 </div>
 
                 <!-- Customer Information -->
-                @if($booking->user)
+                @if($booking->customer)
                     <div class="card">
                         <div class="card-header">
                             <h4 class="card-title mb-0">Customer Information</h4>
@@ -177,18 +177,18 @@
                                 <div class="col-md-6">
                                     <div class="mb-3">
                                         <label class="form-label text-muted">Name</label>
-                                        <p class="fw-semibold">{{ $booking->user->firstname }} {{ $booking->user->lastname }}
+                                        <p class="fw-semibold">{{ $booking->customer->firstname }} {{ $booking->customer->lastname }}
                                         </p>
                                     </div>
                                     <div class="mb-3">
                                         <label class="form-label text-muted">Email</label>
-                                        <p>{{ $booking->user->email }}</p>
+                                        <p>{{ $booking->customer->email }}</p>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="mb-3">
                                         <label class="form-label text-muted">Mobile</label>
-                                        <p>{{ $booking->user->mobile }}</p>
+                                        <p>{{ $booking->customer->mobile }}</p>
                                     </div>
                                 </div>
                             </div>
@@ -463,6 +463,9 @@
 @endsection
 
 @section('scripts')
+@php
+    $tourZipStatus = $booking->tour_zip_status ?? 'pending';
+@endphp
 <script>
 // Copy to clipboard functionality
 (function() {

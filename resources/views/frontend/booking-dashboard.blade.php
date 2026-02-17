@@ -174,9 +174,9 @@
                                 }
                                 
                                 // User info
-                                $userName = $booking->user ? trim(($booking->user->firstname ?? '') . ' ' . ($booking->user->lastname ?? '')) : 'N/A';
-                                $userPhone = $booking->user->mobile ?? 'N/A';
-                                $ownerType = $booking->user ? 'Owner' : 'N/A';
+                                $userName = $booking->customer ? trim(($booking->customer->firstname ?? '') . ' ' . ($booking->customer->lastname ?? '')) : 'N/A';
+                                $userPhone = $booking->customer->mobile ?? 'N/A';
+                                $ownerType = $booking->customer ? 'Owner' : 'N/A';
                                 
                                 // Address - only show fields that have values
                                 $addressParts = [];

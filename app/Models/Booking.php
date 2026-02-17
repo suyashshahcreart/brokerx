@@ -13,7 +13,7 @@ class Booking extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'user_id',
+        'customer_id',
         'property_type_id',
         'property_sub_type_id',
         'owner_type',
@@ -75,9 +75,9 @@ class Booking extends Model
     ];
 
     // Relationships
-    public function user()
+    public function customer()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(Customer::class);
     }
 
     public function propertyType()
@@ -536,7 +536,8 @@ class Booking extends Model
 
         // Otherwise, use FTP URL logic
         // Check if tour has required data for FTP URL
-        if (!$tour->location || !$tour->slug || !$this->user_id) {
+        $customerId = $this->customer_id;
+        if (!$tour->location || !$tour->slug || !$customerId) {
             return '#';
         }   
 
@@ -548,7 +549,7 @@ class Booking extends Model
         }
 
         // Generate FTP URL
-        $fullFtpUrl = $ftpConfig->getUrlForTour($tour->slug, $this->user_id);
+        $fullFtpUrl = $ftpConfig->getUrlForTour($tour->slug, $customerId);
         $tourFtpUrl = rtrim($fullFtpUrl, '/');
         
         // Remove index.php if present
