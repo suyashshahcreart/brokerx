@@ -109,7 +109,7 @@ function buildExtendedProps(booking, assignee, rawTime) {
         propertyType: `${booking?.propertyType?.name || ''} / ${booking?.propertySubType?.name || ''}`,
         assignmentTime: assignee?.time ?? null,
         pincode: booking.pin_code,
-        user: booking.user,
+        user: booking.customer || booking.user,
         city: booking.city,
         state: booking.state,
         photographer: assignee?.user ?? null,
@@ -529,7 +529,7 @@ class CalendarSchedule {
                                     propertyType: (booking.propertyType?.name || '') + " / " + (booking.propertySubType?.name || ''),
                                     assignmentTime: assignee.time,
                                     pincode: booking.pin_code,
-                                    user: booking.user,
+                                    user: booking.customer || booking.user,
                                     city: booking.city,
                                     state: booking.state,
                                     photographer: assignee.user
@@ -557,7 +557,7 @@ class CalendarSchedule {
                                 propertyType: (booking.propertyType?.name || '') + " / " + (booking.propertySubType?.name || ''),
                                 assignmentTime: null,
                                 pincode: booking.pin_code,
-                                user: booking.user,
+                                user: booking.customer || booking.user,
                                 city: booking.city,
                                 state: booking.state,
                                 photographer: null

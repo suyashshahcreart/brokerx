@@ -46,7 +46,7 @@ class TourManagerController extends Controller
                 ->leftJoin('qr_code', 'qr_code.booking_id', '=', 'bookings.id')
                 ->select('bookings.*')
                 ->distinct()
-                ->with(['user', 'propertyType', 'propertySubType', 'bhk', 'city', 'state', 'tours', 'qr'])
+                ->with(['customer', 'propertyType', 'propertySubType', 'bhk', 'city', 'state', 'tours', 'qr'])
                 ->orderBy('bookings.created_at', 'desc');
 
             // Apply filters
@@ -242,7 +242,7 @@ class TourManagerController extends Controller
     public function show(Booking $booking)
     {
         $booking->load([
-            'user',
+            'customer',
             'propertyType',
             'propertySubType',
             'bhk',
@@ -2185,7 +2185,7 @@ PHP;
             // Get customer_id from tour's booking
             $customerId = null;
             if ($tour->booking) {
-                $customerId = $tour->booking->user_id;
+                $customerId = $tour->booking->customer_id;
             }
 
             if (empty($customerId)) {
@@ -2408,7 +2408,7 @@ PHP;
             // Get customer_id from tour's booking
             $customerId = null;
             if ($tour->booking) {
-                $customerId = $tour->booking->user_id;
+                $customerId = $tour->booking->customer_id;
             }
             
             if (empty($customerId)) {

@@ -419,7 +419,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 		const requestedDate = rowData?.booking_date || 'Not specified';
 		const customerNotes = rowData?.booking_notes || '';
-		const userName = rowData?.user || 'N/A';
+		const userName = rowData?.user || rowData?.customer || 'N/A';
 
 		const htmlContent = `
 			<div class="text-start mb-3">
@@ -502,7 +502,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 		const requestedDate = rowData?.booking_date || 'Not specified';
 		const customerNotes = rowData?.booking_notes || '';
-		const userName = rowData?.user || 'N/A';
+		const userName = rowData?.user || rowData?.customer || 'N/A';
 
 		const htmlContent = `
 			<div class="text-start mb-3">

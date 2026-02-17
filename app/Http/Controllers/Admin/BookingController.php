@@ -128,6 +128,9 @@ class BookingController extends Controller
                             ->orWhere('qr_code.code', 'like', "%{$keyword}%");
                     });
                 })
+                ->addColumn('user', function (Booking $booking) {
+                    return $booking->customer ? trim($booking->customer->firstname . ' ' . $booking->customer->lastname) : 'N/A';
+                })
                 ->addColumn('customer', function (Booking $booking) {
                     $name = $booking->customer ? $booking->customer->firstname . ' ' . $booking->customer->lastname : '-';
                     $mobile = $booking->customer ? $booking->customer->base_mobile : '-';
@@ -223,14 +226,14 @@ class BookingController extends Controller
     public function apiList(Request $request)
     {
         $query = Booking::query()
-            ->with(['user', 'propertyType', 'propertySubType'])
+            ->with(['customer', 'propertyType', 'propertySubType'])
             ->whereDoesntHave('qr');
         // Filters
         if ($request->filled('status')) {
             $query->where('status', $request->input('status'));
         }
-        if ($request->filled('user_id')) {
-            $query->where('user_id', $request->input('user_id'));
+        if ($request->filled('customer_id')) {
+            $query->where('customer_id', $request->input('customer_id'));
         }
         if ($request->filled('property_type_id')) {
             $query->where('property_type_id', $request->input('property_type_id'));
@@ -239,7 +242,7 @@ class BookingController extends Controller
             $search = $request->input('search');
             $query->where(function ($q) use ($search) {
                 $q->where('id', 'like', "%$search%")
-                    ->orWhereHas('user', function ($uq) use ($search) {
+                    ->orWhereHas('customer', function ($uq) use ($search) {
                         $uq->where('firstname', 'like', "%$search%")
                             ->orWhere('lastname', 'like', "%$search%")
                             ->orWhere('email', 'like', "%$search%")
@@ -255,8 +258,8 @@ class BookingController extends Controller
         $result = $bookings->map(function ($booking) {
             return [
                 'id' => $booking->id,
-                'customer' => $booking->user ? $booking->user->firstname . ' ' . $booking->user->lastname : null,
-                'customer_mobile' => $booking->user?->mobile,
+                'customer' => $booking->customer ? $booking->customer->firstname . ' ' . $booking->customer->lastname : null,
+                'customer_mobile' => $booking->customer?->mobile,
                 'property_type' => $booking->propertyType?->name,
                 'property_sub_type' => $booking->propertySubType?->name,
                 'bhk' => $booking->bhk?->name,
@@ -282,12 +285,12 @@ class BookingController extends Controller
             'booking_id' => 'required|exists:bookings,id',
         ]);
 
-        $booking = Booking::with(['user', 'propertyType', 'propertySubType', 'bhk', 'city', 'state'])
+        $booking = Booking::with(['customer', 'propertyType', 'propertySubType', 'bhk', 'city', 'state'])
             ->findOrFail($request->booking_id);
 
         $bookingData = [
             'id' => $booking->id,
-            'customer' => $booking->user ? $booking->user->firstname . ' ' . $booking->user->lastname : null,
+            'customer' => $booking->customer ? $booking->customer->firstname . ' ' . $booking->customer->lastname : null,
             'property_type' => $booking->propertyType?->name,
             'property_sub_type' => $booking->propertySubType?->name,
             'bhk' => $booking->bhk?->name,
@@ -480,7 +483,7 @@ class BookingController extends Controller
 
     public function show(Request $request, Booking $booking)
     {
-        $booking->load(['user', 'propertyType', 'propertySubType', 'bhk', 'city', 'state', 'creator', 'assignees.user']);
+        $booking->load(['customer', 'propertyType', 'propertySubType', 'bhk', 'city', 'state', 'creator', 'assignees.user']);
 
         // Get photographers for assignment modal
         $photographers = User::whereHas('roles', function ($q) {
@@ -1075,7 +1078,7 @@ class BookingController extends Controller
 
         // Full update - requires all fields
         $validated = $request->validate([
-            'user_id' => ['required', 'exists:users,id'],
+            'customer_id' => ['required', 'exists:customers,id'],
             'property_type_id' => ['required', 'exists:property_types,id'],
             'property_sub_type_id' => ['required', 'exists:property_sub_types,id'],
             'area' => ['required', 'numeric', 'min:0'],

@@ -575,10 +575,10 @@ class TourAccessController extends Controller{
         }
 
         // Get bookings with basic information
-        $bookings = Booking::with(['user:id,firstname,lastname,email,mobile'])
+        $bookings = Booking::with(['customer:id,firstname,lastname,email,mobile'])
             ->select([
                 'id',
-                'user_id',
+                'customer_id',
                 'tour_code',
                 'status',
                 'payment_status',
@@ -596,12 +596,12 @@ class TourAccessController extends Controller{
                     'status' => $booking->status,
                     'payment_status' => $booking->payment_status,
                     'booking_date' => $booking->booking_date ? $booking->booking_date->format('Y-m-d') : null,
-                    'user' => [
-                        'id' => $booking->user->id ?? null,
-                        'firstname' => $booking->user->firstname ?? '',
-                        'lastname' => $booking->user->lastname ?? '',
-                        'email' => $booking->user->email ?? '',
-                        'mobile' => $booking->user->mobile ?? '',
+                    'customer' => [
+                        'id' => $booking->customer->id ?? null,
+                        'firstname' => $booking->customer->firstname ?? '',
+                        'lastname' => $booking->customer->lastname ?? '',
+                        'email' => $booking->customer->email ?? '',
+                        'mobile' => $booking->customer->mobile ?? '',
                     ],
                     'created_at' => $booking->created_at->format('Y-m-d H:i:s'),
                     'updated_at' => $booking->updated_at->format('Y-m-d H:i:s'),
@@ -640,7 +640,7 @@ class TourAccessController extends Controller{
 
         // Eager load relationships to avoid N+1 queries
         $booking->load([
-            'user:id,firstname,lastname,email,mobile',
+            'customer:id,firstname,lastname,email,mobile',
             'propertyType:id,name',
             'propertySubType:id,name',
             'bhk:id,name',
@@ -668,12 +668,12 @@ class TourAccessController extends Controller{
             'booking_notes' => $booking->booking_notes,
             'created_at' => $booking->created_at->format('Y-m-d H:i:s'),
             'updated_at' => $booking->updated_at->format('Y-m-d H:i:s'),
-            'user' => [
-                'id' => $booking->user->id ?? null,
-                'firstname' => $booking->user->firstname ?? '',
-                'lastname' => $booking->user->lastname ?? '',
-                'email' => $booking->user->email ?? '',
-                'mobile' => $booking->user->mobile ?? '',
+            'customer' => [
+                'id' => $booking->customer->id ?? null,
+                'firstname' => $booking->customer->firstname ?? '',
+                'lastname' => $booking->customer->lastname ?? '',
+                'email' => $booking->customer->email ?? '',
+                'mobile' => $booking->customer->mobile ?? '',
             ],
             'property' => [
                 'property_type' => $booking->propertyType->name ?? null,
@@ -785,8 +785,8 @@ class TourAccessController extends Controller{
                 'id' => $booking->id,
                 'status' => $booking->status,
                 'base_url' => $booking->base_url,
-                'firstname' => $booking->user->firstname ?? '',
-                'lastname' => $booking->user->lastname ?? '',
+                'firstname' => $booking->customer->firstname ?? '',
+                'lastname' => $booking->customer->lastname ?? '',
                 'qr_code' => $booking->qr->code ?? '',
             ],
             'meta' => [

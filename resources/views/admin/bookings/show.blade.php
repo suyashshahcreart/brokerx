@@ -254,17 +254,17 @@
                                         </div>
                                     </div>
                                     <div class="flex-grow-1 ms-3">
-                                        <h5 class="mb-1">{{ $booking->user?->firstname }} {{ $booking->user?->lastname }}
+                                        <h5 class="mb-1">{{ $booking->customer?->firstname }} {{ $booking->customer?->lastname }}
                                         </h5>
                                         <div class="d-flex gap-3">
                                             <small class="text-muted"><i
-                                                    class="ri-id-card-line me-1"></i>{{ $booking->user?->id ?? '-' }}</small>
+                                                    class="ri-id-card-line me-1"></i>{{ $booking->customer?->id ?? '-' }}</small>
                                             
                                             <small class="text-muted"><i
-                                                    class="ri-phone-line me-1"></i>{{ $booking->user?->mobile ?? '-' }}</small>
-                                            @if($booking->user?->email)
+                                                    class="ri-phone-line me-1"></i>{{ $booking->customer?->mobile ?? '-' }}</small>
+                                            @if($booking->customer?->email)
                                             <small class="text-muted"><i
-                                                class="ri-mail-line me-1"></i>{{ $booking->user?->email ?? '-' }}</small>
+                                                class="ri-mail-line me-1"></i>{{ $booking->customer?->email ?? '-' }}</small>
                                             @endif
                                         </div>
                                     </div>
@@ -2173,7 +2173,7 @@
         async function acceptScheduleFromShow() {
             const requestedDate = '{{ $booking->booking_date ? $booking->booking_date->format("F j, Y") : "Not specified" }}';
             const customerNotes = '{{ addslashes($booking->booking_notes ?? "") }}';
-            const customerName = '{{ $booking->user ? $booking->user->firstname . " " . $booking->user->lastname : "N/A" }}';
+            const customerName = '{{ $booking->customer ? $booking->customer->firstname . " " . $booking->customer->lastname : "N/A" }}';
 
             // Escape HTML to prevent XSS
             const escapeHtml = (text) => {
@@ -2262,7 +2262,7 @@
         async function declineScheduleFromShow() {
             const requestedDate = '{{ $booking->booking_date ? $booking->booking_date->format("F j, Y") : "Not specified" }}';
             const customerNotes = '{{ addslashes($booking->booking_notes ?? "") }}';
-            const customerName = '{{ $booking->user ? $booking->user->firstname . " " . $booking->user->lastname : "N/A" }}';
+            const customerName = '{{ $booking->customer ? $booking->customer->firstname . " " . $booking->customer->lastname : "N/A" }}';
 
             // Escape HTML to prevent XSS
             const escapeHtml = (text) => {

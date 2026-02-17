@@ -8,6 +8,7 @@ use App\Models\City;
 use App\Models\PropertySubType;
 use App\Models\PropertyType;
 use App\Models\State;
+use App\Models\Customer;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -25,7 +26,8 @@ class BookingSeeder extends Seeder
             return;
         }
 
-        // Get existing data
+        // Get existing data (use Customer for booking owner, User for created_by)
+        $customers = Customer::all();
         $users = User::all();
         $propertyTypes = PropertyType::all();
         $propertySubTypes = PropertySubType::all();
@@ -34,8 +36,8 @@ class BookingSeeder extends Seeder
         $states = State::all();
 
         // Check if we have necessary data
-        if ($users->isEmpty() || $propertyTypes->isEmpty() || $propertySubTypes->isEmpty()) {
-            $this->command->warn('Cannot seed bookings: Missing required data (users, property types, or subtypes)');
+        if ($customers->isEmpty() || $propertyTypes->isEmpty() || $propertySubTypes->isEmpty()) {
+            $this->command->warn('Cannot seed bookings: Missing required data (customers, property types, or subtypes)');
             return;
         }
 
@@ -51,7 +53,7 @@ class BookingSeeder extends Seeder
             $state = $states->isNotEmpty() ? $states->random() : null;
 
             Booking::create([
-                'user_id' => $users->random()->id,
+                'customer_id' => $customers->random()->id,
                 'property_type_id' => $propertyTypes->random()->id,
                 'property_sub_type_id' => $propertySubTypes->random()->id,
                 'bhk_id' => $bhks->isNotEmpty() ? $bhks->random()->id : null,

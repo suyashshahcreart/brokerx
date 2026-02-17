@@ -21,7 +21,7 @@ class BookingApiController extends Controller
     public function index(Request $request)
     {
         $query = Booking::with([
-            'user',
+            'customer',
             'propertyType',
             'propertySubType',
             'bhk',
@@ -31,10 +31,11 @@ class BookingApiController extends Controller
             'updater'
         ]);
 
-        // Authorization: Show all bookings for admin, only user's own bookings for others
+        // Authorization: Show all bookings for admin, only user's own bookings for others (via customer_id)
         $user = Auth::user();
         if (!$user->hasRole('admin')) {
-            $query->where('user_id', $user->id);
+            $customerId = \App\Models\Customer::where('mobile', $user->mobile)->value('id');
+            $query->where('customer_id', $customerId ?? -1);
         }
 
         // Apply filters
@@ -66,7 +67,7 @@ class BookingApiController extends Controller
     public function show($id)
     {
         $query = Booking::with([
-            'user',
+            'customer',
             'propertyType',
             'propertySubType',
             'bhk',
@@ -168,9 +169,9 @@ class BookingApiController extends Controller
             $query->where('price', '<=', $request->max_price);
         }
 
-        // Filter by specific user (admin only)
-        if ($request->filled('user_id') && Auth::user()->hasRole('admin')) {
-            $query->where('user_id', $request->user_id);
+        // Filter by specific customer (admin only)
+        if ($request->filled('customer_id') && Auth::user()->hasRole('admin')) {
+            $query->where('customer_id', $request->customer_id);
         }
 
         // Include or exclude soft deleted records
@@ -206,10 +207,11 @@ class BookingApiController extends Controller
                 ->orWhere('tour_code', 'like', "%{$search}%")
                 ->orWhere('cashfree_order_id', 'like', "%{$search}%")
                 ->orWhere('cashfree_reference_id', 'like', "%{$search}%")
-                ->orWhereHas('user', function ($userQuery) use ($search) {
-                    $userQuery->where('name', 'like', "%{$search}%")
+                ->orWhereHas('customer', function ($customerQuery) use ($search) {
+                    $customerQuery->where('firstname', 'like', "%{$search}%")
+                        ->orWhere('lastname', 'like', "%{$search}%")
                         ->orWhere('email', 'like', "%{$search}%")
-                        ->orWhere('phone', 'like', "%{$search}%");
+                        ->orWhere('mobile', 'like', "%{$search}%");
                 });
         });
     }
@@ -276,10 +278,10 @@ class BookingApiController extends Controller
                     'bhk:id,name',
                     'city:id,name',
                     'state:id,name',
-                    'user:id,firstname,lastname,email'
+                    'customer:id,firstname,lastname,email'
                 ]);
             },
-            'user:id,firstname,lastname,email'
+            'customer:id,firstname,lastname,email'
         ]);
 
         // Apply date range filter on booking_assignees.date
@@ -358,10 +360,11 @@ class BookingApiController extends Controller
     {
         $query = Booking::query();
 
-        // Authorization: Show booking if admin or if booking belongs to user
+        // Authorization: Show booking if admin or if booking belongs to user (via customer)
         $user = Auth::user();
         if (!$user->hasRole('admin')) {
-            $query->where('user_id', $user->id);
+            $customerId = \App\Models\Customer::where('mobile', $user->mobile)->value('id');
+            $query->where('customer_id', $customerId ?? -1);
         }
 
         $booking = $query->findOrFail($id);
@@ -390,10 +393,11 @@ class BookingApiController extends Controller
     {
         $query = Booking::query();
 
-        // Authorization: Update booking if admin or if booking belongs to user
+        // Authorization: Update booking if admin or if booking belongs to user (via customer)
         $user = Auth::user();
         if (!$user->hasRole('admin')) {
-            $query->where('user_id', $user->id);
+            $customerId = \App\Models\Customer::where('mobile', $user->mobile)->value('id');
+            $query->where('customer_id', $customerId ?? -1);
         }
 
         $booking = $query->findOrFail($id);

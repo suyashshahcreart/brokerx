@@ -26,12 +26,15 @@ class PendingScheduleController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $query = Booking::with(['user', 'propertyType', 'propertySubType', 'bhk', 'city', 'state'])
+            $query = Booking::with(['customer', 'propertyType', 'propertySubType', 'bhk', 'city', 'state'])
                 ->whereIn('status', ['schedul_pending', 'reschedul_pending']);
 
             return \Yajra\DataTables\Facades\DataTables::of($query)
                 ->addColumn('user', function (Booking $booking) {
-                    return $booking->user ? $booking->user->firstname . ' ' . $booking->user->lastname : '-';
+                    return $booking->customer ? trim($booking->customer->firstname . ' ' . $booking->customer->lastname) : 'N/A';
+                })
+                ->addColumn('customer', function (Booking $booking) {
+                    return $booking->customer ? trim($booking->customer->firstname . ' ' . $booking->customer->lastname) : '-';
                 })
                 ->addColumn('type_subtype', function (Booking $booking) {
                     return $booking->propertyType?->name . '<div class="text-muted small">' . ($booking->propertySubType?->name ?? '-') . '</div>';
@@ -156,12 +159,12 @@ class PendingScheduleController extends Controller
             ->log($isReschedule ? 'Reschedule approved' : 'Schedule approved');
 
         // Send SMS notification to customer when schedule is accepted
-        if ($booking->user && $booking->user->mobile && $booking->booking_date) {
+        if ($booking->customer && $booking->customer->mobile && $booking->booking_date) {
             try {
                 // PROPPIK: Your appointment is scheduled on ##DATE##. Please ensure you are available. – CREART
                 // Template ID: 69295d82a0f6627e122a0252
 
-                $mobile = $booking->user->mobile;
+                $mobile = $booking->customer->mobile;
 
                 // Ensure mobile has country code (91 for India)
                 if (!str_starts_with($mobile, '91')) {
@@ -201,7 +204,7 @@ class PendingScheduleController extends Controller
                 // Log error but don't fail the schedule acceptance
                 \Log::error('Failed to send appointment scheduled SMS', [
                     'booking_id' => $booking->id,
-                    'mobile' => $booking->user->mobile ?? 'N/A',
+                    'mobile' => $booking->customer->mobile ?? 'N/A',
                     'error' => $e->getMessage(),
                     'trace' => $e->getTraceAsString()
                 ]);

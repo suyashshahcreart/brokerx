@@ -84,9 +84,12 @@ class CustomerController extends Controller
     {
         if ($request->ajax()) {
             // DataTable AJAX for bookings
-            $query = $customer->bookings()->latest();
+            $query = $customer->bookings()->with(['customer'])->latest();
             return DataTables::of($query)
                 ->addColumn('user', function (Booking $booking) {
+                    return $booking->customer ? trim($booking->customer->firstname . ' ' . $booking->customer->lastname) : 'N/A';
+                })
+                ->addColumn('customer', function (Booking $booking) {
                     return $booking->customer ? $booking->customer->name : '-';
                 })
                 ->addColumn('type_subtype', function (Booking $booking) {

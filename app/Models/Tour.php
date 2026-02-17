@@ -276,7 +276,7 @@ class Tour extends Model
 
         // Otherwise, use FTP URL logic
         // Check if tour has required data for FTP URL
-        $customerId = $booking->customer_id ?? $booking->user_id;
+        $customerId = $booking->customer_id;
         if (!$this->location || !$this->slug || !$customerId) {
             return '#';
         }   

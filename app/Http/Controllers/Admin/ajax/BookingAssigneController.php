@@ -37,7 +37,7 @@ class BookingAssigneController extends Controller
         if ($auth->hasRole('admin')) {
             // Admin: Get ALL bookings in date range
             $query = Booking::with([
-                'user:id,firstname,lastname,email,mobile',
+                'customer:id,firstname,lastname,email,base_mobile,mobile',
                 'propertyType:id,name',
                 'propertySubType:id,name',
                 'bhk:id,name',
@@ -83,7 +83,7 @@ class BookingAssigneController extends Controller
                         'price' => $booking->price,
                         'full_address' => $booking->full_address,
                         'pin_code' => $booking->pin_code,
-                        'user' => $booking->user, // Customer data
+                        'customer' => $booking->customer, // Customer data
                         'propertyType' => $booking->propertyType,
                         'propertySubType' => $booking->propertySubType,
                         'bhk' => $booking->bhk,
@@ -110,7 +110,7 @@ class BookingAssigneController extends Controller
         } else {
             // Photographer: Get only assigned bookings for this user
             $query = Booking::with([
-                'user:id,firstname,lastname,email',
+                'customer:id,firstname,lastname,email,base_mobile,mobile',
                 'propertyType:id,name',
                 'propertySubType:id,name',
                 'bhk:id,name',
@@ -158,7 +158,7 @@ class BookingAssigneController extends Controller
                         'price' => $booking->price,
                         'full_address' => $booking->full_address,
                         'pin_code' => $booking->pin_code,
-                        'user' => $booking->user, // Customer data
+                        'customer' => $booking->customer, // Customer data
                         'propertyType' => $booking->propertyType,
                         'propertySubType' => $booking->propertySubType,
                         'bhk' => $booking->bhk,
@@ -201,7 +201,7 @@ class BookingAssigneController extends Controller
         $auth = Auth::user();
 
         $query = BookingAssignee::with([
-            'booking:id,user_id,booking_date,booking_time,status',
+            'booking:id,customer_id,booking_date,booking_time,status',
             'user:id,firstname,lastname,email,mobile'
         ]);
 

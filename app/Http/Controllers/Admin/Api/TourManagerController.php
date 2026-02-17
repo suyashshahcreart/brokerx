@@ -72,31 +72,15 @@ class TourManagerController extends Controller
     }
 
     /**
-     * Get all tours for a given customer (user_id) via bookings
+     * Get all tours for a given customer via bookings
      */
     public function getToursByCustomer(Request $request)
     {
         $data = $request->validate([
-            'customer_id' => 'nullable|integer|exists:customers,id',
-            'user_id' => 'nullable|integer|exists:users,id',
+            'customer_id' => 'required|integer|exists:customers,id',
         ]);
 
-        $customerId = $data['customer_id'] ?? null;
-        $userId = $data['user_id'] ?? null;
-
-        if (!$customerId && !$userId) {
-            return response()->json([
-                'success' => false,
-                'message' => 'customer_id or user_id is required'
-            ], 422);
-        }
-
-        $bookingQuery = Booking::query();
-        if ($customerId) {
-            $bookingQuery->where('customer_id', $customerId);
-        } else {
-            $bookingQuery->where('user_id', $userId);
-        }
+        $bookingQuery = Booking::query()->where('customer_id', $data['customer_id']);
 
         $bookingIds = $bookingQuery->pluck('id');
         // Get API, QR, and S3 base URLs from settings
