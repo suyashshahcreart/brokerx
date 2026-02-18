@@ -78,6 +78,20 @@ class Tour extends Model
         'is_mobile_validation',
         'is_hosted',
         'hosted_link',
+        // Contact fields
+        'contact_google_location',
+        'contact_website',
+        'contact_email',
+        'contact_phone_no',
+        'contact_whatsapp_no',
+        // Language fields
+        'enable_language',
+        'default_language',
+        // Customization fields
+        'overlay_bg_color',
+        'loader_text',
+        'loader_color',
+        'spinner_color',
     ];
 
     /**
@@ -102,6 +116,9 @@ class Tour extends Model
             'is_credentials' => 'boolean',
             'is_mobile_validation' => 'boolean',
             'is_hosted' => 'boolean',
+            'enable_language' => 'array',
+            'loader_color' => 'array',
+            'spinner_color' => 'array',
         ];
     }
 

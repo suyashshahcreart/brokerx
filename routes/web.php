@@ -201,9 +201,12 @@ Route::group(['prefix' => 'ppadmlog', 'as' => 'admin.', 'middleware' => ['web', 
     // PHOTOGRAPHER VISITS
     Route::resource('photographer-visits', PhotographerVisitController::class);
     Route::resource('holidays', HolidayController::class);
+    // tour update routes Booking-edit page.
     Route::resource('tours', TourController::class);
     Route::put('tours/{tour}/update-tour-details', [TourController::class, 'updateTourDetails'])->name('tours.updateTourDetails');
     Route::put('admin/tours/{tour}/update-seo', [TourController::class, 'updateTourSeo'])->name('tours.updateSeo');
+    Route::put('admin/tours/{tour}/update-contact-info', [TourController::class, 'updateContactInfo'])->name('tours.updateContactInfo');
+    Route::put('admin/tours/{tour}/update-tour-settings', [TourController::class, 'updateTourSettings'])->name('tours.updateTourSettings');
 
     // AJAX Tour routes
     Route::post('tours/{tour}/update-ajax', [TourController::class, 'updateAjax'])->name('admin.tours.update-ajax');

@@ -416,8 +416,7 @@
 
 <!-- script section  -->
 @section('script')
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    @vite(['resources/js/pages/bookings-edit.js','resources/js/pages/edit-booking-tour.js'])
+    @vite(['resources/js/pages/bookings-edit.js','resources/js/pages/edit-booking-tour.js','resources/js/pages/edit-booking-contact-info.js','resources/js/pages/edit-booking-tour-settings.js'])
     @include('admin.bookings.partials.quick-actions-script')
     <script>
         // Persist active tab across reloads

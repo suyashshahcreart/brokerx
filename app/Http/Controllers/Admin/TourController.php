@@ -960,4 +960,107 @@ class TourController extends Controller
             'message' => 'Tour unlinked from booking successfully',
         ]);
     }
+
+    /**
+     * Update contact information for a tour
+     */
+    public function updateContactInfo(Request $request, Tour $tour)
+    {
+        $validated = $request->validate([
+            'contact_google_location' => ['nullable', 'string', 'max:255'],
+            'contact_website' => ['nullable', 'url', 'max:255'],
+            'contact_email' => ['nullable', 'email', 'max:255'],
+            'contact_phone_no' => ['nullable', 'string', 'max:20'],
+            'contact_whatsapp_no' => ['nullable', 'string', 'max:20'],
+        ]);
+
+        $oldData = $tour->toArray();
+        $tour->update($validated);
+        $newData = $tour->toArray();
+
+        // Log activity
+        activity('tours')
+            ->performedOn($tour)
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'old' => $oldData,
+                'new' => $newData,
+            ])
+            ->log('Contact information updated');
+
+        // Return JSON response for AJAX requests
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Contact information updated successfully.',
+                'tour' => $tour->fresh(),
+            ]);
+        }
+
+        return redirect()->back()->with(['success' => 'Contact information updated successfully.', 'active_tab' => 'contact']);
+    }
+
+    /**
+     * Update tour settings (language and other settings)
+     */
+    public function updateTourSettings(Request $request, Tour $tour)
+    {
+        $validated = $request->validate([
+            'enable_language' => ['nullable', 'array'],
+            'enable_language.*' => ['string'],
+            'default_language' => ['nullable', 'string', 'max:10'],
+            'overlay_bg_color' => ['nullable', 'string', 'max:255'],
+            'loader_text' => ['nullable', 'string', 'max:255'],
+            'loader_color' => ['nullable', 'array'],
+            'loader_color.*' => ['string'],
+            'spinner_color' => ['nullable', 'array'],
+            'spinner_color.*' => ['string'],
+        ]);
+
+        // Ensure array fields are arrays or null
+        if (isset($validated['enable_language'])) {
+            $validated['enable_language'] = array_values($validated['enable_language']);
+        } else {
+            $validated['enable_language'] = null;
+        }
+
+        if (isset($validated['loader_color'])) {
+            $validated['loader_color'] = array_values($validated['loader_color']);
+        } else {
+            $validated['loader_color'] = null;
+        }
+
+        if (isset($validated['spinner_color'])) {
+            $validated['spinner_color'] = array_values($validated['spinner_color']);
+        } else {
+            $validated['spinner_color'] = null;
+        }
+
+        $oldData = $tour->toArray();
+        $tour->update($validated);
+        $newData = $tour->toArray();
+
+        // Log activity
+        activity('tours')
+            ->performedOn($tour)
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'old' => $oldData,
+                'new' => $newData,
+            ])
+            ->log('Tour settings updated');
+
+        // Return JSON response for AJAX requests
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Tour settings updated successfully.',
+                'tour' => $tour->fresh(),
+            ]);
+        }
+
+        return redirect()->back()->with(['success' => 'Tour settings updated successfully.', 'active_tab' => 'tour-setting']);
+    }
 }
+
+
