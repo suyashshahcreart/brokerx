@@ -92,6 +92,8 @@ class Tour extends Model
         'loader_text',
         'loader_color',
         'spinner_color',
+        // Attachment file
+        'attachment_file',
     ];
 
     /**
@@ -119,6 +121,7 @@ class Tour extends Model
             'enable_language' => 'array',
             'loader_color' => 'array',
             'spinner_color' => 'array',
+            'attachment_file' => 'array',
         ];
     }
 

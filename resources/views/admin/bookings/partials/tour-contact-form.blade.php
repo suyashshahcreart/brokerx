@@ -67,9 +67,214 @@
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
 
-            <!-- Submit Button -->
-            <div class="row">
+    <!-- Attachments -->
+    <div class="card panel-card border-info border-top mb-3">
+        <div class="card-header bg-primary-subtle border-primary">
+            <div class="d-flex align-items-center gap-2">
+                <h4 class="card-title mb-0"><i class="ri-attachment-line"></i> Attachments</h4>
+            </div>
+        </div>
+        <div class="card-body">
+            <ul class="nav nav-tabs mb-3" id="tourContactAttachmentTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="attachment-1-tab" data-bs-toggle="tab"
+                        data-bs-target="#attachment-1-pane" type="button" role="tab" aria-controls="attachment-1-pane"
+                        aria-selected="true">Attachment 1</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="attachment-2-tab" data-bs-toggle="tab"
+                        data-bs-target="#attachment-2-pane" type="button" role="tab" aria-controls="attachment-2-pane"
+                        aria-selected="false">Attachment
+                        2</button>
+                </li>
+            </ul>
+
+            <div class="tab-content" id="tourContactAttachmentTabsContent">
+                @php
+                    $attachment1 = isset($tour->attachment_file[0]) ? $tour->attachment_file[0] : null;
+                @endphp
+                <div class="tab-pane fade show active" id="attachment-1-pane" role="tabpanel"
+                    aria-labelledby="attachment-1-tab" tabindex="0">
+                    <h6 class="mb-3">Attachment 1 (Image, Video, or Document)</h6>
+
+                    <div class="mb-3">
+                        <label class="form-label">Type <span class="text-muted">(optional)</span></label>
+                        <div class="d-flex flex-wrap gap-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="attachment_file[0][type]"
+                                    id="attachment_0_type_image" value="image"
+                                    {{ old('attachment_file.0.type', $attachment1['documentType'] ?? 'image') == 'image' ? 'checked' : '' }}>
+                                <label class="form-check-label" for="attachment_0_type_image">Image</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="attachment_file[0][type]"
+                                    id="attachment_0_type_video" value="video"
+                                    {{ old('attachment_file.0.type', $attachment1['documentType'] ?? '') == 'video' ? 'checked' : '' }}>
+                                <label class="form-check-label" for="attachment_0_type_video">Video</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="attachment_file[0][type]"
+                                    id="attachment_0_type_document" value="document"
+                                    {{ old('attachment_file.0.type', $attachment1['documentType'] ?? '') == 'document' ? 'checked' : '' }}>
+                                <label class="form-check-label" for="attachment_0_type_document">Document</label>
+                            </div>
+                        </div>
+                        @error('attachment_file.0.type')<div class="text-danger">{{ $message }}</div>@enderror
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label" for="attachment_0_tooltip">Tooltip <span class="text-muted">(optional)</span></label>
+                        <input type="text" name="attachment_file[0][tooltip]" id="attachment_0_tooltip" class="form-control"
+                            placeholder="e.g., Tour Brochure"
+                            value="{{ old('attachment_file.0.tooltip', $attachment1['documentTooltip'] ?? '') }}">
+                        @error('attachment_file.0.tooltip')<div class="text-danger">{{ $message }}</div>@enderror
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label" for="attachment_0_file">Link URL <span class="text-muted">(optional)</span></label>
+                        <input type="url" name="attachment_file[0][link]" id="attachment_0_link" class="form-control"
+                        placeholder="e.g, http://www.example.com/assets/image.jpeg"
+                        value="{{ old('attachment_file.1.link', $attachment2['documentLink'] ?? '') }}"
+                            accept="url">
+                        @error('attachment_file.0.link')<div class="text-danger">{{ $message }}</div>@enderror
+                    </div>
+                   
+                    <div class="mb-3">
+                        <label class="form-label" for="attachment_0_file">Or Upload File <span class="text-muted">(optional)</span></label>
+                        <input type="file" name="attachment_file[0][file]" id="attachment_0_file" class="form-control"
+                            accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx">
+                        <small class="text-muted">Supported: Images, Videos, PDF, Word, Excel documents (Max 10MB)</small>
+                        @error('attachment_file.0.file')<div class="text-danger">{{ $message }}</div>@enderror
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Action <span class="text-muted">(optional)</span></label>
+                        <div class="d-flex flex-wrap gap-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="attachment_file[0][action]"
+                                    id="attachment_0_action_modal" value="modal"
+                                    {{ old('attachment_file.0.action', $attachment1['documentAction'] ?? 'modal') == 'modal' ? 'checked' : '' }}>
+                                <label class="form-check-label" for="attachment_0_action_modal">View in modal</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="attachment_file[0][action]"
+                                    id="attachment_0_action_download" value="download"
+                                    {{ old('attachment_file.0.action', $attachment1['documentAction'] ?? '') == 'download' ? 'checked' : '' }}>
+                                <label class="form-check-label" for="attachment_0_action_download">Download</label>
+                            </div>
+                        </div>
+                        @error('attachment_file.0.action')<div class="text-danger">{{ $message }}</div>@enderror
+                    </div>
+
+                    @if($attachment1 && isset($attachment1['documentFileName']))
+                    <div class="alert alert-info alert-dismissible fade show" role="alert">
+                        <strong>Current File:</strong> {{ $attachment1['documentFileName'] }}
+                        @if(isset($attachment1['documentUrl']))
+                            <a href="{{ asset($attachment1['documentUrl']) }}" target="_blank" class="ms-2">
+                                <i class="ri-external-link-line"></i> View
+                            </a>
+                        @endif
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                    @endif
+                </div>
+                <!-- attached file 2 -->
+                @php
+                    $attachment2 = isset($tour->attachment_file[1]) ? $tour->attachment_file[1] : null;
+                @endphp
+                <div class="tab-pane fade" id="attachment-2-pane" role="tabpanel" aria-labelledby="attachment-2-tab"
+                    tabindex="0">
+                    <h6 class="mb-3">Attachment 2 (Image, Video, or Document)</h6>
+
+                    <div class="mb-3">
+                        <label class="form-label">Type <span class="text-muted">(optional)</span></label>
+                        <div class="d-flex flex-wrap gap-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="attachment_file[1][type]"
+                                    id="attachment_1_type_image" value="image"
+                                    {{ old('attachment_file.1.type', $attachment2['documentType'] ?? 'image') == 'image' ? 'checked' : '' }}>
+                                <label class="form-check-label" for="attachment_1_type_image">Image</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="attachment_file[1][type]"
+                                    id="attachment_1_type_video" value="video"
+                                    {{ old('attachment_file.1.type', $attachment2['documentType'] ?? '') == 'video' ? 'checked' : '' }}>
+                                <label class="form-check-label" for="attachment_1_type_video">Video</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="attachment_file[1][type]"
+                                    id="attachment_1_type_document" value="document"
+                                    {{ old('attachment_file.1.type', $attachment2['documentType'] ?? '') == 'document' ? 'checked' : '' }}>
+                                <label class="form-check-label" for="attachment_1_type_document">Document</label>
+                            </div>
+                        </div>
+                        @error('attachment_file.1.type')<div class="text-danger">{{ $message }}</div>@enderror
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label" for="attachment_1_tooltip">Tooltip <span class="text-muted">(optional)</span></label>
+                        <input type="text" name="attachment_file[1][tooltip]" id="attachment_1_tooltip" class="form-control"
+                            placeholder="e.g., Property Documents"
+                            value="{{ old('attachment_file.1.tooltip', $attachment2['documentTooltip'] ?? '') }}">
+                        @error('attachment_file.1.tooltip')<div class="text-danger">{{ $message }}</div>@enderror
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label" for="attachment_0_file">Link URL <span class="text-muted">(optional)</span></label>
+                        <input type="url" name="attachment_file[1][link]" id="attachment_1_link" class="form-control"
+                        value="{{ old('attachment_file.1.link', $attachment2['documentLink'] ?? '') }}"
+                        placeholder="e.g, http://www.example.com/assets/image.jpeg"
+                            accept="url">
+                        @error('attachment_file.0.link')<div class="text-danger">{{ $message }}</div>@enderror
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label" for="attachment_1_file">Or Upload File <span class="text-muted">(optional)</span></label>
+                        <input type="file" name="attachment_file[1][file]" id="attachment_1_file" class="form-control"
+                            accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx">
+                        <small class="text-muted">Supported: Images, Videos, PDF, Word, Excel documents (Max 10MB)</small>
+                        @error('attachment_file.1.file')<div class="text-danger">{{ $message }}</div>@enderror
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Action <span class="text-muted">(optional)</span></label>
+                        <div class="d-flex flex-wrap gap-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="attachment_file[1][action]"
+                                    id="attachment_1_action_modal" value="modal"
+                                    {{ old('attachment_file.1.action', $attachment2['documentAction'] ?? 'modal') == 'modal' ? 'checked' : '' }}>
+                                <label class="form-check-label" for="attachment_1_action_modal">View in modal</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="attachment_file[1][action]"
+                                    id="attachment_1_action_download" value="download"
+                                    {{ old('attachment_file.1.action', $attachment2['documentAction'] ?? '') == 'download' ? 'checked' : '' }}>
+                                <label class="form-check-label" for="attachment_1_action_download">Download</label>
+                            </div>
+                        </div>
+                        @error('attachment_file.1.action')<div class="text-danger">{{ $message }}</div>@enderror
+                    </div>
+
+                    @if($attachment2 && isset($attachment2['documentFileName']))
+                    <div class="alert alert-info alert-dismissible fade show" role="alert">
+                        <strong>Current File:</strong> {{ $attachment2['documentFileName'] }}
+                        @if(isset($attachment2['documentUrl']))
+                            <a href="{{ asset($attachment2['documentUrl']) }}" target="_blank" class="ms-2">
+                                <i class="ri-external-link-line"></i> View
+                            </a>
+                        @endif
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                    @endif
+                </div>
+
+            </div>
+
+            <!-- Submit Button at bottom of Attachments -->
+            <div class="row mt-4">
                 <div class="col-12">
                     <div class="d-flex gap-2 justify-content-end">
                         <button class="btn btn-primary" type="submit" id="contactInfoSubmitBtn">
@@ -81,212 +286,3 @@
         </div>
     </div>
 </form>
-
-<!-- Attachments -->
-<div class="card panel-card border-info border-top mb-3">
-    <div class="card-header bg-primary-subtle border-primary">
-        <div class="d-flex align-items-center gap-2">
-            <h4 class="card-title mb-0"><i class="ri-attachment-line"></i> Attachments</h4>
-        </div>
-    </div>
-    <div class="card-body">
-        <ul class="nav nav-tabs mb-3" id="tourContactAttachmentTabs" role="tablist">
-            <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="attachment-1-tab" data-bs-toggle="tab"
-                    data-bs-target="#attachment-1-pane" type="button" role="tab" aria-controls="attachment-1-pane"
-                    aria-selected="true">Attachment 1</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="attachment-2-tab" data-bs-toggle="tab" data-bs-target="#attachment-2-pane"
-                    type="button" role="tab" aria-controls="attachment-2-pane" aria-selected="false">Attachment
-                    2</button>
-            </li>
-        </ul>
-
-        <div class="tab-content" id="tourContactAttachmentTabsContent">
-            <div class="tab-pane fade show active" id="attachment-1-pane" role="tabpanel"
-                aria-labelledby="attachment-1-tab" tabindex="0">
-                <h6 class="mb-3">Attachment 1 (Image, Video, or Document)</h6>
-
-                <div class="mb-3">
-                    <label class="form-label">Type</label>
-                    <div class="d-flex flex-wrap gap-4">
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="attachment_1_type"
-                                id="attachment_1_type_image" value="image"
-                                {{ old('attachment_1_type', $tour->attachment_1_type ?? 'image') == 'image' ? 'checked' : '' }}>
-                            <label class="form-check-label" for="attachment_1_type_image">Image</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="attachment_1_type"
-                                id="attachment_1_type_video" value="video"
-                                {{ old('attachment_1_type', $tour->attachment_1_type ?? '') == 'video' ? 'checked' : '' }}>
-                            <label class="form-check-label" for="attachment_1_type_video">Video</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="attachment_1_type"
-                                id="attachment_1_type_document" value="document"
-                                {{ old('attachment_1_type', $tour->attachment_1_type ?? '') == 'document' ? 'checked' : '' }}>
-                            <label class="form-check-label" for="attachment_1_type_document">Document</label>
-                        </div>
-                    </div>
-                    @error('attachment_1_type')<div class="text-danger">{{ $message }}</div>@enderror
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label" for="attachment_1_file">Link URL</label>
-                    <input type="text" name="attachment_1_url" id="attachment_1_file"
-                    placeholder="e.g, https://example.com/assets/image.png"
-                    class="form-control">
-                    @error('attachment_1_file')<div class="text-danger">{{ $message }}</div>@enderror
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label" for="attachment_1_file">Or Attachment file</label>
-                    <input type="file" name="attachment_1_file" id="attachment_1_file" class="form-control">
-                    @error('attachment_1_file')<div class="text-danger">{{ $message }}</div>@enderror
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label" for="attachment_1_tooltip">Tooltip <span
-                            class="text-danger">*</span></label>
-                    <input type="text" name="attachment_1_tooltip" id="attachment_1_tooltip" class="form-control"
-                        value="{{ old('attachment_1_tooltip', $tour->attachment_1_tooltip ?? '') }}">
-                    @error('attachment_1_tooltip')<div class="text-danger">{{ $message }}</div>@enderror
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label" for="attachment_1_icon">Button icon</label>
-                    <select name="attachment_1_icon" id="attachment_1_icon" class="form-select">
-                        <option value=""
-                            {{ old('attachment_1_icon', $tour->attachment_1_icon ?? '') == '' ? 'selected' : '' }}>
-                            Default (by type)</option>
-                        <option value="image"
-                            {{ old('attachment_1_icon', $tour->attachment_1_icon ?? '') == 'image' ? 'selected' : '' }}>
-                            Image</option>
-                        <option value="video"
-                            {{ old('attachment_1_icon', $tour->attachment_1_icon ?? '') == 'video' ? 'selected' : '' }}>
-                            Video</option>
-                        <option value="document"
-                            {{ old('attachment_1_icon', $tour->attachment_1_icon ?? '') == 'document' ? 'selected' : '' }}>
-                            Document</option>
-                    </select>
-                    <small class="text-muted">Optional: icon shown on the attachment button in the tour. If not set,
-                        defaults by type (image/video/document).</small>
-                    @error('attachment_1_icon')<div class="text-danger">{{ $message }}</div>@enderror
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label">When user clicks the button</label>
-                    <div class="d-flex flex-wrap gap-4">
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="attachment_1_action"
-                                id="attachment_1_action_modal" value="modal"
-                                {{ old('attachment_1_action', $tour->attachment_1_action ?? 'modal') == 'modal' ? 'checked' : '' }}>
-                            <label class="form-check-label" for="attachment_1_action_modal">View in modal</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="attachment_1_action"
-                                id="attachment_1_action_download" value="download"
-                                {{ old('attachment_1_action', $tour->attachment_1_action ?? '') == 'download' ? 'checked' : '' }}>
-                            <label class="form-check-label" for="attachment_1_action_download">Download</label>
-                        </div>
-                    </div>
-                    @error('attachment_1_action')<div class="text-danger">{{ $message }}</div>@enderror
-                </div>
-            </div>
-            <!-- attached file 2 -->
-            <div class="tab-pane fade" id="attachment-2-pane" role="tabpanel" aria-labelledby="attachment-2-tab"
-                tabindex="0">
-                <h6 class="mb-3">Attachment 2 (Image, Video, or Document)</h6>
-
-                <div class="mb-3">
-                    <label class="form-label">Type</label>
-                    <div class="d-flex flex-wrap gap-4">
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="attachment_2_type"
-                                id="attachment_2_type_image" value="image"
-                                {{ old('attachment_2_type', $tour->attachment_2_type ?? 'image') == 'image' ? 'checked' : '' }}>
-                            <label class="form-check-label" for="attachment_2_type_image">Image</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="attachment_2_type"
-                                id="attachment_2_type_video" value="video"
-                                {{ old('attachment_2_type', $tour->attachment_2_type ?? '') == 'video' ? 'checked' : '' }}>
-                            <label class="form-check-label" for="attachment_2_type_video">Video</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="attachment_2_type"
-                                id="attachment_2_type_document" value="document"
-                                {{ old('attachment_2_type', $tour->attachment_2_type ?? '') == 'document' ? 'checked' : '' }}>
-                            <label class="form-check-label" for="attachment_2_type_document">Document</label>
-                        </div>
-                    </div>
-                    @error('attachment_2_type')<div class="text-danger">{{ $message }}</div>@enderror
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label" for="attachment_2_file">Attachment file</label>
-                    <input type="text" name="attachment_2_url" 
-                    placeholder="e.g, https://example.com/assets/image.png"
-                    id="attachment_2_file" class="form-control">
-                    @error('attachment_2_file')<div class="text-danger">{{ $message }}</div>@enderror
-                </div>
-                
-                <div class="mb-3">
-                    <label class="form-label" for="attachment_2_file">Or Attachment file</label>
-                    <input type="file" name="attachment_2_file" id="attachment_2_file" class="form-control">
-                    @error('attachment_2_file')<div class="text-danger">{{ $message }}</div>@enderror
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label" for="attachment_2_tooltip">Tooltip <span
-                            class="text-danger">*</span></label>
-                    <input type="text" name="attachment_2_tooltip" id="attachment_2_tooltip" class="form-control"
-                        value="{{ old('attachment_2_tooltip', $tour->attachment_2_tooltip ?? '') }}">
-                    @error('attachment_2_tooltip')<div class="text-danger">{{ $message }}</div>@enderror
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label" for="attachment_2_icon">Button icon</label>
-                    <select name="attachment_2_icon" id="attachment_2_icon" class="form-select">
-                        <option value=""
-                            {{ old('attachment_2_icon', $tour->attachment_2_icon ?? '') == '' ? 'selected' : '' }}>
-                            Default (by type)</option>
-                        <option value="image"
-                            {{ old('attachment_2_icon', $tour->attachment_2_icon ?? '') == 'image' ? 'selected' : '' }}>
-                            Image</option>
-                        <option value="video"
-                            {{ old('attachment_2_icon', $tour->attachment_2_icon ?? '') == 'video' ? 'selected' : '' }}>
-                            Video</option>
-                        <option value="document"
-                            {{ old('attachment_2_icon', $tour->attachment_2_icon ?? '') == 'document' ? 'selected' : '' }}>
-                            Document</option>
-                    </select>
-                    <small class="text-muted">Optional: icon shown on the attachment button in the tour. If not set,
-                        defaults by type (image/video/document).</small>
-                    @error('attachment_2_icon')<div class="text-danger">{{ $message }}</div>@enderror
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label">When user clicks the button</label>
-                    <div class="d-flex flex-wrap gap-4">
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="attachment_2_action"
-                                id="attachment_2_action_modal" value="modal"
-                                {{ old('attachment_2_action', $tour->attachment_2_action ?? 'modal') == 'modal' ? 'checked' : '' }}>
-                            <label class="form-check-label" for="attachment_2_action_modal">View in modal</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="attachment_2_action"
-                                id="attachment_2_action_download" value="download"
-                                {{ old('attachment_2_action', $tour->attachment_2_action ?? '') == 'download' ? 'checked' : '' }}>
-                            <label class="form-check-label" for="attachment_2_action_download">Download</label>
-                        </div>
-                    </div>
-                    @error('attachment_2_action')<div class="text-danger">{{ $message }}</div>@enderror
-                </div>
-            </div>
-        </div>
-    </div>
-</div>

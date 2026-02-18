@@ -99,11 +99,48 @@ document.addEventListener('DOMContentLoaded', function () {
 				
 				// Update form values with new data if available
 				if (data.tour) {
+					// Update contact fields
 					document.getElementById('contact_google_location').value = data.tour.contact_google_location || '';
 					document.getElementById('contact_website').value = data.tour.contact_website || '';
 					document.getElementById('contact_email').value = data.tour.contact_email || '';
 					document.getElementById('contact_phone_no').value = data.tour.contact_phone_no || '';
 					document.getElementById('contact_whatsapp_no').value = data.tour.contact_whatsapp_no || '';
+					
+					// Update attachment fields if attachment_file exists
+					if (data.tour.attachment_file && Array.isArray(data.tour.attachment_file)) {
+						data.tour.attachment_file.forEach((attachment, index) => {
+							if (attachment) {
+								// Update type radio buttons
+								const typeRadio = document.querySelector(`input[name="attachment_file[${index}][type]"][value="${attachment.documentType}"]`);
+								if (typeRadio) {
+									typeRadio.checked = true;
+								}
+								
+								// Update tooltip input
+								const tooltipInput = document.querySelector(`input[name="attachment_file[${index}][tooltip]"]`);
+								if (tooltipInput && attachment.documentTooltip) {
+									tooltipInput.value = attachment.documentTooltip;
+								}
+								
+								// Update action radio buttons
+								const actionRadio = document.querySelector(`input[name="attachment_file[${index}][action]"][value="${attachment.documentAction}"]`);
+								if (actionRadio) {
+									actionRadio.checked = true;
+								}
+								
+								// Clear file input after successful upload
+								const fileInput = document.querySelector(`input[name="attachment_file[${index}][file]"]`);
+								if (fileInput) {
+									fileInput.value = '';
+								}
+								
+								// Show success message for uploaded file
+								if (attachment.documentFileName) {
+									console.log(`Attachment ${index + 1} uploaded: ${attachment.documentFileName}`);
+								}
+							}
+						});
+					}
 				}
 			} else {
 				showContactAlert(data.message || 'Failed to update contact information', 'error');

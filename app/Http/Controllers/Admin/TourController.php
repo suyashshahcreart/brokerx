@@ -629,18 +629,18 @@ class TourController extends Controller
         try {
             // Refresh tour to ensure we have fresh relationships
             $tour->refresh();
-            
+
             // Load booking relationship if not already loaded
             if (!$tour->relationLoaded('booking')) {
                 $tour->load('booking');
             }
-            
+
             $booking = $tour->booking;
             if ($booking && !empty($booking->tour_code)) {
                 // Check if Cloudflare credentials are configured
                 $zoneId = getCloudflareZoneId();
                 $apiToken = getCloudflareApiToken();
-                
+
                 if (!$zoneId || !$apiToken) {
                     \Log::info('Cloudflare cache purge skipped - credentials not configured', [
                         'tour_id' => $tour->id,
@@ -650,7 +650,7 @@ class TourController extends Controller
                     $cloudflareService = app(\App\Services\CloudflareCacheService::class);
                     $prefix = $cloudflareService->buildTourPrefix($booking->tour_code);
                     $purgeResult = $cloudflareService->purgeByPrefixes([$prefix]);
-                    
+
                     // Log purge result (success or failure) but don't fail the request
                     if (!$purgeResult['success']) {
                         \Log::warning('Cloudflare cache purge failed after tour update', [
@@ -966,15 +966,73 @@ class TourController extends Controller
      */
     public function updateContactInfo(Request $request, Tour $tour)
     {
+        // dd($request->all());
         $validated = $request->validate([
             'contact_google_location' => ['nullable', 'string', 'max:255'],
             'contact_website' => ['nullable', 'url', 'max:255'],
             'contact_email' => ['nullable', 'email', 'max:255'],
             'contact_phone_no' => ['nullable', 'string', 'max:20'],
             'contact_whatsapp_no' => ['nullable', 'string', 'max:20'],
+            'attachment_file' => ['nullable', 'array'],
+            'attachment_file.*.type' => ['nullable', 'string', 'in:image,video,document'],
+            'attachment_file.*.tooltip' => ['nullable', 'string', 'max:255'],
+            'attachment_file.*.file' => ['nullable', 'file', 'max:10240'], // 10MB max
+            'attachment_file.*.action' => ['nullable', 'string', 'in:modal,download'],
         ]);
 
         $oldData = $tour->toArray();
+
+        // Process attachment files
+        $attachmentFiles = [];
+        if ($request->has('attachment_file')) {
+            $existingAttachments = $tour->attachment_file ?? [];
+
+            foreach ($request->input('attachment_file') as $index => $attachment) {
+                // Skip if all fields are empty
+                if (
+                    empty($attachment['type']) && empty($attachment['tooltip']) &&
+                    empty($attachment['action']) && !$request->hasFile("attachment_file.{$index}.file")
+                ) {
+                    // Keep existing attachment if it exists
+                    if (isset($existingAttachments[$index])) {
+                        $attachmentFiles[] = $existingAttachments[$index];
+                    }
+                    continue;
+                }
+
+                $attachmentData = [
+                    'documentType' => $attachment['type'] ?? $existingAttachments[$index]['documentType'] ?? null,
+                    'documentTooltip' => $attachment['tooltip'] ?? $existingAttachments[$index]['documentTooltip'] ?? null,
+                    'documentAction' => $attachment['action'] ?? $existingAttachments[$index]['documentAction'] ?? 'modal',
+                ];
+
+                // Handle file upload
+                if ($request->hasFile("attachment_file.{$index}.file")) {
+                    $file = $request->file("attachment_file.{$index}.file");
+                    if ($file->isValid()) {
+                        $fileName = time() . '_' . $index . '_' . Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME)) . '.' . $file->getClientOriginalExtension();
+                        $path = $file->storeAs('attachments', $fileName, 'public');
+
+                        $attachmentData['documentUrl'] = 'storage/' . $path;
+                        $attachmentData['documentFileName'] = $fileName;
+                    }
+                } else {
+                    // Keep existing file data if no new file uploaded
+                    $attachmentData['documentUrl'] = $existingAttachments[$index]['documentUrl'] ?? null;
+                    $attachmentData['documentFileName'] = $existingAttachments[$index]['documentFileName'] ?? null;
+                }
+
+                $attachmentFiles[] = $attachmentData;
+            }
+        }
+
+        // Update validated data with processed attachments
+        if (!empty($attachmentFiles)) {
+            $validated['attachment_file'] = $attachmentFiles;
+        } else {
+            $validated['attachment_file'] = null;
+        }
+
         $tour->update($validated);
         $newData = $tour->toArray();
 
