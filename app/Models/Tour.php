@@ -57,7 +57,7 @@ class Tour extends Model
         // New fields added by migration
         'sidebar_logo',
         'footer_logo',
-        'footer_name',
+        'footer_title',
         'footer_email',
         'footer_mobile',
         'custom_type',
@@ -94,6 +94,14 @@ class Tour extends Model
         'spinner_color',
         // Attachment file
         'attachment_file',
+        // Sidebar tag fields
+        'sidebar_tag_text',
+        'sidebar_tag_color',
+        'sidebar_tag_bg_color',
+        // Bottommark multilingual fields
+        'bottommark_property_name',
+        'bottommark_room_type',
+        'bottommark_dimensions',
     ];
 
     /**
@@ -122,6 +130,12 @@ class Tour extends Model
             'loader_color' => 'array',
             'spinner_color' => 'array',
             'attachment_file' => 'array',
+            'footer_title' => 'array',
+            'footer_subtitle' => 'array',
+            'footer_decription' => 'array',
+            'bottommark_property_name' => 'array',
+            'bottommark_room_type' => 'array',
+            'bottommark_dimensions' => 'array',
         ];
     }
 

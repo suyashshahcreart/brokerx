@@ -104,7 +104,7 @@ class TourManagerController extends Controller
             
             $tour->top_image = $tour->footer_logo ? $tour->footer_logo : null;
             $tour->top_number  = $tour->footer_mobile;
-            $tour->top_title  = $tour->footer_name;
+            $tour->top_title  = $tour->footer_title;
             $tour->top_email  = $tour->footer_email;
             $tour->top_sub_title  = $tour->footer_subtitle;
             $tour->top_description  = $tour->footer_decription;
@@ -170,7 +170,7 @@ class TourManagerController extends Controller
         
         $tour->top_image = $tour->footer_logo ? $s3LinkBase . $tour->footer_logo : null;
         $tour->top_number  = $tour->footer_mobile;
-        $tour->top_title  = $tour->footer_name;
+        $tour->top_title  = $tour->footer_title;
         $tour->top_email  = $tour->footer_email;
         $tour->top_sub_title  = $tour->footer_subtitle;
         $tour->top_description  = $tour->footer_decription;
