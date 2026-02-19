@@ -1107,9 +1107,11 @@ class TourController extends Controller
     public function updateTourSettings(Request $request, Tour $tour)
     {
         $validated = $request->validate([
+            // language settings validation
             'enable_language' => ['nullable', 'array'],
             'enable_language.*' => ['string'],
             'default_language' => ['nullable', 'string', 'max:10'],
+            //Loader settings validation
             'overlay_bg_color' => ['nullable', 'string', 'max:255'],
             'loader_text' => ['nullable', 'string', 'max:255'],
             'loader_color' => ['nullable', 'array'],
@@ -1117,7 +1119,7 @@ class TourController extends Controller
             'spinner_color' => ['nullable', 'array'],
             'spinner_color.*' => ['string'],
         ]);
-
+        // dd($validated);
         // Ensure array fields are arrays or null
         if (isset($validated['enable_language'])) {
             $validated['enable_language'] = array_values($validated['enable_language']);
@@ -1138,8 +1140,66 @@ class TourController extends Controller
         }
 
         $oldData = $tour->toArray();
+
+        // Normalize final_json from DB (can be array, JSON string, or empty)
+        $rawFinalJson = $tour->final_json;
+        $finalJson = [];
+
+        if (is_array($rawFinalJson)) {
+            $finalJson = $rawFinalJson;
+        } elseif (is_string($rawFinalJson) && trim($rawFinalJson) !== '') {
+            $decoded = json_decode($rawFinalJson, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                $finalJson = $decoded;
+            }
+        } elseif (is_object($rawFinalJson)) {
+            $decoded = json_decode(json_encode($rawFinalJson), true);
+            $finalJson = is_array($decoded) ? $decoded : [];
+        }
+
+        // Initialize or update loaderConfig in final_json
+        $finalJson['loaderConfig'] = $finalJson['loaderConfig'] ?? [];
+        
+        // Update loader configuration in JSON
+        if ($validated['overlay_bg_color']) {
+            $finalJson['loaderConfig']['overlayBackgroundColor'] = $validated['overlay_bg_color'];
+        }
+        if ($validated['loader_text']) {
+            $finalJson['loaderConfig']['loadingText'] = $validated['loader_text'];
+        }
+        if (!empty($validated['loader_color'])) {
+            // Map array colors to gradient colors (assuming 3 colors for gradient)
+            $finalJson['loaderConfig']['spinnerGradientColor1'] = $validated['loader_color'][0] ?? null;
+            $finalJson['loaderConfig']['spinnerGradientColor2'] = $validated['loader_color'][1] ?? null;
+            $finalJson['loaderConfig']['spinnerGradientColor3'] = $validated['loader_color'][2] ?? null;
+            
+            $finalJson['loaderConfig']['textGradientColor1'] = $validated['loader_color'][0] ?? null;
+            $finalJson['loaderConfig']['textGradientColor2'] = $validated['loader_color'][1] ?? null;
+            $finalJson['loaderConfig']['textGradientColor3'] = $validated['loader_color'][2] ?? null;
+        }
+        if (!empty($validated['spinner_color'])) {
+            // Map array colors to spinner gradient (assuming 3 colors for gradient)
+            $finalJson['loaderConfig']['spinnerGradientColor1'] = $validated['spinner_color'][0] ?? null;
+            $finalJson['loaderConfig']['spinnerGradientColor2'] = $validated['spinner_color'][1] ?? null;
+            $finalJson['loaderConfig']['spinnerGradientColor3'] = $validated['spinner_color'][2] ?? null;
+        }
+
+        // Initialize or update localeConfig in final_json
+        $finalJson['localeConfig'] = $finalJson['localeConfig'] ?? [];
+        
+        // Update locale configuration in JSON
+        if ($validated['enable_language']) {
+            $finalJson['localeConfig']['enabledLanguages'] = $validated['enable_language'];
+        }
+        if ($validated['default_language']) {
+            $finalJson['localeConfig']['defaultLanguage'] = $validated['default_language'];
+        }
+
+        // Add final_json to validated data to save in DB
+        $validated['final_json'] = $finalJson;
+        
         $tour->update($validated);
-        $newData = $tour->toArray();
+        $newData = $tour->fresh()->toArray();
 
         // Log activity
         activity('tours')
