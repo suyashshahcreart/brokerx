@@ -66,6 +66,17 @@
                         @error('contact_whatsapp_no')<div class="text-danger">{{ $message }}</div>@enderror
                     </div>
                 </div>
+
+                <!-- <div class="col-lg-6 d-flex align-items-center">
+                    <div class="form-check form-switch">
+                        <label class="form-label" for="contact_whatsapp_no">Auto Rotate OnLoad <span
+                                class="text-muted">(optional)</span></label>
+                        <input type="checkbox" name="autoRotateOnLoad" id="autoRotateOnLoad" class="form-check-input"
+                            value="{{ old('autoRotateOnLoad') }}">
+                        @error('autoRotateOnLoad')<div class="text-danger">{{ $message }}</div>@enderror
+                    </div>
+                </div> -->
+
             </div>
         </div>
     </div>
@@ -137,7 +148,7 @@
                         <label class="form-label" for="attachment_0_file">Link URL <span class="text-muted">(optional)</span></label>
                         <input type="url" name="attachment_file[0][link]" id="attachment_0_link" class="form-control"
                         placeholder="e.g, http://www.example.com/assets/image.jpeg"
-                        value="{{ old('attachment_file.1.link', $attachment2['documentLink'] ?? '') }}"
+                        value="{{ old('attachment_file.1.link', $attachment1['documentUrl'] ?? '') }}"
                             accept="url">
                         @error('attachment_file.0.link')<div class="text-danger">{{ $message }}</div>@enderror
                     </div>
@@ -225,7 +236,7 @@
                     <div class="mb-3">
                         <label class="form-label" for="attachment_0_file">Link URL <span class="text-muted">(optional)</span></label>
                         <input type="url" name="attachment_file[1][link]" id="attachment_1_link" class="form-control"
-                        value="{{ old('attachment_file.1.link', $attachment2['documentLink'] ?? '') }}"
+                        value="{{ old('attachment_file.1.link', $attachment2['documentUrl'] ?? '') }}"
                         placeholder="e.g, http://www.example.com/assets/image.jpeg"
                             accept="url">
                         @error('attachment_file.0.link')<div class="text-danger">{{ $message }}</div>@enderror

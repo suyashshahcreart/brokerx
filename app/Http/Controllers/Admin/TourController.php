@@ -966,13 +966,13 @@ class TourController extends Controller
      */
     public function updateContactInfo(Request $request, Tour $tour)
     {
-        // dd($request->all());
         $validated = $request->validate([
             'contact_google_location' => ['nullable', 'string', 'max:255'],
             'contact_website' => ['nullable', 'url', 'max:255'],
             'contact_email' => ['nullable', 'email', 'max:255'],
             'contact_phone_no' => ['nullable', 'string', 'max:20'],
             'contact_whatsapp_no' => ['nullable', 'string', 'max:20'],
+            // New validation rules for attachments
             'attachment_file' => ['nullable', 'array'],
             'attachment_file.*.type' => ['nullable', 'string', 'in:image,video,document'],
             'attachment_file.*.tooltip' => ['nullable', 'string', 'max:255'],
@@ -981,6 +981,7 @@ class TourController extends Controller
         ]);
 
         $oldData = $tour->toArray();
+        $final_json = $tour->toArray()['final_json'] ?? [];
 
         // Process attachment files
         $attachmentFiles = [];
@@ -1017,24 +1018,66 @@ class TourController extends Controller
                         $attachmentData['documentFileName'] = $fileName;
                     }
                 } else {
-                    // Keep existing file data if no new file uploaded
-                    $attachmentData['documentUrl'] = $existingAttachments[$index]['documentUrl'] ?? null;
-                    $attachmentData['documentFileName'] = $existingAttachments[$index]['documentFileName'] ?? null;
+
+                    if ($request->input("attachment_file.{$index}.link")) {
+                        $attachmentData['documentUrl'] = $request->input("attachment_file.{$index}.link");
+                    } else {
+                        // Keep existing file data if no new file uploaded
+                        $attachmentData['documentUrl'] = $existingAttachments[$index]['documentUrl'] ?? null;
+                        $attachmentData['documentFileName'] = $existingAttachments[$index]['documentFileName'] ?? null;
+                    }
                 }
 
                 $attachmentFiles[] = $attachmentData;
             }
         }
 
+        $userInfo = $final_json['userInfo'] ?? [];
+        
+        // Update the contact info of the user.
+        $userInfo['googleLocation'] = $validated['contact_google_location'] ?? null;
+        $userInfo['website'] = $validated['contact_website'] ?? null;
+        $userInfo['email'] = $validated['contact_email'] ?? null;
+        $userInfo['phoneNumber'] = $validated['contact_phone_no'] ?? null;
+        $userInfo['whatsAppNumber'] = $validated['contact_whatsapp_no'] ?? null;
+        $userInfo['autoRotateOnLoad'] = $validated['autoRotateOnLoad'] ?? false;
+
         // Update validated data with processed attachments
         if (!empty($attachmentFiles)) {
             $validated['attachment_file'] = $attachmentFiles;
+
+            foreach ($attachmentFiles as $index => $doc) {
+
+                // First document has no suffix
+                $suffix = $index === 0 ? '' : $index + 1;
+
+                $userInfo["documentType{$suffix}"] = $doc['documentType'] ?? null;
+                $userInfo["documentUrl{$suffix}"] = $doc['documentUrl'] ?? null;
+                $userInfo["documentTooltip{$suffix}"] = $doc['documentTooltip'] ?? null;
+                $userInfo["documentAction{$suffix}"] = $doc['documentAction'] ?? null;
+
+                // Only set fileName if exists
+                if (!empty($doc['documentFileName'])) {
+                    $userInfo["documentFileName{$suffix}"] = $doc['documentFileName'];
+                }
+
+                // Optional: if second document is video
+                if ($suffix === '2' && ($doc['documentType'] ?? null) === 'video') {
+                    $userInfo["documentIsYouTube2"] = false;
+                }
+            }
         } else {
             $validated['attachment_file'] = null;
         }
 
+        $final_json['userInfo'] = $userInfo;
+        
+        // Add final_json to validated data to save in DB
+        $validated['final_json'] = $final_json;
+        
+        $oldData = $tour->toArray();
         $tour->update($validated);
-        $newData = $tour->toArray();
+        $newData = $tour->fresh()->toArray();
 
         // Log activity
         activity('tours')
