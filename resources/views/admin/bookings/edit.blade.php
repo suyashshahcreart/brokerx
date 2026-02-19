@@ -1,12 +1,9 @@
 @extends('admin.layouts.vertical', ['title' => 'Edit Booking', 'subTitle' => 'Property'])
-
 @section('css')
-<!-- Font Awesome for dynamic icons from database -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-
-<!-- Choices.js CSS -->
-@vite(['node_modules/choices.js/public/assets/styles/choices.min.css'])
-
+    <!-- Font Awesome for dynamic icons from database -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <!-- Choices.js CSS -->
+    @vite(['node_modules/choices.js/public/assets/styles/choices.min.css'])
     <style>
         /* Pill and Chip Styles */
         .top-pill, .chip {
@@ -255,9 +252,14 @@
             transform: translateY(-1px) !important;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
         }
+
+        .booking-edit-tabs .nav-link.active {
+            background-color: #604ae3 !important;
+            color: white !important;
+            border-radius: 0px 20px;
+        }
     </style>
 @endsection
-
 @section('content')
     <div class="row">
         <div class="col-12">
@@ -265,43 +267,66 @@
                 <div>
                     <nav aria-label="breadcrumb" class="mb-0">
                         <ol class="breadcrumb mb-0">
-                            <li class="breadcrumb-item"><a href="{{ route('root') }}">Home</a></li>
+                            <li class="breadcrumb-item"><a href="{{ route('admin.index') }}">Home</a></li>
                             <li class="breadcrumb-item"><a href="{{ route('admin.bookings.index') }}">Bookings</a></li>
                             <li class="breadcrumb-item active" aria-current="page">Edit #{{ $booking->id }}</li>
                         </ol>
                     </nav>
-                    <h3 class="mb-0">Edit Booking #{{ $booking->id }}</h3>
+                    <h3 class="mb-0">Edit Booking #{{ $booking->id }} ({{ $booking->tour_code }})</h3>
                 </div>
                 <div class="d-flex align-items-center gap-2">
                     <x-admin.back-button :fallback="route('admin.bookings.index')" :classes="['btn', 'btn-soft-secondary']" :merge="false" icon="ri-arrow-go-back-line" />
+
+                    @if($booking->tours()->exists() && auth()->user()->can('tour_manager_edit'))
+                         <a href="{{ route('admin.tour-manager.upload', $booking) }}" class="btn btn-primary" data-bs-toggle="tooltip" title="Upload & Manage Tour Assets">
+                            <i class="ri-upload-2-line me-1"></i> Upload Tour
+                        </a>
+                    @endif
+
+                    <a href="{{ route('admin.bookings.show', $booking->id) }}" class="btn btn-primary" title="View Booking" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="View Booking">
+                        <i class="ri-eye-line"></i>
+                        <span>View</span>
+                    </a>
                 </div>
             </div>
-
+            
             <div class="card panel-card border-primary border-top" data-panel-card>
                 <div class="card-header">
-                    <ul class="nav nav-tabs card-header-tabs" id="bookingEditTabs" role="tablist">
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link active" id="booking-tab" data-bs-toggle="tab" data-bs-target="#booking-pane" type="button" role="tab" aria-controls="booking-pane" aria-selected="true">
-                                <i class="ri-file-list-3-line me-1"></i> Booking Details
-                            </button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="tour-tab" data-bs-toggle="tab" data-bs-target="#tour-pane" type="button" role="tab" aria-controls="tour-pane" aria-selected="false">
-                                <i class="ri-map-pin-line me-1"></i> Tour Details
-                                @if($tour ?? null)
-                                    <span class="badge bg-success ms-1">Linked</span>
-                                @else
-                                    <span class="badge bg-warning ms-1">Not Linked</span>
-                                @endif
-                            </button>
-                        </li>
-                    </ul>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <ul class="nav nav-tabs card-header-tabs booking-edit-tabs mb-0" id="bookingEditTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="booking-tab" data-bs-toggle="tab" data-bs-target="#booking-pane" type="button" role="tab" aria-controls="booking-pane" aria-selected="true">
+                                    <i class="ri-file-list-3-line me-1"></i> Booking Details
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="quick-actions-tab" data-bs-toggle="tab" data-bs-target="#quick-actions-pane" type="button" role="tab" aria-controls="quick-actions-pane" aria-selected="false">
+                                    <i class="ri-flashlight-line me-1"></i> Quick Actions
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="tour-tab" data-bs-toggle="tab" data-bs-target="#tour-pane" type="button" role="tab" aria-controls="tour-pane" aria-selected="false">
+                                    <i class="ri-map-pin-line me-1"></i> Tour Details
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="seo-tab" data-bs-toggle="tab" data-bs-target="#seo-pane" type="button" role="tab" aria-controls="seo-pane" aria-selected="false">
+                                    <i class="ri-search-eye-line me-1"></i> SEO
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="json-tab" data-bs-toggle="tab" data-bs-target="#json-pane" type="button" role="tab" aria-controls="json-pane" aria-selected="false">
+                                    <i class="ri-code-s-slash-line me-1"></i> JSON
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
                 </div>
                 <div class="card-body pt-0">
                     <div class="tab-content" id="bookingEditTabsContent">
+
                         <!-- Booking Tab -->
                         <div class="tab-pane fade show active" id="booking-pane" role="tabpanel" aria-labelledby="booking-tab" tabindex="0">
-                            
                             {{-- Display Validation Errors --}}
                             @if($errors->any())
                             <div class="alert alert-danger alert-dismissible fade show" role="alert">
@@ -315,15 +340,7 @@
                                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                             </div>
                             @endif
-
-                            {{-- Display Success Message --}}
-                            @if(session('success'))
-                            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                                <i class="ri-checkbox-circle-line me-2"></i>{{ session('success') }}
-                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                            </div>
-                            @endif
-
+                            <!-- Booking Form Partial -->
                             <form method="POST" action="{{ route('admin.bookings.update', $booking) }}" class="needs-validation" novalidate>
                                 @csrf
                                 @method('PUT')
@@ -342,24 +359,68 @@
                             </form>
                         </div>
 
+                        <!-- Quick Actions Tab -->
+                        <div class="tab-pane fade" id="quick-actions-pane" role="tabpanel" aria-labelledby="quick-actions-tab" tabindex="0">
+                            @include('admin.bookings.partials.quick-actions')
+                        </div>
+
                         <!-- Tour Tab -->
                         <div class="tab-pane fade" id="tour-pane" role="tabpanel" aria-labelledby="tour-tab" tabindex="0">
                             @if($tour ?? null)
-                                @include('admin.bookings.partials.tour-edit-form')
+                                @include('admin.bookings.partials.tour-edit-form', ['qr_code' => $qr_code])
                             @else
-                                @include('admin.bookings.partials.tour-create-form')
+                                @include('admin.bookings.partials.tour-create-form',['qr_code' => $qr_code])
                             @endif
                         </div>
+
+                        <!-- SEO Tab -->
+                        <div class="tab-pane fade" id="seo-pane" role="tabpanel" aria-labelledby="seo-tab" tabindex="0">
+                            @include('admin.bookings.partials.seo-form')
+                        </div>
+
+                        <!-- JSON Tab -->
+                        <div class="tab-pane fade" id="json-pane" role="tabpanel" aria-labelledby="json-tab" tabindex="0">
+                            <div class="mt-3">
+                                <h5>Booking JSON Data</h5>
+                                <pre class="bg-light p-3 rounded border" style="font-size: 13px; max-height: 90%; overflow: auto;">{!! is_array($tour->final_json) ? json_encode($tour->final_json, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) : $tour->final_json !!}</pre>
+                            </div>
+                        </div>
+
+
                     </div>
                 </div>
             </div>
         </div>
     </div>
 @endsection
+
+<!-- script section  -->
 @section('script')
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    @vite(['resources/js/pages/bookings-edit.js'])
+    @vite(['resources/js/pages/bookings-edit.js','resources/js/pages/edit-booking-tour.js'])
+    @include('admin.bookings.partials.quick-actions-script')
     <script>
+        // Persist active tab across reloads
+        document.addEventListener('DOMContentLoaded', function () {
+            // Restore tab from localStorage
+            const activeTabId = localStorage.getItem('activeBookingTab');
+            if (activeTabId) {
+                const tabTrigger = document.querySelector(`#${activeTabId}`);
+                if (tabTrigger) {
+                    const tab = new bootstrap.Tab(tabTrigger);
+                    tab.show();
+                }
+            }
+
+            // Save tab on change
+            const tabEls = document.querySelectorAll('button[data-bs-toggle="tab"]');
+            tabEls.forEach(tabEl => {
+                tabEl.addEventListener('shown.bs.tab', event => {
+                    localStorage.setItem('activeBookingTab', event.target.id);
+                });
+            });
+        });
+
         // Pass data to JavaScript
         window.bookingData = {
             id: {{ $booking->id }},
@@ -379,6 +440,7 @@
             property_sub_type_id: '{{ old("property_sub_type_id", $booking->property_sub_type_id) }}',
             furniture_type: '{{ old("furniture_type", $booking->furniture_type) }}',
             bhk_id: '{{ old("bhk_id", $booking->bhk_id) }}',
+            country_id: '{{ old("country_id", $defaultCountryId ?? "") }}',
             state_id: '{{ old("state_id", $booking->state_id) }}',
             city_id: '{{ old("city_id", $booking->city_id) }}',
             different_billing_name: '{{ old("different_billing_name", ($booking->firm_name || $booking->gst_no) ? "on" : "") }}',
@@ -443,20 +505,29 @@
                                     // Need longer delay for Commercial tab to be fully visible
                                     if (window.bookingOldValues.furniture_type) {
                                         setTimeout(function() {
+                                            // Normalize furniture type: handle both "Semi Furnished" (space) and "Semi-Furnished" (hyphen)
+                                            // Also handle "Fully Furnished" -> "Furnished"
+                                            let normalizedFurnitureType = window.bookingOldValues.furniture_type;
+                                            if (normalizedFurnitureType === 'Semi Furnished') {
+                                                normalizedFurnitureType = 'Semi-Furnished';
+                                            } else if (normalizedFurnitureType === 'Fully Furnished') {
+                                                normalizedFurnitureType = 'Furnished';
+                                            }
+                                            
                                             // Determine correct group based on property type
                                             let furnitureGroup = 'resFurnish';
                                             if (window.bookingOldValues.main_property_type === 'Commercial') {
                                                 furnitureGroup = 'comFurnish';
                                             }
                                             
-                                            // Find and click the furniture chip
-                                            const furnitureChip = document.querySelector(`[data-group="${furnitureGroup}"][data-value="${window.bookingOldValues.furniture_type}"]`);
+                                            // Find and click the furniture chip using normalized value
+                                            const furnitureChip = document.querySelector(`[data-group="${furnitureGroup}"][data-value="${normalizedFurnitureType}"]`);
                                             if (furnitureChip) {
                                                 furnitureChip.click();
                                             } else {
                                                 // Fallback: try the other group
                                                 const fallbackGroup = furnitureGroup === 'resFurnish' ? 'comFurnish' : 'resFurnish';
-                                                const fallbackChip = document.querySelector(`[data-group="${fallbackGroup}"][data-value="${window.bookingOldValues.furniture_type}"]`);
+                                                const fallbackChip = document.querySelector(`[data-group="${fallbackGroup}"][data-value="${normalizedFurnitureType}"]`);
                                                 if (fallbackChip) {
                                                     fallbackChip.click();
                                                 }
@@ -482,6 +553,12 @@
 
             // Restore State and City independently
             setTimeout(function() {
+                if (window.bookingOldValues.country_id) {
+                    const countrySelect = document.getElementById('country_id');
+                    if (countrySelect) {
+                        countrySelect.value = window.bookingOldValues.country_id;
+                    }
+                }
                 if (window.bookingOldValues.state_id) {
                     const stateSelect = document.getElementById('state_id');
                     if (stateSelect) {
@@ -566,6 +643,31 @@
                     confirmButtonColor: '#dc3545',
                     width: '600px'
                 });
+            }
+        });
+        @endif
+
+        // Activate the correct tab after form submission
+        @if(session('active_tab'))
+        document.addEventListener('DOMContentLoaded', function() {
+            const activeTab = '{{ session("active_tab") }}';
+            let tabToActivate = null;
+            
+            // Map session values to tab IDs
+            const tabMapping = {
+                'booking': 'booking-tab',
+                'tour': 'tour-tab',
+                'seo': 'seo-tab'
+            };
+            
+            if (tabMapping[activeTab]) {
+                tabToActivate = document.getElementById(tabMapping[activeTab]);
+                
+                if (tabToActivate) {
+                    // Use Bootstrap's Tab API to show the tab
+                    const tab = new bootstrap.Tab(tabToActivate);
+                    tab.show();
+                }
             }
         });
         @endif

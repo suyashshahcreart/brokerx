@@ -16,25 +16,31 @@ class PropertySubTypeSeeder extends Seeder
     {
         $data = [
             'Residential' => [
-                ['name' => 'Farm House', 'icon' => 'fa-house-flag'],
-                ['name' => 'Penthouse', 'icon' => 'fa-building-user'],
-                ['name' => 'Independent House', 'icon' => 'fa-house'],
-                ['name' => 'Independent Floor', 'icon' => 'fa-house-chimney'],
-                ['name' => 'Studio', 'icon' => 'fa-door-open'],
-                ['name' => 'Duplex', 'icon' => 'fa-house-chimney-window'],
-                ['name' => 'Villa', 'icon' => 'fa-home-lg-alt'],
+                ['name' => 'Farm House', 'icon' => 'fa fa-house-flag'],
+                ['name' => 'Penthouse', 'icon' => 'fa fa-building-user'],
+                ['name' => 'Independent House', 'icon' => 'fa fa-house'],
+                ['name' => 'Independent Floor', 'icon' => 'fa fa-house-chimney'],
+                ['name' => 'Studio', 'icon' => 'fa fa-door-open'],
+                ['name' => 'Duplex', 'icon' => 'fa fa-house-chimney-window'],
+                ['name' => 'Villa', 'icon' => 'fa fa-home-lg-alt'],
             ],
             'Commercial' => [
-                ['name' => 'Office', 'icon' => 'fa-briefcase'],
-                ['name' => 'Retail Shop', 'icon' => 'fa-shop'],
-                ['name' => 'Showroom', 'icon' => 'fa-store'],
-                ['name' => 'Plot', 'icon' => 'fa-map'],
-                ['name' => 'Warehouse', 'icon' => 'fa-warehouse'],
-                ['name' => 'Others', 'icon' => 'fa-ellipsis'],
+                ['name' => 'Office', 'icon' => 'fa fa-briefcase'],
+                ['name' => 'Retail Shop', 'icon' => 'fa fa-shop'],
+                ['name' => 'Showroom', 'icon' => 'fa fa-store'],
+                ['name' => 'Plot', 'icon' => 'fa fa-map'],
+                ['name' => 'Warehouse', 'icon' => 'fa fa-warehouse'],
+                ['name'=>'Restaurant','icon'=>'fa fa-cutlery'],
+                ['name'=>'Cafe','icon'=>'fa fa-coffee'],
+                ['name' => 'Others', 'icon' => 'fa fa-puzzle-piece'],
             ],
             'Other'=>[
-                ['name'=>'Restaurant','icon'=>'fa-cutlery'],
-                ['name'=>'Cafe','icon'=>'fa-coffee']
+                ['name'=>'Heritage','icon'=>'ri-government-line'],
+                ['name'=>'Religious','icon'=>'fa fa-star-of-david'],
+                ['name'=>'Industries','icon'=>'fa fa-industry'],
+                ['name'=>'Hospitality','icon'=>'fa fa-hotel'],
+                ['name'=>'Spaces','icon'=>'fa fa-cube'],
+                ['name'=>'Others','icon'=>'fa fa-puzzle-piece'],
             ]
         ];
         

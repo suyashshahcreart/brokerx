@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Password;
+use App\Models\User;
 
 class PasswordResetLinkController extends Controller
 {
@@ -38,6 +39,21 @@ class PasswordResetLinkController extends Controller
         $status = Password::sendResetLink(
             $request->only('email')
         );
+
+        // Log password reset request activity
+        $user = User::where('email', $request->email)->first();
+        if ($user && $status == Password::RESET_LINK_SENT) {
+            activity('authentication')
+                ->performedOn($user)
+                ->causedBy($user) // User requesting their own password reset
+                ->withProperties([
+                    'event' => 'password_reset_requested',
+                    'email' => $request->email,
+                    'ip_address' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                ])
+                ->log('Password reset link requested');
+        }
 
         return $status == Password::RESET_LINK_SENT
                     ? back()->with('status', __($status))

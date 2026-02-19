@@ -7,11 +7,11 @@
             <div class="card-body px-3 py-5">
                 <div class="mx-auto mb-4 text-center auth-logo">
                     <a href="##" class="logo-dark">
-                        <img src="{{ asset('images/proppik-logo.jpg') }}" height="32" alt="logo dark">
+                        <img src="{{ asset('proppik/assets/logo/logo.svg') }}" height="75" alt="logo dark">
                     </a>
 
                     <a href="##" class="logo-light">
-                        <img src="{{ asset('images/logo-light.png') }}" height="28" alt="logo light">
+                        <img src="{{ asset('proppik/assets/logo/w-logo.svg') }}" height="75" alt="logo light">
                     </a>
                 </div>
 

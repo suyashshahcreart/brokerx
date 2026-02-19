@@ -20,11 +20,12 @@ class QRSeeder extends Seeder
         $needToCreate = 50 - $existingCount;
 
         for ($i = 0; $i < $needToCreate; $i++) {
+            $code = $this->generateUniqueCode();
             QR::create([
                 'name' => 'QR Code ' . ($existingCount + $i + 1),
-                'code' => $this->generateUniqueCode(),
+                'code' => $code,
                 'image' => null,
-                'qr_link' => 'https://example.com/qr/' . Str::random(8),
+                'qr_link' => getQrLinkBase() . $code,
                 'booking_id' => null,
                 'created_by' => 1,
                 'updated_by' => 1,
@@ -35,7 +36,7 @@ class QRSeeder extends Seeder
     private function generateUniqueCode()
     {
         do {
-            $code = Str::random(9);
+            $code = Str::random(8);
         } while (QR::where('code', $code)->exists());
         return $code;
     }

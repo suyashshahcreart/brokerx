@@ -47,8 +47,9 @@ html[data-menu-color="light"]{
 
 /* Main Menu Dark */
 html[data-menu-color="dark"] {
-    --#{$prefix}main-nav-bg:                               #1C252E;
+    --#{$prefix}main-nav-bg:                               #282973;
     --#{$prefix}main-nav-item-color:                       #a8b2b5;
+    // --#{$prefix}main-nav-item-color:                       #e6edef;
     --#{$prefix}main-nav-item-hover-bg:                    #{rgba($white, 0.06)};
     --#{$prefix}main-nav-item-hover-color:                 #{$white};
     --#{$prefix}main-nav-item-active-color:                 #{$gray-200};
@@ -59,8 +60,9 @@ html[data-menu-color="dark"] {
 /* Main Menu Dark (Dark Mode Only) */
 html[data-bs-theme="dark"][data-menu-color="dark"],
 html[data-bs-theme="dark"][data-menu-color="light"] {
-    --#{$prefix}main-nav-bg:                               #1C252E;
+    --#{$prefix}main-nav-bg:                               #282973;
     --#{$prefix}main-nav-item-color:                       #afb9cf;
+    // --#{$prefix}main-nav-item-color:                       #f5fbfd;
     --#{$prefix}main-nav-item-hover-bg:                    #303943;
     --#{$prefix}main-nav-item-hover-color:                 #{$white};
     --#{$prefix}main-nav-item-active-color:                 #{$gray-200};

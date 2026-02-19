@@ -72,12 +72,12 @@ class BookingResource extends JsonResource
                 'gst_no' => $this->gst_no,
             ],
             
-            // User Information
-            'user' => [
-                'id' => $this->user?->id,
-                'name' => $this->user?->name,
-                'email' => $this->user?->email,
-                'phone' => $this->user?->phone,
+            // Customer Information
+            'customer' => [
+                'id' => $this->customer?->id,
+                'name' => trim(($this->customer?->firstname ?? '') . ' ' . ($this->customer?->lastname ?? '')),
+                'email' => $this->customer?->email,
+                'mobile' => $this->customer?->mobile,
             ],
             
             // Payment Information

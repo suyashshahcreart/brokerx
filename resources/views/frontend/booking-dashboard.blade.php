@@ -174,9 +174,9 @@
                                 }
                                 
                                 // User info
-                                $userName = $booking->user ? trim(($booking->user->firstname ?? '') . ' ' . ($booking->user->lastname ?? '')) : 'N/A';
-                                $userPhone = $booking->user->mobile ?? 'N/A';
-                                $ownerType = $booking->user ? 'Owner' : 'N/A';
+                                $userName = $booking->customer ? trim(($booking->customer->firstname ?? '') . ' ' . ($booking->customer->lastname ?? '')) : 'N/A';
+                                $userPhone = $booking->customer->mobile ?? 'N/A';
+                                $ownerType = $booking->customer ? 'Owner' : 'N/A';
                                 
                                 // Address - only show fields that have values
                                 $addressParts = [];
@@ -188,6 +188,9 @@
                                 if (!empty($booking->full_address)) $addressParts[] = $booking->full_address;
                                 
                                 $addressDisplay = !empty($addressParts) ? implode(', ', $addressParts) : 'N/A';
+                                
+                                // Get FTP URL for tour_live status using Booking model method
+                                $tourFtpUrl = $booking->getTourLiveUrl();
                             @endphp
                             
                             <div class="col-md-6 col-lg-4">
@@ -204,21 +207,23 @@
                                                 @endif
                                                 
                                                 {{-- Schedule Status Badge --}}
-                                                @if($isPaymentPaid)
-                                                    @if($isBlocked)
-                                                        <span class="badge bg-dark">Blocked ({{ $attemptCount }}/{{ $maxAttempts }})</span>
-                                                    @elseif(in_array($status, ['schedul_pending', 'reschedul_pending']))
-                                                        <span class="badge bg-warning">{{ $statusText }} ({{ $attemptCount }}/{{ $maxAttempts }})</span>
-                                                    @elseif(in_array($status, ['schedul_accepted', 'reschedul_accepted']))
-                                                        <span class="badge bg-success">Approved</span>
-                                                    @elseif(in_array($status, ['schedul_decline', 'reschedul_decline']))
-                                                        <span class="badge bg-danger">Declined ({{ $attemptCount }}/{{ $maxAttempts }})</span>
-                                                    @elseif($scheduledDate)
-                                                        <span class="badge bg-info">{{ $statusText }}</span>
-                                                    @else
-                                                        <span class="badge bg-secondary">Not Scheduled</span>
+                                                @if($status === 'tour_live')
+                                                    <span class="badge bg-success">Live</span>
+                                                @elseif($isPaymentPaid)
+                                                        @if($isBlocked)
+                                                            <span class="badge bg-dark">Blocked ({{ $attemptCount }}/{{ $maxAttempts }})</span>
+                                                        @elseif(in_array($status, ['schedul_pending', 'reschedul_pending']))
+                                                            <span class="badge bg-warning">{{ $statusText }} ({{ $attemptCount }}/{{ $maxAttempts }})</span>
+                                                        @elseif(in_array($status, ['schedul_accepted', 'reschedul_accepted']))
+                                                            <span class="badge bg-success">Approved</span>
+                                                        @elseif(in_array($status, ['schedul_decline', 'reschedul_decline']))
+                                                            <span class="badge bg-danger">Declined ({{ $attemptCount }}/{{ $maxAttempts }})</span>
+                                                        @elseif($scheduledDate)
+                                                            <span class="badge bg-info">{{ $statusText }}</span>
+                                                        @else
+                                                            <span class="badge bg-secondary">Not Scheduled</span>
+                                                        @endif
                                                     @endif
-                                                @endif
                                             </div>
                                         </div>
                                         
@@ -259,7 +264,12 @@
                                                 <i class="fa-solid fa-eye me-1"></i>View
                                             </a>
                                             
-                                            @if($isPaymentPaid)
+                                            @if($status === 'tour_live')
+                                                {{-- Tour is live - show live tour button (regardless of payment status) --}}
+                                                <a href="{{ $tourFtpUrl }}" target="_blank" class="btn btn-sm-r btn-success flex-fill">
+                                                    <i class="fa-solid fa-video me-1"></i> View Tour 
+                                                </a>
+                                            @elseif($isPaymentPaid)
                                                 {{-- Payment is paid - show schedule button based on status --}}
                                                 @if($isBlocked)
                                                     {{-- Blocked - show contact admin button --}}
@@ -326,7 +336,9 @@
                                         <div class="mt-2">
 
                                             {{-- All Notifications Consolidated Here --}}
-                                            @if(!$isPaymentPaid)
+                                            @if($status === 'tour_live')
+                                                <span class="badge bg-success"></span>
+                                            @elseif(!$isPaymentPaid)
                                                 {{-- Unpaid Booking Notifications --}}
                                                 @if(!$booking->isReadyForPayment())
                                                     @php
@@ -1038,8 +1050,8 @@
             // Show blocked message if max attempts reached
             if (isBlocked) {
                 // Fetch admin contact info (you can replace these with actual settings)
-                const adminEmail = '{{ \App\Models\Setting::where("name", "support_email")->value("value") ?? "support@proppik.in" }}';
-                const adminPhone = '{{ \App\Models\Setting::where("name", "support_phone")->value("value") ?? "+91-XXXXXXXXXX" }}';
+                const adminEmail = '{{ \App\Models\Setting::where("name", "support_email")->value("value") ?? "contact@proppik.com" }}';
+                const adminPhone = '{{ \App\Models\Setting::where("name", "support_phone")->value("value") ?? "9898363026" }}';
                 
                 const blockedHTML = `
                     <div class="alert alert-danger py-3 mb-3" role="alert" style="border-left: 4px solid #dc3545; background-color: #f8d7da;">
@@ -1392,7 +1404,7 @@
         function deleteBooking(bookingId) {
             if (confirm('Are you sure you want to delete this booking?')) {
                 // Make AJAX request to delete booking from database
-                fetch(`/admin/bookings/${bookingId}`, {
+                fetch(`/${window.adminBasePath}/bookings/${bookingId}`, {
                     method: 'DELETE',
                     headers: {
                         'Content-Type': 'application/json',

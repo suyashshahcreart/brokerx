@@ -1,15 +1,14 @@
 <?php
+use App\Http\Controllers\Admin\CustomerController;
 use App\Http\Controllers\Admin\HolidayController;
 use App\Http\Controllers\Admin\QRController;
+use App\Http\Controllers\Admin\Api\PropertySettingController;
 use App\Http\Controllers\Admin\BookingAssigneeController;
 use App\Http\Controllers\OtpController;
 use App\Http\Controllers\EmailOtpController;
 use App\Http\Controllers\BrokerController;
 use App\Http\Controllers\UserController;
-use App\Http\Controllers\Photographer\JobController;
-
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\RoutingController;
 use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\RoleController;
@@ -17,15 +16,19 @@ use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Admin\ActivityLogController;
 use App\Http\Controllers\Admin\BookingController;
 use App\Http\Controllers\Admin\BookingStatusController;
+use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\PendingScheduleController;
-use App\Http\Controllers\Admin\PortfolioController as AdminPortfolioController;
 use App\Http\Controllers\Admin\PhotographerVisitController;
 use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\TourController;
 use App\Http\Controllers\Admin\TourManagerController;
+use App\Http\Controllers\Admin\TourNotificationController;
+use App\Http\Controllers\Admin\QRAnalyticsController;
+use App\Http\Controllers\Admin\ProfileController;
 use App\Http\Controllers\FrontendController;
-use App\Http\Controllers\PortfolioController;
 use App\Http\Controllers\BrokerX\BrokerXController;
+use App\Http\Controllers\QR\QRManageController;
+use App\Http\Controllers\Auth\AuthenticatedSessionController;
 
 /*
 |--------------------------------------------------------------------------
@@ -37,6 +40,59 @@ use App\Http\Controllers\BrokerX\BrokerXController;
 | be assigned to the "web" middleware group. Make something great!
 |
 */
+
+// Check domain and route accordingly
+$domain = request()->getHost();
+
+// Routes for qr.proppik.com and qr.proppik.cloud domains
+if (in_array($domain, ['qr.proppik.com', 'www.qr.proppik.com', 'qr.proppik.cloud', 'www.qr.proppik.cloud'])) {
+    // Welcome page
+    Route::get('/', [QRManageController::class, 'index'])->name('qr.welcome');
+
+    // QR Analytics routes
+    Route::get('/analytics', [QRManageController::class, 'analytics'])->name('qr.analytics');
+
+    // Screen resolution and GPS tracking endpoint (AJAX)
+    Route::post('/track-screen', function (\Illuminate\Http\Request $request) {
+        try {
+            if ($request->has('screen_resolution')) {
+                $request->session()->put('qr_screen_resolution', $request->input('screen_resolution'));
+            }
+            if ($request->has('gps_latitude') && $request->has('gps_longitude')) {
+                $gpsLat = $request->input('gps_latitude');
+                $gpsLng = $request->input('gps_longitude');
+
+                // Validate GPS coordinates
+                if (is_numeric($gpsLat) && is_numeric($gpsLng)) {
+                    $request->session()->put('qr_gps_latitude', (float) $gpsLat);
+                    $request->session()->put('qr_gps_longitude', (float) $gpsLng);
+                }
+            }
+            return response()->json(['success' => true]);
+        } catch (\Exception $e) {
+            \Log::error('QR track-screen error: ' . $e->getMessage(), [
+                'exception' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    })->name('qr.track-screen');
+
+    // AJAX endpoint to track visit after GPS coordinates are captured
+    Route::post('/track-visit', [QRManageController::class, 'trackVisitAjax'])->name('qr.track-visit');
+
+    // Save tour notification (phone number)
+    Route::post('/save-notification', [QRManageController::class, 'saveNotification'])->name('qr.save-notification');
+
+    // Dynamic tour_code route - must be last to catch any parameter
+    // Example: /1234Aber
+    Route::get('/{tour_code}', [QRManageController::class, 'showByTourCode'])
+        ->where('tour_code', '[A-Za-z0-9]+')
+        ->name('qr.tour-code');
+
+    // Stop here - don't load other routes for qr.proppik.com
+    return;
+}
 
 // auth routes
 require __DIR__ . '/auth.php';
@@ -54,14 +110,9 @@ Route::middleware('auth')->group(function () {
     Route::put('/user/{id}', [UserController::class, 'update'])->name('user.update');
 });
 
-// Frontend Portfolio routes (authenticated users)
-Route::middleware('auth')->group(function () {
-    Route::resource('portfolios', PortfolioController::class);
-});
-
 // Optional dashboard alias (to avoid Route [dashboard] not defined errors)
 Route::middleware('auth')->get('/dashboard', function () {
-    return redirect()->route('root');
+    return redirect()->route('admin.index');
 })->name('dashboard');
 
 // Broker routes (protected by auth middleware)
@@ -71,20 +122,33 @@ Route::middleware('auth')->group(function () {
 
 
 
-Route::group(['prefix' => 'themes', 'middleware' => 'auth'], function () {
-    Route::get('', [RoutingController::class, 'index'])->name('root');
-    Route::get('{first}/{second}/{third}', [RoutingController::class, 'thirdLevel'])->name('third');
-    Route::get('{first}/{second}', [RoutingController::class, 'secondLevel'])->name('second');
-    Route::get('{any}', [RoutingController::class, 'root'])->name('any');
-});
+// Route::group(['prefix' => 'themes', 'middleware' => 'auth'], function () {
+//     Route::get('', [RoutingController::class, 'index'])->name('root');
+//     Route::get('{first}/{second}/{third}', [RoutingController::class, 'thirdLevel'])->name('third');
+//     Route::get('{first}/{second}', [RoutingController::class, 'secondLevel'])->name('second');
+//     Route::get('{any}', [RoutingController::class, 'root'])->name('any');
+// });
 
 
+Route::get('/login', [AuthenticatedSessionController::class, 'create'])->middleware('guest')->name('admin.login');
 
-Route::group(['prefix' => 'admin', 'as' => 'admin.', 'middleware' => ['web', 'auth']], function () {
+Route::post('/login', [AuthenticatedSessionController::class, 'store'])->middleware('guest');
+
+Route::group(['prefix' => 'ppadmlog', 'as' => 'admin.', 'middleware' => ['web', 'auth', 'not.customer']], function () {
     Route::get('/', [AdminDashboardController::class, 'index'])->name('index');
+    
+    
+    
+    // Profile routes
+    Route::get('profile', [ProfileController::class, 'index'])->name('profile.index');
+    Route::put('profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::get('profile/change-password', [ProfileController::class, 'showChangePassword'])->name('profile.change-password');
+    Route::put('profile/change-password', [ProfileController::class, 'updatePassword'])->name('profile.update-password');
+    
     Route::resource('permissions', PermissionController::class);
     Route::resource('roles', RoleController::class);
     Route::resource('users', AdminUserController::class);
+    Route::resource('customer', CustomerController::class);
     Route::get('assignment-calendar', [BookingController::class, 'AssignementCalender'])->name('assignment-calendar');
     // Booking custom routes (BEFORE resource to prevent route conflicts)
     Route::post('bookings/{booking}/update-ajax', [BookingController::class, 'updateAjax'])->name('bookings.update-ajax');
@@ -118,46 +182,117 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'middleware' => ['web', 'au
     Route::post('pending-schedules/{booking}/accept', [PendingScheduleController::class, 'accept'])->name('pending-schedules.accept');
     Route::post('pending-schedules/{booking}/decline', [PendingScheduleController::class, 'decline'])->name('pending-schedules.decline');
     // Bookings
+    Route::get('bookings/export', [BookingController::class, 'export'])->name('bookings.export');
     Route::resource('bookings', BookingController::class);
     // Booking Assignees
     Route::resource('booking-assignees', BookingAssigneeController::class);
+    // Cancel and Reassign
+    Route::post('booking-assignees/{bookingAssignee}/cancel', [BookingAssigneeController::class, 'cancel'])->name('booking-assignees.cancel');
+    Route::post('booking-assignees/{bookingAssignee}/reassign', [BookingAssigneeController::class, 'reassign'])->name('booking-assignees.reassign');
     // Photographer visit check-in/out using BookingAssignee
     Route::get('booking-assignees/{bookingAssignee}/check-in', [BookingAssigneeController::class, 'checkInForm'])->name('booking-assignees.check-in-form');
     Route::post('booking-assignees/{bookingAssignee}/check-in', [BookingAssigneeController::class, 'checkIn'])->name('booking-assignees.check-in');
     Route::get('booking-assignees/{bookingAssignee}/check-out', [BookingAssigneeController::class, 'checkOutForm'])->name('booking-assignees.check-out-form');
     Route::post('booking-assignees/{bookingAssignee}/check-out', [BookingAssigneeController::class, 'checkOut'])->name('booking-assignees.check-out');
+    
     Route::post('bookings/{booking}/reschedule', [BookingController::class, 'reschedule'])->name('admin.bookings.reschedule');
     Route::post('bookings/{booking}/update-ajax', [BookingController::class, 'updateAjax'])->name('admin.bookings.update-ajax');
-    
-   
-    
-    
+
     // PHOTOGRAPHER VISITS
     Route::resource('photographer-visits', PhotographerVisitController::class);
-    // Legacy job-based check-in/out retained for backward compatibility
-    Route::get('photographer-visit-jobs/{photographerVisitJob}/check-in', [PhotographerVisitController::class, 'checkInForm'])->name('photographer-visit-jobs.check-in-form');
-    Route::post('photographer-visit-jobs/{photographerVisitJob}/check-in', [PhotographerVisitController::class, 'checkIn'])->name('photographer-visit-jobs.check-in');
-    Route::get('photographer-visit-jobs/{photographerVisitJob}/check-out', [PhotographerVisitController::class, 'checkOutForm'])->name('photographer-visit-jobs.check-out-form');
-    Route::post('photographer-visit-jobs/{photographerVisitJob}/check-out', [PhotographerVisitController::class, 'checkOut'])->name('photographer-visit-jobs.check-out');
-    // Portfolios
-    Route::resource('portfolios', AdminPortfolioController::class);
     Route::resource('holidays', HolidayController::class);
     Route::resource('tours', TourController::class);
+    Route::put('tours/{tour}/update-tour-details', [TourController::class, 'updateTourDetails'])->name('tours.updateTourDetails');
+    Route::put('admin/tours/{tour}/update-seo', [TourController::class, 'updateTourSeo'])->name('tours.updateSeo');
+
     // AJAX Tour routes
     Route::post('tours/{tour}/update-ajax', [TourController::class, 'updateAjax'])->name('admin.tours.update-ajax');
     Route::post('tours/create-ajax', [TourController::class, 'createAjax'])->name('admin.tours.create-ajax');
     Route::post('tours/{tour}/unlink-ajax', [TourController::class, 'unlinkAjax'])->name('admin.tours.unlink-ajax');
 
-    
+
     // Tour Manager routes
     Route::get('tour-manager', [TourManagerController::class, 'index'])->name('tour-manager.index');
     Route::get('tour-manager/{booking}', [TourManagerController::class, 'show'])->name('tour-manager.show');
-    Route::get('tour-manager/{booking}/edit', [TourManagerController::class, 'edit'])->name('tour-manager.edit');
+    Route::get('tour-manager/{booking}/status', [TourManagerController::class, 'status'])->name('tour-manager.status');
+    Route::get('tour-manager/{booking}/upload', [TourManagerController::class, 'edit'])->name('tour-manager.upload');
     Route::put('tour-manager/{booking}', [TourManagerController::class, 'update'])->name('tour-manager.update');
     Route::post('tour-manager/upload-file', [TourManagerController::class, 'uploadFile'])->name('tour-manager.upload-file');
+    Route::post('tour-manager/chunked-upload/init', [TourManagerController::class, 'initChunkedUpload'])->name('tour-manager.chunked-upload.init');
+    Route::post('tour-manager/chunked-upload/chunk', [TourManagerController::class, 'uploadChunk'])->name('tour-manager.chunked-upload.chunk');
+    Route::post('tour-manager/chunked-upload/finalize/{booking}', [TourManagerController::class, 'finalizeChunkedUpload'])->name('tour-manager.chunked-upload.finalize');
     Route::post('tour-manager/schedule-tour', [TourManagerController::class, 'scheduleTour'])->name('tour-manager.schedule-tour');
-    
+
+    // Tour Notifications routes
+    Route::get('tour-notifications', [TourNotificationController::class, 'index'])->name('tour-notifications.index');
+    Route::get('tour-notifications/{id}', [TourNotificationController::class, 'show'])->name('tour-notifications.show');
+
+    // QR Analytics routes
+    Route::get('qr-analytics', [QRAnalyticsController::class, 'index'])->name('qr-analytics.index');
+    Route::get('qr-analytics/{id}', [QRAnalyticsController::class, 'show'])->name('qr-analytics.show');
+
     Route::resource('settings', SettingController::class);
+
+    // Reports
+    Route::prefix('reports')->name('reports.')->group(function () {
+        Route::get('/', [ReportController::class, 'index'])->name('index');
+        Route::get('/sales', [ReportController::class, 'sales'])->name('sales');
+        Route::get('/bookings', [ReportController::class, 'bookings'])->name('bookings');
+        Route::post('/export/bookings', [ReportController::class, 'exportBookings'])->name('export.bookings');
+        Route::post('/export/sales', [ReportController::class, 'exportSales'])->name('export.sales');
+    });
+
+    // Settings AJAX/API routes
+    Route::prefix('api')->name('api.')->group(function () {
+        Route::post('/settings/update', [SettingController::class, 'apiUpdate'])->name('settings.update');
+        Route::get('/settings/{name}', [SettingController::class, 'apiGet'])->name('settings.get');
+
+        // FTP Configuration routes
+        Route::get('/ftp-configurations', [SettingController::class, 'apiGetFtpConfigurations'])->name('ftp-configurations.index');
+        Route::get('/ftp-configurations/{id}', [SettingController::class, 'apiGetFtpConfiguration'])->name('ftp-configurations.show');
+        Route::post('/ftp-configurations', [SettingController::class, 'apiStoreFtpConfiguration'])->name('ftp-configurations.store');
+        Route::delete('/ftp-configurations/{id}', [SettingController::class, 'apiDeleteFtpConfiguration'])->name('ftp-configurations.destroy');
+
+        // Property Type & Sub Type routes (AJAX)
+        Route::get('/property-types', [PropertySettingController::class, 'propertyTypes'])->name('property-types.index');
+        Route::get('/property-types/options', [PropertySettingController::class, 'propertyTypeOptions'])->name('property-types.options');
+        Route::post('/property-types', [PropertySettingController::class, 'storePropertyType'])->name('property-types.store');
+        Route::put('/property-types/{propertyType}', [PropertySettingController::class, 'updatePropertyType'])->name('property-types.update');
+        Route::delete('/property-types/{propertyType}', [PropertySettingController::class, 'deletePropertyType'])->name('property-types.destroy');
+
+        Route::get('/property-sub-types', [PropertySettingController::class, 'propertySubTypes'])->name('property-sub-types.index');
+        Route::post('/property-sub-types', [PropertySettingController::class, 'storePropertySubType'])->name('property-sub-types.store');
+        Route::put('/property-sub-types/{propertySubType}', [PropertySettingController::class, 'updatePropertySubType'])->name('property-sub-types.update');
+        Route::delete('/property-sub-types/{propertySubType}', [PropertySettingController::class, 'deletePropertySubType'])->name('property-sub-types.destroy');
+
+        // Cloudflare Cache routes
+        Route::post('/cloudflare/purge', [SettingController::class, 'apiPurgeCache'])->name('cloudflare.purge');
+        Route::get('/cloudflare/bookings-with-tours', [SettingController::class, 'apiGetBookingsWithTours'])->name('cloudflare.bookings-with-tours');
+
+        // Country, State & City routes (AJAX)
+        Route::get('/countries', [\App\Http\Controllers\Admin\Api\CountryController::class, 'index'])->name('countries.index');
+        Route::get('/countries/options', [\App\Http\Controllers\Admin\Api\CountryController::class, 'options'])->name('countries.options');
+        Route::post('/countries', [\App\Http\Controllers\Admin\Api\CountryController::class, 'store'])->name('countries.store');
+        Route::get('/countries/{country}', [\App\Http\Controllers\Admin\Api\CountryController::class, 'show'])->name('countries.show');
+        Route::put('/countries/{country}', [\App\Http\Controllers\Admin\Api\CountryController::class, 'update'])->name('countries.update');
+        Route::delete('/countries/{country}', [\App\Http\Controllers\Admin\Api\CountryController::class, 'destroy'])->name('countries.destroy');
+
+        // State & City routes (AJAX)
+        Route::get('/states', [\App\Http\Controllers\Admin\Api\StateController::class, 'index'])->name('states.index');
+        Route::get('/states/options', [\App\Http\Controllers\Admin\Api\StateController::class, 'options'])->name('states.options');
+        Route::post('/states', [\App\Http\Controllers\Admin\Api\StateController::class, 'store'])->name('states.store');
+        Route::get('/states/{state}', [\App\Http\Controllers\Admin\Api\StateController::class, 'show'])->name('states.show');
+        Route::put('/states/{state}', [\App\Http\Controllers\Admin\Api\StateController::class, 'update'])->name('states.update');
+        Route::delete('/states/{state}', [\App\Http\Controllers\Admin\Api\StateController::class, 'destroy'])->name('states.destroy');
+
+        Route::get('/cities', [\App\Http\Controllers\Admin\Api\CityController::class, 'index'])->name('cities.index');
+        Route::get('/cities/options', [\App\Http\Controllers\Admin\Api\CityController::class, 'options'])->name('cities.options');
+        Route::post('/cities', [\App\Http\Controllers\Admin\Api\CityController::class, 'store'])->name('cities.store');
+        Route::get('/cities/{city}', [\App\Http\Controllers\Admin\Api\CityController::class, 'show'])->name('cities.show');
+        Route::put('/cities/{city}', [\App\Http\Controllers\Admin\Api\CityController::class, 'update'])->name('cities.update');
+        Route::delete('/cities/{city}', [\App\Http\Controllers\Admin\Api\CityController::class, 'destroy'])->name('cities.destroy');
+    });
+
     Route::get('activity', [ActivityLogController::class, 'index'])->name('activity.index');
     // QR Code Management
     Route::post('qr/bulk-generate', [QRController::class, 'bulkGenerate'])->name('qr.bulk-generate');
@@ -171,42 +306,35 @@ Route::group(['prefix' => 'brokerx', 'as' => 'brokerx.', 'middleware' => ['web',
     Route::get('/', [BrokerXController::class, 'index'])->name('index');
 });
 
-// Photographer routes
-Route::group(['prefix' => 'photo', 'as' => 'photographer.', 'middleware' => ['web', 'auth', 'role:photographer']], function () {
-    Route::get('/jobs', [JobController::class, 'index'])->name('jobs.index');
-    Route::get('/jobs/{job}', [JobController::class, 'show'])->name('jobs.show');
-    Route::post('/jobs/{job}/accept', [JobController::class, 'accept'])->name('jobs.accept');
-    Route::post('/jobs/{job}/complete', [JobController::class, 'complete'])->name('jobs.complete');
-    Route::get('/jobs/upcoming', [JobController::class, 'upcoming'])->name('jobs.upcoming');
-});
-
 // Public frontend routes
-Route::get('/', [FrontendController::class, 'index'])->name('frontend.index');
-Route::get('/login', [FrontendController::class, 'login'])->name('frontend.login');
-Route::get('/setup', [FrontendController::class, 'setup'])->name('frontend.setup');
-Route::post('/setup', [FrontendController::class, 'storeBooking'])->name('frontend.setup.store');
-Route::get('/contact', function () {
-    return view('frontend.contact');
-})->name('frontend.contact');
+Route::get('/', [FrontendController::class, 'redirectPropPik'])->name('frontend.index');
 
-Route::post('/logout', function () {
-    \Illuminate\Support\Facades\Auth::logout();
-    request()->session()->invalidate();
-    request()->session()->regenerateToken();
-    return redirect()->route('frontend.index');
-})->name('frontend.logout');
-Route::get('/privacy-policy', [FrontendController::class, 'privacyPolicy'])->name('frontend.privacy-policy');
-Route::get('/refund-policy', [FrontendController::class, 'refundPolicy'])->name('frontend.refund-policy');
-Route::get('/terms-conditions', [FrontendController::class, 'termsConditions'])->name('frontend.terms');
+// Route::get('/', [FrontendController::class, 'login'])->name('frontend.index');
+// Route::get('/login', [FrontendController::class, 'login'])->name('frontend.login');
+// Route::get('/setup', [FrontendController::class, 'setup'])->name('frontend.setup');
+// Route::post('/setup', [FrontendController::class, 'storeBooking'])->name('frontend.setup.store');
+// Route::get('/contact', function () {
+//     return view('frontend.contact');
+// })->name('frontend.contact');
 
-// Protected frontend routes (require authentication)
-Route::middleware('auth')->group(function () {
-    Route::get('/booking-dashboard', [FrontendController::class, 'bookingDashboard'])->name('frontend.booking-dashboard');
-    Route::get('/booking-dashboard-v2', [FrontendController::class, 'bookingDashboardV2'])->name('frontend.booking-dashboard-v2');
-    Route::get('/booking/{id}', [FrontendController::class, 'showBooking'])->name('frontend.booking.show');
-    Route::get('/booking-v2/{id}', [FrontendController::class, 'showBookingV2'])->name('frontend.booking.show-v2');
-    Route::get('/profile', [FrontendController::class, 'profile'])->name('frontend.profile');
-});
+// Route::post('/logout', function () {
+//     \Illuminate\Support\Facades\Auth::logout();
+//     request()->session()->invalidate();
+//     request()->session()->regenerateToken();
+//     return redirect()->route('frontend.index');
+// })->name('frontend.logout');
+// Route::get('/privacy-policy', [FrontendController::class, 'privacyPolicy'])->name('frontend.privacy-policy');
+// Route::get('/refund-policy', [FrontendController::class, 'refundPolicy'])->name('frontend.refund-policy');
+// Route::get('/terms-conditions', [FrontendController::class, 'termsConditions'])->name('frontend.terms');
+
+// // Protected frontend routes (require authentication)
+// Route::middleware('auth')->group(function () {
+//     Route::get('/booking-dashboard', [FrontendController::class, 'bookingDashboard'])->name('frontend.booking-dashboard');
+//     Route::get('/booking-dashboard-v2', [FrontendController::class, 'bookingDashboardV2'])->name('frontend.booking-dashboard-v2');
+//     Route::get('/booking/{id}', [FrontendController::class, 'showBooking'])->name('frontend.booking.show');
+//     Route::get('/booking-v2/{id}', [FrontendController::class, 'showBookingV2'])->name('frontend.booking.show-v2');
+//     Route::get('/profile', [FrontendController::class, 'profile'])->name('frontend.profile');
+// });
 
 
 

@@ -8,11 +8,20 @@
                     <div>
                         <nav aria-label="breadcrumb" class="mb-0">
                             <ol class="breadcrumb mb-0">
-                                <li class="breadcrumb-item"><a href="{{ route('root') }}">Home</a></li>
+                                <li class="breadcrumb-item"><a href="{{ route('admin.index') }}">Home</a></li>
                                 <li class="breadcrumb-item active" aria-current="page">Tour Manager</li>
                             </ol>
                         </nav>
                         <h3 class="mb-0">Tour Management</h3>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <x-admin.back-button :classes="['btn', 'btn-soft-secondary']" :merge="false"
+                            icon="ri-arrow-go-back-line" />
+                        @can('booking_create')
+                            <a href="{{ route('admin.bookings.create') }}" class="btn btn-primary">
+                                <i class="ri-add-line me-1"></i> New Booking
+                            </a>
+                        @endcan
                     </div>
                 </div>
             </div>
@@ -22,45 +31,60 @@
             <div class="col-12">
                 <div class="card">
                     <div class="card-header">
-                        <h4 class="card-title mb-0">Bookings List</h4>
+                        <h4 class="card-title mb-0">Tours List</h4>
                     </div>
                     <div class="card-body">
                         <!-- Filters -->
-                        <div class="row mb-3">
-                            <div class="col-md-3">
+                        <div class="row mb-3 g-3" id="filtersSection">
+                            <div class="col-md-2">
+                                <label class="form-label">State</label>
+                                <select class="form-select form-select-sm" id="filter-state">
+                                    <option value="">All States</option>
+                                    @foreach($states ?? [] as $state)
+                                        <option value="{{ $state->id }}">{{ $state->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">City</label>
+                                <select class="form-select form-select-sm" id="filter-city">
+                                    <option value="">All Cities</option>
+                                    @foreach($cities ?? [] as $city)
+                                        <option value="{{ $city->id }}" data-state="{{ $city->state_id }}">{{ $city->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-2">
                                 <label class="form-label">Status</label>
-                                <select class="form-select" id="filter-status">
+                                <select class="form-select form-select-sm" id="filter-status">
                                     <option value="">All Status</option>
                                     @foreach($statuses as $status)
                                         <option value="{{ $status }}">{{ ucfirst($status) }}</option>
                                     @endforeach
                                 </select>
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-2">
                                 <label class="form-label">Payment Status</label>
-                                <select class="form-select" id="filter-payment-status">
+                                <select class="form-select form-select-sm" id="filter-payment-status">
                                     <option value="">All Payment Status</option>
                                     @foreach($paymentStatuses as $paymentStatus)
                                         <option value="{{ $paymentStatus }}">{{ ucfirst($paymentStatus) }}</option>
                                     @endforeach
                                 </select>
                             </div>
-                            <div class="col-md-3">
-                                <label class="form-label">Date From</label>
-                                <input type="date" class="form-control" id="filter-date-from">
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">Date To</label>
-                                <input type="date" class="form-control" id="filter-date-to">
+                            <div class="col-md-2">
+                                <label class="form-label">Date Range</label>
+                                <input type="text" class="form-control form-control-sm" id="filter-date-range"
+                                    placeholder="Select date range">
                             </div>
                         </div>
 
                         <div class="row mb-3">
                             <div class="col-md-12">
-                                <button type="button" class="btn btn-primary" id="apply-filters">
+                                <button type="button" class="btn btn-sm btn-primary" id="apply-filters">
                                     <i class="ri-filter-line me-1"></i>Apply Filters
                                 </button>
-                                <button type="button" class="btn btn-secondary" id="reset-filters">
+                                <button type="button" class="btn btn-sm btn-secondary" id="reset-filters">
                                     <i class="ri-refresh-line me-1"></i>Reset
                                 </button>
                             </div>
@@ -68,13 +92,16 @@
 
                         <!-- DataTable -->
                         <div class="table-responsive">
-                            <table id="bookings-table" class="table table-hover table-bordered dt-responsive nowrap w-100">
+                            <table id="bookings-table" class="table table-hover dt-responsive nowrap w-100">
                                 <thead class="table-light">
                                     <tr>
+                                        <th>ID</th>
                                         <th>Booking</th>
                                         <th>Customer</th>
                                         <th>Location</th>
-                                        {{-- <th>Booking Date</th> --}}
+                                        <th>City / State</th>
+                                        <th>QR Code</th>
+                                        <th>Created</th>
                                         <th>Status</th>
                                         <th>Payment</th>
                                         <th>Price</th>

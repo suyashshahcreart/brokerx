@@ -1,19 +1,12 @@
 <div class="d-flex justify-content-end gap-1">
-    @if(!empty($canEdit) && $canEdit)
-        <a href="{{ route('admin.settings.edit', $setting) }}" class="btn btn-sm btn-soft-primary" title="Edit Setting">
-            <i class="ri-pencil-line"></i>
-        </a>
-    @endif
-    @if(!empty($canDelete) && $canDelete)
-        <form action="{{ route('admin.settings.destroy', $setting) }}" method="POST" class="d-inline">
-            @csrf
-            @method('DELETE')
-            <button type="button"
-                    class="btn btn-sm btn-soft-danger btn-delete-setting"
-                    data-setting-name="{{ $setting->name }}"
-                    title="Delete Setting">
-                <i class="ri-delete-bin-line"></i>
-            </button>
-        </form>
-    @endif
+    <a href="{{ route('admin.holidays.edit', $holiday) }}" class="btn btn-sm btn-soft-info" data-bs-toggle="tooltip" data-bs-placement="top" title="Edit Holiday Info">
+        <iconify-icon icon="solar:pen-2-broken" class="align-middle fs-18"></iconify-icon>
+    </a>
+    <form action="{{ route('admin.holidays.destroy', $holiday) }}" method="POST" class="d-inline">
+        @csrf
+        @method('DELETE')
+        <button type="submit" class="btn btn-sm btn-soft-danger btn-delete-holiday" onclick="return confirm('Are you sure you want to delete this holiday?')" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete Holiday">
+            <iconify-icon icon="solar:trash-bin-minimalistic-2-broken" class="align-middle fs-18"></iconify-icon>
+        </button>
+    </form>
 </div>

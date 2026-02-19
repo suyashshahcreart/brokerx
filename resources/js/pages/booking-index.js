@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 	// Initialize daterangepicker
 	let dateRangePicker = null;
-	
+
 	// Wait for moment and daterangepicker to be available
 	const initDateRangePicker = () => {
 		if (typeof window.moment === 'undefined' || typeof $.fn.daterangepicker === 'undefined') {
@@ -30,7 +30,7 @@ document.addEventListener('DOMContentLoaded', function () {
 		}
 		initializeDateRangePicker();
 	};
-	
+
 	function initializeDateRangePicker() {
 		const input = $('#filterDateRange');
 		if (!input.length || input.length === 0) {
@@ -38,32 +38,32 @@ document.addEventListener('DOMContentLoaded', function () {
 			setTimeout(initializeDateRangePicker, 200);
 			return;
 		}
-		
+
 		// Ensure moment is available
 		if (typeof window.moment === 'undefined') {
 			console.error('Moment.js is not available');
 			return;
 		}
-		
+
 		// Ensure daterangepicker is available
 		if (typeof $.fn.daterangepicker === 'undefined') {
 			console.error('Daterangepicker is not available');
 			return;
 		}
-		
+
 		// Check if already initialized
 		if (input.data('daterangepicker')) {
 			return; // Already initialized
 		}
-		
+
 		try {
 			// Ensure the element is in the DOM
 			if (!input.is(':visible') && !document.body.contains(input[0])) {
 				setTimeout(initializeDateRangePicker, 200);
 				return;
 			}
-			
-			// Initialize daterangepicker with proper configuration
+
+			// Initialize daterangepicker with proper configuration and preset ranges
 			// Don't specify parentEl - let daterangepicker use default (appends to body)
 			dateRangePicker = input.daterangepicker({
 				autoUpdateInput: false,
@@ -71,14 +71,26 @@ document.addEventListener('DOMContentLoaded', function () {
 					cancelLabel: 'Clear',
 					format: 'YYYY-MM-DD'
 				},
-				opens: 'left'
+				opens: 'left',
+				ranges: {
+					'Today': [window.moment(), window.moment()],
+					'Yesterday': [window.moment().subtract(1, 'days'), window.moment().subtract(1, 'days')],
+					'Last 7 Days': [window.moment().subtract(6, 'days'), window.moment()],
+					'Last 30 Days': [window.moment().subtract(29, 'days'), window.moment()],
+					'This Month': [window.moment().startOf('month'), window.moment().endOf('month')],
+					'Last Month': [window.moment().subtract(1, 'month').startOf('month'), window.moment().subtract(1, 'month').endOf('month')],
+					'This Year': [window.moment().startOf('year'), window.moment().endOf('year')],
+					'Last Year': [window.moment().subtract(1, 'year').startOf('year'), window.moment().subtract(1, 'year').endOf('year')]
+				},
+				alwaysShowCalendars: true,
+				showCustomRangeLabel: true
 			});
 
-			input.on('apply.daterangepicker', function(ev, picker) {
+			input.on('apply.daterangepicker', function (ev, picker) {
 				$(this).val(picker.startDate.format('YYYY-MM-DD') + ' - ' + picker.endDate.format('YYYY-MM-DD'));
 			});
 
-			input.on('cancel.daterangepicker', function(ev, picker) {
+			input.on('cancel.daterangepicker', function (ev, picker) {
 				$(this).val('');
 			});
 		} catch (error) {
@@ -86,7 +98,7 @@ document.addEventListener('DOMContentLoaded', function () {
 			// Don't retry on error to avoid infinite loop
 		}
 	}
-	
+
 	// Start initialization after a short delay to ensure DOM is ready
 	setTimeout(() => {
 		initDateRangePicker();
@@ -117,17 +129,17 @@ document.addEventListener('DOMContentLoaded', function () {
 		},
 		order: [[0, 'desc']],
 		columns: [
-			{ data: 'id', name: 'id' },
-			{ data: 'user', name: 'user.firstname', orderable: false, searchable: false },
-			{ data: 'type_subtype', name: 'propertyType.name', orderable: false, searchable: false },
-			{ data: 'bhk', name: 'bhk.name', orderable: false, searchable: false },
-			{ data: 'city_state', name: 'city.name', orderable: false, searchable: false },
-			{ data: 'area', name: 'area' },
-			{ data: 'price', name: 'price' },
-			{ data: 'booking_date', name: 'booking_date' },
+			{ data: 'id', name: 'id', searchable: false },
+			{ data: 'customer', name: 'customer', searchable: true },
+			{ data: 'type_subtype', name: 'type_subtype', orderable: false, searchable: false },
+			{ data: 'qr_code', name: 'qr_code', orderable: false, searchable: true },
+			{ data: 'city_state', name: 'city_state', orderable: false, searchable: true },
+			{ data: 'area', name: 'area', searchable: false },
+			{ data: 'price', name: 'price', searchable: false },
+			{ data: 'booking_date', name: 'booking_date', searchable: false },
 			{ data: 'status', name: 'status', orderable: false, searchable: false },
 			{ data: 'payment_status', name: 'payment_status', orderable: false, searchable: false },
-			{ data: 'actions', name: 'actions', orderable: false, searchable: false, className: 'text-end' },
+			{ data: 'actions', name: 'actions', orderable: false, searchable: false, className: 'text-center' },
 		],
 		language: {
 			search: '_INPUT_',
@@ -140,7 +152,14 @@ document.addEventListener('DOMContentLoaded', function () {
 			}
 		},
 		lengthMenu: [10, 25, 50, 100],
-		responsive: true
+		responsive: true,
+		drawCallback: function () {
+			// Re-initialize Bootstrap tooltips for dynamically loaded buttons
+			const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+			tooltipTriggerList.map(function (tooltipTriggerEl) {
+				return new bootstrap.Tooltip(tooltipTriggerEl);
+			});
+		}
 	});
 
 	// Bind filter buttons
@@ -242,16 +261,19 @@ document.addEventListener('DOMContentLoaded', function () {
 		}
 	});
 
-	table.on('click', '.btn-soft-warning', function (e) {
+	// Handle schedule booking button clicks (both .btn-soft-warning and .schedule-booking-btn)
+	table.on('click', '.btn-soft-warning.schedule-booking-btn, .schedule-booking-btn', function (e) {
 		e.preventDefault();
-		const row = $(this).closest('tr');
-		const rowData = dataTable.row(row).data();
-		if (rowData && rowData.id) {
-			$('#schedule-booking-id').val(rowData.id);
+		const $btn = $(this);
+		const bookingId = $btn.data('booking-id');
+		const bookingDate = $btn.data('booking-date');
+
+		if (bookingId) {
+			$('#schedule-booking-id').val(bookingId);
 			let selectedDate = '';
-			if (rowData.booking_date && rowData.booking_date !== '-') {
-				selectedDate = rowData.booking_date;
-				$('#current-booking-date').text(rowData.booking_date);
+			if (bookingDate && bookingDate !== '' && bookingDate !== '-') {
+				selectedDate = bookingDate;
+				$('#current-booking-date').text(bookingDate);
 			} else {
 				$('#current-booking-date').text('Not set');
 			}
@@ -261,11 +283,30 @@ document.addEventListener('DOMContentLoaded', function () {
 			fetchHolidaysAndInitPicker(selectedDate);
 			const modal = new bootstrap.Modal(document.getElementById('scheduleModal'));
 			modal.show();
+		} else {
+			// Fallback to row data if data attributes not available
+			const row = $(this).closest('tr');
+			const rowData = dataTable.row(row).data();
+			if (rowData && rowData.id) {
+				$('#schedule-booking-id').val(rowData.id);
+				let selectedDate = '';
+				if (rowData.booking_date && rowData.booking_date !== '-') {
+					selectedDate = rowData.booking_date;
+					$('#current-booking-date').text(rowData.booking_date);
+				} else {
+					$('#current-booking-date').text('Not set');
+				}
+				lastSelectedDate = selectedDate;
+				$('#schedule-mode-default').prop('checked', true);
+				fetchHolidaysAndInitPicker(selectedDate);
+				const modal = new bootstrap.Modal(document.getElementById('scheduleModal'));
+				modal.show();
+			}
 		}
 	});
 
 	// Make calendar icon clickable to open date picker
-	$(document).on('click', '#calendar-icon-trigger', function() {
+	$(document).on('click', '#calendar-icon-trigger', function () {
 		if (flatpickrInstance) {
 			flatpickrInstance.open();
 		}
@@ -276,13 +317,13 @@ document.addEventListener('DOMContentLoaded', function () {
 		const bookingId = $('#schedule-booking-id').val();
 		const date = $('#schedule-date').val();
 		const currentDateText = $('#current-booking-date').text();
-		
+
 		if (!date) {
 			$('#schedule-date').addClass('is-invalid');
 			return;
 		}
 		$('#schedule-date').removeClass('is-invalid');
-		
+
 		// Check if date has changed - normalize dates for comparison
 		let dateChanged = false;
 		let currentDateFormatted = null;
@@ -296,12 +337,12 @@ document.addEventListener('DOMContentLoaded', function () {
 			// If no current date, this is a new schedule (not a change)
 			dateChanged = false;
 		}
-		
+
 		// Show confirmation if date changed
 		if (dateChanged && typeof Swal !== 'undefined') {
 			const oldDateFormatted = new Date(currentDateFormatted).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 			const newDateFormatted = new Date(date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-			
+
 			const result = await Swal.fire({
 				icon: 'warning',
 				title: 'Confirm Date Change',
@@ -316,16 +357,16 @@ document.addEventListener('DOMContentLoaded', function () {
 				confirmButtonText: 'Yes, Change Date',
 				cancelButtonText: 'Cancel'
 			});
-			
+
 			if (!result.isConfirmed) {
 				return; // User cancelled
 			}
 		}
-		
+
 		// Use correct route for reschedule
 		const baseUrl = window.appBaseUrl || '';
 		$.ajax({
-			url: `${baseUrl}/admin/bookings/${bookingId}/reschedule`,
+			url: `${baseUrl}/${window.adminBasePath}/bookings/${bookingId}/reschedule`,
 			method: 'POST',
 			data: {
 				schedule_date: date,
@@ -371,14 +412,14 @@ document.addEventListener('DOMContentLoaded', function () {
 	});
 
 	// Accept schedule from booking list
-	window.acceptScheduleQuick = async function(bookingId) {
+	window.acceptScheduleQuick = async function (bookingId) {
 		// Get booking data from DataTable
 		const dataTable = table.DataTable();
 		const rowData = dataTable.rows().data().toArray().find(row => row.id === bookingId);
-		
+
 		const requestedDate = rowData?.booking_date || 'Not specified';
 		const customerNotes = rowData?.booking_notes || '';
-		const userName = rowData?.user || 'N/A';
+		const userName = rowData?.user || rowData?.customer || 'N/A';
 
 		const htmlContent = `
 			<div class="text-start mb-3">
@@ -419,7 +460,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 		if (result.isConfirmed) {
 			try {
-				const response = await fetch(`${window.appBaseUrl}/admin/pending-schedules/${bookingId}/accept`, {
+				const response = await fetch(`${window.appBaseUrl}/${window.adminBasePath}/pending-schedules/${bookingId}/accept`, {
 					method: 'POST',
 					headers: {
 						'Content-Type': 'application/json',
@@ -454,14 +495,14 @@ document.addEventListener('DOMContentLoaded', function () {
 	};
 
 	// Decline schedule from booking list
-	window.declineScheduleQuick = async function(bookingId) {
+	window.declineScheduleQuick = async function (bookingId) {
 		// Get booking data from DataTable
 		const dataTable = table.DataTable();
 		const rowData = dataTable.rows().data().toArray().find(row => row.id === bookingId);
-		
+
 		const requestedDate = rowData?.booking_date || 'Not specified';
 		const customerNotes = rowData?.booking_notes || '';
-		const userName = rowData?.user || 'N/A';
+		const userName = rowData?.user || rowData?.customer || 'N/A';
 
 		const htmlContent = `
 			<div class="text-start mb-3">
@@ -508,7 +549,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 		if (result.isConfirmed) {
 			try {
-				const response = await fetch(`${window.appBaseUrl}/admin/pending-schedules/${bookingId}/decline`, {
+				const response = await fetch(`${window.appBaseUrl}/${window.adminBasePath}/pending-schedules/${bookingId}/decline`, {
 					method: 'POST',
 					headers: {
 						'Content-Type': 'application/json',
@@ -543,7 +584,7 @@ document.addEventListener('DOMContentLoaded', function () {
 	};
 
 	// Delete booking
-	window.deleteBooking = async function(bookingId) {
+	window.deleteBooking = async function (bookingId) {
 		const result = await Swal.fire({
 			title: 'Delete Booking?',
 			text: 'This action cannot be undone!',
@@ -557,7 +598,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 		if (result.isConfirmed) {
 			try {
-				const response = await fetch(`${window.appBaseUrl}/admin/bookings/${bookingId}`, {
+				const response = await fetch(`${window.appBaseUrl}/${window.adminBasePath}/bookings/${bookingId}`, {
 					method: 'DELETE',
 					headers: {
 						'X-CSRF-TOKEN': window.bookingCsrfToken,

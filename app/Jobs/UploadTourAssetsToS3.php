@@ -146,7 +146,7 @@ class UploadTourAssetsToS3 implements ShouldQueue
     public function handle(): void
     {
         try {
-            Log::info("Starting background S3 upload for folder: {$this->folderName} from {$this->localPath} to {$this->s3Path}");
+            Log::info("Starting S3 upload for folder: {$this->folderName}");
 
             if (!is_dir($this->localPath)) {
                 Log::error("Directory not found for S3 upload: {$this->localPath}");
@@ -191,7 +191,6 @@ class UploadTourAssetsToS3 implements ShouldQueue
                 return;
             }
 
-            Log::info("Found " . count($filesToUpload) . " files to upload for folder: {$this->folderName}");
             
             // Upload files in larger batches for better performance
             $batchSize = 20; // Increased from 5 to 20
@@ -227,11 +226,11 @@ class UploadTourAssetsToS3 implements ShouldQueue
                             throw new \Exception("S3 upload returned false");
                         }
                         
-                        // Set visibility
+                        // Set visibility (failure is not critical - file is still uploaded)
                         try {
                             $s3Disk->setVisibility($fileData['s3'], 'public');
                         } catch (\Exception $e) {
-                            // Visibility setting failure is not critical
+                            // Silently continue - visibility setting failure is not critical
                         }
                         
                         $totalSize += $fileData['size'];
@@ -239,35 +238,29 @@ class UploadTourAssetsToS3 implements ShouldQueue
                         
                     } catch (\Exception $e) {
                         $failedCount++;
-                        Log::error("Failed to upload {$fileData['s3']}: " . $e->getMessage());
+                        Log::error("Failed to upload {$fileData['s3']}: " . $e->getMessage() . " in " . $e->getFile() . ":" . $e->getLine());
                         
                         if ($failedCount > 50) {
-                            Log::error("Too many upload failures ({$failedCount}). Stopping upload process.");
+                            Log::error("Too many upload failures ({$failedCount}). Stopping upload process in " . __FILE__ . ":" . __LINE__);
                             break 2;
                         }
                     }
                 }
                 
-                // Log progress every 5 batches
-                if (($batchIndex + 1) % 5 === 0) {
-                    $progress = round(($uploadedCount / count($filesToUpload)) * 100, 2);
-                    Log::info("Upload progress for {$this->folderName}: {$uploadedCount}/" . count($filesToUpload) . " files ({$progress}%)");
-                }
+                // Progress logging removed to reduce log verbosity
             }
             
             $sizeMB = round($totalSize / 1024 / 1024, 2);
             
             if ($failedCount > 0) {
-                Log::warning("Upload completed with errors for {$this->folderName}: {$uploadedCount}/" . count($filesToUpload) . " files uploaded ({$sizeMB} MB), {$failedCount} failed");
-            } else {
-                Log::info("Successfully uploaded all {$uploadedCount} files ({$sizeMB} MB) for folder: {$this->folderName}");
+                Log::error("Upload completed with errors for {$this->folderName}: {$uploadedCount}/" . count($filesToUpload) . " files uploaded ({$sizeMB} MB), {$failedCount} failed in " . __FILE__ . ":" . __LINE__);
             }
 
             // Update booking status if all folders are done (optional)
             // You can add a status field to track upload progress
             
         } catch (\Exception $e) {
-            Log::error("Background S3 upload job failed for {$this->folderName}: " . $e->getMessage());
+            Log::error("Background S3 upload job failed for {$this->folderName}: " . $e->getMessage() . " in " . $e->getFile() . ":" . $e->getLine());
             throw $e; // Re-throw to trigger retry
         }
     }
@@ -277,7 +270,7 @@ class UploadTourAssetsToS3 implements ShouldQueue
      */
     public function failed(\Throwable $exception): void
     {
-        Log::error("Background S3 upload job permanently failed for folder: {$this->folderName}. Error: " . $exception->getMessage());
+        Log::error("Background S3 upload job permanently failed for folder: {$this->folderName}. Error: " . $exception->getMessage() . " in " . $exception->getFile() . ":" . $exception->getLine());
         
         // Optionally notify admin or update booking status
     }

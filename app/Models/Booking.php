@@ -8,40 +8,19 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Booking extends Model
 {
-    /**
-     * Get the QR code assigned to this booking (if any)
-     */
-    public function qr()
-    {
-        return $this->hasOne(\App\Models\QR::class, 'booking_id');
-    }
-
-    /**
-     * Get the booking history entries
-     */
-    public function histories()
-    {
-        return $this->hasMany(BookingHistory::class)->orderByDesc('created_at');
-    }
-
-    /**
-     * Get the latest booking history entry
-     */
-    public function latestHistory()
-    {
-        return $this->hasOne(BookingHistory::class)->latestOfMany();
-    }
+    
     /** @use HasFactory<\Database\Factories\BookingFactory> */
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'user_id',
+        'customer_id',
         'property_type_id',
         'property_sub_type_id',
         'owner_type',
         'bhk_id',
         'city_id',
         'state_id',
+        'country_id',
         'furniture_type',
         'other_option_details',
         'firm_name',
@@ -49,6 +28,11 @@ class Booking extends Model
         'tour_final_link',
         'tour_code',
         'base_url',
+        'tour_zip_status',
+        'tour_zip_progress',
+        'tour_zip_message',
+        'tour_zip_started_at',
+        'tour_zip_finished_at',
         'area',
         'price',
         'house_no',
@@ -86,12 +70,14 @@ class Booking extends Model
         'cashfree_payment_meta' => 'array',
         'cashfree_last_response' => 'array',
         'json_data' => 'array',
+        'tour_zip_started_at' => 'datetime',
+        'tour_zip_finished_at' => 'datetime',
     ];
 
     // Relationships
-    public function user()
+    public function customer()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(Customer::class);
     }
 
     public function propertyType()
@@ -119,6 +105,11 @@ class Booking extends Model
         return $this->belongsTo(State::class);
     }
 
+    public function country()
+    {
+        return $this->belongsTo(Country::class);
+    }
+
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');
@@ -135,21 +126,182 @@ class Booking extends Model
     }
 
 
+    /**
+     * Get the QR code assigned to this booking (if any)
+     */
+    public function qr()
+    {
+        return $this->hasOne(\App\Models\QR::class, 'booking_id');
+    }
+
+    /**
+     * Get all QR analytics records for this booking
+     */
+    public function qrAnalytics()
+    {
+        return $this->hasMany(\App\Models\QRAnalytics::class, 'booking_id');
+    }
+
+    /**
+     * Get the booking history entries
+     */
+    public function histories()
+    {
+        return $this->hasMany(BookingHistory::class)->orderByDesc('created_at');
+    }
+
+    /**
+     * Get the latest booking history entry
+     */
+    public function latestHistory()
+    {
+        return $this->hasOne(BookingHistory::class)->latestOfMany();
+    }
+    
     public function assignees()
     {
         return $this->hasMany(BookingAssignee::class);
     }
 
-    /**
-     * Get the photographer visit job for this booking
-     */
-    public function photographerVisitJob()
-    {
-        return $this->hasOne(PhotographerVisitJob::class);
-    }
     public function tours()
     {
         return $this->hasMany(Tour::class);
+    }
+
+    /**
+     * Get all payment history entries for this booking
+     */
+    public function paymentHistories()
+    {
+        return $this->hasMany(PaymentHistory::class)->orderByDesc('created_at');
+    }
+
+    /**
+     * Get the latest payment history entry
+     */
+    public function latestPaymentHistory()
+    {
+        return $this->hasOne(PaymentHistory::class)->latestOfMany();
+    }
+
+    /**
+     * Get all successful payments
+     */
+    public function successfulPayments()
+    {
+        return $this->hasMany(PaymentHistory::class)->where('status', 'completed');
+    }
+
+    /**
+     * Get total amount paid (sum of all successful payments)
+     * Returns amount in paise (smallest currency unit)
+     */
+    public function getTotalPaidAttribute(): int
+    {
+        $sum = $this->paymentHistories()
+            ->where('status', 'completed')
+            ->sum('amount');
+        return (int) ($sum ?? 0);
+    }
+
+    /**
+     * Get total amount paid in rupees
+     */
+    public function getTotalPaidInRupeesAttribute(): float
+    {
+        return $this->total_paid / 100;
+    }
+
+    /**
+     * Get remaining amount to be paid (in paise)
+     */
+    public function getRemainingAmountAttribute(): int
+    {
+        $totalAmount = (int) ($this->price ?? 0) * 100; // Convert to paise
+        $paidAmount = $this->total_paid;
+        $remaining = $totalAmount - $paidAmount;
+        return max(0, $remaining);
+    }
+
+    /**
+     * Get remaining amount in rupees
+     */
+    public function getRemainingAmountInRupeesAttribute(): float
+    {
+        return $this->remaining_amount / 100;
+    }
+
+    /**
+     * Check if booking is fully paid
+     */
+    public function isFullyPaid(): bool
+    {
+        return $this->remaining_amount <= 0 && $this->total_paid > 0;
+    }
+
+    /**
+     * Check if booking has any payments
+     */
+    public function hasPayments(): bool
+    {
+        return $this->paymentHistories()->exists();
+    }
+
+    /**
+     * Check if booking has partial payment
+     */
+    public function hasPartialPayment(): bool
+    {
+        return $this->total_paid > 0 && !$this->isFullyPaid();
+    }
+
+    /**
+     * Update payment status based on payment history
+     * This method aggregates payment history and updates the booking's payment_status
+     */
+    public function updatePaymentStatusFromHistory(): void
+    {
+        $totalAmount = (int) ($this->price ?? 0) * 100; // Convert to paise
+        $paidAmount = $this->total_paid;
+        
+        // Check if there are any recent successful payments
+        $hasSuccessfulPayment = $this->paymentHistories()
+            ->where('status', 'completed')
+            ->exists();
+        
+        // Check if there are any pending payments
+        $hasPendingPayment = $this->paymentHistories()
+            ->whereIn('status', ['pending', 'processing'])
+            ->exists();
+        
+        // Determine payment status
+        if ($paidAmount >= $totalAmount && $totalAmount > 0) {
+            $this->payment_status = 'paid';
+            // If booking was not confirmed, mark it as confirmed
+            if ($this->status === 'pending' || $this->status === 'inquiry') {
+                $this->status = 'confirmed';
+            }
+        } elseif ($paidAmount > 0) {
+            // Partial payment
+            $this->payment_status = 'pending';
+        } elseif ($hasPendingPayment) {
+            $this->payment_status = 'pending';
+        } else {
+            // Check if all payments failed
+            $allFailed = $this->paymentHistories()
+                ->whereIn('status', ['failed', 'cancelled'])
+                ->count() > 0 
+                && !$hasSuccessfulPayment
+                && !$hasPendingPayment;
+            
+            if ($allFailed) {
+                $this->payment_status = 'failed';
+            } else {
+                $this->payment_status = 'unpaid';
+            }
+        }
+        
+        $this->save();
     }
 
     /**
@@ -313,15 +465,17 @@ class Booking extends Model
         return [
             'inquiry',
             'pending',
+            'confirmed',
             'schedul_pending',
             'schedul_accepted',
+            'schedul_assign',
             'schedul_decline',
+            'schedul_inprogress',
+            'schedul_completed',
             'reschedul_pending',
             'reschedul_accepted',
             'reschedul_decline',
             'reschedul_blocked',
-            'schedul_assign',
-            'schedul_completed',
             'tour_pending',
             'tour_completed',
             'tour_live',
@@ -356,5 +510,53 @@ class Booking extends Model
             'expired' => 'Expired',
             default => ucfirst($this->status),
         };
+    }
+
+    /**
+     * Get FTP URL for tour if status is tour_live
+     * Returns the full FTP URL without index.php suffix
+     * 
+     * @return string FTP URL or '#' if not available
+     */
+    public function getTourLiveUrl(): string {
+        // Get the latest tour for this booking
+        $tour = $this->tours()
+            ->orderBy('created_at', 'desc')
+            ->first();
+
+        // Check if tour exists
+        if (!$tour) {
+            return '#';
+        }
+
+        // If tour is hosted and hosted_link is not null, return hosted_link
+        if ($tour->is_hosted && !empty($tour->hosted_link)) {
+            return $tour->hosted_link;
+        }
+
+        // Otherwise, use FTP URL logic
+        // Check if tour has required data for FTP URL
+        $customerId = $this->customer_id;
+        if (!$tour->location || !$tour->slug || !$customerId) {
+            return '#';
+        }   
+
+        // Get FTP configuration based on tour location
+        $ftpConfig = \App\Models\FtpConfiguration::where('category_name', $tour->location)->first();
+        
+        if (!$ftpConfig) {
+            return '#';
+        }
+
+        // Generate FTP URL
+        $fullFtpUrl = $ftpConfig->getUrlForTour($tour->slug, $customerId);
+        $tourFtpUrl = rtrim($fullFtpUrl, '/');
+        
+        // Remove index.php if present
+        if (substr($tourFtpUrl, -9) === 'index.php') {
+            $tourFtpUrl = substr($tourFtpUrl, 0, -9);
+        }
+
+        return $tourFtpUrl;
     }
 }

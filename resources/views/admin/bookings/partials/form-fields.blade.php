@@ -6,16 +6,16 @@
 <div class="row">
     <div class="col-lg-4">
         <div class="mb-3">
-            <label class="form-label" for="user_id">User <span class="text-danger">*</span></label>
-            <select name="user_id" id="user_id" class="form-select" required>
-                <option value="">Select user</option>
-                @foreach($users as $u)
-                    <option value="{{ $u->id }}" @selected(old('user_id', $booking->user_id ?? null)==$u->id)>
-                        {{ $u->firstname }} {{ $u->lastname }} | {{ $u->mobile }}@if($u->email) | {{ $u->email }}@endif
+            <label class="form-label" for="customer_id">Customer <span class="text-danger">*</span></label>
+            <select name="customer_id" id="customer_id" class="form-select" required>
+                <option value="">Select customer</option>
+                @foreach($customers as $c)
+                    <option value="{{ $c->id }}" @selected(old('customer_id', $booking->customer_id ?? null)==$c->id)>
+                        {{ $c->firstname }} {{ $c->lastname }} | {{ $c->mobile }}@if($c->email) | {{ $c->email }}@endif
                     </option>
                 @endforeach
             </select>
-            <div class="invalid-feedback">Please select a user.</div>
+            <div class="invalid-feedback">Please select a customer.</div>
         </div>
     </div>
     <div class="col-lg-4">

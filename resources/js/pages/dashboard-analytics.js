@@ -1,20 +1,28 @@
 /**
- * Theme: Lahomes - Real Estate Admin Dashboard Template
- * Author: Techzaa
+ * Theme: PROP PIK - Virtual Web Reality Admin Dashboard
+ * Author: CreArt Solutions Pvt Ltd
  * Module/App: Dashboard
  */
 
 import ApexCharts from "apexcharts/dist/apexcharts";
-
 window.ApexCharts = ApexCharts
-
 import jsVectorMap from 'jsvectormap'
 import 'jsvectormap/dist/maps/world-merc.js'
 import 'jsvectormap/dist/maps/world.js'
 
-// total_customers
 
-var options = {
+// top section details booking, tours, customer, revenue  ->  CARDS;
+const totalPropertyDiv = document.getElementById('total_property_card');
+const liveTrousCardDiv = document.getElementById('live_tours_card');
+const totalcustomerCardDiv = document.getElementById('total_customer_card');
+const totalRevenueCardDiv = document.getElementById('total_revenue_card');
+
+// sales_analytic and Revenue Chart section;
+const salesAnalyticDiv = document.getElementById('sales_analytic');
+
+const TourLiveCardDiv = document.getElementById('tour_live_card');
+
+var totalPropertyCardOptions = {
     chart: {
         height: 95,
         parentHeightOffset: 0,
@@ -48,13 +56,13 @@ var options = {
     },
     series: [{
         name: 'Property Listing',
-        data: [40, 50, 65, 40, 40, 65, 40]
+        data: window.weeklyProperties || [0, 0, 0, 0, 0, 0, 0]
     }],
     legend: {
         show: !1
     },
     xaxis: {
-        categories: ['S', 'M', 'T', 'W', 'T', 'F', 'S'],
+        categories: window.weeklyLabels || ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
         axisBorder: {
             show: !1
         },
@@ -79,13 +87,10 @@ var options = {
         }
     }],
 };
+var totalPropertyCard = new ApexCharts(totalPropertyDiv, totalPropertyCardOptions);
+totalPropertyCard.render();
 
-var chart = new ApexCharts(document.querySelector("#total_customers"), options);
-chart.render();
-
-// invoiced_customers
-
-var options = {
+var liveToursCardOptions = {
     chart: {
         height: 95,
         parentHeightOffset: 0,
@@ -118,14 +123,14 @@ var options = {
         enabled: !1
     },
     series: [{
-        name: 'New Agents',
-        data: [40, 50, 65, 40, 40, 65, 40]
+        name: 'Live Tours',
+        data: window.weeklyTours || [0, 0, 0, 0, 0, 0, 0]
     }],
     legend: {
         show: !1
     },
     xaxis: {
-        categories: ['S', 'M', 'T', 'W', 'T', 'F', 'S'],
+        categories: window.weeklyLabels || ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
         axisBorder: {
             show: !1
         },
@@ -150,12 +155,10 @@ var options = {
         }
     }],
 };
-var chart = new ApexCharts(document.querySelector("#invoiced_customers"), options);
-chart.render();
+var liveToursCard = new ApexCharts(liveTrousCardDiv, liveToursCardOptions);
+liveToursCard.render();
 
-// new_sale
-
-var options = {
+var totalCustomerCardOptions = {
     chart: {
         height: 95,
         parentHeightOffset: 0,
@@ -188,14 +191,14 @@ var options = {
         enabled: !1
     },
     series: [{
-        name: 'New Customers',
-        data: [40, 50, 65, 40, 40, 65, 40]
+        name: 'Customers',
+        data: window.weeklyCustomers || [0, 0, 0, 0, 0, 0, 0]
     }],
     legend: {
         show: !1
     },
     xaxis: {
-        categories: ['S', 'M', 'T', 'W', 'T', 'F', 'S'],
+        categories: window.weeklyLabels || ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
         axisBorder: {
             show: !1
         },
@@ -220,12 +223,10 @@ var options = {
         }
     }],
 };
-var chart = new ApexCharts(document.querySelector("#new_sale"), options);
-chart.render();
+var totalCustomerCard = new ApexCharts(totalcustomerCardDiv, totalCustomerCardOptions);
+totalCustomerCard.render();
 
-// invoiced_sales
-
-var options = {
+var totalRevenueCardOptions = {
     chart: {
         height: 95,
         parentHeightOffset: 0,
@@ -259,13 +260,13 @@ var options = {
     },
     series: [{
         name: 'Revenue',
-        data: [40, 50, 65, 40, 40, 65, 40]
+        data: window.weeklyRevenue || [0, 0, 0, 0, 0, 0, 0]
     }],
     legend: {
         show: !1
     },
     xaxis: {
-        categories: ['S', 'M', 'T', 'W', 'T', 'F', 'S'],
+        categories: window.weeklyLabels || ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
         axisBorder: {
             show: !1
         },
@@ -280,9 +281,9 @@ var options = {
     },
     tooltip: {
         y: {
-          formatter: function (val) {
-            return "$" + val + " thousands"
-          }
+            formatter: function (val) {
+                return "₹" + (val / 100).toFixed(2);
+            }
         }
     },
     responsive: [{
@@ -294,150 +295,285 @@ var options = {
         }
     }],
 };
-var chart = new ApexCharts(document.querySelector("#invoiced_sales"), options);
-chart.render();
-
-
+var totalRevenueCard = new ApexCharts(totalRevenueCardDiv, totalRevenueCardOptions);
+totalRevenueCard.render();
 
 // sales_analytic
 
-var options = {
-    chart: {
-        height: 341,
-        type: "area",
+// Fetch and render sales analytic chart data from API
+function fetchAndRenderBookingAnalytic(type = 'week') {
+    const apiUrl = salesAnalyticDiv.dataset.apiUrl + '?type=' + type;
+    fetch(apiUrl)
+        .then(response => response.json())
+        .then(res => {
+            if (!res.success || !res.date) return;
+            const data = res.date;
+            const salesChartOptions = {
+                chart: {
+                    height: 420,
+                    type: "area",
+                    dropShadow: {
+                        enabled: true,
+                        opacity: 0.2,
+                        blur: 10,
+                        left: -7,
+                        top: 22,
+                    },
+                    toolbar: {
+                        show: false,
+                    },
+                },
+                colors: ["#604ae3", "#47ad94"],
+                dataLabels: {
+                    enabled: false,
+                },
+                stroke: {
+                    show: true,
+                    curve: "smooth",
+                    width: 2,
+                    lineCap: "square",
+                },
+                series: data.series,
+                labels: data.categories,
+                xaxis: {
+                    axisBorder: {
+                        show: false,
+                    },
+                    axisTicks: {
+                        show: false,
+                    },
+                    crosshairs: {
+                        show: true,
+                    },
+                    labels: {
+                        offsetX: 0,
+                        offsetY: 5,
+                        style: {
+                            fontSize: "12px",
+                            cssClass: "apexcharts-xaxis-title",
+                        },
+                    },
+                },
+                yaxis: {
+                    labels: {
+                        formatter: function (value, index) {
+                            return value >= 1000 ? (value / 1000).toFixed(1) + "K" : value.toFixed(0);
+                        },
+                        offsetX: -15,
+                        offsetY: 0,
+                        style: {
+                            fontSize: "12px",
+                            cssClass: "apexcharts-yaxis-title",
+                        },
+                    },
+                },
+                grid: {
+                    borderColor: "#191e3a",
+                    strokeDashArray: 5,
+                    xaxis: {
+                        lines: {
+                            show: true,
+                        },
+                    },
+                    yaxis: {
+                        lines: {
+                            show: false,
+                        },
+                    },
+                    padding: {
+                        top: 0,
+                        right: 0,
+                        bottom: 0,
+                        left: 5,
+                    },
+                },
+                legend: {
+                    show: false,
+                },
+                fill: {
+                    type: "gradient",
+                    gradient: {
+                        type: "vertical",
+                        shadeIntensity: 1,
+                        inverseColors: !1,
+                        opacityFrom: 0.12,
+                        opacityTo: 0.1,
+                        stops: [100, 100],
+                    },
+                },
+                responsive: [{
+                    breakpoint: 575,
+                    options: {
+                        legend: {
+                            offsetY: -50,
+                        },
+                    },
+                }],
+            };
+            if (window.salesAnalyticesChat) {
+                window.salesAnalyticesChat.updateOptions(salesChartOptions);
+            } else {
+                window.salesAnalyticesChat = new ApexCharts(salesAnalyticDiv, salesChartOptions);
+                window.salesAnalyticesChat.render();
+            }
+        });
+}
+// Initial load
+fetchAndRenderBookingAnalytic('week');
 
-        dropShadow: {
-            enabled: true,
-            opacity: 0.2,
-            blur: 10,
-            left: -7,
-            top: 22,
-        },
-        toolbar: {
-            show: false,
-        },
-    },
-    colors: ["#47ad94", "#604ae3"],
-    dataLabels: {
-        enabled: false,
-    },
+// Fetch and render sales analytic chart data from API
+function fetchAndRenderSalesAnalytic(type = 'week') {
+    const salesChartDiv = document.getElementById('sales_chart');
+    const apiUrl = salesChartDiv.dataset.apiUrl + '?type=' + type;
+    fetch(apiUrl)
+        .then(response => response.json())
+        .then(res => {
+            if (!res.success || !res.date) return;
+            const data = res.date;
+            // Update footer with totals
+            let totalSales = 0;
+            let totalBookings = 0;
+            if (data.series && data.series[0] && data.series[0].data) {
+                totalSales = data.series[0].data.reduce((a, b) => Number(a) + Number(b), 0);
+                totalBookings = data.series[0].data.length > 0 ? data.series[0].data.filter(x => x > 0).length : 0;
+            }
+            document.getElementById('total_sales_amount').textContent = '₹' + (totalSales).toFixed(2);
+            document.getElementById('total_bookings_count').textContent = totalBookings;
 
-    stroke: {
-        show: true,
-        curve: "smooth",
-        width: 2,
-        lineCap: "square",
-    },
-    series: [{
-            name: "Expenses",
-            data: [
-                16800, 16800, 15500, 17000, 14800, 15500, 19000, 16000, 15000, 17000,
-                14000, 17000,
-            ],
-        },
-        {
-            name: "Income",
-            data: [
-                16500, 17500, 16200, 21500, 17300, 16000, 16000, 17000, 16000, 19000,
-                18000, 19000,
-            ],
-        },
-    ],
-    labels: [
-        "Jan",
-        "Feb",
-        "Mar",
-        "Apr",
-        "May",
-        "Jun",
-        "Jul",
-        "Aug",
-        "Sep",
-        "Oct",
-        "Nov",
-        "Dec",
-    ],
-    xaxis: {
-        axisBorder: {
-            show: false,
-        },
-        axisTicks: {
-            show: false,
-        },
-        crosshairs: {
-            show: true,
-        },
-        labels: {
-            offsetX: 0,
-            offsetY: 5,
-            style: {
-                fontSize: "12px",
-                cssClass: "apexcharts-xaxis-title",
-            },
-        },
-    },
-    yaxis: {
-        labels: {
-            formatter: function (value, index) {
-                return value / 1000 + "K";
-            },
-            offsetX: -15,
-            offsetY: 0,
-            style: {
-                fontSize: "12px",
-                cssClass: "apexcharts-yaxis-title",
-            },
-        },
-    },
-    grid: {
-        borderColor: "#191e3a",
-        strokeDashArray: 5,
-        xaxis: {
-            lines: {
-                show: true,
-            },
-        },
-        yaxis: {
-            lines: {
-                show: false,
-            },
-        },
-        padding: {
-            top: -50,
-            right: 0,
-            bottom: 0,
-            left: 5,
-        },
-    },
-    legend: {
-        show: false,
-    },
-
-    fill: {
-        type: "gradient",
-        gradient: {
-            type: "vertical",
-            shadeIntensity: 1,
-            inverseColors: !1,
-            opacityFrom: 0.12,
-            opacityTo: 0.1,
-            stops: [100, 100],
-        },
-    },
-    responsive: [{
-        breakpoint: 575,
-        options: {
-            legend: {
-                offsetY: -50,
-            },
-        },
-    }, ],
-};
-var chart = new ApexCharts(document.querySelector("#sales_analytic"), options);
-chart.render();
+            const salesChartOptions = {
+                chart: {
+                    height: 420,
+                    type: "area",
+                    dropShadow: {
+                        enabled: true,
+                        opacity: 0.2,
+                        blur: 10,
+                        left: -7,
+                        top: 22,
+                    },
+                    toolbar: {
+                        show: false,
+                    },
+                },
+                colors: ["#47ad94","#604ae3"],
+                dataLabels: {   
+                    enabled: false,
+                },
+                stroke: {
+                    show: true,
+                    curve: "smooth",
+                    width: [2, 2],
+                    lineCap: "round",
+                    lineJoin: "round",
+                    dashArray: [0, 5],
+                },
+                series: data.series,
+                labels: data.categories,
+                xaxis: {
+                    axisBorder: {
+                        show: false,
+                    },
+                    axisTicks: {
+                        show: false,
+                    },
+                    crosshairs: {
+                        show: true,
+                        width: 1,
+                        position: 'front',
+                        stroke: {
+                            color: '#b6c1d5',
+                            width: 1,
+                        }
+                    },
+                    labels: {
+                        offsetX: 0,
+                        offsetY: 5,
+                        style: {
+                            fontSize: "12px",
+                            cssClass: "apexcharts-xaxis-title",
+                        },
+                    },
+                },
+                yaxis: {
+                    labels: {
+                        formatter: function (value, index) {
+                            return "₹" + (value >= 100000 ? (value / 100000).toFixed(0) + "L" : (value / 1000).toFixed(1) + "K");
+                        },
+                        offsetX: -15,
+                        offsetY: 0,
+                        style: {
+                            fontSize: "12px",
+                            cssClass: "apexcharts-yaxis-title",
+                        },
+                    },
+                },
+                grid: {
+                    borderColor: "#e3e3e3",
+                    strokeDashArray: 3,
+                    xaxis: {
+                        lines: {
+                            show: true,
+                        },
+                    },
+                    yaxis: {
+                        lines: {
+                            show: true,
+                        },
+                    },
+                    padding: {
+                        top: 0,
+                        right: 0,
+                        bottom: 0,
+                        left: 5,
+                    },
+                },
+                legend: {
+                    show: true,
+                    position: 'top',
+                    horizontalAlign: 'right',
+                },
+                fill: {
+                    type: "gradient",
+                    gradient: {
+                        type: "vertical",
+                        shadeIntensity: 0.3,
+                        inverseColors: false,
+                        opacityFrom: 0.25,
+                        opacityTo: 0.05,
+                        stops: [20, 100],
+                    },
+                },
+                tooltip: {
+                    theme: "light",
+                    y: {
+                        formatter: function (value) {
+                            return "₹" + (value).toFixed(0);
+                        }
+                    }
+                },
+                responsive: [{
+                    breakpoint: 575,
+                    options: {
+                        legend: {
+                            offsetY: -50,
+                        },
+                    },
+                }],
+            };
+            if (window.salesChart) {
+                window.salesChart.updateOptions(salesChartOptions);
+                window.salesChart.updateSeries(data.series);
+            } else {
+                window.salesChart = new ApexCharts(salesChartDiv, salesChartOptions);
+                window.salesChart.render();
+            }
+        });
+}
+// Initial load for sales chart
+fetchAndRenderSalesAnalytic('week');
 
 // sales_funnel
-var options = {
+var TourLiveCardOptions = {
     chart: {
         height: 120,
         parentHeightOffset: 0,
@@ -503,86 +639,84 @@ var options = {
     }],
 };
 
-var chart = new ApexCharts(document.querySelector("#sales_funnel"), options);
-chart.render();
-
-
+var TourLiveCard = new ApexCharts(TourLiveCardDiv, TourLiveCardOptions);
+TourLiveCard.render();
 
 //
 // GRADIENT CIRCULAR CHART
 //
 var colors = ["#7f56da", "#4697ce"];
 var options = {
-  chart: {
-    height: 349,
-    type: "radialBar",
-    toolbar: {
-      show: false,
-    },
-  },
-  plotOptions: {
-    radialBar: {
-      startAngle: -135,
-      endAngle: 225,
-      hollow: {
-        margin: 0,
-        size: "70%",
-        background: "transparent",
-        image: undefined,
-        imageOffsetX: 0,
-        imageOffsetY: 0,
-        position: "front",
-        dropShadow: {
-          enabled: true,
-          top: 3,
-          left: 0,
-          blur: 4,
-          opacity: 0.24,
+    chart: {
+        height: 349,
+        type: "radialBar",
+        toolbar: {
+            show: false,
         },
-      },
-      track: {
-        background: "rgba(170,184,197, 0.4)",
-        strokeWidth: "67%",
-        margin: 0,
-      },
+    },
+    plotOptions: {
+        radialBar: {
+            startAngle: -135,
+            endAngle: 225,
+            hollow: {
+                margin: 0,
+                size: "70%",
+                background: "transparent",
+                image: undefined,
+                imageOffsetX: 0,
+                imageOffsetY: 0,
+                position: "front",
+                dropShadow: {
+                    enabled: true,
+                    top: 3,
+                    left: 0,
+                    blur: 4,
+                    opacity: 0.24,
+                },
+            },
+            track: {
+                background: "rgba(170,184,197, 0.4)",
+                strokeWidth: "67%",
+                margin: 0,
+            },
 
-      dataLabels: {
-        showOn: "always",
-        name: {
-          offsetY: -10,
-          show: true,
-          color: "#888",
-          fontSize: "17px",
+            dataLabels: {
+                showOn: "always",
+                name: {
+                    offsetY: -10,
+                    show: true,
+                    color: "#888",
+                    fontSize: "17px",
+                },
+                value: {
+                    formatter: function (val) {
+                        return parseInt(val);
+                    },
+                    color: "#111",
+                    fontSize: "36px",
+                    show: true,
+                },
+            },
         },
-        value: {
-          formatter: function (val) {
-            return parseInt(val);
-          },
-          color: "#111",
-          fontSize: "36px",
-          show: true,
+    },
+    fill: {
+        type: "gradient",
+        gradient: {
+            shade: "dark",
+            type: "horizontal",
+            shadeIntensity: 0.5,
+            gradientToColors: colors,
+            inverseColors: true,
+            opacityFrom: 1,
+            opacityTo: 1,
+            stops: [0, 100],
         },
-      },
     },
-  },
-  fill: {
-    type: "gradient",
-    gradient: {
-      shade: "dark",
-      type: "horizontal",
-      shadeIntensity: 0.5,
-      gradientToColors: colors,
-      inverseColors: true,
-      opacityFrom: 1,
-      opacityTo: 1,
-      stops: [0, 100],
+    series: [70],
+    stroke: {
+        lineCap: "round",
     },
-  },
-  series: [70],
-  stroke: {
-    lineCap: "round",
-  },
-  labels: ["Total Buyer"],
+    labels: ["Total Buyer"],
 };
 var chart = new ApexCharts(document.querySelector("#own-property"), options);
 chart.render();
@@ -600,25 +734,29 @@ class VectorMap {
             zoomButtons: false,
             markersSelectable: true,
             markers: [{
-                    name: "Canada",
-                    coords: [56.1304, -106.3468]
-                },
-                {
-                    name: "Brazil",
-                    coords: [-14.235, -51.9253]
-                },
-                {
-                    name: "Russia",
-                    coords: [61, 105]
-                },
-                {
-                    name: "China",
-                    coords: [35.8617, 104.1954]
-                },
-                {
-                    name: "United States",
-                    coords: [37.0902, -95.7129]
-                },
+                name: "Canada",
+                coords: [56.1304, -106.3468]
+            },
+            {
+                name: "Brazil",
+                coords: [-14.235, -51.9253]
+            },
+            {
+                name: "Russia",
+                coords: [61, 105]
+            },
+            {
+                name: "China",
+                coords: [35.8617, 104.1954]
+            },
+            {
+                name: "United States",
+                coords: [37.0902, -95.7129]
+            },
+            {
+                name: "Ahmedabad",
+                coords: [23.03, 72.58]
+            },
             ],
             markerStyle: {
                 initial: {
@@ -650,3 +788,27 @@ class VectorMap {
 document.addEventListener("DOMContentLoaded", function (e) {
     new VectorMap().init();
 });
+
+// sales_analytic
+const bookingAnaliticDropdown = document.getElementById('booking-analytic-dropdown');
+bookingAnaliticDropdown.addEventListener('click', function (event) {
+    const target = event.target;
+    if (target.classList.contains('dropdown-item')) {
+        event.preventDefault();
+        let type = target.dataset.type || 'week';
+        fetchAndRenderBookingAnalytic(type);
+    }
+})
+
+// sales chart dropdown
+const salesAnaliticDropdown = document.getElementById('sales-analytic-dropdown');
+if (salesAnaliticDropdown) {
+    salesAnaliticDropdown.addEventListener('click', function (event) {
+        const target = event.target;
+        if (target.classList.contains('dropdown-item')) {
+            event.preventDefault();
+            let type = target.dataset.type || 'week';
+            fetchAndRenderSalesAnalytic(type);
+        }
+    })
+}

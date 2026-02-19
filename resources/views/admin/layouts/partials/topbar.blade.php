@@ -46,7 +46,7 @@
                     </div>
 
                     <!-- Notification -->
-                    <div class="dropdown topbar-item">
+                    {{-- <div class="dropdown topbar-item">
                          <button type="button" class="topbar-button position-relative" id="page-header-notifications-dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                               <i class="ri-notification-3-line fs-24"></i>
                               <span class="position-absolute topbar-badge fs-10 translate-middle badge bg-danger rounded-pill">3<span class="visually-hidden">unread messages</span></span>
@@ -143,7 +143,7 @@
                                    <a href="javascript:void(0);" class="btn btn-primary btn-sm">View All Notification <i class="ri-arrow-right-line ms-1"></i></a>
                               </div>
                          </div>
-                    </div>
+                    </div> --}}
 
                     <!-- Theme Setting -->
                     <div class="topbar-item d-none d-md-flex">
@@ -156,25 +156,29 @@
                     <div class="dropdown topbar-item">
                          <a type="button" class="topbar-button" id="page-header-user-dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                               <span class="d-flex align-items-center">
-                                   <img class="rounded-circle" width="32" src="{{ asset('images/users/avatar-1.jpg') }}" alt="avatar-3">
+                                   @if(auth()->user()->avatar)
+                                       <img class="rounded-circle" width="32" height="32" src="{{ asset('storage/' . auth()->user()->avatar) }}" alt="{{ auth()->user()->name }}">
+                                   @else
+                                       <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; font-size: 14px; font-weight: 600;">
+                                           {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
+                                       </div>
+                                   @endif
                               </span>
                          </a>
                          <div class="dropdown-menu dropdown-menu-end">
                               <!-- item-->
-                              <h6 class="dropdown-header">Welcome Gaston!</h6>
+                              <h6 class="dropdown-header">Welcome {{ auth()->user()->name }}!</h6>
 
-                              <a class="dropdown-item" href="#">
+                              <a class="dropdown-item" href="{{ route('admin.profile.index') }}">
+                                   <iconify-icon icon="solar:user-broken" class="align-middle me-2 fs-18"></iconify-icon><span class="align-middle">My Profile</span>
+                              </a>
+
+                              <a class="dropdown-item" href="{{ route('admin.profile.change-password') }}">
+                                   <iconify-icon icon="solar:lock-password-broken" class="align-middle me-2 fs-18"></iconify-icon><span class="align-middle">Change Password</span>
+                              </a>
+
+                              <a class="dropdown-item" href="{{ route('admin.assignment-calendar') }}">
                                    <iconify-icon icon="solar:calendar-broken" class="align-middle me-2 fs-18"></iconify-icon><span class="align-middle">My Schedules</span>
-                              </a>
-
-                              <a class="dropdown-item" href="#">
-                                   <iconify-icon icon="solar:wallet-broken" class="align-middle me-2 fs-18"></iconify-icon><span class="align-middle">Pricing</span>
-                              </a>
-                              <a class="dropdown-item" href="#">
-                                   <iconify-icon icon="solar:help-broken" class="align-middle me-2 fs-18"></iconify-icon><span class="align-middle">Help</span>
-                              </a>
-                              <a class="dropdown-item" href="#">
-                                   <iconify-icon icon="solar:lock-keyhole-broken" class="align-middle me-2 fs-18"></iconify-icon><span class="align-middle">Lock screen</span>
                               </a>
 
                               <div class="dropdown-divider my-1"></div>

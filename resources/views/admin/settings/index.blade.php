@@ -7,7 +7,7 @@
                 <div>
                     <nav aria-label="breadcrumb" class="mb-0">
                         <ol class="breadcrumb mb-0">
-                            <li class="breadcrumb-item"><a href="{{ route('root') }}">Home</a></li>
+                            <li class="breadcrumb-item"><a href="{{ route('admin.index') }}">Home</a></li>
                             <li class="breadcrumb-item"><a href="#">System</a></li>
                             <li class="breadcrumb-item active" aria-current="page">Settings</li>
                         </ol>
@@ -50,34 +50,124 @@
                     <div class="card-body py-0 px-2">
                         <div class="row mb-5">
                             <div class="col-sm-3 col-md-3 col-lg-3 mb-2 mb-sm-0">
-                                <div class="nav flex-column nav-pills settings-nav-pills" id="vl-pills-tab" role="tablist" aria-orientation="vertical">
-                                    <a class="nav-link active show" id="vl-pills-home-tab" data-bs-toggle="pill" href="#vl-pills-home" role="tab" aria-controls="vl-pills-home" aria-selected="true">
-                                        <i class="ri-calendar-event-line me-2"></i>
-                                        <span>Booking Schedule Date</span>
-                                    </a>
-                                    <a class="nav-link" id="vl-pills-photographer-tab" data-bs-toggle="pill" href="#vl-pills-photographer" role="tab" aria-controls="vl-pills-photographer" aria-selected="false">
-                                        <i class="ri-camera-2-line me-2"></i>
-                                        <span>Photographer Settings</span>
-                                    </a>
-                                    <a class="nav-link" id="vl-pills-profile-tab" data-bs-toggle="pill" href="#vl-pills-profile" role="tab" aria-controls="vl-pills-profile" aria-selected="false">
-                                        <i class="ri-money-dollar-circle-line me-2"></i>
-                                        <span>Base Price</span>
-                                    </a>
-                                    <a class="nav-link" id="vl-pills-settings-tab" data-bs-toggle="pill" href="#vl-pills-settings" role="tab" aria-controls="vl-pills-settings" aria-selected="false">
-                                        <i class="ri-bank-card-line me-2"></i>
-                                        <span>Payment Gateway</span>
-                                    </a>
-                                    <a class="nav-link" id="vl-pills-sms-tab" data-bs-toggle="pill" href="#vl-pills-sms" role="tab" aria-controls="vl-pills-sms" aria-selected="false">
-                                        <i class="ri-message-3-line me-2"></i>
-                                        <span>SMS Configuration</span>
-                                    </a>
+                                <div class="nav flex-column nav-pills settings-nav-pills p-1" id="vl-pills-tab" role="tablist" aria-orientation="vertical" style="position: sticky; top: 20px;">
+                                    @php
+                                        // Find first available tab to make active
+                                        $firstActiveTab = null;
+                                        if ($canBookingSchedule) {
+                                            $firstActiveTab = 'vl-pills-home';
+                                        } elseif ($canPhotographer) {
+                                            $firstActiveTab = 'vl-pills-photographer';
+                                        } elseif ($canBasePrice) {
+                                            $firstActiveTab = 'vl-pills-profile';
+                                        } elseif ($canPaymentGateway) {
+                                            $firstActiveTab = 'vl-pills-settings';
+                                        } elseif ($canSmsConfiguration) {
+                                            $firstActiveTab = 'vl-pills-sms';
+                                        } elseif ($canPortfolioApi) {
+                                            $firstActiveTab = 'vl-pills-portfolio-api';
+                                        } elseif ($canFtpConfiguration) {
+                                            $firstActiveTab = 'vl-pills-ftp';
+                                        } elseif ($canPropertyType) {
+                                            $firstActiveTab = 'vl-pills-property-types';
+                                        } elseif ($canCloudflareCache) {
+                                            $firstActiveTab = 'vl-pills-cloudflare-cache';
+                                        } elseif ($canFtpConfiguration) {
+                                            $firstActiveTab = 'vl-pills-regions-management';
+                                        }
+                                    @endphp
+                                    
+                                    @if($canBookingSchedule)
+                                        <a class="nav-link {{ ($firstActiveTab === 'vl-pills-home') ? 'active show' : '' }}" id="vl-pills-home-tab" data-bs-toggle="pill" href="#vl-pills-home" role="tab" aria-controls="vl-pills-home" aria-selected="{{ ($firstActiveTab === 'vl-pills-home') ? 'true' : 'false' }}">
+                                            <i class="ri-calendar-event-line me-2"></i>
+                                            <span>Booking Schedule Date</span>
+                                        </a>
+                                    @endif
+
+                                    @if($canFtpConfiguration)
+                                        <a class="nav-link {{ ($firstActiveTab === 'vl-pills-ftp') ? 'active show' : '' }}" id="vl-pills-tour-tab" data-bs-toggle="pill" href="#vl-pills-tour" role="tab" aria-controls="vl-pills-tour" aria-selected="{{ ($firstActiveTab === 'vl-pills-tour') ? 'true' : 'false' }}">
+                                            <i class="ri-home-office-line me-2"></i>
+                                            <span>Tour Default Settings</span>
+                                        </a>
+                                    @endif
+                                    
+                                    @if($canPhotographer)
+                                        <a class="nav-link {{ ($firstActiveTab === 'vl-pills-photographer') ? 'active show' : '' }}" id="vl-pills-photographer-tab" data-bs-toggle="pill" href="#vl-pills-photographer" role="tab" aria-controls="vl-pills-photographer" aria-selected="{{ ($firstActiveTab === 'vl-pills-photographer') ? 'true' : 'false' }}">
+                                            <i class="ri-camera-2-line me-2"></i>
+                                            <span>Photographer Settings</span>
+                                        </a>
+                                    @endif
+                                    
+                                    @if($canBasePrice)
+                                        <a class="nav-link {{ ($firstActiveTab === 'vl-pills-profile') ? 'active show' : '' }}" id="vl-pills-profile-tab" data-bs-toggle="pill" href="#vl-pills-profile" role="tab" aria-controls="vl-pills-profile" aria-selected="{{ ($firstActiveTab === 'vl-pills-profile') ? 'true' : 'false' }}">
+                                            <i class="ri-money-dollar-circle-line me-2"></i>
+                                            <span>Base Price</span>
+                                        </a>
+                                    @endif
+                                    
+                                    @if($canPaymentGateway)
+                                        <a class="nav-link {{ ($firstActiveTab === 'vl-pills-settings') ? 'active show' : '' }}" id="vl-pills-settings-tab" data-bs-toggle="pill" href="#vl-pills-settings" role="tab" aria-controls="vl-pills-settings" aria-selected="{{ ($firstActiveTab === 'vl-pills-settings') ? 'true' : 'false' }}">
+                                            <i class="ri-bank-card-line me-2"></i>
+                                            <span>Payment Gateway</span>
+                                        </a>
+                                    @endif
+                                    
+                                    @if($canSmsConfiguration)
+                                        <a class="nav-link {{ ($firstActiveTab === 'vl-pills-sms') ? 'active show' : '' }}" id="vl-pills-sms-tab" data-bs-toggle="pill" href="#vl-pills-sms" role="tab" aria-controls="vl-pills-sms" aria-selected="{{ ($firstActiveTab === 'vl-pills-sms') ? 'true' : 'false' }}">
+                                            <i class="ri-message-3-line me-2"></i>
+                                            <span>SMS Configuration</span>
+                                        </a>
+                                    @endif
+                                    
+                                    @if($canPortfolioApi)
+                                        <a class="nav-link {{ ($firstActiveTab === 'vl-pills-portfolio-api') ? 'active show' : '' }}" id="vl-pills-portfolio-api-tab" data-bs-toggle="pill" href="#vl-pills-portfolio-api" role="tab" aria-controls="vl-pills-portfolio-api" aria-selected="{{ ($firstActiveTab === 'vl-pills-portfolio-api') ? 'true' : 'false' }}">
+                                            <i class="ri-pages-line me-2"></i>
+                                            <span>Portfolio API</span>
+                                        </a>
+                                    @endif
+                                    
+                                    @if($canFtpConfiguration)
+                                        <a class="nav-link {{ ($firstActiveTab === 'vl-pills-ftp') ? 'active show' : '' }}" id="vl-pills-ftp-tab" data-bs-toggle="pill" href="#vl-pills-ftp" role="tab" aria-controls="vl-pills-ftp" aria-selected="{{ ($firstActiveTab === 'vl-pills-ftp') ? 'true' : 'false' }}">
+                                            <i class="ri-server-line me-2"></i>
+                                            <span>FTP Configuration</span>
+                                        </a>
+                                    @endif
+
+                                    @if($canPropertyType)
+                                        <a class="nav-link {{ ($firstActiveTab === 'vl-pills-property-types') ? 'active show' : '' }}" id="vl-pills-property-types-tab" data-bs-toggle="pill" href="#vl-pills-property-types" role="tab" aria-controls="vl-pills-property-types" aria-selected="{{ ($firstActiveTab === 'vl-pills-property-types') ? 'true' : 'false' }}">
+                                            <i class="ri-home-4-line me-2"></i>
+                                            <span>Property Types</span>
+                                        </a>
+                                    @endif
+
+                                    @if($canCloudflareCache)
+                                        <a class="nav-link {{ ($firstActiveTab === 'vl-pills-cloudflare-cache') ? 'active show' : '' }}" id="vl-pills-cloudflare-cache-tab" data-bs-toggle="pill" href="#vl-pills-cloudflare-cache" role="tab" aria-controls="vl-pills-cloudflare-cache" aria-selected="{{ ($firstActiveTab === 'vl-pills-cloudflare-cache') ? 'true' : 'false' }}">
+                                            <i class="ri-cloud-line me-2"></i>
+                                            <span>CloudFlare Cache</span>
+                                        </a>
+                                    @endif
+
+                                    @if($canFtpConfiguration)
+                                        <a class="nav-link {{ ($firstActiveTab === 'vl-pills-regions-management') ? 'active show' : '' }}" id="vl-pills-regions-management-tab" data-bs-toggle="pill" href="#vl-pills-regions-management" role="tab" aria-controls="vl-pills-regions-management" aria-selected="{{ ($firstActiveTab === 'vl-pills-regions-management') ? 'true' : 'false' }}">
+                                            <i class="ri-map-pin-line me-2"></i>
+                                            <span>Regions Management</span>
+                                        </a>
+                                    @endif
+
+                                    @if($canFtpConfiguration)
+                                        <a class="nav-link {{ ($firstActiveTab === 'vl-pills-contact-info') ? 'active show' : '' }}" id="vl-pills-contact-info-tab" data-bs-toggle="pill" href="#vl-pills-contact-info" role="tab" aria-controls="vl-pills-contact-info" aria-selected="{{ ($firstActiveTab === 'vl-pills-contact-info') ? 'true' : 'false' }}">
+                                            <i class="ri-contacts-book-line me-2"></i>
+                                            <span>General Settings</span>
+                                        </a>
+                                    @endif
                                 </div>
                             </div>
                         
                             <div class="col-sm-9 col-md-9 col-lg-9">
                                 <div class="tab-content pt-0" id="vl-pills-tabContent">
-                                    <div class="tab-pane fade active show" id="vl-pills-home" role="tabpanel" aria-labelledby="vl-pills-home-tab">
-                                        <form id="settingsForm" action="{{ route('api.settings.update') }}" method="POST"
+                                    @if($canBookingSchedule)
+                                    <div class="tab-pane fade {{ ($firstActiveTab === 'vl-pills-home') ? 'active show' : '' }}" id="vl-pills-home" role="tabpanel" aria-labelledby="vl-pills-home-tab">
+                                        <form id="settingsForm" action="{{ route('admin.api.settings.update') }}" method="POST"
                                             class="needs-validation" novalidate data-csrf="{{ csrf_token() }}">
                                             @csrf
                                             <!-- AVALIABLE DAY -->
@@ -129,29 +219,115 @@
                                             </div>
                                         </form>
                                     </div>
-                                    <div class="tab-pane fade" id="vl-pills-photographer" role="tabpanel" aria-labelledby="vl-pills-photographer-tab">
-                                        <form id="photographerSettingsForm" action="{{ route('api.settings.update') }}" method="POST"
+                                    @endif
+
+                                    @if($canFtpConfiguration)
+                                    <div class="tab-pane fade {{ ($firstActiveTab === 'vl-pills-contact-info') ? 'active show' : '' }}" id="vl-pills-contact-info" role="tabpanel" aria-labelledby="vl-pills-contact-info-tab">
+                                        <form id="settingscontactForm" action="{{ route('admin.api.settings.update') }}" method="POST"
+                                            class="needs-validation" novalidate data-csrf="{{ csrf_token() }}">
+                                            @csrf
+                                            <!-- company_name -->
+                                            <!-- <div class="mb-3">
+                                                <label for="company_name" class="form-label">Company Name</label>
+                                                <input type="text" name="company_name" id="company_name"
+                                                    value="{{ $settings['company_name'] ?? '' }}" class="form-control"
+                                                    placeholder="e.g. Prop Pik" maxlength="255">
+                                                <small class="form-text text-muted">This is The Company name Display On Frontend and User.</small>
+                                            </div> -->
+
+                                            <!-- Support Email -->
+                                            <div class="mb-3">
+                                                <label for="support_email" class="form-label">Support Email</label>
+                                                <input type="text" name="support_email" id="support_email"
+                                                    value="{{ $settings['support_email'] ?? '' }}" class="form-control"
+                                                    placeholder="e.g. Support@proppik.com" maxlength="255">
+                                                <small class="form-text text-muted">This is The Support Email Display On Frontend and User.</small>
+                                            </div>
+                                            
+                                            <!-- Support Phone -->
+                                            <div class="mb-3">
+                                                <label for="support_phone" class="form-label">Support Phone</label>
+                                                <input type="text" name="support_phone" id="support_phone"
+                                                    value="{{ $settings['support_phone'] ?? '' }}" class="form-control"
+                                                    placeholder="e.g. 9898656532" maxlength="255">
+                                                <small class="form-text text-muted">This is The Support Phone Display On Frontend and User.</small>
+                                            </div>
+
+                                            <div class="mb-3">
+                                                <label for="api_base_url" class="form-label">Api Base URL</label>
+                                                <input type="text" name="api_base_url" id="api_base_url"
+                                                    value="{{ $settings['api_base_url'] ?? '' }}" class="form-control"
+                                                    placeholder="e.g. https://api.proppik.com" maxlength="255">
+                                                <small class="form-text text-muted">This is The Api Base URL Use For Api Integration.</small>
+                                            </div>
+
+                                            <!-- WhatsApp Number -->
+                                            <!-- <div class="mb-3">
+                                                <label for="whatsapp_number" class="form-label">WhatsApp Number</label>
+                                                <input type="text" name="whatsapp_number" id="whatsapp_number"
+                                                    value="{{ $settings['whatsapp_number'] ?? '' }}" class="form-control"
+                                                    placeholder="e.g. 9898656532" maxlength="255">
+                                                <small class="form-text text-muted">This is The WhatsApp Number Display On Frontend and User.</small>
+                                            </div> -->
+
+                                            <!-- QR Link Base -->
+                                            <div class="mb-3">
+                                                <label for="qr_link_base" class="form-label">QR Link Base</label>
+                                                <input type="text" name="qr_link_base" id="qr_link_base"
+                                                    value="{{ $settings['qr_link_base'] ?? '' }}" class="form-control"
+                                                    placeholder="e.g. https://qr.proppik.com/" maxlength="255">
+                                                <small class="form-text text-muted">Base URL for QR codes. Should end with /</small>
+                                            </div>
+
+                                            <!-- S3 Link Base -->
+                                            <div class="mb-3">
+                                                <label for="s3_link_base" class="form-label">S3 Link Base</label>
+                                                <input type="text" name="s3_link_base" id="s3_link_base"
+                                                    value="{{ $settings['s3_link_base'] ?? '' }}" class="form-control"
+                                                    placeholder="e.g. https://creartimages.s3.ap-south-1.amazonaws.com/tours/" maxlength="255">
+                                                <small class="form-text text-muted">Base URL for S3 tour storage. Should end with /</small>
+                                            </div>
+
+
+
+                                           
+                                            <!-- // submit buttons -->
+                                            <div class="d-flex gap-2 justify-content-end pt-4">
+                                                <a href="{{ route('admin.settings.index') }}" class="btn btn-outline-secondary">
+                                                    <i class="ri-close-line me-1"></i> Cancel
+                                                </a>
+                                                <button type="submit" class="btn btn-primary" id="updatecontactSettingsBtn">
+                                                    <i class="ri-save-line me-1"></i> Update Settings
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                    @endif
+
+                                    @if($canPhotographer)
+                                    <div class="tab-pane fade {{ ($firstActiveTab === 'vl-pills-photographer') ? 'active show' : '' }}" id="vl-pills-photographer" role="tabpanel" aria-labelledby="vl-pills-photographer-tab">
+                                        <form id="photographerSettingsForm" action="{{ route('admin.api.settings.update') }}" method="POST"
                                             class="needs-validation" novalidate data-csrf="{{ csrf_token() }}">
                                             @csrf
 
                                             <div class="mb-3">
                                                 <label for="photographer_available_from" class="form-label">Daily Available From</label>
                                                 <input type="time" name="photographer_available_from" id="photographer_available_from"
-                                                    value="{{ $settings['photographer_available_from'] ?? '08:00' }}" class="form-control" required>
+                                                    value="{{ $settings['photographer_available_from'] ?? '08:00' }}" class="form-control">
                                                 <small class="form-text text-muted">Start time for photographers (e.g., 08:00 for 8 AM).</small>
                                             </div>
 
                                             <div class="mb-3">
                                                 <label for="photographer_available_to" class="form-label">Daily Available To</label>
                                                 <input type="time" name="photographer_available_to" id="photographer_available_to"
-                                                    value="{{ $settings['photographer_available_to'] ?? '21:00' }}" class="form-control" required>
+                                                    value="{{ $settings['photographer_available_to'] ?? '21:00' }}" class="form-control">
                                                 <small class="form-text text-muted">End time for photographers (e.g., 21:00 for 9 PM).</small>
                                             </div>
 
                                             <div class="mb-3">
                                                 <label for="photographer_working_duration" class="form-label">Working Duration (minutes)</label>
                                                 <input type="number" name="photographer_working_duration" id="photographer_working_duration"
-                                                    value="{{ $settings['photographer_working_duration'] ?? '60' }}" min="1" class="form-control" required>
+                                                    value="{{ $settings['photographer_working_duration'] ?? '60' }}" min="1" class="form-control">
                                                 <small class="form-text text-muted">Duration of each working slot in minutes (e.g., 60).</small>
                                             </div>
 
@@ -165,8 +341,10 @@
                                             </div>
                                         </form>
                                     </div>
-                                    <div class="tab-pane fade" id="vl-pills-profile" role="tabpanel" aria-labelledby="vl-pills-profile-tab">
-                                        <form id="basePriceForm" action="{{ route('api.settings.update') }}" method="POST"
+                                    @endif
+                                    @if($canBasePrice)
+                                    <div class="tab-pane fade {{ ($firstActiveTab === 'vl-pills-profile') ? 'active show' : '' }}" id="vl-pills-profile" role="tabpanel" aria-labelledby="vl-pills-profile-tab">
+                                        <form id="basePriceForm" action="{{ route('admin.api.settings.update') }}" method="POST"
                                             class="needs-validation" novalidate data-csrf="{{ csrf_token() }}">
                                             @csrf
                                             <!-- BASE PRICE -->
@@ -220,11 +398,13 @@
                                             </div>
                                         </form>
                                     </div>
-                                    <div class="tab-pane fade" id="vl-pills-settings" role="tabpanel" aria-labelledby="vl-pills-settings-tab">
+                                    @endif
+                                    @if($canPaymentGateway)
+                                    <div class="tab-pane fade {{ ($firstActiveTab === 'vl-pills-settings') ? 'active show' : '' }}" id="vl-pills-settings" role="tabpanel" aria-labelledby="vl-pills-settings-tab">
                                         <div class="row g-4">
                                             <!-- Cashfree Card -->
                                             <div class="col-md-6 col-lg-4">
-                                                <form id="cashfreeForm" action="{{ route('api.settings.update') }}" method="POST"
+                                                <form id="cashfreeForm" action="{{ route('admin.api.settings.update') }}" method="POST"
                                                     class="needs-validation" novalidate data-csrf="{{ csrf_token() }}">
                                                     @csrf
                                                     <div class="card h-100 border">
@@ -307,7 +487,7 @@
 
                                             <!-- PayU Money Card -->
                                             <div class="col-md-6 col-lg-4">
-                                                <form id="payuForm" action="{{ route('api.settings.update') }}" method="POST"
+                                                <form id="payuForm" action="{{ route('admin.api.settings.update') }}" method="POST"
                                                     class="needs-validation" novalidate data-csrf="{{ csrf_token() }}">
                                                     @csrf
                                                     <div class="card h-100 border">
@@ -363,7 +543,7 @@
 
                                             <!-- Razorpay Card -->
                                             <div class="col-md-6 col-lg-4">
-                                                <form id="razorpayForm" action="{{ route('api.settings.update') }}" method="POST"
+                                                <form id="razorpayForm" action="{{ route('admin.api.settings.update') }}" method="POST"
                                                     class="needs-validation" novalidate data-csrf="{{ csrf_token() }}">
                                                     @csrf
                                                     <div class="card h-100 border">
@@ -418,7 +598,9 @@
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="tab-pane fade" id="vl-pills-sms" role="tabpanel" aria-labelledby="vl-pills-sms-tab">
+                                    @endif
+                                    @if($canSmsConfiguration)
+                                    <div class="tab-pane fade {{ ($firstActiveTab === 'vl-pills-sms') ? 'active show' : '' }}" id="vl-pills-sms" role="tabpanel" aria-labelledby="vl-pills-sms-tab">
                                         <div class="row g-4">
                                             @php
                                                 // Show only MSG91 gateway
@@ -426,7 +608,7 @@
                                             @endphp
                                             @if($msg91Gateway)
                                                 <div class="col-6">
-                                                    <form id="msg91SmsForm" action="{{ route('api.settings.update') }}" method="POST"
+                                                    <form id="msg91SmsForm" action="{{ route('admin.api.settings.update') }}" method="POST"
                                                         class="needs-validation" novalidate data-csrf="{{ csrf_token() }}">
                                                         @csrf
                                                         <div class="card h-100 border {{ $msg91Gateway['isActive'] ? 'border-success' : '' }}">
@@ -516,13 +698,654 @@
                                             @endif
                                         </div>
                                     </div>
+                                    @endif
+                                    
+                                    @if($canPortfolioApi)
+                                    <div class="tab-pane fade {{ ($firstActiveTab === 'vl-pills-portfolio-api') ? 'active show' : '' }}" id="vl-pills-portfolio-api" role="tabpanel" aria-labelledby="vl-pills-portfolio-api-tab">
+                                        <form id="portfolioApiForm" action="{{ route('admin.api.settings.update') }}" method="POST"
+                                            class="needs-validation" novalidate data-csrf="{{ csrf_token() }}">
+                                            @csrf
+                                            
+                                            <!-- Portfolio API Enabled -->
+                                            <div class="mb-3">
+                                                <label class="form-label">Portfolio API Status</label>
+                                                <div class="form-check form-switch">
+                                                    <input class="form-check-input" type="checkbox" id="portfolio_api_enabled" 
+                                                        name="portfolio_api_enabled" value="1"
+                                                        {{ ($settings['portfolio_api_enabled'] ?? '1') === '1' ? 'checked' : '' }}>
+                                                    <label class="form-check-label" for="portfolio_api_enabled">
+                                                        Enable Portfolio API
+                                                    </label>
+                                                </div>
+                                                <small class="form-text text-muted">When enabled, the Portfolio API endpoints will be accessible. When disabled, all API requests will be rejected.</small>
+                                            </div>
+
+                                            <!-- Portfolio API Mobile Numbers -->
+                                            <div class="mb-3">
+                                                <label for="portfolio_api_mobile" class="form-label">Mobile Numbers for OTP <span class="text-danger">*</span></label>
+                                                <textarea name="portfolio_api_mobile" id="portfolio_api_mobile" 
+                                                    class="form-control" rows="3" 
+                                                    placeholder="e.g., +919876543210, +1234567890" required>{{ $settings['portfolio_api_mobile'] ?? '' }}</textarea>
+                                                <small class="form-text text-muted">Enter mobile numbers with country code (include + prefix). Separate multiple numbers with commas. Example: +919876543210, +1234567890. OTP will be sent to all configured numbers.</small>
+                                            </div>
+
+                                            <!-- Token Validity -->
+                                            <div class="mb-3">
+                                                <label for="portfolio_api_token_validity_minutes" class="form-label">Token Validity (Minutes) <span class="text-danger">*</span></label>
+                                                <input type="number" name="portfolio_api_token_validity_minutes" id="portfolio_api_token_validity_minutes"
+                                                    value="{{ $settings['portfolio_api_token_validity_minutes'] ?? '30' }}" class="form-control"
+                                                    placeholder="e.g., 30" min="1" max="1440" required>
+                                                <small class="form-text text-muted">Duration in minutes for which the access token will be valid after OTP verification. Default is 30 minutes. Maximum is 1440 minutes (24 hours).</small>
+                                            </div>
+
+                                            <!-- Submit buttons -->
+                                            <div class="d-flex gap-2 justify-content-end pt-4">
+                                                <a href="{{ route('admin.settings.index') }}" class="btn btn-outline-secondary">
+                                                    <i class="ri-close-line me-1"></i> Cancel
+                                                </a>
+                                                <button type="submit" class="btn btn-primary" id="updatePortfolioApiSettingsBtn">
+                                                    <i class="ri-save-line me-1"></i> Update Settings
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                    @endif
+                                    
+                                    @if($canFtpConfiguration)
+                                    <div class="tab-pane fade {{ ($firstActiveTab === 'vl-pills-ftp') ? 'active show' : '' }}" id="vl-pills-ftp" role="tabpanel" aria-labelledby="vl-pills-ftp-tab">
+                                        <div class="d-flex justify-content-between align-items-center mb-3">
+                                            <h5 class="mb-0">FTP Server Configurations</h5>
+                                            <button type="button" class="btn btn-primary btn-sm" id="addFtpConfigBtn">
+                                                <i class="ri-add-line me-1"></i> Add FTP Configuration
+                                            </button>
+                                        </div>
+                                        
+                                        <div class="table-responsive">
+                                            <table class="table table-hover" id="ftpConfigurationsTable">
+                                                <thead class="table-light">
+                                                    <tr>
+                                                        <th>Category Name</th>
+                                                        <th>Display Name</th>
+                                                        <th>Main URL</th>
+                                                        <th>Driver</th>
+                                                        <th>Host</th>
+                                                        <th>Port</th>
+                                                        <th>Status</th>
+                                                        <th class="text-center">Actions</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="ftpConfigurationsTableBody">
+                                                    <!-- Will be populated via AJAX -->
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                    @endif
+
+                                    @if($canPropertyType)
+                                    <div class="tab-pane fade {{ ($firstActiveTab === 'vl-pills-property-types') ? 'active show' : '' }}" id="vl-pills-property-types" role="tabpanel" aria-labelledby="vl-pills-property-types-tab">
+                                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                                            <div>
+                                                <h5 class="mb-1">Property Types &amp; Sub Types</h5>
+                                                <p class="text-muted mb-0 small">Manage master property categories used across bookings.</p>
+                                            </div>
+                                            <div class="d-flex gap-2">
+                                                <button type="button" class="btn btn-primary btn-sm" id="openPropertyTypeModal">
+                                                    <i class="ri-add-line me-1"></i> Add Property Type
+                                                </button>
+                                                <button type="button" class="btn btn-outline-primary btn-sm" id="openPropertySubTypeModal">
+                                                    <i class="ri-add-line me-1"></i> Add Sub Property Type
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <ul class="nav nav-tabs" role="tablist">
+                                            <li class="nav-item" role="presentation">
+                                                <button class="nav-link active" id="property-types-inner-tab" data-bs-toggle="tab" data-bs-target="#property-types-tabpane" type="button" role="tab" aria-controls="property-types-tabpane" aria-selected="true">Property Types</button>
+                                            </li>
+                                            <li class="nav-item" role="presentation">
+                                                <button class="nav-link" id="property-sub-types-inner-tab" data-bs-toggle="tab" data-bs-target="#property-sub-types-tabpane" type="button" role="tab" aria-controls="property-sub-types-tabpane" aria-selected="false">Sub Property Types</button>
+                                            </li>
+                                        </ul>
+
+                                        <div class="tab-content pt-3">
+                                            <div class="tab-pane fade show active" id="property-types-tabpane" role="tabpanel" aria-labelledby="property-types-inner-tab">
+                                                <div class="table-responsive">
+                                                    <table class="table table-hover align-middle" id="property-types-table">
+                                                        <thead class="table-light">
+                                                            <tr>
+                                                                <th>Name</th>
+                                                                <th>Icon</th>
+                                                                <th>Sub Types</th>
+                                                                <th>Updated At</th>
+                                                                <th class="text-end">Actions</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody></tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+
+                                            <div class="tab-pane fade" id="property-sub-types-tabpane" role="tabpanel" aria-labelledby="property-sub-types-inner-tab">
+                                                <div class="table-responsive">
+                                                    <table class="table table-hover align-middle" id="property-sub-types-table">
+                                                        <thead class="table-light">
+                                                            <tr>
+                                                                <th>Property Type</th>
+                                                                <th>Name</th>
+                                                                <th>Icon</th>
+                                                                <th>Updated At</th>
+                                                                <th class="text-end">Actions</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody></tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    @endif
+
+                                    @if($canCloudflareCache)
+                                    <div class="tab-pane fade {{ ($firstActiveTab === 'vl-pills-cloudflare-cache') ? 'active show' : '' }}" id="vl-pills-cloudflare-cache" role="tabpanel" aria-labelledby="vl-pills-cloudflare-cache-tab">
+                                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                                            <div>
+                                                <h5 class="mb-1">CloudFlare Cache Management</h5>
+                                                <p class="text-muted mb-0 small">Configure Cloudflare settings and purge cache for tours.</p>
+                                            </div>
+                                        </div>
+
+                                        <ul class="nav nav-tabs" role="tablist">
+                                            <li class="nav-item" role="presentation">
+                                                <button class="nav-link active" id="cloudflare-config-inner-tab" data-bs-toggle="tab" data-bs-target="#cloudflare-config-tabpane" type="button" role="tab" aria-controls="cloudflare-config-tabpane" aria-selected="true">Cache Configuration</button>
+                                            </li>
+                                            <li class="nav-item" role="presentation">
+                                                <button class="nav-link" id="cloudflare-purge-inner-tab" data-bs-toggle="tab" data-bs-target="#cloudflare-purge-tabpane" type="button" role="tab" aria-controls="cloudflare-purge-tabpane" aria-selected="false">Purge Cache</button>
+                                            </li>
+                                        </ul>
+
+                                        <div class="tab-content pt-3">
+                                            <!-- Cache Configuration Tab -->
+                                            <div class="tab-pane fade show active" id="cloudflare-config-tabpane" role="tabpanel" aria-labelledby="cloudflare-config-inner-tab">
+                                                <form id="cloudflareConfigForm" action="{{ route('admin.api.settings.update') }}" method="POST" class="needs-validation" novalidate data-csrf="{{ csrf_token() }}">
+                                                    @csrf
+                                                    <div class="card border-0 shadow-sm">
+                                                        <div class="card-body">
+                                                            <h6 class="card-title mb-3">Cloudflare API Configuration</h6>
+                                                            
+                                                            <div class="mb-3">
+                                                                <label for="cloudflare_zone_id" class="form-label">Zone ID <span class="text-danger">*</span></label>
+                                                                <input type="text" name="cloudflare_zone_id" id="cloudflare_zone_id" 
+                                                                    value="{{ $settings['cloudflare_zone_id'] ?? '' }}" 
+                                                                    class="form-control" 
+                                                                    placeholder="e.g. 71dbf13488372a88e641e854d1ebaab9" 
+                                                                    maxlength="255">
+                                                                <small class="form-text text-muted">Your Cloudflare Zone ID. Found in Cloudflare dashboard under your domain's overview page.</small>
+                                                            </div>
+
+                                                            <div class="mb-3">
+                                                                <label for="cloudflare_api_token" class="form-label">API Token <span class="text-danger">*</span></label>
+                                                                <input type="password" name="cloudflare_api_token" id="cloudflare_api_token" 
+                                                                    value="{{ $settings['cloudflare_api_token'] ?? '' }}" 
+                                                                    class="form-control" 
+                                                                    placeholder="e.g. qY-ki-IsglyRnNtsLIK_oS5aFgVz75a3eYchTRXo" 
+                                                                    maxlength="255">
+                                                                <small class="form-text text-muted">Your Cloudflare API Token with Cache Purge permissions. Keep this secure.</small>
+                                                                <div class="form-check mt-2">
+                                                                    <input class="form-check-input" type="checkbox" id="showCloudflareToken">
+                                                                    <label class="form-check-label" for="showCloudflareToken">
+                                                                        Show API Token
+                                                                    </label>
+                                                                </div>
+                                                            </div>
+
+                                                            <div class="d-flex justify-content-end">
+                                                                <button type="submit" class="btn btn-primary" id="saveCloudflareConfigBtn">
+                                                                    <i class="ri-save-line me-1"></i> Save Configuration
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </form>
+                                            </div>
+
+                                            <!-- Purge Cache Tab -->
+                                            <div class="tab-pane fade" id="cloudflare-purge-tabpane" role="tabpanel" aria-labelledby="cloudflare-purge-inner-tab">
+                                                <div class="card border-0 shadow-sm">
+                                                    <div class="card-body">
+                                                        <h6 class="card-title mb-3">Purge Cloudflare Cache</h6>
+                                                        
+                                                        <!-- Purge Everything Section -->
+                                                        <div class="mb-4 p-3 border rounded">
+                                                            <h6 class="mb-3">Purge Everything</h6>
+                                                            <p class="text-muted small mb-3">This will purge all cache for tours and settings directories.</p>
+                                                            <button type="button" class="btn btn-danger" id="purgeEverythingBtn">
+                                                                <i class="ri-delete-bin-line me-1"></i> Purge Everything
+                                                            </button>
+                                                        </div>
+
+                                                        <!-- Custom Purge Section -->
+                                                        <div class="p-3 border rounded">
+                                                            <h6 class="mb-3">Custom Purge</h6>
+                                                            <p class="text-muted small mb-3">Select specific tours to purge their cache.</p>
+                                                            
+                                                            <div class="mb-3">
+                                                                <label for="tourSelect" class="form-label">Select Tours</label>
+                                                                <select id="tourSelect" class="form-select" multiple>
+                                                                    <option value="" disabled>Loading tours...</option>
+                                                                </select>
+                                                                <small class="form-text text-muted">Select multiple tours to purge their cache. Tours are displayed as: Tour Code - Title (Name)</small>
+                                                            </div>
+
+                                                            <button type="button" class="btn btn-primary" id="purgeSelectedBtn" disabled>
+                                                                <i class="ri-delete-bin-line me-1"></i> Purge Selected Tours
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    @endif
+
+                                    @if($canFtpConfiguration)
+                                    <div class="tab-pane fade {{ ($firstActiveTab === 'vl-pills-regions-management') ? 'active show' : '' }}" id="vl-pills-regions-management" role="tabpanel" aria-labelledby="vl-pills-regions-management-tab">
+                                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                                            <div>
+                                                <h5 class="mb-1">Regions Management</h5>
+                                                <p class="text-muted mb-0 small">Manage countries, states, and cities for location-based operations.</p>
+                                            </div>
+                                            <div class="d-flex gap-2">
+                                                <button type="button" class="btn btn-primary btn-sm" id="openCountryModal">
+                                                    <i class="ri-add-line me-1"></i> Add Country
+                                                </button>
+                                                <button type="button" class="btn btn-outline-primary btn-sm" id="openStateModal">
+                                                    <i class="ri-add-line me-1"></i> Add State
+                                                </button>
+                                                <button type="button" class="btn btn-outline-primary btn-sm" id="openCityModal">
+                                                    <i class="ri-add-line me-1"></i> Add City
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <ul class="nav nav-tabs" role="tablist">
+                                            <li class="nav-item" role="presentation">
+                                                <button class="nav-link active" id="countries-inner-tab" data-bs-toggle="tab" data-bs-target="#countries-tabpane" type="button" role="tab" aria-controls="countries-tabpane" aria-selected="true">Countries</button>
+                                            </li>
+                                            <li class="nav-item" role="presentation">
+                                                <button class="nav-link" id="states-inner-tab" data-bs-toggle="tab" data-bs-target="#states-tabpane" type="button" role="tab" aria-controls="states-tabpane" aria-selected="false">States</button>
+                                            </li>
+                                            <li class="nav-item" role="presentation">
+                                                <button class="nav-link" id="cities-inner-tab" data-bs-toggle="tab" data-bs-target="#cities-tabpane" type="button" role="tab" aria-controls="cities-tabpane" aria-selected="false">Cities</button>
+                                            </li>
+                                        </ul>
+
+                                        <div class="tab-content pt-3">
+                                            <div class="tab-pane fade show active" id="countries-tabpane" role="tabpanel" aria-labelledby="countries-inner-tab">
+                                                <div class="d-flex align-items-center justify-content-end mb-2">
+                                                    <div class="form-check form-switch">
+                                                        <input class="form-check-input" type="checkbox" checked="true" id="countryStatusFilter">
+                                                        <label class="form-check-label" for="countryStatusFilter">
+                                                            Status: <span id="countryStatusFilterLabel"></span>
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                                <div class="table-responsive">
+                                                    <table class="table table-hover align-middle" id="countries-table">
+                                                        <thead class="table-light">
+                                                            <tr>
+                                                                <th>Name</th>
+                                                                <th>Code</th>
+                                                                <th>Dial Code</th>
+                                                                <th>Status</th>
+                                                                <th>Updated At</th>
+                                                                <th class="text-end">Actions</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody></tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+
+                                            <div class="tab-pane fade" id="states-tabpane" role="tabpanel" aria-labelledby="states-inner-tab">
+                                                <div class="table-responsive">
+                                                    <table class="table table-hover align-middle" id="states-table">
+                                                        <thead class="table-light">
+                                                            <tr>
+                                                                <th>Name</th>
+                                                                <th>Cities Count</th>
+                                                                <th>Updated At</th>
+                                                                <th class="text-end">Actions</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody></tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+
+                                            <div class="tab-pane fade" id="cities-tabpane" role="tabpanel" aria-labelledby="cities-inner-tab">
+                                                <div class="table-responsive">
+                                                    <table class="table table-hover align-middle" id="cities-table">
+                                                        <thead class="table-light">
+                                                            <tr>
+                                                                <th>State</th>
+                                                                <th>Name</th>
+                                                                <th>Updated At</th>
+                                                                <th class="text-end">Actions</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody></tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    @endif
+                                    <!-- tour configration Model -->
+                                    @if($canBookingSchedule)
+                                    <div class="tab-pane fade {{ ($firstActiveTab === 'vl-pills-tour') ? 'active show' : '' }}" id="vl-pills-tour" role="tabpanel" aria-labelledby="vl-pills-tour-tab">
+                                        <form id="tourForm" action="{{ route('admin.api.settings.update') }}" method="POST" enctype="multipart/form-data"
+                                            class="needs-validation" novalidate data-csrf="{{ csrf_token() }}">
+                                            @csrf
+                                            <div class="mb-3">
+                                                <label for="tour_barcode_url" class="form-label">Barcode URL</label>
+                                                <input type="text" name="tour_barcode_url" id="tour_barcode_url"
+                                                    value="{{ $settings['tour_barcode_url'] ?? '' }}" class="form-control"
+                                                    placeholder="https://www.proppik.com/" maxlength="255">
+                                                <small class="form-text text-muted">This URL will be use to generate QR code in the Gallery. For example.</small>
+                                            </div>
+                                            <div class="row g-4">
+                                                <!-- Sidebar configration -->
+                                                <div class="col-md-6 col-lg-4">
+                                                    <div class="card border">
+                                                        <div class="card-header border-2 border-bottom">
+                                                          <h4 class="card-title mb-0"><i class="ri-layout-left-line"></i> Sidebar config</h4>              
+                                                        </div>
+                                                        <div class="card-body">
+                                                            <div class="mb-3">
+                                                                <div class="form-check form-switch">
+                                                                    <input class="form-check-input" type="checkbox" id="tour_footer_link_show" 
+                                                                        name="tour_footer_link_show" value="1" 
+                                                                        {{ ($settings['tour_footer_link_show'] ?? '0') == '1' ? 'checked' : '' }}>
+                                                                    <label class="form-check-label" for="tour_footer_link_show">
+                                                                        Show Footer Link
+                                                                    </label>
+                                                                </div>
+                                                                <small class="form-text text-muted">Enable to display footer link in tour sidebar</small>
+                                                            </div>
+
+                                                            <div class="mb-3">
+                                                                <label for="tour_footer_button_text" class="form-label">Footer Button Text</label>
+                                                                <input type="text" name="tour_footer_button_text" id="tour_footer_button_text"
+                                                                    value="{{ $settings['tour_footer_button_text'] ?? 'Contact Us' }}" class="form-control"
+                                                                    placeholder="e.g., Contact Us" maxlength="50">
+                                                                <small class="form-text text-muted">Text displayed on footer button</small>
+                                                            </div>
+
+                                                            <div class="mb-3">
+                                                                <label for="tour_footer_button_link" class="form-label">Footer Button Link</label>
+                                                                <input type="url" name="tour_footer_button_link" id="tour_footer_button_link"
+                                                                    value="{{ $settings['tour_footer_button_link'] ?? '' }}" class="form-control"
+                                                                    placeholder="https://example.com" maxlength="255">
+                                                                <small class="form-text text-muted">URL for footer button link</small>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <!-- SEO meta Tag confgration -->
+                                                <div class="col-md-6 col-lg-4">
+                                                    <div class="card border">
+                                                        <div class="card-header border-2 border-bottom">
+                                                            <h4 class="card-title mb-0"><i class="ri-seo-line"></i> SEO Meta Tags</h4>              
+                                                        </div>
+                                                        <div class="card-body">
+                                                            <div class="mb-3">
+                                                                <label for="tour_meta_title" class="form-label">Meta Title</label>
+                                                                <input type="text" name="tour_meta_title" id="meta_title"
+                                                                    value="{{ $settings['tour_meta_title'] ?? '' }}" class="form-control"
+                                                                    placeholder="e.g., PROP PIK: Next-Generation AI Web Virtual Reality" maxlength="255">
+                                                                <small class="form-text text-muted">Final title (editable). Use "|" to separate prepend from main title.</small>
+                                                            </div>
+
+                                                            <div class="mb-3">
+                                                                <label for="tour_meta_description" class="form-label">Meta Description</label>
+                                                                <textarea name="tour_meta_description" id="meta_description" 
+                                                                    class="form-control" rows="3"
+                                                                    placeholder="Explore next-gen Web Virtual Reality powered by AI...">{{ $settings['tour_meta_description'] ?? '' }}</textarea>
+                                                                <small class="form-text text-muted">Used for og:description and twitter:description</small>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <!-- Bottom mark configration  -->
+                                                <div class="col-md-6 col-lg-4">
+                                                    <div class="card border">
+                                                        <div class="card-header border-2 border-bottom">
+                                                            <h4 class="card-title mb-0"><i class="ri-price-tag-3-line"></i> Bottommark Config</h4>              
+                                                        </div>
+                                                        <div class="card-body">
+                                                            <div class="mb-3">
+                                                                <label for="tour_bottommark_logo" class="form-label">Bottom mark Logo</label>
+                                                                <div class="mb-2">
+                                                                    @if(!empty($settings['tour_bottommark_logo']))
+                                                                        <img src="{{ Storage::disk('s3')->url($settings['tour_bottommark_logo']) }}" alt="bottom mark Logo" class="img-thumbnail" style="max-width: 150px; max-height: 100px;">
+                                                                    @else
+                                                                        <div class="border rounded p-3 text-center text-muted" style="width: 150px; height: 100px; display: flex; align-items: center; justify-content: center;">
+                                                                            <small>No logo uploaded</small>
+                                                                        </div>
+                                                                    @endif
+                                                                </div>
+                                                                <input type="file" name="tour_bottommark_logo" id="tour_bottommark_logo" class="form-control" accept="image/*">
+                                                                <small class="form-text text-muted">Upload watermark logo image (PNG, JPG, GIF). Max size: 2MB</small>
+                                                            </div>
+
+                                                            <div class="mb-3">
+                                                                <label for="tour_bottommark_contact_text" class="form-label">Contact Text</label>
+                                                                <input type="text" name="tour_bottommark_contact_text" id="contact_text"
+                                                                    value="{{ $settings['tour_bottommark_contact_text'] ?? 'Contact Us' }}" class="form-control"
+                                                                    placeholder="e.g., Contact Us" maxlength="50">
+                                                                <small class="form-text text-muted">Text to display for contact</small>
+                                                            </div>
+
+                                                            <div class="mb-3">
+                                                                <label for="tour_bottommark_contact_mobile" class="form-label">Contact Number</label>
+                                                                <input type="text" name="tour_bottommark_contact_mobile" id="contact_mobile"
+                                                                    value="{{ $settings['tour_bottommark_contact_mobile'] ?? '' }}" class="form-control"
+                                                                    placeholder="e.g., +91 98765 43210" maxlength="20">
+                                                                <small class="form-text text-muted">Contact mobile number for watermark</small>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <!-- // submit buttons -->
+                                            <div class="d-flex gap-2 justify-content-end pt-4">
+                                                <a href="{{ route('admin.settings.index') }}" class="btn btn-outline-secondary">
+                                                    <i class="ri-close-line me-1"></i> Cancel
+                                                </a>
+                                                <button type="submit" class="btn btn-primary" id="saveTourSettingsBtn">
+                                                    <i class="ri-save-line me-1"></i> Update Settings
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                    @endif
                                 </div>
                             </div>
                         </div>
                         
+                        <!-- Property Type Modal -->
+                        <div class="modal fade" id="propertyTypeModal" tabindex="-1" aria-labelledby="propertyTypeModalLabel" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="propertyTypeModalLabel">Add Property Type</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <form id="propertyTypeForm">
+                                        @csrf
+                                        <input type="hidden" name="property_type_id" id="propertyTypeId">
+                                        <div class="modal-body">
+                                            <div class="alert alert-danger d-none" id="propertyTypeErrors"></div>
+                                            <div class="mb-3">
+                                                <label for="propertyTypeName" class="form-label">Name <span class="text-danger">*</span></label>
+                                                <input type="text" class="form-control" id="propertyTypeName" name="name" placeholder="e.g, Residential" required maxlength="255">
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="propertyTypeIcon" class="form-label">Icon (optional)</label>
+                                                <input type="text" class="form-control" id="propertyTypeIcon" name="icon" placeholder="e.g, ri-home-line" maxlength="255">
+                                                <small class="text-muted">Accepts an icon class (e.g., ri-building-line) or an image URL.</small>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                                            <button type="submit" class="btn btn-primary" id="savePropertyTypeBtn">Save</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Sub Property Type Modal -->
+                        <div class="modal fade" id="propertySubTypeModal" tabindex="-1" aria-labelledby="propertySubTypeModalLabel" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="propertySubTypeModalLabel">Add Sub Property Type</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <form id="propertySubTypeForm">
+                                        @csrf
+                                        <input type="hidden" name="property_sub_type_id" id="propertySubTypeId">
+                                        <div class="modal-body">
+                                            <div class="alert alert-danger d-none" id="propertySubTypeErrors"></div>
+                                            <div class="mb-3">
+                                                <label for="propertySubTypePropertyType" class="form-label">Property Type <span class="text-danger">*</span></label>
+                                                <select class="form-select" id="propertySubTypePropertyType" name="property_type_id" required></select>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="propertySubTypeName" class="form-label">Name <span class="text-danger">*</span></label>
+                                                <input type="text" class="form-control" id="propertySubTypeName" name="name" placeholder="e.g, Apartment" required maxlength="255">
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="propertySubTypeIcon" class="form-label">Icon (optional)</label>
+                                                <input type="text" class="form-control" id="propertySubTypeIcon" name="icon" placeholder="e.g, ri-building-4-line" maxlength="255">
+                                                <small class="text-muted">Accepts an icon class (e.g., ri-community-line) or an image URL.</small>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                                            <button type="submit" class="btn btn-primary" id="savePropertySubTypeBtn">Save</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Country Modal -->
+                        <div class="modal fade" id="countryModal" tabindex="-1" aria-labelledby="countryModalLabel" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="countryModalLabel">Add Country</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <form id="countryForm">
+                                        @csrf
+                                        <input type="hidden" name="country_id" id="countryId">
+                                        <div class="modal-body">
+                                            <div class="alert alert-danger d-none" id="countryErrors"></div>
+                                            <div class="mb-3">
+                                                <label for="countryName" class="form-label">Country Name <span class="text-danger">*</span></label>
+                                                <input type="text" class="form-control" id="countryName" name="name" placeholder="e.g., India" required maxlength="255">
+                                            </div>
+                                            <div class="row g-3">
+                                                <div class="col-6">
+                                                    <label for="countryCode" class="form-label">Country Code <span class="text-danger">*</span></label>
+                                                    <input type="text" class="form-control" id="countryCode" name="country_code" placeholder="e.g., IN" required maxlength="2">
+                                                </div>
+                                                <div class="col-6">
+                                                    <label for="countryDialCode" class="form-label">Dial Code <span class="text-danger">*</span></label>
+                                                    <input type="text" class="form-control" id="countryDialCode" name="dial_code" placeholder="e.g., +91" required maxlength="8">
+                                                </div>
+                                            </div>
+                                            <div class="mt-3">
+                                                <div class="form-check form-switch">
+                                                    <input class="form-check-input" type="checkbox" id="countryIsActive" name="is_active" value="1" checked>
+                                                    <label class="form-check-label" for="countryIsActive">Active</label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                                            <button type="submit" class="btn btn-primary" id="saveCountryBtn">Save</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- State Modal -->
+                        <div class="modal fade" id="stateModal" tabindex="-1" aria-labelledby="stateModalLabel" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="stateModalLabel">Add State</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <form id="stateForm">
+                                        @csrf
+                                        <input type="hidden" name="state_id" id="stateId">
+                                        <div class="modal-body">
+                                            <div class="alert alert-danger d-none" id="stateErrors"></div>
+                                            <div class="mb-3">
+                                                <label for="stateName" class="form-label">State Name <span class="text-danger">*</span></label>
+                                                <input type="text" class="form-control" id="stateName" name="name" placeholder="e.g., Maharashtra" required maxlength="255">
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                                            <button type="submit" class="btn btn-primary" id="saveStateBtn">Save</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- City Modal -->
+                        <div class="modal fade" id="cityModal" tabindex="-1" aria-labelledby="cityModalLabel" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="cityModalLabel">Add City</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <form id="cityForm">
+                                        @csrf
+                                        <input type="hidden" name="city_id" id="cityId">
+                                        <div class="modal-body">
+                                            <div class="alert alert-danger d-none" id="cityErrors"></div>
+                                            <div class="mb-3">
+                                                <label for="cityState" class="form-label">State <span class="text-danger">*</span></label>
+                                                <select class="form-select" id="cityState" name="state_id" required></select>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="cityName" class="form-label">City Name <span class="text-danger">*</span></label>
+                                                <input type="text" class="form-control" id="cityName" name="name" placeholder="e.g., Mumbai" required maxlength="255">
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                                            <button type="submit" class="btn btn-primary" id="saveCityBtn">Save</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- MSG91 Templates Management Modal -->
                         <div class="modal fade" id="msg91TemplatesModal" tabindex="-1" aria-labelledby="msg91TemplatesModalLabel" aria-hidden="true">
-                            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                            <div class="modal-dialog modal-lg">
                                 <div class="modal-content">
                                     <div class="modal-header">
                                         <h5 class="modal-title" id="msg91TemplatesModalLabel">
@@ -594,8 +1417,143 @@
                             </div>
                         </div>
 
+                        <!-- FTP Configuration Modal -->
+                        <div class="modal fade" id="ftpConfigModal" tabindex="-1">
+                            <div class="modal-dialog modal-xl">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="ftpConfigModalTitle">Add FTP Configuration</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <form id="ftpConfigForm">
+                                        @csrf
+                                        <input type="hidden" name="id" id="ftp_config_id">
+                                        <div class="modal-body">
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <div class="mb-3">
+                                                        <label class="form-label">Category Name <span class="text-danger">*</span></label>
+                                                        <input type="text" name="category_name" id="ftp_category_name" class="form-control" required>
+                                                        <small class="text-muted">Unique identifier (e.g., tour, industry)</small>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <div class="mb-3">
+                                                        <label class="form-label">Display Name <span class="text-danger">*</span></label>
+                                                        <input type="text" name="display_name" id="ftp_display_name" class="form-control" required>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="row">
+                                                <div class="col-md-3">
+                                                    <div class="mb-3">
+                                                        <label class="form-label">Host <span class="text-danger">*</span></label>
+                                                        <input type="text" name="host" id="ftp_host" class="form-control" required>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <div class="mb-3">
+                                                        <label class="form-label">Username <span class="text-danger">*</span></label>
+                                                        <input type="text" name="username" id="ftp_username" class="form-control" required>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <div class="mb-3">
+                                                        <label class="form-label">Password <span class="text-danger" id="ftp_password_required">*</span></label>
+                                                        <input type="password" name="password" id="ftp_password" class="form-control" 
+                                                            placeholder="Enter password" required>
+                                                        <small class="text-muted" id="ftp_password_help">Required for new configurations</small>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <div class="mb-3">
+                                                        <label class="form-label">Port <span class="text-danger">*</span></label>
+                                                        <input type="number" name="port" id="ftp_port" class="form-control" value="21" required>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <div class="mb-3">
+                                                        <label class="form-label">Main URL <span class="text-danger">*</span></label>
+                                                        <input type="text" name="main_url" id="ftp_main_url" class="form-control" required placeholder="tour.proppik.in">
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <div class="mb-3">
+                                                        <label class="form-label">Driver <span class="text-danger">*</span></label>
+                                                        <select name="driver" id="ftp_driver" class="form-select" required>
+                                                            <option value="ftp">FTP</option>
+                                                            <option value="sftp">SFTP</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                
+                                                
+                                                
+                                                <div class="col-md-3">
+                                                    <div class="mb-3">
+                                                        <label class="form-label">Root Path</label>
+                                                        <input type="text" name="root" id="ftp_root" class="form-control" value="/">
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <div class="mb-3">
+                                                        <label class="form-label">Timeout (seconds)</label>
+                                                        <input type="number" name="timeout" id="ftp_timeout" class="form-control" value="30">
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="row mb-4">
+                                                <div class="col-md-4">
+                                                    <div class="form-check form-switch mt-4">
+                                                        <input type="checkbox" name="passive" id="ftp_passive" class="form-check-input" checked>
+                                                        <label class="form-check-label" for="ftp_passive">Passive Mode</label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <div class="form-check form-switch mt-4">
+                                                        <input type="checkbox" name="ssl" id="ftp_ssl" class="form-check-input">
+                                                        <label class="form-check-label" for="ftp_ssl">SSL</label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <div class="form-check form-switch mt-4">
+                                                        <input type="checkbox" name="is_active" id="ftp_is_active" class="form-check-input" checked>
+                                                        <label class="form-check-label" for="ftp_is_active">Active</label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="row">
+                                                <div class="col-6">
+                                                    <div class="mb-3">
+                                                        <label class="form-label">Remote Path Pattern</label>
+                                                        <input type="text" name="remote_path_pattern" id="ftp_remote_path_pattern" class="form-control bg-light" value="{customer_id}/{slug}/index.php" readonly placeholder="{customer_id}/{slug}/index.php">
+                                                        <small class="text-muted">Use {customer_id} and {slug} placeholders for tour path</small>
+                                                    </div>
+                                                </div>
+                                                <div class="col-6">
+                                                    <div class="mb-3">
+                                                        <label class="form-label">URL Pattern</label>
+                                                        <input type="text" name="url_pattern" id="ftp_url_pattern" class="form-control  bg-light" readonly value="https://{main_url}/{remote_path}" placeholder="https://{main_url}/{remote_path}">
+                                                        <small class="text-muted">Use {main_url} and {remote_path} placeholders</small>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12">
+                                                    <div class="mb-3">
+                                                        <label class="form-label">Notes</label>
+                                                        <textarea name="notes" id="ftp_notes" class="form-control" rows="2"></textarea>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                            <button type="submit" class="btn btn-primary">Save Configuration</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
 
-                        
                     </div>
                 </div>
             </div>
@@ -603,5 +1561,38 @@
     </div>
 @endsection
 @section('scripts')
+<script>
+    // Property Type routes for JavaScript
+    window.propertyTypeRoutes = {
+        propertyTypesList: '{{ route('admin.api.property-types.index') }}',
+        propertyTypesOptions: '{{ route('admin.api.property-types.options') }}',
+        propertyTypesStore: '{{ route('admin.api.property-types.store') }}',
+        propertyTypesUpdate: '{{ route('admin.api.property-types.update', ['propertyType' => '__ID__']) }}',
+        propertyTypesDestroy: '{{ route('admin.api.property-types.destroy', ['propertyType' => '__ID__']) }}',
+        subTypesList: '{{ route('admin.api.property-sub-types.index') }}',
+        subTypesStore: '{{ route('admin.api.property-sub-types.store') }}',
+        subTypesUpdate: '{{ route('admin.api.property-sub-types.update', ['propertySubType' => '__ID__']) }}',
+        subTypesDestroy: '{{ route('admin.api.property-sub-types.destroy', ['propertySubType' => '__ID__']) }}'
+    };
+
+    // State and City routes for JavaScript
+    window.stateCityRoutes = {
+        countriesList: '{{ route('admin.api.countries.index') }}',
+        countriesOptions: '{{ route('admin.api.countries.options') }}',
+        countriesStore: '{{ route('admin.api.countries.store') }}',
+        countriesUpdate: '{{ route('admin.api.countries.update', ['country' => '__ID__']) }}',
+        countriesDestroy: '{{ route('admin.api.countries.destroy', ['country' => '__ID__']) }}',
+        statesList: '{{ route('admin.api.states.index') }}',
+        statesOptions: '{{ route('admin.api.states.options') }}',
+        statesStore: '{{ route('admin.api.states.store') }}',
+        statesUpdate: '{{ route('admin.api.states.update', ['state' => '__ID__']) }}',
+        statesDestroy: '{{ route('admin.api.states.destroy', ['state' => '__ID__']) }}',
+        citiesList: '{{ route('admin.api.cities.index') }}',
+        citiesOptions: '{{ route('admin.api.cities.options') }}',
+        citiesStore: '{{ route('admin.api.cities.store') }}',
+        citiesUpdate: '{{ route('admin.api.cities.update', ['city' => '__ID__']) }}',
+        citiesDestroy: '{{ route('admin.api.cities.destroy', ['city' => '__ID__']) }}'
+    };
+</script>
 @vite(['resources/js/pages/setting-index.js'])
 @endsection

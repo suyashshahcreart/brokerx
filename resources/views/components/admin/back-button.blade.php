@@ -1,6 +1,6 @@
 @props([
     'label' => 'Back',
-    'fallback' => route('root'),
+    'fallback' => route('admin.index'),
     'classes' => [],
     'icon' => 'ri-arrow-left-line',
     'merge' => true,
@@ -23,7 +23,11 @@
 @endphp
 
 <a href="{{ $backUrl }}" {{ $attributes->class($buttonClasses) }} title="Go Back" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Go Back">
-    <i class="{{ $icon }}"></i>
+    @if(str_contains($icon, 'solar:'))
+        <iconify-icon icon="{{ $icon }}" class="align-middle"></iconify-icon>
+    @else
+        <i class="{{ $icon }}"></i>
+    @endif
     @if($label !== false)
         <span>{{ $label }}</span>
     @endif

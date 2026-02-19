@@ -390,7 +390,7 @@
                             <button type="submit" class="btn btn-primary w-100">Update Broker</button>
                         </div>
                         <div class="col-lg-2">
-                            <a href="{{ route('root') }}" class="btn btn-danger w-100">Cancel</a>
+                            <a href="{{ route('admin.index') }}" class="btn btn-danger w-100">Cancel</a>
                         </div>
                     </div>
                 </div>

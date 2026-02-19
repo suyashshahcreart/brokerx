@@ -6,13 +6,15 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
 use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Permission\Traits\HasRoles;
+use App\Notifications\AdminResetPasswordNotification;
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable, HasRoles, LogsActivity;
+    use HasFactory, Notifiable, HasApiTokens, HasRoles, LogsActivity;
 
     /**
      * The attributes that are mass assignable.
@@ -23,6 +25,10 @@ class User extends Authenticatable
         'firstname',
         'lastname',
         'mobile',
+        'base_mobile',
+        'country_code',
+        'dial_code',
+        'country_id',
         'email',
         'password',
         'mobile_verified_at',
@@ -100,5 +106,29 @@ class User extends Authenticatable
     public function isBrokerApproved()
     {
         return $this->broker && $this->broker->status === 'approved';
+    }
+
+    /**
+     * Get the bookings for the user.
+     */
+    public function bookings()
+    {
+        return $this->hasMany(Booking::class);
+    }
+
+    public function country()
+    {
+        return $this->belongsTo(Country::class);
+    }
+
+    /**
+     * Send the password reset notification.
+     *
+     * @param  string  $token
+     * @return void
+     */
+    public function sendPasswordResetNotification($token)
+    {
+        $this->notify(new AdminResetPasswordNotification($token));
     }
 }

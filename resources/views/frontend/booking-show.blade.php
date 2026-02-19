@@ -25,7 +25,10 @@
 
 <div class="page bg-setup-form py-4">
     <div class="container">
-        
+        @php
+            // Get FTP URL for tour_live status using Booking model method
+            $tourFtpUrl = $booking->getTourLiveUrl();
+        @endphp
 
         <!-- Booking Header -->
         <div class="booking-header text-center mb-4">
@@ -88,14 +91,18 @@
                             <div class="info-label">Owner Type</div>
                             <div class="info-value">{{ $booking->owner_type ?? '-' }}</div>
                         </div>
+                        @if($booking->firm_name)
                         <div class="col-md-4">
                             <div class="info-label">Company Name</div>
-                            <div class="info-value">{{ $booking->firm_name ?? '-' }}</div>
+                            <div class="info-value">{{ $booking->firm_name }}</div>
                         </div>
+                        @endif
+                        @if($booking->gst_no)
                         <div class="col-md-4">
                             <div class="info-label">GST No</div>
-                            <div class="info-value">{{ $booking->gst_no ?? '-' }}</div>
+                            <div class="info-value">{{ $booking->gst_no }}</div>
                         </div>
+                        @endif
                     </div>
 
                     @php
@@ -181,8 +188,12 @@
                         </div>
                     </div>
 
-                    <div class="info-label">Full Address</div>
-                    <div class="info-detail">{{ $booking->full_address ?? '-' }}</div>
+                    <div class="row g-3 mb-2">
+                        <div class="col-12">
+                            <div class="info-label">Full Address</div>
+                            <div class="info-value">{{ $booking->full_address ?? '-' }}</div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -466,8 +477,8 @@
                                 $assignedDate = $photographerAssignee?->date ? \Carbon\Carbon::parse($photographerAssignee->date)->format('F d, Y') : ($booking->booking_date ? \Carbon\Carbon::parse($booking->booking_date)->format('F d, Y') : null);
                                 
                                 // Get support contact info
-                                $supportEmail = \App\Models\Setting::where('name', 'support_email')->value('value') ?? 'support@proppik.in';
-                                $supportPhone = \App\Models\Setting::where('name', 'support_phone')->value('value') ?? '+91-XXXXXXXXXX';
+                                $supportEmail = \App\Models\Setting::where('name', 'support_email')->value('value') ?? 'contact@proppik.com';
+                                $supportPhone = \App\Models\Setting::where('name', 'support_phone')->value('value') ?? '+91-9876543210';
                             @endphp
                             
                             @if($isPhotographerAssigned)
@@ -631,7 +642,12 @@
                             <div class="d-flex gap-3 justify-content-center flex-wrap">
                                 
                                 
-                                @if($booking->payment_status === 'paid')
+                                @if($status === 'tour_live')
+                                    {{-- Tour is live - show live tour button (regardless of payment status) --}}
+                                    <a href="{{ $tourFtpUrl }}" target="_blank" class="btn btn-primary action-btn">
+                                        <i class="fa-solid fa-video me-1"></i> View Tour 
+                                    </a>
+                                @elseif($booking->payment_status === 'paid')
                                     @php
                                         $scheduledDate = $booking->booking_date;
                                     @endphp
@@ -749,7 +765,12 @@
                         </button>
                     @endif
                     
-                    @if($booking->payment_status === 'paid')
+                    @if($status === 'tour_live')
+                        {{-- Tour is live - show live tour button (regardless of payment status) --}}
+                        <a href="{{ $tourFtpUrl }}" target="_blank" class="btn btn-primary action-btn">
+                            <i class="fa-solid fa-video me-1"></i> View Tour 
+                        </a>
+                    @elseif($booking->payment_status === 'paid')
                         @php
                             $scheduledDate = $booking->booking_date;
                         @endphp
@@ -821,8 +842,8 @@
                 @php
                     $status = $booking->status ?? 'pending';
                     $isBlocked = $isBlocked || ($attemptCount >= $maxAttempts);
-                    $adminEmail = \App\Models\Setting::where('name', 'support_email')->value('value') ?? 'support@proppik.in';
-                    $adminPhone = \App\Models\Setting::where('name', 'support_phone')->value('value') ?? '+91-XXXXXXXXXX';
+                    $adminEmail = \App\Models\Setting::where('name', 'support_email')->value('value') ?? 'contact@proppik.com';
+                    $adminPhone = \App\Models\Setting::where('name', 'support_phone')->value('value') ?? '+91-9898363026';
                 @endphp
                 @if($isBlocked)
                     <div class="alert alert-danger py-3 mb-3 pp-alert pp-alert--danger" role="alert">

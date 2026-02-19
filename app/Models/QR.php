@@ -55,6 +55,7 @@ class QR extends Model
         if ($this->qr_link) {
             return \SimpleSoftwareIO\QrCode\Facades\QrCode::size(300)
                 ->format('svg')
+                ->color(40, 41, 115)
                 ->generate($this->qr_link);
         }
         return null;

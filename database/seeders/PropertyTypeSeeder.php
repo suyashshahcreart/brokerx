@@ -14,9 +14,9 @@ class PropertyTypeSeeder extends Seeder
     public function run(): void
     {
         $types = [
-            ['name' => 'Residential', 'icon' => 'fa-home'],
-            ['name' => 'Commercial', 'icon' => 'fa-building'],
-            ['name' => 'Other', 'icon' => 'fa-coffee'],
+            ['name' => 'Residential', 'icon' => 'fa fa-home'],
+            ['name' => 'Commercial', 'icon' => 'fa fa-building'],
+            ['name' => 'Other', 'icon' => 'fa fa-coffee'],
         ];
         foreach ($types as $type) {
             PropertyType::firstOrCreate(

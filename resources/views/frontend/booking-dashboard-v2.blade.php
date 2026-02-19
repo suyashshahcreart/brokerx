@@ -282,8 +282,8 @@
                         }
                         
                         // User info
-                        $userName = $booking->user ? trim(($booking->user->firstname ?? '') . ' ' . ($booking->user->lastname ?? '')) : 'N/A';
-                        $userPhone = $booking->user->mobile ?? 'N/A';
+                        $userName = $booking->customer ? trim(($booking->customer->firstname ?? '') . ' ' . ($booking->customer->lastname ?? '')) : 'N/A';
+                        $userPhone = $booking->customer->mobile ?? 'N/A';
                         $ownerType = $booking->owner_type ?? 'Owner';
                         
                         // Address - only show fields that have values
@@ -1017,8 +1017,8 @@
             
             // Show blocked message if max attempts reached
             if (isBlocked) {
-                const adminEmail = '{{ \App\Models\Setting::where("name", "support_email")->value("value") ?? "support@proppik.in" }}';
-                const adminPhone = '{{ \App\Models\Setting::where("name", "support_phone")->value("value") ?? "+91-XXXXXXXXXX" }}';
+                const adminEmail = '{{ \App\Models\Setting::where("name", "support_email")->value("value") ?? "contact@proppik.com" }}';
+                const adminPhone = '{{ \App\Models\Setting::where("name", "support_phone")->value("value") ?? "9898363026" }}';
                 
                 const blockedHTML = `
                     <div class="alert alert-danger py-3 mb-3" role="alert" style="border-left: 4px solid #dc3545; background-color: #f8d7da;">

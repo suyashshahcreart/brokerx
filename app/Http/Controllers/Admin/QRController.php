@@ -51,10 +51,10 @@ class QRController extends Controller
                     $csrf = csrf_field();
                     $method = method_field('DELETE');
                     $actions = '<div class="d-flex gap-1">';
-                    $actions .= '<a href="' . $showUrl . '" class="btn btn-light btn-sm border" title="View QR Code Details" data-bs-toggle="tooltip" data-bs-placement="top"><i class="ri-eye-line"></i></a>';
-                    $actions .= '<a href="' . $editUrl . '" class="btn btn-soft-primary btn-sm border" title="Edit QR Code" data-bs-toggle="tooltip" data-bs-placement="top"><i class="ri-edit-line"></i></a>';
+                    $actions .= '<a href="' . $showUrl . '" class="btn btn-soft-primary btn-sm" title="View QR Code Details" data-bs-toggle="tooltip" data-bs-placement="top"><iconify-icon icon="solar:eye-broken" class="align-middle fs-18"></iconify-icon></a>';
+                    $actions .= '<a href="' . $editUrl . '" class="btn btn-soft-info btn-sm" title="Edit QR Code" data-bs-toggle="tooltip" data-bs-placement="top"><iconify-icon icon="solar:pen-2-broken" class="align-middle fs-18"></iconify-icon></a>';
                     $actions .= '<form action="' . $deleteUrl . '" method="POST" class="d-inline">' . $csrf . $method .
-                        '<button type="submit" class="btn btn-soft-danger btn-sm border" onclick="return confirm(\'Delete this QR code?\')" title="Delete QR Code" data-bs-toggle="tooltip" data-bs-placement="top"><i class="ri-delete-bin-line"></i></button></form>';
+                        '<button type="submit" class="btn btn-soft-danger btn-sm" onclick="return confirm(\'Delete this QR code?\')" title="Delete QR Code" data-bs-toggle="tooltip" data-bs-placement="top"><iconify-icon icon="solar:trash-bin-minimalistic-2-broken" class="align-middle fs-18"></iconify-icon></button></form>';
                     $actions .= '</div>';
                     return $actions;
                 })
@@ -72,7 +72,7 @@ class QRController extends Controller
                         if ($row->qr_link) {
                             return $qrCode->generate($row->qr_link);
                         }else{
-                            return $qrCode->generate('https://qr.proppik.com/'.$row->code);
+                            return $qrCode->generate(getQrLinkBase() . $row->code);
                         }
                     } catch (\Exception $e) {
                         \Log::error('QR Code Generation Error: ' . $e->getMessage());
@@ -129,7 +129,7 @@ class QRController extends Controller
                     if ($qr->qr_link) {
                         $qr->qr_code_svg = $qrCode->generate($qr->qr_link);
                     } else {
-                        $qr->qr_code_svg = $qrCode->generate('https://qr.proppik.com/'.$qr->code);
+                        $qr->qr_code_svg = $qrCode->generate(getQrLinkBase() . $qr->code);
                     }
                 } catch (\Exception $e) {
                     \Log::error('QR Code Generation Error: ' . $e->getMessage());
@@ -162,10 +162,14 @@ class QRController extends Controller
      */
     public function create()
     {
-        $bookings = Booking::all();
+        // Get bookings that don't already have a QR code assigned
+        $bookings = Booking::with(['customer', 'propertyType', 'propertySubType', 'bhk', 'city', 'state'])
+            ->whereDoesntHave('qr')
+            ->orderBy('id', 'desc')
+            ->get();
+        
         $defaultCode = $this->generateRandomCode();
-        $defaultName = $this->generateRandomName();
-        return view('admin.qr.create', compact('bookings', 'defaultCode', 'defaultName'));
+        return view('admin.qr.create', compact('bookings', 'defaultCode'));
     }
 
     /**
@@ -175,7 +179,7 @@ class QRController extends Controller
     {
         $request->validate([
             'code' => 'required|string|size:8|regex:/^[A-Za-z0-9]{8}$/',
-            'name' => 'nullable|string|size:8|regex:/^[A-Za-z0-9]{8}$/',
+            'name' => 'nullable|string|max:255',
             'booking_id' => 'nullable|exists:bookings,id',
             'image' => 'nullable|image|max:2048',
             'qr_link' => 'nullable|string|max:255',
@@ -183,8 +187,6 @@ class QRController extends Controller
             'code.required' => 'The code field is required.',
             'code.size' => 'The code must be exactly 8 characters.',
             'code.regex' => 'The code must contain only letters (A-Z, a-z) and numbers (0-9).',
-            'name.size' => 'The name must be exactly 8 characters.',
-            'name.regex' => 'The name must contain only letters (A-Z, a-z) and numbers (0-9).',
         ]);
 
         // Get code - required
@@ -198,18 +200,20 @@ class QRController extends Controller
             $code = $this->generateRandomCode();
         }
 
-        // Get name - optional
+        // Get name - optional, can be any string
         $name = $request->input('name');
-        if (!empty($name) && !preg_match('/^[A-Za-z0-9]{8}$/', $name)) {
-            $name = null; // Set to null if invalid
-        }
-        if (empty($name)) {
+        if (empty($name) || trim($name) === '') {
             $name = null; // Allow null for name
+        } else {
+            $name = trim($name); // Trim whitespace
         }
 
-        $data = $request->only(['booking_id', 'qr_link']);
+        $bookingId = $request->input('booking_id');
+        
+        $data = $request->only(['qr_link']);
         $data['code'] = $code;
         $data['name'] = $name;
+        $data['booking_id'] = $bookingId ? (int) $bookingId : null; // Set to null if not provided
         $data['created_by'] = Auth::id();
         $data['updated_by'] = Auth::id();
 
@@ -218,6 +222,16 @@ class QRController extends Controller
         }
 
         $qr = QR::create($data);
+        
+        // If booking_id is provided, update the booking's tour_code field with the QR code
+        if ($bookingId) {
+            $booking = Booking::find($bookingId);
+            if ($booking) {
+                $booking->tour_code = $code;
+                $booking->save();
+            }
+        }
+        
         activity()->performedOn($qr)->causedBy(Auth::user())->log('Created QR code');
         return redirect()->route('admin.qr.index')->with('success', 'QR code created successfully.');
     }
@@ -237,7 +251,16 @@ class QRController extends Controller
     public function edit($id)
     {
         $qr = QR::findOrFail($id);
-        $bookings = Booking::all();
+        
+        // Get bookings that don't have a QR code assigned, OR the current booking (even if it has a QR)
+        $bookings = Booking::with(['customer', 'propertyType', 'propertySubType', 'bhk', 'city', 'state'])
+            ->where(function($query) use ($qr) {
+                $query->whereDoesntHave('qr')
+                      ->orWhere('id', $qr->booking_id); // Include current booking even if it has QR
+            })
+            ->orderBy('id', 'desc')
+            ->get();
+            
         return view('admin.qr.edit', compact('qr', 'bookings'));
     }
 
@@ -249,7 +272,7 @@ class QRController extends Controller
         $qr = QR::findOrFail($id);
         $request->validate([
             'code' => 'required|string|size:8|regex:/^[A-Za-z0-9]{8}$/',
-            'name' => 'nullable|string|size:8|regex:/^[A-Za-z0-9]{8}$/',
+            'name' => 'nullable|string|max:255',
             'booking_id' => 'nullable|exists:bookings,id',
             'image' => 'nullable|image|max:2048',
             'qr_link' => 'nullable|string|max:255',
@@ -257,8 +280,6 @@ class QRController extends Controller
             'code.required' => 'The code field is required.',
             'code.size' => 'The code must be exactly 8 characters.',
             'code.regex' => 'The code must contain only letters (A-Z, a-z) and numbers (0-9).',
-            'name.size' => 'The name must be exactly 8 characters.',
-            'name.regex' => 'The name must contain only letters (A-Z, a-z) and numbers (0-9).',
         ]);
         
         // Get code - required
@@ -272,18 +293,50 @@ class QRController extends Controller
             $code = $this->generateRandomCode();
         }
         
-        // Get name - optional
+        // Get name - optional, can be any string
         $name = $request->input('name');
-        if (!empty($name) && !preg_match('/^[A-Za-z0-9]{8}$/', $name)) {
-            $name = null; // Set to null if invalid
-        }
-        if (empty($name)) {
+        if (empty($name) || trim($name) === '') {
             $name = null; // Allow null for name
+        } else {
+            $name = trim($name); // Trim whitespace
         }
         
-        $data = $request->only(['booking_id', 'qr_link']);
+        $newBookingId = $request->input('booking_id');
+        $newBookingId = $newBookingId ? (int) $newBookingId : null;
+        $oldBookingId = $qr->booking_id;
+        
+        // If booking was changed, handle tour_code updates
+        if ($oldBookingId !== $newBookingId) {
+            // Clear tour_code from old booking (if it matches this QR code)
+            if ($oldBookingId) {
+                $oldBooking = Booking::find($oldBookingId);
+                if ($oldBooking && $oldBooking->tour_code === $qr->code) {
+                    $oldBooking->tour_code = null;
+                    $oldBooking->save();
+                }
+            }
+            
+            // Set tour_code for new booking
+            if ($newBookingId) {
+                $newBooking = Booking::find($newBookingId);
+                if ($newBooking) {
+                    $newBooking->tour_code = $code;
+                    $newBooking->save();
+                }
+            }
+        } elseif ($newBookingId && $qr->code !== $code) {
+            // If booking is same but code changed, update tour_code
+            $booking = Booking::find($newBookingId);
+            if ($booking) {
+                $booking->tour_code = $code;
+                $booking->save();
+            }
+        }
+        
+        $data = $request->only(['qr_link']);
         $data['code'] = $code;
         $data['name'] = $name;
+        $data['booking_id'] = $newBookingId; // Set to null if not provided
         $data['updated_by'] = Auth::id();
         if ($request->hasFile('image')) {
             $data['image'] = $request->file('image')->store('qr_images', 'public');
@@ -302,7 +355,7 @@ class QRController extends Controller
     public function download($id)
     {
         try {
-            $qr = QR::with(['booking.user', 'booking.propertyType', 'booking.propertySubType', 'booking.bhk', 'booking.city', 'booking.state'])->findOrFail($id);
+            $qr = QR::with(['booking.customer', 'booking.propertyType', 'booking.propertySubType', 'booking.bhk', 'booking.city', 'booking.state'])->findOrFail($id);
             
             // Generate QR code and save as temporary PNG file using endroid/qr-code
             $qrCodePath = null;
@@ -401,10 +454,13 @@ class QRController extends Controller
     {
         $qr = QR::findOrFail($id);
         
-        // Check if QR code is assigned to a booking
+        // Clear tour_code from booking if QR is assigned
         if ($qr->booking_id) {
-            return redirect()->route('admin.qr.index')
-                ->with('error', 'Cannot delete QR code. This QR code is assigned to a booking (Booking ID: ' . $qr->booking_id . '). Please unassign it first before deleting.');
+            $booking = Booking::find($qr->booking_id);
+            if ($booking && $booking->tour_code === $qr->code) {
+                $booking->tour_code = null;
+                $booking->save();
+            }
         }
         
         $qr->delete();

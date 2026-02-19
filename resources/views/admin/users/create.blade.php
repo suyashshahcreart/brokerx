@@ -7,7 +7,7 @@
             <div>
                 <nav aria-label="breadcrumb" class="mb-0">
                     <ol class="breadcrumb mb-0">
-                        <li class="breadcrumb-item"><a href="{{ route('root') }}">Home</a></li>
+                        <li class="breadcrumb-item"><a href="{{ route('admin.index') }}">Home</a></li>
                         <li class="breadcrumb-item"><a href="#">System</a></li>
                         <li class="breadcrumb-item"><a href="{{ route('admin.users.index') }}">Users</a></li>
                         <li class="breadcrumb-item active" aria-current="page">Create</li>
@@ -47,6 +47,7 @@
                                 <label for="firstname" class="form-label">First Name <span class="text-danger">*</span></label>
                                 <input type="text" name="firstname" id="firstname" value="{{ old('firstname') }}"
                                     class="form-control @error('firstname') is-invalid @enderror"
+                                    placeholder="e.g, Deepesh"
                                     required minlength="2" maxlength="255">
                                 <div class="invalid-feedback">
                                     @error('firstname')
@@ -65,6 +66,7 @@
                                 <label for="lastname" class="form-label">Last Name <span class="text-danger">*</span></label>
                                 <input type="text" name="lastname" id="lastname" value="{{ old('lastname') }}"
                                     class="form-control @error('lastname') is-invalid @enderror"
+                                    placeholder="e.g, Singh"
                                     required minlength="2" maxlength="255">
                                 <div class="invalid-feedback">
                                     @error('lastname')
@@ -82,18 +84,31 @@
                     <div class="row">
                         <div class="col-lg-6">
                             <div class="mb-3">
-                                <label for="mobile" class="form-label">Mobile <span class="text-danger">*</span></label>
-                                <input type="tel" name="mobile" id="mobile" value="{{ old('mobile') }}"
-                                    class="form-control @error('mobile') is-invalid @enderror"
-                                    required inputmode="numeric" pattern="[0-9]{10}" minlength="10" maxlength="10">
+                                <label for="base_mobile" class="form-label">Mobile <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <select class="form-select @error('country_id') is-invalid @enderror" id="country_id" name="country_id" style="max-width: 140px;" required>
+                                        <option value="">Country</option>
+                                        @foreach($countries as $country)
+                                            <option value="{{ $country->id }}" @selected($defaultCountryId == $country->id)>
+                                                {{ $country->name }} ({{ $country->dial_code }})
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    <input type="tel" name="base_mobile" id="base_mobile" value="{{ old('base_mobile') }}"
+                                        class="form-control @error('base_mobile') is-invalid @enderror" placeholder="e.g, 9876543210"
+                                        required inputmode="numeric" pattern="[0-9]{6,15}" minlength="6" maxlength="15">
+                                </div>
+                                @error('country_id')
+                                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                                @enderror
                                 <div class="invalid-feedback">
-                                    @error('mobile')
+                                    @error('base_mobile')
                                         {{ $message }}
                                     @else
-                                        Mobile number must be exactly 10 digits.
+                                        Mobile number must be between 6 and 15 digits.
                                     @enderror
                                 </div>
-                                @if(!$errors->has('mobile'))
+                                @if(!$errors->has('base_mobile'))
                                     <div class="valid-feedback">Looks good!</div>
                                 @endif
                             </div>
@@ -102,7 +117,7 @@
                             <div class="mb-3">
                                 <label for="email" class="form-label">Email <span class="text-danger">*</span></label>
                                 <input type="email" name="email" id="email" value="{{ old('email') }}"
-                                    class="form-control @error('email') is-invalid @enderror"
+                                    class="form-control @error('email') is-invalid @enderror" placeholder="e.g, example@email.com"
                                     required maxlength="255">
                                 <div class="invalid-feedback">
                                     @error('email')
@@ -120,7 +135,7 @@
                     <div class="mb-3">
                         <label for="password" class="form-label">Password <span class="text-danger">*</span></label>
                         <input type="password" name="password" id="password" 
-                            class="form-control @error('password') is-invalid @enderror" 
+                            class="form-control @error('password') is-invalid @enderror" placeholder="e.g, Pass@123#"
                             required minlength="6">
                         <div class="invalid-feedback">
                             @error('password')
@@ -135,7 +150,7 @@
                     </div>
                     @if($canManageRoles)
                     <div class="mb-3">
-                        <label class="form-label">Roles</label>
+                         <label class="form-label">Roles:<span class="mt-1 fs-6 text-muted" >Assigne Role to the User.</span></label>
                         <div class="row g-2">
                             @forelse($roles as $role)
                                 <div class="col-lg-4">

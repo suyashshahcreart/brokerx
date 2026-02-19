@@ -4,6 +4,10 @@
  */
 
 import Swal from 'sweetalert2';
+// ========================
+// UTILITY FUNCTIONS
+// ========================
+const el = id => document.getElementById(id);
 
 // ========================
 // STATE MANAGEMENT
@@ -12,124 +16,165 @@ const state = {
     activePropertyTab: null,
     ownerType: null
 };
-
-// ========================
-// UTILITY FUNCTIONS
-// ========================
-const el = id => document.getElementById(id);
+state.ownerType = el('choice_ownerType')?.value || null;
 
 function hideAllPropertyTabs() {
-    const tabRes = el('tab-res');
-    const tabCom = el('tab-com');
-    const tabOth = el('tab-oth');
+    // Hide the entire property subtype section
+    const subTypeSection = el('propertySubTypetab');
+    if (subTypeSection) {
+        subTypeSection.classList.add('hidden');
+    }
     
-    if (tabRes) tabRes.classList.add('hidden');
-    if (tabCom) tabCom.classList.add('hidden');
-    if (tabOth) tabOth.classList.add('hidden');
+    // Hide furnish and size rows by default
+    const furnishRow = el('furnishRow');
+    if (furnishRow) furnishRow.classList.add('hidden');
+
+    // hide size row by default - it only shows for residential
+    const sizeRow = el('sizeRow');
+    if (sizeRow) sizeRow.classList.add('hidden');
+    
+    // Hide all property subtype tabs
+    document.querySelectorAll('[id^="tab-"]').forEach(tab => {
+        if (tab.id.startsWith('tab-') && tab.id !== 'propertySubTypetab') {
+            tab.classList.add('hidden');
+        }
+    });
     
     // Remove active state from all property type pills
-    ['pillResidential', 'pillCommercial', 'pillOther'].forEach(id => {
-        const pill = el(id);
-        if (pill) pill.classList.remove('active');
+    document.querySelectorAll('[data-tab-connect]').forEach(pill => {
+        pill.classList.remove('active');
     });
+    
     // Clear main property type hidden field
     const mainType = el('mainPropertyType');
     if (mainType) mainType.value = '';
     state.activePropertyTab = null;
 }
 
-function switchMainTab(key) {
-    if (!key) {
+function switchMainTab(tabId, propertyTypeName) {
+    console.log('Switching to tab:', tabId, 'with property type name:', propertyTypeName);
+    if (!tabId) {
         hideAllPropertyTabs();
         return;
     }
-    state.activePropertyTab = key;
     
-    // Hide all tabs first
-    const tabRes = el('tab-res');
-    const tabCom = el('tab-com');
-    const tabOth = el('tab-oth');
+    // Show the propertySubTypetab section
+    const subTypeSection = el('propertySubTypetab');
+    if (subTypeSection) {
+        subTypeSection.classList.remove('hidden');
+    }
     
-    if (tabRes) tabRes.classList.add('hidden');
-    if (tabCom) tabCom.classList.add('hidden');
-    if (tabOth) tabOth.classList.add('hidden');
+    // Hide all property subtype tabs
+    document.querySelectorAll('[id^="tab-"]').forEach(tab => {
+        if (tab.id.startsWith('tab-') && tab.id !== 'propertySubTypetab') {
+            tab.classList.add('hidden');
+        }
+    });
     
     // Show the selected tab
-    if (key === 'res' && tabRes) {
-        tabRes.classList.remove('hidden');
+    const selectedTab = el(tabId);
+    if (selectedTab) {
+        selectedTab.classList.remove('hidden');
     }
-    if (key === 'com' && tabCom) {
-        tabCom.classList.remove('hidden');
-    }
-    if (key === 'oth' && tabOth) {
-        tabOth.classList.remove('hidden');
+
+    // Toggle Furnish and Size rows based on selected tab (residential/commercial/other)
+    const furnishRow = el('furnishRow');
+    const sizeRow = el('sizeRow');
+
+    // Determine property type using both human-readable name and tab id for safety
+    const typeKey = (propertyTypeName || '').toLowerCase();
+    const tabKey = (tabId || '').toLowerCase();
+    const isResidential = typeKey.includes('residential') || tabKey.includes('residential') || tabKey.includes('res');
+    const isCommercial = typeKey.includes('commercial') || tabKey.includes('commercial') || tabKey.includes('com');
+
+    if (isResidential) {
+        if (furnishRow) furnishRow.classList.remove('hidden');
+        if (sizeRow) sizeRow.classList.remove('hidden');
+    } else if (isCommercial) {
+        if (furnishRow) furnishRow.classList.remove('hidden');
+        if (sizeRow) sizeRow.classList.add('hidden');
+    } else {
+        if (furnishRow) furnishRow.classList.add('hidden');
+        if (sizeRow) sizeRow.classList.add('hidden');
     }
     
     // Update active state on property type pills
-    ['pillResidential', 'pillCommercial', 'pillOther'].forEach(id => {
-        const pill = el(id);
-        if (pill) pill.classList.remove('active');
+    document.querySelectorAll('[data-tab-connect]').forEach(pill => {
+        pill.classList.remove('active');
     });
     
-    if (key === 'res') {
-        const pill = el('pillResidential');
-        if (pill) pill.classList.add('active');
-    }
-    if (key === 'com') {
-        const pill = el('pillCommercial');
-        if (pill) pill.classList.add('active');
-    }
-    if (key === 'oth') {
-        const pill = el('pillOther');
-        if (pill) pill.classList.add('active');
+    // Find and activate the correct pill
+    const activePill = document.querySelector(`[data-tab-connect="${tabId}"]`);
+    if (activePill) {
+        activePill.classList.add('active');
     }
     
-    // Update main property type hidden field
-    const typeMap = { 'res': 'Residential', 'com': 'Commercial', 'oth': 'Other' };
+    // Update state
+    state.activePropertyTab = tabId;
+    
+    // Update hidden field for main property type
     const mainType = el('mainPropertyType');
-    if (mainType) mainType.value = typeMap[key] || 'Residential';
+    if (mainType) {
+        mainType.value = propertyTypeName || '';
+    }
 }
 
 // ========================
 // DATA CHECKING FUNCTIONS
 // ========================
+function getFilledPropertyFields() {
+    // Collect only populated property fields for reset warnings.
+    const filled = [];
+    const hasSubType = document.querySelector('[data-group="resType"].active,[data-group="comType"].active,[data-group="othLooking"].active');
+    if (hasSubType) filled.push('Property Sub Type');
+
+    const hasFurnish = document.querySelector('#resFurnishContainer .chip.active');
+    if (hasFurnish) filled.push('Furnish Type');
+
+    const hasSize = document.querySelector('#resSizeContainer .chip.active');
+    if (hasSize) filled.push('Size (BHK / RK)');
+
+    const areaValue = el('area')?.value?.trim();
+    if (areaValue) filled.push('Super Built-up Area');
+
+    const othDescValue = el('othDesc')?.value?.trim();
+    if (othDescValue) filled.push('Other Option Details');
+
+    return filled;
+}
+
+function getFilledAddressFields() {
+    // Collect only populated address fields for full reset warnings.
+    const fields = [
+        { id: 'house_no', label: 'House / Office No' },
+        { id: 'building', label: 'Society / Building Name' },
+        { id: 'society_name', label: 'Society / Complex Name' },
+        { id: 'address_area', label: 'Area / Locality' },
+        { id: 'landmark', label: 'Landmark' },
+        { id: 'pin_code', label: 'PIN Code' },
+        { id: 'state_id', label: 'State' },
+        { id: 'city_id', label: 'City' },
+        { id: 'full_address', label: 'Full Address' }
+    ];
+
+    return fields.reduce((acc, field) => {
+        const value = el(field.id)?.value?.trim();
+        if (value) acc.push(field.label);
+        return acc;
+    }, []);
+}
+
 function hasPropertyDataFilled() {
-    if (!state.activePropertyTab) return false;
-    
-    // Check based on active tab
-    if (state.activePropertyTab === 'res') {
-        const resType = document.querySelector('#resTypeContainer .top-pill.active');
-        const resFurnish = document.querySelector('#resFurnishContainer .chip.active');
-        const resSize = document.querySelector('#resSizeContainer .chip.active');
-        const resArea = el('area')?.value?.trim();
-        return !!(resType || resFurnish || resSize || resArea);
-    } else if (state.activePropertyTab === 'com') {
-        const comType = document.querySelector('#comTypeContainer .top-pill.active');
-        const comFurnish = document.querySelector('#comFurnishContainer .chip.active');
-        const comArea = el('area')?.value?.trim();
-        return !!(comType || comFurnish || comArea);
-    } else if (state.activePropertyTab === 'oth') {
-        const othLooking = document.querySelector('#othLookingContainer .top-pill.active');
-        const othDesc = el('othDesc')?.value?.trim();
-        const othArea = el('area')?.value?.trim();
-        return !!(othLooking || othDesc || othArea);
-    }
-    
-    return false;
+    return getFilledPropertyFields().length > 0;
 }
 
 function hasAddressDataFilled() {
-    const h = el('house_no')?.value?.trim();
-    const b = el('building')?.value?.trim();
-    const s = el('society_name')?.value?.trim();
-    const a = el('address_area')?.value?.trim();
-    const l = el('landmark')?.value?.trim();
-    const p = el('pin_code')?.value?.trim();
-    const f = el('full_address')?.value?.trim();
-    return !!(h || b || s || a || l || p || f);
+    return getFilledAddressFields().length > 0;
 }
 
-function clearAllPropertySelections() {
+function clearAllPropertySelections(options = {}) {
+    const { resetAddress = false } = options;
+    // When resetAddress is true, we also wipe address fields.
     // Skip clearing if we're restoring old values from validation error
     if (window.isRestoringOldValues) {
         return;
@@ -139,12 +184,24 @@ function clearAllPropertySelections() {
     document.querySelectorAll('[data-group="resType"],[data-group="resFurnish"],[data-group="resSize"],[data-group="comType"],[data-group="comFurnish"],[data-group="othLooking"]').forEach(node => {
         node.classList.remove('active');
     });
+
+    const propertySubTypeIdField = el('propertySubTypeId');
+    if (propertySubTypeIdField) {
+        propertySubTypeIdField.value = '';
+    }
     
     // Clear area field
     const areaField = el('area');
     if (areaField) {
         areaField.value = '';
         areaField.classList.remove('is-valid', 'is-invalid');
+    }
+
+    // Clear price field when property details reset
+    const priceField = el('price');
+    if (priceField) {
+        priceField.value = '';
+        priceField.classList.remove('is-valid', 'is-invalid');
     }
     
     // Clear other option details
@@ -168,14 +225,16 @@ function clearAllPropertySelections() {
         if (container) container.classList.remove('has-error');
     });
     
-    // Clear address fields
-    resetAddressFields();
+    // Clear address fields only for full reset
+    if (resetAddress) {
+        resetAddressFields();
+    }
     
     // Note: Billing details (firm name, GST) are NOT cleared - they persist when property type changes
 }
 
 function resetAddressFields() {
-    ['house_no', 'building', 'society_name', 'address_area', 'landmark', 'pin_code', 'full_address', 'city_id', 'state_id'].forEach(id => {
+    ['house_no', 'building', 'society_name', 'address_area', 'landmark', 'pin_code', 'full_address', 'city_id', 'state_id', 'country_id'].forEach(id => {
         const input = el(id);
         if (input) {
             input.value = '';
@@ -314,15 +373,17 @@ function validateForm() {
     }
     
     // Validate based on active property tab
-    if (state.activePropertyTab === 'res') {
+    const tabKey = (state.activePropertyTab || '').toLowerCase();
+    
+    if (tabKey.includes('residential')) {
         // Residential validations
-        const resType = document.querySelector('#resTypeContainer .top-pill.active');
+        const resType = document.querySelector(`#${state.activePropertyTab} .top-pill.active`);
         if (!resType) {
-            showPillContainerError('resTypeContainer', 'err-resType');
+            showPillContainerError(state.activePropertyTab, 'err-resType');
             errors.push('Property Sub Type is required');
             isValid = false;
         } else {
-            hidePillContainerError('resTypeContainer', 'err-resType');
+            hidePillContainerError(state.activePropertyTab, 'err-resType');
         }
         
         const resFurnish = document.querySelector('#resFurnishContainer .chip.active');
@@ -342,37 +403,50 @@ function validateForm() {
         } else {
             hidePillContainerError('resSizeContainer', 'err-resSize');
         }
-    } else if (state.activePropertyTab === 'com') {
+    } else if (tabKey.includes('commercial')) {
         // Commercial validations
-        const comType = document.querySelector('#comTypeContainer .top-pill.active');
+        const comType = document.querySelector(`#${state.activePropertyTab} .top-pill.active`);
         if (!comType) {
-            showPillContainerError('comTypeContainer', 'err-comType');
+            showPillContainerError(state.activePropertyTab, 'err-resType');
             errors.push('Property Sub Type is required');
             isValid = false;
         } else {
-            hidePillContainerError('comTypeContainer', 'err-comType');
+            hidePillContainerError(state.activePropertyTab, 'err-resType');
         }
         
-        const comFurnish = document.querySelector('#comFurnishContainer .chip.active');
+        const comFurnish = document.querySelector('#resFurnishContainer .chip.active');
         if (!comFurnish) {
-            showPillContainerError('comFurnishContainer', 'err-comFurnish');
+            showPillContainerError('resFurnishContainer', 'err-resFurnish');
             errors.push('Furnish Type is required');
             isValid = false;
         } else {
-            hidePillContainerError('comFurnishContainer', 'err-comFurnish');
+            hidePillContainerError('resFurnishContainer', 'err-resFurnish');
         }
-    } else if (state.activePropertyTab === 'oth') {
+    } else if (tabKey.includes('other')) {
         // Other validations
-        const othLooking = document.querySelector('#othLookingContainer .top-pill.active');
+        const othLooking = document.querySelector(`#${state.activePropertyTab} .top-pill.active`);
         const othDesc = el('othDesc')?.value?.trim();
         
         if (!othLooking && !othDesc) {
-            showPillContainerError('othLookingContainer', 'err-othLooking');
+            showPillContainerError(state.activePropertyTab, 'err-resType');
             showFieldError('othDesc', 'err-othDesc');
             errors.push('Select Option or Other Option Details is required');
             isValid = false;
         } else {
-            hidePillContainerError('othLookingContainer', 'err-othLooking');
+            hidePillContainerError(state.activePropertyTab, 'err-resType');
+            hideFieldError('othDesc', 'err-othDesc');
+        }
+    }
+    
+    // Validate Other Option Details if the row is visible
+    const otherDetailsRow = document.getElementById('otherDetailsRow');
+    if (otherDetailsRow && otherDetailsRow.style.display !== 'none') {
+        const othDesc = el('othDesc')?.value?.trim();
+        if (!othDesc) {
+            showFieldError('othDesc', 'err-othDesc');
+            errors.push('Other Option Details is required');
+            isValid = false;
+        } else {
             hideFieldError('othDesc', 'err-othDesc');
         }
     }
@@ -513,52 +587,41 @@ function validateForm() {
 // ========================
 
 // Handle property type tab changes (Residential/Commercial/Other)
-window.handlePropertyTabChange = async function(key) {
+window.handlePropertyTabChange = async function(domElement) {
+    // Extract the tab ID from data-tab-connect attribute
+    const tabId = domElement.dataset.tabConnect;
+    const propertyTypeName = domElement.dataset.value;
+    const propertyTypeId = domElement.dataset.typeId;
+    
     // Skip confirmation if we're restoring old values from validation error
     const skipConfirmation = window.isRestoringOldValues;
     
     // Check if property type was already set, user is trying to change it, AND there's actual data filled
-    if (!skipConfirmation && state.activePropertyTab && state.activePropertyTab !== key && (hasPropertyDataFilled() || hasAddressDataFilled())) {
-        // Get current property type name
-        const typeMap = { 'res': 'Residential', 'com': 'Commercial', 'oth': 'Other' };
-        const currentType = typeMap[state.activePropertyTab] || 'Current';
-        const newType = typeMap[key] || 'New';
+    const filledPropertyFields = getFilledPropertyFields();
+    const filledAddressFields = getFilledAddressFields();
+    const hasAnyFilled = filledPropertyFields.length > 0 || filledAddressFields.length > 0;
+
+    if (!skipConfirmation && state.activePropertyTab && state.activePropertyTab !== tabId && hasAnyFilled) {
+        // Show a 3-choice dialog: full reset, property-only reset, or cancel.
+        // Get current property type name from the active pill
+        const currentPill = document.querySelector('[data-tab-connect].active');
+        const currentType = currentPill ? currentPill.dataset.value : 'Current';
+        const newType = propertyTypeName || 'New';
         
         // Build message based on what data exists
-        let messageParts = [];
+        const messageParts = [];
         messageParts.push(`You are changing Property Type from <strong>${currentType}</strong> to <strong>${newType}</strong>.<br><br>`);
-        
-        if (hasPropertyDataFilled()) {
-            messageParts.push(`This will clear the following property details:<br>
-                • Property Sub Type<br>
-                • Furnish Type<br>
-                • Size (BHK/RK)<br>
-                • Super Built-up Area<br>`);
+
+        if (filledPropertyFields.length > 0) {
+            messageParts.push(`<strong>Property details to reset:</strong><br>${filledPropertyFields.map(item => `• ${item}`).join('<br>')}<br><br>`);
         }
-        
-        if (hasAddressDataFilled()) {
-            if (hasPropertyDataFilled()) {
-                messageParts.push(`<br>This will also clear the following address details:<br>
-                    • House / Office No.<br>
-                    • Society / Building Name<br>
-                    • Area / Locality<br>
-                    • Landmark<br>
-                    • Pincode<br>
-                    • Full Address<br>`);
-            } else {
-                messageParts.push(`This will clear the following address details:<br>
-                    • House / Office No.<br>
-                    • Society / Building Name<br>
-                    • Area / Locality<br>
-                    • Landmark<br>
-                    • Pincode<br>
-                    • Full Address<br>`);
-            }
+
+        if (filledAddressFields.length > 0) {
+            messageParts.push(`<strong>Address details to reset (Full Reset only):</strong><br>${filledAddressFields.map(item => `• ${item}`).join('<br>')}<br><br>`);
         }
-        
-        messageParts.push(`<br><strong>Note:</strong> Your billing details (Company Name, GST No) will be preserved.`);
-        
-        // Show confirmation dialog only if there's data that will be lost
+
+        messageParts.push(`<strong>Note:</strong> Your billing details (Company Name, GST No) will be preserved.`);
+
         const result = await Swal.fire({
             icon: 'warning',
             title: 'Change Property Type?',
@@ -566,24 +629,32 @@ window.handlePropertyTabChange = async function(key) {
                 ${messageParts.join('')}
             </div>`,
             showCancelButton: true,
-            confirmButtonColor: '#0d6efd',
+            showDenyButton: true,
+            confirmButtonColor: '#e74c3c',
+            denyButtonColor: '#0d6efd',
             cancelButtonColor: '#6c757d',
-            confirmButtonText: 'Yes, Change It',
+            confirmButtonText: 'Full Reset (Property + Address)',
+            denyButtonText: 'Reset Property Details',
             cancelButtonText: 'Cancel',
             buttonsStyling: true,
             allowOutsideClick: true,
             allowEscapeKey: true
         });
         
-        // If user cancels, don't change property type
-        if (!result.isConfirmed) {
+        if (result.isConfirmed) {
+            clearAllPropertySelections({ resetAddress: true });
+        } else if (result.isDenied) {
+            clearAllPropertySelections({ resetAddress: false });
+        } else {
             return;
         }
     }
     
     // Proceed with property type change
-    clearAllPropertySelections();
-    switchMainTab(key);
+    if (!hasAnyFilled) {
+        clearAllPropertySelections({ resetAddress: false });
+    }
+    switchMainTab(tabId, propertyTypeName, propertyTypeId);
     
     // Clear property type error when selected
     hidePillContainerError('propertyTypeContainer', 'err-propertyType');
@@ -614,6 +685,27 @@ window.selectCard = function(dom) {
     document.querySelectorAll(`[data-group="${group}"]`).forEach(n => n.classList.remove('active'));
     dom.classList.add('active');
     const v = dom.dataset.value;
+    const subtypeName = dom.dataset.subtypeName || '';
+    
+    // Update the hidden field for property_sub_type_id
+    const propertySubTypeIdField = document.getElementById('propertySubTypeId');
+    if (propertySubTypeIdField) {
+        propertySubTypeIdField.value = v;
+    }
+    
+    // Show/hide Other Option Details based on property sub type
+    const otherDetailsRow = document.getElementById('otherDetailsRow');
+    if (otherDetailsRow) {
+        if (subtypeName.toLowerCase().includes('other')) {
+            otherDetailsRow.style.display = 'block';
+            document.getElementById('othDesc').required = true;
+        } else {
+            otherDetailsRow.style.display = 'none';
+            document.getElementById('othDesc').required = false;
+            document.getElementById('othDesc').value = ''; // Clear the field
+            hideFieldError('othDesc', 'err-othDesc'); // Clear any errors
+        }
+    }
     
     // Clear errors when residential/commercial sub type is selected
     if (group === 'resType') {
@@ -670,12 +762,47 @@ document.addEventListener('DOMContentLoaded', function () {
     // INITIALIZE ACTIVE TAB FROM BOOKING DATA
     // ========================
     // Check which property type is currently selected and set state
-    if (el('pillResidential')?.classList.contains('active')) {
-        state.activePropertyTab = 'res';
-    } else if (el('pillCommercial')?.classList.contains('active')) {
-        state.activePropertyTab = 'com';
-    } else if (el('pillOther')?.classList.contains('active')) {
-        state.activePropertyTab = 'oth';
+    const activePill = document.querySelector('[data-tab-connect].active');
+    if (activePill) {
+        state.activePropertyTab = activePill.dataset.tabConnect;
+        // Initialize property subtype tab visibility and furnish/size row visibility based on property type
+        switchMainTab(state.activePropertyTab, activePill?.dataset.value, activePill?.dataset.typeId);
+    }
+
+    // ========================
+    // INITIALIZE FURNISH TYPE SELECTION ON PAGE LOAD
+    // ========================
+    // Get furniture type from booking old values (set by blade template)
+    const furnitureType = window.bookingOldValues?.furniture_type;
+    
+    if (furnitureType) {
+        // Normalize furniture type: handle both "Semi Furnished" (space) and "Semi-Furnished" (hyphen)
+        // Also handle "Fully Furnished" -> "Furnished"
+        let normalizedFurnitureType = furnitureType;
+        if (furnitureType === 'Semi Furnished') {
+            normalizedFurnitureType = 'Semi-Furnished';
+        } else if (furnitureType === 'Fully Furnished') {
+            normalizedFurnitureType = 'Furnished';
+        }
+        
+        // Wait a bit for tabs to be properly initialized
+        setTimeout(() => {
+            // Both residential and commercial use the same furnish container (resFurnishContainer)
+            const furnishContainer = el('resFurnishContainer');
+            
+            if (furnishContainer) {
+                // Find the chip with matching data-value (use normalized value)
+                const matchingChip = furnishContainer.querySelector(`[data-value="${normalizedFurnitureType}"]`);
+                if (matchingChip) {
+                    // Remove active from all chips in this container
+                    furnishContainer.querySelectorAll('.chip').forEach(chip => {
+                        chip.classList.remove('active');
+                    });
+                    // Add active to the matching chip
+                    matchingChip.classList.add('active');
+                }
+            }
+        }, 100);
     }
 
     // ========================
@@ -819,94 +946,146 @@ document.addEventListener('DOMContentLoaded', function () {
             let propertySubTypeId = null;
             let propertyTypeId = null;
             
-            if (state.activePropertyTab === 'res') {
-                const activePill = document.querySelector('#resTypeContainer .top-pill.active');
-                if (activePill) {
-                    propertySubTypeId = activePill.dataset.value;
-                }
-                // Get property type ID for Residential
-                const resPill = el('pillResidential');
-                if (resPill) propertyTypeId = resPill.dataset.typeId;
-            } else if (state.activePropertyTab === 'com') {
-                const activePill = document.querySelector('#comTypeContainer .top-pill.active');
-                if (activePill) {
-                    propertySubTypeId = activePill.dataset.value;
-                }
-                // Get property type ID for Commercial
-                const comPill = el('pillCommercial');
-                if (comPill) propertyTypeId = comPill.dataset.typeId;
-            } else if (state.activePropertyTab === 'oth') {
-                const activePill = document.querySelector('#othLookingContainer .top-pill.active');
-                if (activePill) {
-                    propertySubTypeId = activePill.dataset.value;
-                }
-                // Get property type ID for Other
-                const othPill = el('pillOther');
-                if (othPill) propertyTypeId = othPill.dataset.typeId;
+            // Get the active property tab ID (e.g., "tab-Residential")
+            const tabKey = (state.activePropertyTab || '').toLowerCase();
+            
+            // Get the active property type pill to extract the property_type_id
+            const activePropertyPill = document.querySelector('[data-tab-connect].active');
+            if (activePropertyPill) {
+                propertyTypeId = activePropertyPill.dataset.typeId;
             }
             
-            // Add property_type_id to form
+            // Get property subtype based on the active tab
+            if (state.activePropertyTab) {
+                const activePill = document.querySelector(`#${state.activePropertyTab} .top-pill.active`);
+                if (activePill) {
+                    propertySubTypeId = activePill.dataset.value;
+                }
+            }
+            
+            // Prepare FormData for AJAX submission with pill-driven values.
+            const formData = new FormData(form);
+            
+            // Add property_type_id to formData
             if (propertyTypeId) {
-                let existingInput = form.querySelector('input[name="property_type_id"]');
-                if (!existingInput) {
-                    existingInput = document.createElement('input');
-                    existingInput.type = 'hidden';
-                    existingInput.name = 'property_type_id';
-                    form.appendChild(existingInput);
-                }
-                existingInput.value = propertyTypeId;
+                formData.set('property_type_id', propertyTypeId);
             }
             
-            // Add property_sub_type_id to form
+            // Add property_sub_type_id to formData
             if (propertySubTypeId) {
-                let existingInput = form.querySelector('input[name="property_sub_type_id"]');
-                if (!existingInput) {
-                    existingInput = document.createElement('input');
-                    existingInput.type = 'hidden';
-                    existingInput.name = 'property_sub_type_id';
-                    form.appendChild(existingInput);
-                }
-                existingInput.value = propertySubTypeId;
+                formData.set('property_sub_type_id', propertySubTypeId);
             }
             
-            // Add furniture_type based on active tab
-            const activeFurnishPill = state.activePropertyTab === 'res' 
-                ? document.querySelector('#resFurnishContainer .chip.active')
-                : (state.activePropertyTab === 'com' 
-                    ? document.querySelector('#comFurnishContainer .chip.active')
-                    : null);
+            // Add furniture_type based on active tab (works for both residential and commercial)
+            const activeFurnishPill = document.querySelector('#resFurnishContainer .chip.active');
                 
             if (activeFurnishPill) {
-                let furnInput = form.querySelector('input[name="furniture_type"]');
-                if (!furnInput) {
-                    furnInput = document.createElement('input');
-                    furnInput.type = 'hidden';
-                    furnInput.name = 'furniture_type';
-                    form.appendChild(furnInput);
-                }
-                furnInput.value = activeFurnishPill.dataset.value;
+                formData.set('furniture_type', activeFurnishPill.dataset.value);
             }
             
-            // Add bhk_id for residential
-            if (state.activePropertyTab === 'res') {
+            // Add bhk_id for residential (check if tab contains "residential")
+            if (tabKey.includes('residential')) {
                 const activeBhkPill = document.querySelector('#resSizeContainer .chip.active');
                 if (activeBhkPill) {
-                    let bhkInput = form.querySelector('input[name="bhk_id"]');
-                    if (!bhkInput) {
-                        bhkInput = document.createElement('input');
-                        bhkInput.type = 'hidden';
-                        bhkInput.name = 'bhk_id';
-                        form.appendChild(bhkInput);
-                    }
-                    bhkInput.value = activeBhkPill.dataset.value;
+                    formData.set('bhk_id', activeBhkPill.dataset.value);
                 }
             }
             
-            // Billing fields are already in the HTML form with proper names and values
-            // They will be submitted naturally without manipulation
+            // Show loading state
+            const submitBtn = form.querySelector('button[type="submit"]');
+            const originalBtnText = submitBtn ? submitBtn.innerHTML : '';
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="ri-loader-4-line spinner-border spinner-border-sm me-1"></i> Updating...';
+            }
             
-            // Submit the form (use native submit to bypass event listener)
-            HTMLFormElement.prototype.submit.call(this);
+            // Submit via AJAX
+            fetch(form.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Reset button state
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalBtnText;
+                }
+                
+                if (data.success) {
+                    // Show success toast
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'success',
+                            text: data.message || 'Booking updated successfully!',
+                            timer: 3000,
+                            showConfirmButton: false,
+                            toast: true,
+                            position: 'top-end',
+                            padding: '0',
+                            timerProgressBar: true,
+                            customClass: {
+                                popup: 'alert alert-success alert-dismissible fade show'
+                            }
+                        });
+                    } else {
+                        // Fallback toast
+                        const toast = document.createElement('div');
+                        toast.className = 'alert alert-success alert-dismissible fade show position-fixed';
+                        toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+                        toast.innerHTML = `
+                            <i class="ri-check-circle-line me-2"></i>${data.message || 'Booking updated successfully!'}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        `;
+                        document.body.appendChild(toast);
+                        setTimeout(() => toast.remove(), 3000);
+                    }
+                    
+                    // Optionally reload page or update UI
+                    if (data.redirect) {
+                        setTimeout(() => {
+                            window.location.href = data.redirect;
+                        }, 1500);
+                    }
+                } else {
+                    // Show error message
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: data.message || 'Failed to update booking',
+                            confirmButtonColor: '#dc3545'
+                        });
+                    } else {
+                        alert(data.message || 'Failed to update booking');
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                
+                // Reset button state
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalBtnText;
+                }
+                
+                // Show error message
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'An error occurred while updating the booking',
+                        confirmButtonColor: '#dc3545'
+                    });
+                } else {
+                    alert('An error occurred while updating the booking');
+                }
+            });
         });
     }
 
@@ -1007,7 +1186,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             if (result.isConfirmed) {
                 try {
-                    const response = await fetch(`/admin/tours/${tourId}/unlink-ajax`, {
+                    const response = await fetch(`/${window.adminBasePath}/tours/${tourId}/unlink-ajax`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',

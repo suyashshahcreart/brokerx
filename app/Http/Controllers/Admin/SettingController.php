@@ -4,9 +4,12 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Setting;
+use App\Models\FtpConfiguration;
 use App\Services\Sms\SmsGatewayManager;
 use Illuminate\Http\Request;
 use Yajra\DataTables\Facades\DataTables;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 
 class SettingController extends Controller
 {
@@ -14,7 +17,21 @@ class SettingController extends Controller
 
     public function __construct(SmsGatewayManager $gatewayManager)
     {
-        $this->middleware('permission:setting_view')->only(['index', 'show']);
+        // Allow access to index if user has setting_view OR any specific settings tab permission
+        $this->middleware(function ($request, $next) {
+            $user = $request->user();
+            if (!$user->can('setting_view') && 
+                !$user->can('setting_booking_schedule') && 
+                !$user->can('setting_photographer') && 
+                !$user->can('setting_base_price') && 
+                !$user->can('setting_payment_gateway') && 
+                !$user->can('setting_sms_configuration') && 
+                !$user->can('setting_ftp_configuration')) {
+                abort(403, 'Unauthorized access to settings.');
+            }
+            return $next($request);
+        })->only(['index', 'show']);
+        
         $this->middleware('permission:setting_create')->only(['create', 'store']);
         $this->middleware('permission:setting_edit')->only(['edit', 'update']);
         $this->middleware('permission:setting_delete')->only(['destroy']);
@@ -87,7 +104,36 @@ class SettingController extends Controller
         $msg91Templates = config('msg91.templates', []);
         $templatesSource = 'config';
         
-        return view('admin.settings.index', compact('settings', 'canCreate', 'canEdit', 'canDelete', 'gatewayInstances', 'activeSmsGateway', 'msg91Templates', 'templatesSource'));
+        // Check permissions for each settings tab
+        $canBookingSchedule = $request->user()->can('setting_booking_schedule');
+        $canPhotographer = $request->user()->can('setting_photographer');
+        $canBasePrice = $request->user()->can('setting_base_price');
+        $canPaymentGateway = $request->user()->can('setting_payment_gateway');
+        $canSmsConfiguration = $request->user()->can('setting_sms_configuration');
+        $canFtpConfiguration = $request->user()->can('setting_ftp_configuration');
+        $canPropertyType = true; // Allow property type tab for all admins
+        $canPortfolioApi = $request->user()->can('setting_edit'); // Use setting_edit permission for portfolio API
+        $canCloudflareCache = $request->user()->can('setting_edit'); // Use setting_edit permission for Cloudflare Cache
+        
+        return view('admin.settings.index', compact(
+            'settings', 
+            'canCreate', 
+            'canEdit', 
+            'canDelete', 
+            'gatewayInstances', 
+            'activeSmsGateway', 
+            'msg91Templates', 
+            'templatesSource',
+            'canBookingSchedule',
+            'canPhotographer',
+            'canBasePrice',
+            'canPaymentGateway',
+            'canSmsConfiguration',
+            'canFtpConfiguration',
+            'canPropertyType',
+            'canPortfolioApi',
+            'canCloudflareCache'
+        ));
     }
 
     /**
@@ -182,6 +228,12 @@ class SettingController extends Controller
             'value' => $validated['value'] ?? null,
             'updated_by' => $request->user()->id,
         ]);
+
+        // Clear cache for both old and new name (in case name changed)
+        clearSettingCache($oldData['name']);
+        if ($oldData['name'] !== $validated['name']) {
+            clearSettingCache($validated['name']);
+        }
 
         activity('settings')
             ->performedOn($setting)
@@ -374,6 +426,178 @@ class SettingController extends Controller
     {
         // Get all request data except system fields
         $settingsData = $request->except(['_token', '_method', 'csrf_token']);
+        // Define settings fields for each tab
+        $bookingScheduleFields = ['avaliable_days', 'per_day_booking', 'customer_attempt', 'customer_attempt_note'];
+        $photographerFields = ['photographer_available_from', 'photographer_available_to', 'photographer_working_duration'];
+        $basePriceFields = ['base_price', 'base_area', 'extra_area', 'extra_area_price'];
+        $tourDefayltsFields = ['tour_meta_title', 'tour_meta_description', 'tour_bottommark_logo', 'tour_bottommark_contact_text', 'tour_bottommark_contact_mobile'];
+        $paymentGatewayFields = ['cashfree_status', 'cashfree_app_id', 'cashfree_secret_key', 'cashfree_env', 'cashfree_base_url', 'cashfree_return_url', 
+                                  'payu_status', 'payu_merchant_key', 'payu_merchant_salt', 'payu_mode', 
+                                  'razorpay_status', 'razorpay_key', 'razorpay_secret', 'razorpay_mode', 'active_payment_gateway'];
+        $smsFields = ['active_sms_gateway', 'msg91_templates'];
+        $ftpFields = ['ftp_configuration']; // FTP is handled separately via API routes
+        $portfolioApiFields = ['portfolio_api_mobile', 'portfolio_api_token_validity_minutes', 'portfolio_api_enabled'];
+        
+        // Check which sections are being updated and validate permissions
+        $fieldsToCheck = array_keys($settingsData);
+        
+        // Check Booking Schedule permissions
+        if (array_intersect($fieldsToCheck, $bookingScheduleFields)) {
+            if (!$request->user()->can('setting_booking_schedule')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You do not have permission to update Booking Schedule settings.'
+                ], 403);
+            }
+        }
+
+        // tour Defaults permissions
+        if (array_intersect($fieldsToCheck, $tourDefayltsFields)) {
+            if (!$request->user()->can('setting_booking_schedule')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You do not have permission to update Tour Defaults settings.'
+                ], 403);
+            }
+        }
+        
+        // Check Photographer permissions
+        if (array_intersect($fieldsToCheck, $photographerFields)) {
+            if (!$request->user()->can('setting_photographer')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You do not have permission to update Photographer settings.'
+                ], 403);
+            }
+        }
+        
+        // Check Base Price permissions
+        if (array_intersect($fieldsToCheck, $basePriceFields)) {
+            if (!$request->user()->can('setting_base_price')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You do not have permission to update Base Price settings.'
+                ], 403);
+            }
+        }
+        
+        // Check Payment Gateway permissions
+        if (array_intersect($fieldsToCheck, $paymentGatewayFields)) {
+            if (!$request->user()->can('setting_payment_gateway')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You do not have permission to update Payment Gateway settings.'
+                ], 403);
+            }
+        }
+        
+        // Check SMS Configuration permissions
+        $smsRelatedFields = array_filter($fieldsToCheck, function($field) use ($smsFields) {
+            return in_array($field, $smsFields) || strpos($field, 'sms_gateway_') === 0;
+        });
+        if (!empty($smsRelatedFields)) {
+            if (!$request->user()->can('setting_sms_configuration')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You do not have permission to update SMS Configuration settings.'
+                ], 403);
+            }
+        }
+        
+        // Check Portfolio API permissions
+        if (array_intersect($fieldsToCheck, $portfolioApiFields)) {
+            if (!$request->user()->can('setting_edit')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You do not have permission to update Portfolio API settings.'
+                ], 403);
+            }
+            
+            // Validate portfolio_api_enabled (should be 0 or 1)
+            // Always ensure this field is set, even if checkbox was unchecked
+            if (!isset($settingsData['portfolio_api_enabled'])) {
+                // If not set, default to current value or '0'
+                $currentValue = Setting::where('name', 'portfolio_api_enabled')->value('value');
+                $settingsData['portfolio_api_enabled'] = ($currentValue === '1') ? '1' : '0';
+            } else {
+                // Normalize the value to '1' or '0'
+                $settingsData['portfolio_api_enabled'] = ($settingsData['portfolio_api_enabled'] === true || 
+                                                          $settingsData['portfolio_api_enabled'] === '1' || 
+                                                          $settingsData['portfolio_api_enabled'] === 1 ||
+                                                          $settingsData['portfolio_api_enabled'] === 'on') ? '1' : '0';
+            }
+            
+            // Validate mobile numbers format (comma-separated with country codes)
+            if (isset($settingsData['portfolio_api_mobile'])) {
+                $mobileString = trim($settingsData['portfolio_api_mobile']);
+                
+                if (empty($mobileString)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'At least one mobile number is required.'
+                    ], 400);
+                }
+                
+                // Split by comma, trim each, filter empty
+                $mobiles = array_filter(
+                    array_map('trim', explode(',', $mobileString)),
+                    function($mobile) {
+                        return !empty($mobile);
+                    }
+                );
+                
+                if (empty($mobiles)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'At least one valid mobile number is required.'
+                    ], 400);
+                }
+                
+                // Validate each mobile number format (E.164: +[country_code][number], 8-15 digits after +)
+                $validMobiles = [];
+                $invalidMobiles = [];
+                
+                foreach ($mobiles as $mobile) {
+                    // Check format: must start with +, followed by 1-3 digit country code, then 7-12 digit number
+                    // Total: 8-15 digits after +
+                    if (preg_match('/^\+[1-9]\d{7,14}$/', $mobile)) {
+                        $validMobiles[] = $mobile;
+                    } else {
+                        $invalidMobiles[] = $mobile;
+                    }
+                }
+                
+                if (!empty($invalidMobiles)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Invalid mobile number format(s): ' . implode(', ', $invalidMobiles) . '. Format must be +[country_code][number] (e.g., +919876543210).'
+                    ], 400);
+                }
+                
+                if (empty($validMobiles)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'At least one valid mobile number is required.'
+                    ], 400);
+                }
+                
+                // Remove duplicates and store as comma-separated string
+                $uniqueMobiles = array_unique($validMobiles);
+                $settingsData['portfolio_api_mobile'] = implode(', ', $uniqueMobiles);
+            }
+            
+            // Validate token validity (1-1440 minutes)
+            if (isset($settingsData['portfolio_api_token_validity_minutes'])) {
+                $validity = (int) $settingsData['portfolio_api_token_validity_minutes'];
+                if ($validity < 1 || $validity > 1440) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Token validity must be between 1 and 1440 minutes.'
+                    ], 400);
+                }
+                $settingsData['portfolio_api_token_validity_minutes'] = (string) $validity;
+            }
+        }
         
         // Separate Cashfree credentials for .env update
         $cashfreeEnvFields = ['cashfree_app_id', 'cashfree_secret_key', 'cashfree_env', 'cashfree_base_url', 'cashfree_return_url'];
@@ -502,7 +726,67 @@ class SettingController extends Controller
         }
 
         $updatedSettings = [];
+        // Handle tour bottommark logo upload to S3
+        if ($request->hasFile('tour_bottommark_logo')) {
+            $file = $request->file('tour_bottommark_logo');
+            
+            // Validate file
+            if (!$file->isValid()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid file upload.'
+                ], 400);
+            }
+            
+            // Validate file type and size
+            $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+            $ext = strtolower($file->getClientOriginalExtension());
+            if (!in_array($ext, $allowed)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid file type. Allowed: ' . implode(', ', $allowed)
+                ], 400);
+            }
+            if ($file->getSize() > 5 * 1024 * 1024) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'File size exceeds 5MB limit.'
+                ], 400);
+            }
 
+            $filename = 'bottommark_' . time() . '.' . $ext;
+
+            try {
+                // Store in local public disk
+                $brandFilename = 'tour_bottommark_logo_' . time() . '_' . \Illuminate\Support\Str::random(8) . '.' . $ext;
+                $brandPath = 'settings/tour-bottommark/' . $brandFilename;
+                $brandContent = file_get_contents($file->getRealPath());
+                $brandMime = $file->getMimeType();
+                $uploaded = Storage::disk('s3')->put($brandPath, $brandContent, ['ContentType' => $brandMime]);
+                if (!$uploaded) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Failed to upload logo to S3 storage.'
+                    ], 500);
+                }
+                $settingsData['tour_bottommark_logo'] = $brandPath;
+
+            } catch (\Exception $e) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Upload error: ' . $e->getMessage()
+                ], 500);
+            }
+        }
+
+        // Define status/boolean fields that can have '0' value
+        $statusFields = array_merge($smsStatusFields, [
+            'portfolio_api_enabled',
+            'cashfree_status',
+            'payu_status',
+            'razorpay_status'
+        ]);
+        
         // Loop through each setting and update/create
         foreach ($settingsData as $key => $value) {
             // Skip empty keys (but allow '0' for status fields)
@@ -510,10 +794,11 @@ class SettingController extends Controller
                 continue;
             }
             
-            // Allow '0' value for SMS gateway status fields
-            if (in_array($key, $smsStatusFields) && $value === '0') {
-                // This is fine, continue processing
-            } elseif (empty($value) && !in_array($key, $smsStatusFields) && $key !== 'msg91_templates') {
+            // Allow '0' value for status/boolean fields
+            if (in_array($key, $statusFields) && ($value === '0' || $value === 0 || $value === false)) {
+                // This is fine, continue processing - explicitly set to '0'
+                $value = '0';
+            } elseif (empty($value) && !in_array($key, $statusFields) && $key !== 'msg91_templates') {
                 // Skip empty values for non-status fields (but allow msg91_templates which is JSON)
                 continue;
             }
@@ -635,5 +920,275 @@ class SettingController extends Controller
                 'value' => $value,
             ]
         ]);
+    }
+
+    /**
+     * Get FTP configurations for API
+     */
+    public function apiGetFtpConfigurations(Request $request)
+    {
+        // Check permission
+        if (!$request->user()->can('setting_ftp_configuration')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You do not have permission to view FTP configurations.'
+            ], 403);
+        }
+        
+        // Get all configurations (active and inactive) for settings page
+        // This allows admins to manage all configurations
+        $configs = FtpConfiguration::ordered()
+            ->get(['id', 'category_name', 'display_name', 'main_url', 'driver', 'host', 'port', 'is_active']);
+
+        return response()->json([
+            'success' => true,
+            'data' => $configs
+        ]);
+    }
+
+    /**
+     * Get single FTP configuration by ID
+     */
+    public function apiGetFtpConfiguration(Request $request, $id)
+    {
+        // Check permission
+        if (!$request->user()->can('setting_ftp_configuration')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You do not have permission to view FTP configurations.'
+            ], 403);
+        }
+        
+        $config = FtpConfiguration::find($id);
+
+        if (!$config) {
+            return response()->json([
+                'success' => false,
+                'message' => 'FTP configuration not found'
+            ], 404);
+        }
+
+        // Return config without password
+        $configData = $config->toArray();
+        unset($configData['password']);
+
+        return response()->json([
+            'success' => true,
+            'data' => $configData
+        ]);
+    }
+
+    /**
+     * Create/Update FTP Configuration via API
+     */
+    public function apiStoreFtpConfiguration(Request $request)
+    {
+        // Check permission
+        if (!$request->user()->can('setting_ftp_configuration')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You do not have permission to manage FTP configurations.'
+            ], 403);
+        }
+        
+        $validated = $request->validate([
+            'id' => 'nullable|exists:ftp_configurations,id',
+            'category_name' => 'required|string|max:255|unique:ftp_configurations,category_name,' . ($request->id ?? 'NULL'),
+            'display_name' => 'required|string|max:255',
+            'main_url' => 'required|string|max:255',
+            'driver' => 'required|in:ftp,sftp',
+            'host' => 'required|string|max:255',
+            'username' => 'required|string|max:255',
+            'password' => 'nullable|string', // Make password optional for updates
+            'port' => 'required|integer|min:1|max:65535',
+            'root' => 'nullable|string|max:500',
+            'passive' => 'boolean',
+            'ssl' => 'boolean',
+            'timeout' => 'integer|min:1|max:300',
+            'remote_path_pattern' => 'nullable|string|max:500',
+            'url_pattern' => 'nullable|string|max:500',
+            'is_active' => 'boolean',
+            'sort_order' => 'integer|min:0',
+            'notes' => 'nullable|string',
+        ]);
+
+        // For updates, password is optional (only update if provided)
+        if ($request->filled('id')) {
+            $ftpConfig = FtpConfiguration::findOrFail($request->id);
+            
+            // If password is not provided or empty, remove it from validated data
+            if (empty($validated['password'])) {
+                unset($validated['password']);
+            }
+            
+            $ftpConfig->update(array_merge($validated, [
+                'updated_by' => $request->user()->id
+            ]));
+            $message = 'FTP configuration updated successfully';
+        } else {
+            // For new records, password is required
+            if (empty($validated['password'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Password is required for new FTP configurations.'
+                ], 422);
+            }
+            
+            $ftpConfig = FtpConfiguration::create(array_merge($validated, [
+                'created_by' => $request->user()->id,
+                'updated_by' => $request->user()->id
+            ]));
+            $message = 'FTP configuration created successfully';
+        }
+
+        // Prepare data for activity log (without password)
+        $logData = $validated;
+        if (isset($logData['password'])) {
+            $logData['password'] = '***hidden***';
+        }
+
+        activity('ftp_configuration')
+            ->performedOn($ftpConfig)
+            ->causedBy($request->user())
+            ->withProperties([
+                'event' => $request->filled('id') ? 'updated' : 'created',
+                'data' => $logData
+            ])
+            ->log('FTP configuration ' . ($request->filled('id') ? 'updated' : 'created'));
+
+        // Return config without password
+        $configData = $ftpConfig->toArray();
+        unset($configData['password']);
+
+        return response()->json([
+            'success' => true,
+            'message' => $message,
+            'data' => $configData
+        ]);
+    }
+
+    /**
+     * Delete FTP Configuration via API
+     */
+    public function apiDeleteFtpConfiguration(Request $request, $id)
+    {
+        // Check permission
+        if (!$request->user()->can('setting_ftp_configuration')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You do not have permission to delete FTP configurations.'
+            ], 403);
+        }
+        
+        $ftpConfig = FtpConfiguration::findOrFail($id);
+        $ftpConfig->delete();
+
+        activity('ftp_configuration')
+            ->performedOn($ftpConfig)
+            ->causedBy($request->user())
+            ->log('FTP configuration deleted');
+
+        return response()->json([
+            'success' => true,
+            'message' => 'FTP configuration deleted successfully'
+        ]);
+    }
+
+    /**
+     * Purge Cloudflare cache
+     */
+    public function apiPurgeCache(Request $request)
+    {
+        // Check permission
+        if (!$request->user()->can('setting_edit')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You do not have permission to purge Cloudflare cache.'
+            ], 403);
+        }
+
+        $cloudflareService = app(\App\Services\CloudflareCacheService::class);
+
+        // Check if purge everything is requested
+        if ($request->has('purge_everything') && $request->purge_everything) {
+            $result = $cloudflareService->purgeEverything();
+            return response()->json($result, $result['success'] ? 200 : 400);
+        }
+
+        // Custom purge with tour codes
+        if ($request->has('tour_codes') && is_array($request->tour_codes) && !empty($request->tour_codes)) {
+            $prefixes = [];
+            foreach ($request->tour_codes as $tourCode) {
+                if (!empty($tourCode)) {
+                    $prefixes[] = $cloudflareService->buildTourPrefix($tourCode);
+                }
+            }
+
+            if (empty($prefixes)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No valid tour codes provided.'
+                ], 400);
+            }
+
+            $result = $cloudflareService->purgeByPrefixes($prefixes);
+            return response()->json($result, $result['success'] ? 200 : 400);
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Invalid request. Please specify purge_everything or tour_codes.'
+        ], 400);
+    }
+
+    /**
+     * Get bookings with tours for Cloudflare purge dropdown
+     */
+    public function apiGetBookingsWithTours(Request $request)
+    {
+        // Check permission
+        if (!$request->user()->can('setting_edit')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You do not have permission to view bookings.'
+            ], 403);
+        }
+
+        try {
+            $bookings = \App\Models\Booking::with(['tours' => function($query) {
+                $query->select('id', 'booking_id', 'name', 'title')
+                      ->orderBy('created_at', 'desc')
+                      ->limit(1);
+            }])
+            ->whereNotNull('tour_code')
+            ->where('tour_code', '!=', '')
+            ->select('id', 'tour_code')
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function($booking) {
+                $tour = $booking->tours->first();
+                return [
+                    'booking_id' => $booking->id,
+                    'tour_code' => $booking->tour_code,
+                    'tour_name' => $tour ? $tour->name : 'N/A',
+                    'tour_title' => $tour ? $tour->title : 'N/A'
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'data' => $bookings
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error fetching bookings with tours', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to load bookings: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }

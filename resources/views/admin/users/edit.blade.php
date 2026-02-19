@@ -7,7 +7,7 @@
             <div>
                 <nav aria-label="breadcrumb" class="mb-0">
                     <ol class="breadcrumb mb-0">
-                        <li class="breadcrumb-item"><a href="{{ route('root') }}">Home</a></li>
+                        <li class="breadcrumb-item"><a href="{{ route('admin.index') }}">Home</a></li>
                         <li class="breadcrumb-item"><a href="#">System</a></li>
                         <li class="breadcrumb-item"><a href="{{ route('admin.users.index') }}">Users</a></li>
                         <li class="breadcrumb-item active" aria-current="page">Edit</li>
@@ -83,18 +83,31 @@
                     <div class="row">
                         <div class="col-lg-6">
                             <div class="mb-3">
-                                <label for="mobile" class="form-label">Mobile <span class="text-danger">*</span></label>
-                                <input type="tel" name="mobile" id="mobile" value="{{ old('mobile',$user->mobile) }}"
-                                    class="form-control @error('mobile') is-invalid @enderror"
-                                    required inputmode="numeric" pattern="[0-9]{10}" minlength="10" maxlength="10">
+                                <label for="base_mobile" class="form-label">Mobile <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <select class="form-select @error('country_id') is-invalid @enderror" id="country_id" name="country_id" style="max-width: 140px;" required>
+                                        <option value="">Country</option>
+                                        @foreach($countries as $country)
+                                            <option value="{{ $country->id }}" @selected($defaultCountryId == $country->id)>
+                                                {{ $country->name }} ({{ $country->dial_code }})
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    <input type="tel" name="base_mobile" id="base_mobile" value="{{ old('base_mobile', $user->base_mobile ?? $user->mobile) }}"
+                                        class="form-control @error('base_mobile') is-invalid @enderror"
+                                        required inputmode="numeric" pattern="[0-9]{6,15}" minlength="6" maxlength="15">
+                                </div>
+                                @error('country_id')
+                                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                                @enderror
                                 <div class="invalid-feedback">
-                                    @error('mobile')
+                                    @error('base_mobile')
                                         {{ $message }}
                                     @else
-                                        Mobile number must be exactly 10 digits.
+                                        Mobile number must be between 6 and 15 digits.
                                     @enderror
                                 </div>
-                                @if(!$errors->has('mobile'))
+                                @if(!$errors->has('base_mobile'))
                                     <div class="valid-feedback">Looks good!</div>
                                 @endif
                             </div>
@@ -120,9 +133,14 @@
                     </div>
                     <div class="mb-3">
                         <label for="password" class="form-label">Password <small class="text-muted">(leave blank to keep current)</small></label>
-                        <input type="password" name="password" id="password" 
-                            class="form-control @error('password') is-invalid @enderror" 
-                            minlength="6">
+                        <div class="input-group">
+                            <input type="password" name="password" id="password"
+                                class="form-control @error('password') is-invalid @enderror"
+                                minlength="6" aria-describedby="togglePassword">
+                            <button class="btn btn-outline-secondary" type="button" id="togglePassword" title="Show password">
+                                <i class="ri-eye-line" id="togglePasswordIcon"></i>
+                            </button>
+                        </div>
                         <div class="invalid-feedback">
                             @error('password')
                                 {{ $message }}
@@ -196,6 +214,22 @@
             form.classList.add('was-validated');
         }, false);
     }
+})();
+
+(function() {
+    const toggleBtn = document.getElementById('togglePassword');
+    const pwdInput = document.getElementById('password');
+    const icon = document.getElementById('togglePasswordIcon');
+    if (!toggleBtn || !pwdInput) return;
+    toggleBtn.addEventListener('click', function() {
+        const isPassword = pwdInput.getAttribute('type') === 'password';
+        pwdInput.setAttribute('type', isPassword ? 'text' : 'password');
+        if (icon) {
+            icon.classList.toggle('ri-eye-line', !isPassword);
+            icon.classList.toggle('ri-eye-off-line', isPassword);
+        }
+        toggleBtn.setAttribute('title', isPassword ? 'Hide password' : 'Show password');
+    });
 })();
 </script>
 @endsection

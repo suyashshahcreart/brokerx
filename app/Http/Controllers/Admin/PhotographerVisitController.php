@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\PhotographerVisit;
 use App\Models\Booking;
-use App\Models\PhotographerVisitJob;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -35,9 +34,10 @@ class PhotographerVisitController extends Controller
                     'booking',
                     'booking.assignees.user',
                     'photographer',
-                    'job',
                     'tour'
-                ])->orderBy('created_at', 'desc');
+                ])
+                ->visibleTo($request->user())
+                ->orderBy('created_at', 'desc');
 
                 // Apply filters
                 if ($request->filled('status')) {
@@ -71,8 +71,8 @@ class PhotographerVisitController extends Controller
                     ->addColumn('booking_info', function (PhotographerVisit $visit) {
                         if ($visit->booking) {
                             $location = $visit->booking->society_name ?? $visit->booking->address_area ?? ($visit->booking->city ? $visit->booking->city->name : '');
-                            return '<strong>#' . $visit->booking->id . '</strong>' . 
-                                   ($location ? '<br><small class=\"text-muted\">' . $location . '</small>' : '');
+                            return '<strong>#' . $visit->booking->id . '</strong>' .
+                                ($location ? '<br><small class=\"text-muted\">' . $location . '</small>' : '');
                         }
                         return '-';
                     })
@@ -92,16 +92,16 @@ class PhotographerVisitController extends Controller
                         return '<span class="badge bg-' . $color . '">' . $statusText . '</span>';
                     })
                     ->addColumn('actions', function (PhotographerVisit $visit) {
-                        $actions = '<div class=\"btn-group\" role=\"group\">';
+                        $actions = '<div class="d-flex gap-1">';
 
                         // View button
                         $view = route('admin.photographer-visits.show', $visit);
-                        $actions .= '<a href="' . $view . '" class="btn btn-sm btn-primary" title="View Details"><i class="ri-eye-line"></i></a>';
+                        $actions .= '<a href="' . $view . '" class="btn btn-sm btn-soft-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="View Visit Details"><iconify-icon icon="solar:eye-broken" class="align-middle fs-18"></iconify-icon></a>';
 
                         // Check-out button (only for checked_in visits that have a job_id)
                         if ($visit->status === 'checked_in' && $visit->job_id) {
                             $checkoutUrl = route('admin.photographer-visit-jobs.check-out-form', $visit->job_id);
-                            $actions .= ' <a href="' . $checkoutUrl . '" class="btn btn-sm btn-warning" title="Check Out"><i class="ri-logout-circle-line"></i></a>';
+                            $actions .= ' <a href="' . $checkoutUrl . '" class="btn btn-sm btn-soft-warning" data-bs-toggle="tooltip" data-bs-placement="top" title="Check Out"><iconify-icon icon="solar:logout-broken" class="align-middle fs-18"></iconify-icon></a>';
                         }
 
                         // Delete button (only for pending visits)
@@ -110,7 +110,7 @@ class PhotographerVisitController extends Controller
                             $csrf = csrf_field();
                             $method = method_field('DELETE');
                             $actions .= ' <form action="' . $delete . '" method="POST" class="d-inline" onsubmit="return confirm(\'Are you sure you want to delete this visit?\');">' . $csrf . $method .
-                                '<button type="submit" class="btn btn-sm btn-danger" title="Delete"><i class="ri-delete-bin-line"></i></button></form>';
+                                '<button type="submit" class="btn btn-sm btn-soft-danger" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete Visit"><iconify-icon icon="solar:trash-bin-minimalistic-2-broken" class="align-middle fs-18"></iconify-icon></button></form>';
                         }
 
                         $actions .= '</div>';
@@ -122,7 +122,7 @@ class PhotographerVisitController extends Controller
                         }
 
                         $assignee = $visit->booking->assignees->first();
-                        $actions = '<div class="btn-group" role="group">';
+                        $actions = '<div class="d-flex gap-1">';
 
                         // Check if there's a completed visit for this booking
                         $completedVisit = PhotographerVisit::where('booking_id', $visit->booking_id)
@@ -131,7 +131,7 @@ class PhotographerVisitController extends Controller
 
                         if ($completedVisit) {
                             // Show TOUR COMPLETE badge
-                            $actions .= '<span class="badge bg-success"><i class="ri-check-double-line me-1"></i>Tour Complete</span>';
+                            $actions .= '<span class="badge bg-soft-success text-success px-2 py-1"><iconify-icon icon="solar:double-alt-arrow-right-broken" class="align-middle me-1"></iconify-icon>Tour Complete</span>';
                         } else {
                             // Check if there's an active checked-in visit for this booking
                             $activeCheckedIn = PhotographerVisit::where('booking_id', $visit->booking_id)
@@ -141,11 +141,11 @@ class PhotographerVisitController extends Controller
                             if ($activeCheckedIn) {
                                 // Show CHECK-OUT button
                                 $checkoutUrl = route('admin.booking-assignees.check-out-form', $assignee);
-                                $actions .= '<a href="' . $checkoutUrl . '" class="btn btn-sm btn-warning" title="Check Out"><i class="ri-logout-circle-line me-1"></i>Check Out</a>';
+                                $actions .= '<a href="' . $checkoutUrl . '" class="btn btn-sm btn-soft-warning" data-bs-toggle="tooltip" data-bs-placement="top" title="Perform Operator Check Out"><iconify-icon icon="solar:logout-broken" class="align-middle me-1"></iconify-icon>Check Out</a>';
                             } else {
                                 // Show CHECK-IN button
                                 $checkinUrl = route('admin.booking-assignees.check-in-form', $assignee);
-                                $actions .= '<a href="' . $checkinUrl . '" class="btn btn-sm btn-success" title="Check In"><i class="ri-login-circle-line me-1"></i>Check In</a>';
+                                $actions .= '<a href="' . $checkinUrl . '" class="btn btn-sm btn-soft-success" data-bs-toggle="tooltip" data-bs-placement="top" title="Perform Operator Check In"><iconify-icon icon="solar:login-broken" class="align-middle me-1"></iconify-icon>Check In</a>';
                             }
                         }
 
@@ -252,13 +252,19 @@ class PhotographerVisitController extends Controller
      */
     public function show(PhotographerVisit $photographerVisit)
     {
+        $user = request()->user();
+        if ($user && method_exists($user, 'hasRole') && $user->hasRole('photographer') && $photographerVisit->photographer_id !== $user->id) {
+            // Improved error handling
+            return redirect()->route('admin.photographer-visits.index')
+                ->with('error', 'You do not have permission to view this photographer visit.');
+        }
+
         $photographerVisit->load([
             'photographer',
             'booking.city',
             'booking.state',
             'booking.propertyType',
             'booking.propertySubType',
-            'job',
             'tour'
         ]);
 
@@ -363,239 +369,6 @@ class PhotographerVisitController extends Controller
             DB::rollBack();
             return redirect()->back()
                 ->with('error', 'Failed to delete photographer visit: ' . $e->getMessage());
-        }
-    }
-    //
-    /**
-     * Show check-in form
-     */
-    public function checkInForm(PhotographerVisitJob $photographerVisitJob)
-    {
-        // Check if job can be checked in
-        // if (!$photographerVisitJob->isAssigned()) {
-        //     return redirect()->route('admin.photographer-visit-jobs.show', $photographerVisitJob)
-        //         ->with('error', 'Job must be assigned to a photographer before check-in.');
-        // }
-
-        if ($photographerVisitJob->isInProgress() || $photographerVisitJob->isCompleted()) {
-            return redirect()->route('admin.photographer-visit-jobs.show', $photographerVisitJob)
-                ->with('error', 'Job is already in progress or completed.');
-        }
-
-        $photographerVisitJob->load(['booking', 'photographer']);
-        return view('admin.photographer-visit-jobs.check-in', compact('photographerVisitJob'));
-    }
-
-    /**
-     * Process check-in
-     */
-    public function checkIn(Request $request, PhotographerVisitJob $photographerVisitJob)
-    {
-        $validated = $request->validate([
-            'location' => 'required|string|max:255',
-            'location_timestamp' => 'nullable|date',
-            'location_accuracy' => 'nullable|numeric',
-            'location_source' => 'nullable|string|max:50',
-            'remarks' => 'nullable|string|max:500',
-            'photo' => 'required|image|max:5120', // 5MB max
-        ]);
-
-        try {
-            // Check if job can be checked in
-            // if (!$photographerVisitJob->isAssigned()) {
-            //     return redirect()->route('admin.photographer-visit-jobs.show', $photographerVisitJob)
-            //         ->with('error', 'Job must be assigned to a photographer before check-in.');
-            // }
-
-            if ($photographerVisitJob->isInProgress() || $photographerVisitJob->isCompleted()) {
-                return redirect()->route('admin.photographer-visit-jobs.show', $photographerVisitJob)
-                    ->with('error', 'Job is already in progress or completed.');
-            }
-
-            // Handle photo upload
-            $photoPath = null;
-            if ($request->hasFile('photo')) {
-                $photoPath = $request->file('photo')->store('photographer-job-checkins', 'public');
-            }
-
-            $locationTimestamp = !empty($validated['location_timestamp'])
-                ? Carbon::parse($validated['location_timestamp'])
-                : null;
-            $checkedAt = now();
-
-            // Prepare metadata for check-in
-            $checkInMetadata = [
-                'location_timestamp' => $locationTimestamp?->toIso8601String(),
-                'location_accuracy' => $validated['location_accuracy'] ?? null,
-                'location_source' => $validated['location_source'] ?? null,
-                'ip_address' => $request->ip(),
-                'device_info' => $request->userAgent(),
-            ];
-
-            // Create photographer visit with merged check-in fields
-            $photographerVisit = PhotographerVisit::create([
-                'job_id' => $photographerVisitJob->id,
-                'booking_id' => $photographerVisitJob->booking_id,
-                'tour_id' => $photographerVisitJob->tour_id,
-                'photographer_id' => auth()->id(),
-                'visit_date' => $checkedAt,
-                'status' => 'checked_in',
-                'metadata' => $checkInMetadata,
-                'check_in_photo' => $photoPath,
-                'check_in_metadata' => $checkInMetadata,
-                'checked_in_at' => $checkedAt,
-                'check_in_location' => $validated['location'] ?? null,
-                'check_in_ip_address' => $request->ip(),
-                'check_in_device_info' => $request->userAgent(),
-                'check_in_remarks' => $validated['remarks'] ?? null,
-                'created_by' => auth()->id(),
-            ]);
-
-            // Update job status
-            $photographerVisitJob->update([
-                'status' => 'in_progress',
-                'started_at' => $checkedAt,
-            ]);
-
-            activity('photographer_visit_jobs')
-                ->performedOn($photographerVisitJob)
-                ->causedBy(auth()->user())
-                ->withProperties(['event' => 'checked_in', 'visit_id' => $photographerVisit->id])
-                ->log('Photographer checked in for job');
-
-            return redirect()->route('admin.photographer-visit-jobs.show', $photographerVisitJob)
-                ->with('success', 'Successfully checked in for the job.');
-
-        } catch (\Exception $e) {
-            \Log::error('Error during photographer job check-in', [
-                'job_id' => $photographerVisitJob->id,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-
-            return redirect()->route('admin.photographer-visit-jobs.show', $photographerVisitJob)
-                ->with('error', 'Failed to check in. Please try again.');
-        }
-    }
-
-    /**
-     * Show check-out form
-     */
-    public function checkOutForm(PhotographerVisitJob $photographerVisitJob)
-    {
-        // Check if job can be checked out
-        if (!$photographerVisitJob->isInProgress()) {
-            return redirect()->route('admin.photographer-visit-jobs.show', $photographerVisitJob)
-                ->with('error', 'Job must be in progress before check-out.');
-        }
-
-        $photographerVisitJob->load(['booking', 'photographer']);
-        return view('admin.photographer-visit-jobs.check-out', compact('photographerVisitJob'));
-    }
-
-    /**
-     * Process check-out
-     */
-    public function checkOut(Request $request, PhotographerVisitJob $photographerVisitJob)
-    {
-        $validated = $request->validate([
-            'location' => 'required|string|max:255',
-            'location_timestamp' => 'nullable|date',
-            'location_accuracy' => 'nullable|numeric',
-            'location_source' => 'nullable|string|max:50',
-            'remarks' => 'nullable|string|max:500',
-            'photos_taken' => 'nullable|integer|min:0',
-            'work_summary' => 'nullable|string|max:1000',
-            'photo' => 'required|image|max:5120', // 5MB max
-        ]);
-
-        try {
-            // Check if job can be checked out
-            if (!$photographerVisitJob->isInProgress()) {
-                return redirect()->route('admin.photographer-visit-jobs.show', $photographerVisitJob)
-                    ->with('error', 'Job must be in progress before check-out.');
-            }
-
-            // Handle photo upload
-            $photoPath = null;
-            if ($request->hasFile('photo')) {
-                $photoPath = $request->file('photo')->store('photographer-job-checkouts', 'public');
-            }
-
-            $locationTimestamp = !empty($validated['location_timestamp'])
-                ? Carbon::parse($validated['location_timestamp'])
-                : null;
-            $checkedAt = now();
-
-            // Prepare metadata for check-out
-            $checkOutMetadata = [
-                'location_timestamp' => $locationTimestamp?->toIso8601String(),
-                'location_accuracy' => $validated['location_accuracy'] ?? null,
-                'location_source' => $validated['location_source'] ?? null,
-                'ip_address' => $request->ip(),
-                'device_info' => $request->userAgent(),
-            ];
-
-            // Update the related photographer visit with merged check-out fields
-            $visit = PhotographerVisit::where('job_id', $photographerVisitJob->id)
-                ->orderByDesc('id')
-                ->first();
-
-            if ($visit) {
-                $visit->update([
-                    'status' => 'completed',
-                    'check_out_photo' => $photoPath,
-                    'check_out_metadata' => $checkOutMetadata,
-                    'checked_out_at' => $checkedAt,
-                    'check_out_location' => $validated['location'] ?? null,
-                    'check_out_ip_address' => $request->ip(),
-                    'check_out_device_info' => $request->userAgent(),
-                    'check_out_remarks' => $validated['remarks'] ?? null,
-                    'photos_taken' => $validated['photos_taken'] ?? 0,
-                    'work_summary' => $validated['work_summary'] ?? null,
-                    'updated_by' => auth()->id(),
-                ]);
-            }
-
-            // Update job metadata and status
-            $metadata = $photographerVisitJob->metadata ?? [];
-            $metadata['check_out'] = [
-                'location' => $validated['location'] ?? null,
-                'location_timestamp' => $locationTimestamp?->toIso8601String(),
-                'location_accuracy' => $validated['location_accuracy'] ?? null,
-                'location_source' => $validated['location_source'] ?? null,
-                'remarks' => $validated['remarks'] ?? null,
-                'photos_taken' => $validated['photos_taken'] ?? 0,
-                'work_summary' => $validated['work_summary'] ?? null,
-                'photo' => $photoPath,
-                'checked_out_at' => $checkedAt->toIso8601String(),
-                'ip_address' => $request->ip(),
-                'device_info' => $request->userAgent(),
-            ];
-
-            $photographerVisitJob->update([
-                'status' => 'completed',
-                'completed_at' => $checkedAt,
-                'metadata' => $metadata,
-            ]);
-
-            activity('photographer_visit_jobs')
-                ->performedOn($photographerVisitJob)
-                ->causedBy(auth()->user())
-                ->withProperties(['event' => 'checked_out'])
-                ->log('Photographer checked out from job');
-
-            return redirect()->route('admin.photographer-visit-jobs.show', $photographerVisitJob)
-                ->with('success', 'Successfully checked out from the job.');
-
-        } catch (\Exception $e) {
-            \Log::error('Error during photographer job check-out', [
-                'job_id' => $photographerVisitJob->id,
-                'error' => $e->getMessage()
-            ]);
-
-            return redirect()->route('admin.photographer-visit-jobs.show', $photographerVisitJob)
-                ->with('error', 'Failed to check out. Please try again.');
         }
     }
 }

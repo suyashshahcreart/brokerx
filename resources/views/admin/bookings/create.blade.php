@@ -256,7 +256,7 @@
             <div>
                 <nav aria-label="breadcrumb" class="mb-0">
                     <ol class="breadcrumb mb-0">
-                        <li class="breadcrumb-item"><a href="{{ route('root') }}">Home</a></li>
+                        <li class="breadcrumb-item"><a href="{{ route('admin.index') }}">Home</a></li>
                         <li class="breadcrumb-item"><a href="{{ route('admin.bookings.index') }}">Bookings</a></li>
                         <li class="breadcrumb-item active" aria-current="page">Create</li>
                     </ol>
@@ -317,20 +317,46 @@
                     <input type="hidden" id="choice_ownerType" name="owner_type" value="{{ old('owner_type') }}">
                     <input type="hidden" id="mainPropertyType" name="main_property_type" value="{{ old('main_property_type') }}">
                     
-                    <!-- User Selection - Full Width -->
+                    <!-- User Selection, Status, and Payment Status - Three Columns -->
                     <div class="row">
-                        <div class="col-12">
+                        <div class="col-4">
                             <div class="mb-1">
-                                <label class="form-label" for="user_id">Select User <span class="text-danger">*</span></label>
-                                <select name="user_id" id="user_id" data-choices class="form-select @error('user_id') is-invalid @enderror" required>
-                                    <option value="">Choose a user...</option>
+                                <label class="form-label" for="customer_id">Select Customer <span class="text-danger">*</span></label>
+                                <select name="customer_id" id="customer_id" data-choices class="form-select @error('customer_id') is-invalid @enderror" required>
+                                    <option value="">Choose a customer...</option>
                                     @foreach($users as $u)
-                                        <option value="{{ $u->id }}" @selected(old('user_id')==$u->id)>
+                                        <option value="{{ $u->id }}" @selected(old('customer_id')==$u->id)>
                                             {{ $u->firstname }} {{ $u->lastname }} | {{ $u->mobile }}@if($u->email) | {{ $u->email }}@endif
                                         </option>
                                     @endforeach
                                 </select>
-                                <div class="invalid-feedback">@error('user_id'){{ $message }}@else Please select a user.@enderror</div>
+                                <div class="invalid-feedback">@error('customer_id'){{ $message }}@else Please select a customer.@enderror</div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="mb-1">
+                                <label class="form-label" for="status">Status <span class="text-danger">*</span></label>
+                                <select name="status" id="status" class="form-select @error('status') is-invalid @enderror" required>
+                                    <option value="">Select status...</option>
+                                    @php $defaultStatus = old('status', 'confirmed'); @endphp
+                                    @foreach($statuses as $status)
+                                        <option value="{{ $status }}" @selected($defaultStatus==$status)>{{ ucfirst($status) }}</option>
+                                    @endforeach
+                                </select>
+                                <div class="invalid-feedback">@error('status'){{ $message }}@else Please select a status.@enderror</div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="mb-1">
+                                <label class="form-label" for="payment_status">Payment Status <span class="text-danger">*</span></label>
+                                <select name="payment_status" id="payment_status" class="form-select @error('payment_status') is-invalid @enderror" required>
+                                    <option value="">Select payment status...</option>
+                                    @php $defaultPaymentStatus = old('payment_status', 'paid'); @endphp
+                                    @foreach($paymentStatuses as $ps)
+                                        <option value="{{ $ps }}" @selected($defaultPaymentStatus==$ps)>{{ ucfirst($ps) }}</option>
+                                    @endforeach
+                                </select>
+                                <div class="invalid-feedback">@error('payment_status'){{ $message }}@else Please select a payment status.@enderror</div>
                             </div>
                         </div>
                     </div>
@@ -356,6 +382,9 @@
                                                     <div class="top-pill" data-group="ownerType" data-value="Broker" onclick="topPillClick(this)">
                                                         <i class="ri-briefcase-line me-1"></i> Broker
                                                     </div>
+                                                    <div class="top-pill d-none" data-group="ownerType" data-value="Other" onclick="topPillClick(this)">
+                                                        <i class="ri-briefcase-line me-1"></i> Other
+                                                    </div>
                                                 </div>
                                                 <div id="err-ownerType" class="error">Owner Type is required.</div>
                                             </div>
@@ -365,36 +394,17 @@
                                             <div class="mb-1">
                                                 <div class="section-title m-0">Property Type <span class="text-danger">*</span></div>
                                                 <div class="d-flex gap mb-0" id="propertyTypeContainer">
-                                                    @php
-                                                        // Define property type order and icons
-                                                        $propertyTypeOrder = [
-                                                            'Residential' => ['key' => 'res', 'icon' => 'ri-home-4-line', 'type' => 'ri'],
-                                                            'Commercial'  => ['key' => 'com', 'icon' => 'ri-building-line', 'type' => 'ri'],
-                                                            'Other'       => ['key' => 'oth', 'icon' => 'fa-ellipsis', 'type' => 'fa'],
-                                                        ];
-                                                        
-                                                        // Sort property types by the defined order
-                                                        $sortedPropertyTypes = collect($propertyTypes)->sortBy(function($pt) use ($propertyTypeOrder) {
-                                                            return array_search($pt->name, array_keys($propertyTypeOrder));
-                                                        });
-                                                    @endphp
-                                                    
-                                                    @foreach($sortedPropertyTypes as $pt)
-                                                        @php
-                                                            $config = $propertyTypeOrder[$pt->name] ?? ['key' => 'oth', 'icon' => 'fa-circle', 'type' => 'fa'];
-                                                        @endphp
+                                                   
+                                                    @foreach($propertyTypes as $pt)
                                                         <div
                                                             class="top-pill"
                                                             id="pill{{ \Illuminate\Support\Str::studly($pt->name) }}"
                                                             data-value="{{ $pt->name }}"
                                                             data-type-id="{{ $pt->id }}"
-                                                            onclick="handlePropertyTabChange('{{ $config['key'] }}')"
+                                                            data-tab-connect="tab-{{ $pt->name }}"
+                                                            onclick="handlePropertyTabChange(this)"
                                                         >
-                                                            @if($config['type'] === 'ri')
-                                                                <i class="{{ $config['icon'] }} me-1"></i>
-                                                            @else
-                                                                <i class="fa-solid {{ $config['icon'] }} me-1"></i>
-                                                            @endif
+                                                            <i class="{{ $pt->icon }}"></i>
                                                             {{ $pt->name }}
                                                         </div>
                                                     @endforeach
@@ -403,37 +413,27 @@
                                             </div>
                                         </div>
                                     </div>
-                                            
-
-                                            
-
-                                    <!-- RESIDENTIAL TAB -->
-                                    <div id="tab-res" class="hidden">
+                                    <!-- PROPERTY SUB TYPE AND OTHER DETAILS TAB -->
+                                    <div id="propertySubTypetab" class="hidden">
                                         <div class="row">
                                             <div class="col-6">
                                                 <!-- Property Sub Type -->
                                                 <div class="mb-1">
                                                     <div class="section-title mb-0">Property Sub Type <span class="text-danger">*</span></div>
-                                                    <div class="d-wrap" id="resTypeContainer">
-                                                        @foreach($propertySubTypes as $pst)
-                                                            @if($pst->property_type_id == ($propertyTypes->firstWhere('name', 'Residential')->id ?? null))
-                                                                <div class="top-pill" data-group="resType" data-value="{{ $pst->id }}" onclick="selectCard(this)">
-                                                                    @if($pst->icon)
-                                                                        @php
-                                                                            // Check if icon already has 'fa-' prefix, if not add 'fa-solid'
-                                                                            $iconClass = str_starts_with($pst->icon, 'fa-') ? "fa {$pst->icon}" : "fa-solid fa-{$pst->icon}";
-                                                                        @endphp
-                                                                        <i class="{{ $iconClass }} me-1"></i>
-                                                                    @endif
-                                                                    {{ $pst->name }}
+                                                    @foreach($propertySubTypes as $typeId => $subTypes)
+                                                        <div class="d-wrap " id="tab-{{collect($propertyTypes)->firstWhere('id', $typeId)->name}}">
+                                                            @foreach ($subTypes as $subType)
+                                                                <div class="top-pill" data-group="resType" data-value="{{ $subType->id }}" data-subtype-name="{{ $subType->name }}" onclick="selectCard(this)">
+                                                                            <i class="{{ $subType->icon }}"></i>
+                                                                            {{ $subType->name }}
                                                                 </div>
-                                                            @endif
-                                                        @endforeach
-                                                    </div>
+                                                             @endforeach
+                                                         </div>
+                                                    @endforeach
                                                     <div id="err-resType" class="error">Property Sub Type is required.</div>
                                                 </div>
                                             </div>
-                                            <div class="col-6">
+                                            <div class="col-6" id="furnishRow">
                                                 <!-- Furnish Type -->
                                                 <div class="mb-1">
                                                     <div class="section-title mb-0">Furnish Type <span class="text-danger">*</span></div>
@@ -447,7 +447,7 @@
                                             </div>
                                         </div>
                                         <div class="row">
-                                            <div class="col-12">
+                                            <div class="col-12" id="sizeRow" >
                                                 <!-- Size (BHK/RK) -->
                                                 <div class="mb-1">
                                                     <div class="section-title mb-0">Size (BHK / RK) <span class="text-danger">*</span></div>
@@ -459,89 +459,17 @@
                                                     <div id="err-resSize" class="error">Size (BHK / RK) is required.</div>
                                                 </div>
                                             </div>
-                                        </div>
-                                                
+                                        </div> 
                                     </div>
 
-                                    <!-- COMMERCIAL TAB -->
-                                    <div id="tab-com" class="hidden">
-                                        <div class="row">
-                                            <div class="col-6">
-                                                <!-- Property Sub Type -->
-                                                <div class="mb-1">
-                                                    <div class="section-title mb-0">Property Sub Type <span class="text-danger">*</span></div>
-                                                    <div class="d-wrap" id="comTypeContainer">
-                                                        @foreach($propertySubTypes as $pst)
-                                                            @if($pst->property_type_id == ($propertyTypes->firstWhere('name', 'Commercial')->id ?? null))
-                                                                <div class="top-pill" data-group="comType" data-value="{{ $pst->id }}" onclick="selectCard(this)">
-                                                                    @if($pst->icon)
-                                                                        @php
-                                                                            // Check if icon already has 'fa-' prefix, if not add 'fa-solid'
-                                                                            $iconClass = str_starts_with($pst->icon, 'fa-') ? "fa {$pst->icon}" : "fa-solid fa-{$pst->icon}";
-                                                                        @endphp
-                                                                        <i class="{{ $iconClass }} me-1"></i>
-                                                                    @endif
-                                                                    {{ $pst->name }}
-                                                                </div>
-                                                            @endif
-                                                        @endforeach
-                                                    </div>
-                                                    <div id="err-comType" class="error">Property Sub Type is required.</div>
-                                                </div>
+                                    <!-- Other Option Details (Hidden by default, shown when "Other" sub type is selected) -->
+                                    <div class="row" id="otherDetailsRow" style="display: none;">
+                                        <div class="col-12">
+                                            <div class="mb-1">
+                                                <div class="section-title mb-0">Other Option Details <span class="text-danger">*</span></div>
+                                                <textarea name="other_option_details" id="othDesc" class="form-control @error('other_option_details') is-invalid @enderror" rows="3" placeholder="Enter other option details">{{ old('other_option_details') }}</textarea>
+                                                <div id="err-othDesc" class="error @error('other_option_details') show @endif">@error('other_option_details'){{ $message }}@else Other Option Details is required.@enderror</div>
                                             </div>
-                                            <div class="col-6">
-                                                <!-- Furnish Type -->
-                                                <div class="mb-1">
-                                                    <div class="section-title mb-0">Furnish Type <span class="text-danger">*</span></div>
-                                                    <div class="d-flex flex-wrap gap" id="comFurnishContainer">
-                                                        <div class="chip" data-group="comFurnish" data-value="Furnished" onclick="selectChip(this)">
-                                                            <i class="ri-sofa-line me-1"></i> Fully Furnished
-                                                        </div>
-                                                        <div class="chip" data-group="comFurnish" data-value="Semi-Furnished" onclick="selectChip(this)">
-                                                            <i class="ri-lightbulb-line me-1"></i> Semi Furnished
-                                                        </div>
-                                                        <div class="chip" data-group="comFurnish" data-value="Unfurnished" onclick="selectChip(this)">
-                                                            <i class="ri-door-line me-1"></i> Unfurnished
-                                                        </div>
-                                                    </div>
-                                                    <div id="err-comFurnish" class="error">Furnish Type is required.</div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                                
-
-                                                
-                                    </div>
-
-                                    <!-- OTHER TAB -->
-                                    <div id="tab-oth" class="hidden">
-                                        <!-- Looking For -->
-                                        <div class="mb-1">
-                                            <div class="section-title mb-0">Select Option <span class="text-danger">*</span></div>
-                                            <div class="d-flex flex-wrap gap" id="othLookingContainer">
-                                                @foreach($propertySubTypes as $pst)
-                                                    @if($pst->property_type_id == ($propertyTypes->firstWhere('name', 'Other')->id ?? null))
-                                                        <div class="top-pill" data-group="othLooking" data-value="{{ $pst->id }}" onclick="topPillClick(this)">
-                                                            @if($pst->icon)
-                                                                @php
-                                                                    // Check if icon already has 'fa-' prefix, if not add 'fa-solid'
-                                                                    $iconClass = str_starts_with($pst->icon, 'fa-') ? "fa {$pst->icon}" : "fa-solid fa-{$pst->icon}";
-                                                                @endphp
-                                                                <i class="{{ $iconClass }} me-1"></i>
-                                                            @endif
-                                                            {{ $pst->name }}
-                                                        </div>
-                                                    @endif
-                                                @endforeach
-                                            </div>
-                                            <div id="err-othLooking" class="error">Select Option is required.</div>
-                                        </div>
-
-                                        <!-- Other Option Details -->
-                                        <div class="mb-1">
-                                            <div class="section-title mb-0">Other Option Details</div>
-                                            <textarea name="other_option_details" id="othDesc" class="form-control @error('other_option_details') is-invalid @enderror" rows="3" placeholder="Enter other option details">{{ old('other_option_details') }}</textarea>
-                                            <div id="err-othDesc" class="error @error('other_option_details') @else hidden @enderror">@error('other_option_details'){{ $message }}@else Other Option Details is required.@enderror</div>
                                         </div>
                                     </div>
 
@@ -558,7 +486,7 @@
                                             <!-- Price, Dates, Status (Always Visible) -->
                                             <div class="mb-1">
                                                 <label class="form-label fw-semibold mb-0" for="price">Price (₹) <span class="text-danger">*</span> <small class="text-muted">(Auto-calculated)</small></label>
-                                                <input type="number" name="price" id="price" class="form-control bg-light @error('price') is-invalid @enderror" value="{{ old('price') }}" placeholder="Enter area to calculate" readonly required min="0">
+                                                <input type="number" name="price" id="price" class="form-control bg-light @error('price') is-invalid @enderror" value="{{ old('price') }}" placeholder="Enter area to calculate" required min="0">
                                                 <div class="invalid-feedback">@error('price'){{ $message }}@else Please enter a valid price.@enderror</div>
                                             </div>
                                         </div>
@@ -652,7 +580,6 @@
                                                 <input type="text" name="pin_code" id="pin_code" class="form-control @error('pin_code') is-invalid @enderror" value="{{ old('pin_code') }}" placeholder="e.g., 380015" maxlength="6" required>
                                                 <div class="invalid-feedback">@error('pin_code'){{ $message }}@else Valid 6-digit PIN Code is required.@enderror</div>
                                             </div>
-
                                         </div>
                                     </div>
 
@@ -660,13 +587,42 @@
                                         <div class="col-4">
                                             <div class="row">
                                                 <div class="col-12">
+                                                    <!-- Country -->
+                                                    <div class="mb-1">
+                                                        <label class="form-label fw-semibold mb-0" for="country_id">Country <span class="text-danger">*</span></label>
+                                                        <select name="country_id" id="country_id" class="form-select @error('country_id') is-invalid @enderror" required>
+                                                            <option value="">Select country</option>
+                                                            @foreach($countries as $country)
+                                                                <option value="{{ $country->id }}" @selected(($defaultCountryId)==$country->id)>{{ $country->name }}</option>
+                                                            @endforeach
+                                                        </select>
+                                                        <div class="invalid-feedback">@error('country_id'){{ $message }}@else Please select a country.@enderror</div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12">
                                                     <!-- State -->
                                                     <div class="mb-1">
-                                                        <label class="form-label fw-semibold mb-0" for="state_id">State</label>
+                                                        @php
+                                                            // Determine default State and City when no old values are present
+                                                            $defaultStateId = old('state_id');
+                                                            $defaultCityId = old('city_id');
+                                                            if (!$defaultStateId) {
+                                                                $gujarat = collect($states ?? [])->first(function($st){
+                                                                    return strcasecmp($st->name, 'Gujarat') === 0 || strcasecmp($st->name, 'Gujrat') === 0;
+                                                                });
+                                                                $defaultStateId = $gujarat->id ?? null;
+                                                            }
+                                                            if (!$defaultCityId) {
+                                                                $defaultCityId = optional(collect($cities ?? [])->first(function($city){
+                                                                    return strcasecmp($city->name, 'Ahmedabad') === 0;
+                                                                }))->id;
+                                                            }
+                                                        @endphp
+                                                        <label class="form-label fw-semibold mb-0" for="state_id">State <span class="text-danger">*</span></label>
                                                         <select name="state_id" id="state_id" class="form-select">
                                                             <option value="">Select state</option>
                                                             @foreach($states as $s)
-                                                                <option value="{{ $s->id }}" @selected(old('state_id')==$s->id)>{{ $s->name }}</option>
+                                                                <option value="{{ $s->id }}" @selected(($defaultStateId)==$s->id)>{{ $s->name }}</option>
                                                             @endforeach
                                                         </select>
                                                     </div>
@@ -674,11 +630,11 @@
                                                 <div class="col-12">
                                                     <!-- City -->
                                                     <div class="mb-1">
-                                                        <label class="form-label fw-semibold mb-0" for="city_id">City</label>
+                                                        <label class="form-label fw-semibold mb-0" for="city_id">City <span class="text-danger">*</span></label>
                                                         <select name="city_id" id="city_id" class="form-select">
                                                             <option value="">Select city</option>
                                                             @foreach($cities as $c)
-                                                                <option value="{{ $c->id }}" data-state-id="{{ $c->state_id }}" @selected(old('city_id')==$c->id)>{{ $c->name }}</option>
+                                                                <option value="{{ $c->id }}" data-state-id="{{ $c->state_id }}" @selected(($defaultCityId)==$c->id)>{{ $c->name }}</option>
                                                             @endforeach
                                                         </select>
                                                     </div>
@@ -698,21 +654,7 @@
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
-
-                                    
-
-                                            
-
-                                            
-
-                                            
-
-                                            
-
-                                            
-
-                                                    
+                                    </div>           
                                 </div>
                             </div>
                         </div>
@@ -746,8 +688,9 @@
             property_sub_type_id: '{{ old("property_sub_type_id") }}',
             furniture_type: '{{ old("furniture_type") }}',
             bhk_id: '{{ old("bhk_id") }}',
-            state_id: '{{ old("state_id") }}',
-            city_id: '{{ old("city_id") }}',
+            country_id: '{{ $defaultCountryId ?? '' }}',
+            state_id: '{{ $defaultStateId ?? '' }}',
+            city_id: '{{ $defaultCityId ?? '' }}',
             different_billing_name: '{{ old("different_billing_name") }}',
             has_old_data: {{ old('owner_type') || old('main_property_type') ? 'true' : 'false' }}
         };
@@ -849,6 +792,12 @@
 
             // Restore State and City independently
             setTimeout(function() {
+                if (window.bookingOldValues.country_id) {
+                    const countrySelect = document.getElementById('country_id');
+                    if (countrySelect) {
+                        countrySelect.value = window.bookingOldValues.country_id;
+                    }
+                }
                 if (window.bookingOldValues.state_id) {
                     const stateSelect = document.getElementById('state_id');
                     if (stateSelect) {

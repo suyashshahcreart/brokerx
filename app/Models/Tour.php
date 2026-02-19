@@ -26,6 +26,7 @@ class Tour extends Model
         'description',
         'content',
         'featured_image',
+        'tour_thumbnail',
         'price',
         'duration_days',
         'location',
@@ -34,6 +35,8 @@ class Tour extends Model
         'max_participants',
         'status',
         'final_json',
+        'working_json',
+        'working_json_last_update_user',
         'revision',
         // SEO Meta Fields
         'meta_title',
@@ -52,13 +55,29 @@ class Tour extends Model
         'header_code',
         'footer_code',
         // New fields added by migration
-        'custom_logo_sidebar',
-        'custom_logo_footer',
-        'custom_name',
-        'custom_email',
-        'custom_mobile',
+        'sidebar_logo',
+        'footer_logo',
+        'footer_name',
+        'footer_email',
+        'footer_mobile',
         'custom_type',
-        'custom_description',
+        'footer_decription',
+        // Sidebar and Footer fields
+        'company_address',
+        'sidebar_footer_link',
+        'sidebar_footer_text',
+        'sidebar_footer_link_show',
+        'footer_info_type',
+        'footer_brand_logo',
+        'footer_brand_text',
+        'footer_brand_mobile',
+        'gtm_tag',
+        'footer_subtitle',
+        'is_active',
+        'is_credentials',
+        'is_mobile_validation',
+        'is_hosted',
+        'hosted_link',
     ];
 
     /**
@@ -74,9 +93,15 @@ class Tour extends Model
             'price' => 'decimal:2',
             'structured_data' => 'array',
             'final_json' => 'array',
+            'working_json' => 'array',
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
             'deleted_at' => 'datetime',
+            'sidebar_footer_link_show' => 'boolean',
+            'is_active' => 'boolean',
+            'is_credentials' => 'boolean',
+            'is_mobile_validation' => 'boolean',
+            'is_hosted' => 'boolean',
         ];
     }
 
@@ -86,6 +111,24 @@ class Tour extends Model
     public function booking()
     {
         return $this->belongsTo(\App\Models\Booking::class);
+    }
+
+    /**
+     * Get the credentials for the tour.
+     */
+    public function credentials()
+    {
+        return $this->hasMany(TourCredential::class);
+    }
+
+    public function mobileValidations()
+    {
+        return $this->hasMany(TourMobileValidation::class);
+    }
+
+    public function validationHistories()
+    {
+        return $this->hasMany(TourMobileValidationHistory::class);
     }
 
 
@@ -208,5 +251,52 @@ class Tour extends Model
         }
         
         return "{$days} Day" . ($days > 1 ? 's' : '');
+    }
+
+    /**
+     * Get FTP URL for tour if booking status is tour_live
+     * Returns the full FTP URL without index.php suffix
+     * 
+     * @return string FTP URL or '#' if not available
+     */
+    public function getTourLiveUrl(): string {
+        // Get the booking associated with this tour
+        $booking = $this->booking;
+        
+        // Only generate URL if booking exists and status is tour_live
+            
+        // if (!$booking || $booking->status !== 'tour_live') {
+        //     return '#';
+        // }
+
+        // If tour is hosted and hosted_link is not null, return hosted_link
+        if ($this->is_hosted && !empty($this->hosted_link)) {
+            return $this->hosted_link;
+        }
+
+        // Otherwise, use FTP URL logic
+        // Check if tour has required data for FTP URL
+        $customerId = $booking->customer_id;
+        if (!$this->location || !$this->slug || !$customerId) {
+            return '#';
+        }   
+
+        // Get FTP configuration based on tour location
+        $ftpConfig = \App\Models\FtpConfiguration::where('category_name', $this->location)->first();
+        
+        if (!$ftpConfig) {
+            return '#';
+        }
+
+        // Generate FTP URL
+        $fullFtpUrl = $ftpConfig->getUrlForTour($this->slug, $customerId);
+        $tourFtpUrl = rtrim($fullFtpUrl, '/');
+        
+        // Remove /index.php if present
+        if (substr($tourFtpUrl, -9) === 'index.php') {
+            $tourFtpUrl = substr($tourFtpUrl, 0, -9);
+        }
+
+        return $tourFtpUrl;
     }
 }

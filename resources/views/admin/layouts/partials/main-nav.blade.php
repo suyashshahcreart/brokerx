@@ -2,13 +2,13 @@
      <!-- Sidebar Logo -->
      <div class="logo-box">
           <a href="{{ route('admin.index') }}" class="logo-dark">
-               <img src="{{ asset('images/proppik-logo-sm.png') }}" class="logo-sm" alt="logo sm">
-               <img src="{{ asset('images/proppik-logo.jpg') }}" class="logo-lg" alt="logo dark">
+               <img src="{{ asset('proppik/assets/logo/logo-sm-1.svg') }}" class="logo-sm" alt="logo sm" style="height: 100% !important;">
+               <img src="{{ asset('proppik/assets/logo/logo.svg') }}" class="logo-lg" alt="logo dark" style="height: 100% !important;">
           </a>
 
           <a href="{{ route('admin.index') }}" class="logo-light">
-               <img src="{{ asset('images/proppik-logo-sm.png') }}" class="logo-sm" alt="logo sm">
-               <img src="{{ asset('images/proppik-logo-light.png') }}" class="logo-lg" alt="logo light">
+               <img src="{{ asset('proppik/assets/logo/w-logo-sm-1.svg') }}" class="logo-sm" alt="logo sm" style="height: 100% !important;">
+               <img src="{{ asset('proppik/assets/logo/w-logo.svg') }}" class="logo-lg" alt="logo light" style="height: 100% !important;">
           </a>
      </div>
 
@@ -34,10 +34,10 @@
                </li>
 
 
-               @can('user_view')
+               @can('customer_view')
                     <li class="nav-item">
-                         <a class="nav-link {{ request()->routeIs('admin.users.*') ? 'active' : '' }}"
-                              href="{{ route('admin.users.index') }}">
+                         <a class="nav-link {{ request()->routeIs('admin.customer.*') ? 'active' : '' }}"
+                              href="{{ route('admin.customer.index') }}">
                               <span class="nav-icon">
                                    <i class="ri-user-line"></i>
                               </span>
@@ -56,36 +56,49 @@
                               <span class="nav-text">Bookings</span>
                          </a>
                     </li>
+               @endcan
 
-                    @unlessrole('photographer')
-                         <li class="nav-item">
-                              <a class="nav-link {{ request()->routeIs('admin.pending-schedules.*') ? 'active' : '' }}"
-                                   href="{{ route('admin.pending-schedules.index') }}">
-                                   <span class="nav-icon">
-                                        <i class="ri-calendar-todo-line"></i>
-                                   </span>
-                                   <span class="nav-text">Pending Schedules</span>
-                                   @php
-                                        $pendingCount = \App\Models\Booking::whereIn('status', ['schedul_pending', 'reschedul_pending'])->count();
-                                   @endphp
-                                   @if($pendingCount > 0)
-                                        <span class="badge bg-warning ms-auto">{{ $pendingCount }}</span>
-                                   @endif
-                              </a>
-                         </li>
-                    @endunlessrole
-
-                    <li class="nav-item @unlessrole('photographer') d-none @else d- @endunless">
-                         <a class="nav-link {{ request()->routeIs('admin.assignment-calendar') && !request()->routeIs('admin.pending-schedules.*') ? 'active' : '' }}"
-                              href="{{ route('admin.assignment-calendar') }}">
+               @can('booking_schedule')
+                    <li class="nav-item">
+                         <a class="nav-link {{ request()->routeIs('admin.pending-schedules.*') ? 'active' : '' }}"
+                              href="{{ route('admin.pending-schedules.index') }}">
                               <span class="nav-icon">
                                    <i class="ri-calendar-todo-line"></i>
                               </span>
-                              <span class="nav-text">Assignment Calender</span>
+                              <span class="nav-text">Pending Schedules</span>
+                              @php
+                                   $pendingCount = \App\Models\Booking::whereIn('status', ['schedul_pending', 'reschedul_pending'])->count();
+                              @endphp
+                              @if($pendingCount > 0)
+                                   <span class="badge bg-warning ms-auto">{{ $pendingCount }}</span>
+                              @endif
                          </a>
                     </li>
+               @endcan
 
-                    @unlessrole('photographer')
+               @can('booking_manage_assignees')
+                    <li class="nav-item ">
+                         <a class="nav-link {{ request()->routeIs('admin.booking-assignees.*') ? 'active' : '' }}"
+                              href="{{ route('admin.booking-assignees.index') }}">
+                              <span class="nav-icon">
+                                   <i class="ri-camera-lens-line"></i>
+                              </span>
+                              <span class="nav-text">Booking Assignees</span>
+                         </a>
+                    </li>
+               @endcan
+
+               <li class="nav-item @unlessrole('photographer') d-none @else d- @endunless">
+                    <a class="nav-link {{ request()->routeIs('admin.assignment-calendar') && !request()->routeIs('admin.pending-schedules.*') ? 'active' : '' }}"
+                         href="{{ route('admin.assignment-calendar') }}">
+                         <span class="nav-icon">
+                              <i class="ri-calendar-todo-line"></i>
+                         </span>
+                         <span class="nav-text">Assignment Calender</span>
+                    </a>
+               </li>
+
+                    {{-- @unlessrole('photographer')
                          <li class="nav-item ">
                               <a class="nav-link {{ request()->routeIs('admin.booking-assignees.*') ? 'active' : '' }}"
                                    href="{{ route('admin.booking-assignees.index') }}">
@@ -95,8 +108,8 @@
                                    <span class="nav-text">Booking Assignees</span>
                               </a>
                          </li>
-                    @endunlessrole
-               @endcan
+                    @endunlessrole --}}
+               
 
                <!-- photographer -->
                 @can('photographer_visit_view')
@@ -111,7 +124,7 @@
                @endcan
 
                @can('tour_view')
-                    <li class="nav-item">
+                    <li class="nav-item d-none">
                          <a class="nav-link {{ request()->routeIs('admin.tours.*') ? 'active' : '' }}"
                               href="{{ route('admin.tours.index') }}">
                               <span class="nav-icon">
@@ -122,31 +135,31 @@
                     </li>
                @endcan
 
-               <li class="nav-item">
-                    <a class="nav-link {{ request()->routeIs('admin.tour-manager.*') ? 'active' : '' }}"
-                         href="{{ route('admin.tour-manager.index') }}">
-                         <span class="nav-icon">
-                              <i class="ri-calendar-schedule-line"></i>
-                         </span>
-                         <span class="nav-text">Tour Manager</span>
-                    </a>
-               </li>
+               @can('tour_manager_view')
+                    <li class="nav-item">
+                         <a class="nav-link {{ request()->routeIs('admin.tour-manager.*') ? 'active' : '' }}"
+                              href="{{ route('admin.tour-manager.index') }}">
+                              <span class="nav-icon">
+                                   <i class="ri-calendar-schedule-line"></i>
+                              </span>
+                              <span class="nav-text">Tour Manager</span>
+                         </a>
+                    </li>
+               @endcan
 
+               @can('tour_notification_view')
+                    <li class="nav-item">
+                         <a class="nav-link {{ request()->routeIs('admin.tour-notifications.*') ? 'active' : '' }}"
+                              href="{{ route('admin.tour-notifications.index') }}">
+                              <span class="nav-icon">
+                                   <i class="ri-notification-line"></i>
+                              </span>
+                              <span class="nav-text">Notify Tour</span>
+                         </a>
+                    </li>
+               @endcan
 
-               {{-- @can('portfolio_view') --}}
-               <li class="nav-item">
-                    <a class="nav-link {{ request()->routeIs('admin.portfolios.*') ? 'active' : '' }}"
-                         href="{{ route('admin.portfolios.index') }}">
-                         <span class="nav-icon">
-                              <i class="ri-profile-line"></i>
-                         </span>
-                         <span class="nav-text">Portfolio</span>
-                    </a>
-               </li>
-               {{-- @endcan --}}
-
-
-               @canany(['user_view', 'role_view', 'permission_view', 'activity_view', 'media_view'])
+               @canany(['user_view', 'role_view', 'permission_view', 'activity_view', 'media_view', 'setting_view', 'setting_booking_schedule', 'setting_photographer', 'setting_base_price', 'setting_payment_gateway', 'setting_sms_configuration', 'setting_ftp_configuration'])
                     <li class="menu-title">System</li>
 
                     @can('user_view')
@@ -212,7 +225,7 @@
 
                     @can('qr_view')
                          <li class="nav-item">
-                              <a class="nav-link {{ request()->routeIs('admin.qr.*') ? 'active' : '' }}"
+                              <a class="nav-link {{ request()->routeIs('admin.qr.*') && !request()->routeIs('admin.qr-analytics.*') ? 'active' : '' }}"
                                    href="{{ route('admin.qr.index') }}">
                                    <span class="nav-icon">
                                         <i class="ri-qr-code-line"></i>
@@ -222,8 +235,31 @@
                          </li>
                     @endcan
 
+                    @can('qr_analytics_view')
+                    <li class="nav-item">
+                         <a class="nav-link {{ request()->routeIs('admin.qr-analytics.*') ? 'active' : '' }}"
+                              href="{{ route('admin.qr-analytics.index') }}">
+                              <span class="nav-icon">
+                                   <i class="ri-bar-chart-line"></i>
+                              </span>
+                              <span class="nav-text">QR Activity</span>
+                         </a>
+                    </li>
+                    @endcan
 
-                    @can('setting_view')
+                    @canany(['report_view', 'report_sales', 'report_reveneu' ])
+                         <li class="nav-item">
+                              <a class="nav-link {{ request()->routeIs('admin.reports.*') ? 'active' : '' }}"
+                                   href="{{ route('admin.reports.index') }}">
+                                   <span class="nav-icon">
+                                        <i class="ri-file-chart-line"></i>
+                                   </span>
+                                   <span class="nav-text">Reports</span>
+                              </a>
+                         </li>
+                    @endcanany
+                    
+                    @canany(['setting_view', 'setting_booking_schedule', 'setting_photographer', 'setting_base_price', 'setting_payment_gateway', 'setting_sms_configuration', 'setting_ftp_configuration'])
                          <li class="nav-item">
                               <a class="nav-link {{ request()->routeIs('admin.settings.*') ? 'active' : '' }}"
                                    href="{{ route('admin.settings.index') }}">
@@ -233,7 +269,7 @@
                                    <span class="nav-text">Settings</span>
                               </a>
                          </li>
-                    @endcan
+                    @endcanany
                @endcanany
 
           </ul>
