@@ -919,13 +919,62 @@ class TourController extends Controller
             return redirect()->back()->with(['warning' => 'Tour updated, but files were not uploaded to S3 because final JSON was empty.', 'active_tab' => 'tour']);
         }
 
-        //  create a new js file with updated final json
-        $jsonString = json_encode(
-            $finalJson,
-            JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
-        );
+        // Update JSON and JS files in S3
+        $this->updateTourJsonAndJsFilesInS3($tour, $finalJson);
 
-        $jsFileContent = '
+        // Return JSON response for AJAX requests
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Tour updated successfully'
+            ]);
+        }
+
+        return redirect()->back()->with(['success' => 'Tour updated successfully from booking edit.', 'active_tab' => 'tour']);
+    }
+
+    /**
+     * Update tour JSON and JS files in S3 storage
+     * 
+     * @param Tour $tour The tour model
+     * @param array $finalJson The final JSON data to save
+     * @return bool True if successful, false otherwise
+     */
+    private function updateTourJsonAndJsFilesInS3(Tour $tour, array $finalJson): bool
+    {
+        // Check if tour has a booking
+        if (!$tour->booking_id) {
+            \Log::warning('Cannot update tour files - no booking associated', ['tour_id' => $tour->id]);
+            return false;
+        }
+
+        try {
+            // Get QR code for the tour
+            $qrCode = QR::where('booking_id', $tour->booking_id)->value('code');
+            
+            if (!$qrCode) {
+                \Log::warning('Cannot update tour files - no QR code found', ['booking_id' => $tour->booking_id]);
+                return false;
+            }
+
+            // Check if finalJson is empty
+            if (empty($finalJson)) {
+                \Log::info('Skipping S3 update - final_json is empty', ['tour_id' => $tour->id]);
+                return false;
+            }
+
+            // Build S3 paths
+            $jsPath = 'tours/' . $qrCode . '/assets/js/tour-data.js';
+            $jsonPath = 'tours/' . $qrCode . '/virtual-tour-nodes.json';
+
+            // Create JSON string
+            $jsonString = json_encode(
+                $finalJson,
+                JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+            );
+
+            // Create JS file content with helper functions
+            $jsFileContent = '
         window.EMBEDDED_TOUR_DATA= ' . $jsonString . '
         // Helper function to extract YouTube video ID from URL
         window.extractYouTubeVideoId = function(url) {
@@ -959,24 +1008,30 @@ class TourController extends Controller
         return iframe;
         };';
 
-        // encript the js code and testing things.
-        $obfuscatedJs = obfuscateJs($jsFileContent);
+            // Obfuscate JS
+            $obfuscatedJs = obfuscateJs($jsFileContent);
 
-        // Upload the JS file to S3
-        Storage::disk('s3')->put($jsPath, $obfuscatedJs, ['ContentType' => 'application/javascript']);
+            // Upload files to S3
+            Storage::disk('s3')->put($jsPath, $obfuscatedJs, ['ContentType' => 'application/javascript']);
+            Storage::disk('s3')->put($jsonPath, $jsonString, ['ContentType' => 'application/json']);
 
-        // update the json file of virtual-tour-nodes.json
-        Storage::disk('s3')->put('tours/' . $qr_code . '/virtual-tour-nodes.json', $jsonString, ['ContentType' => 'application/json']);
-
-        // Return JSON response for AJAX requests
-        if ($request->expectsJson()) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Tour updated successfully'
+            \Log::info('Tour JSON and JS files updated successfully in S3', [
+                'tour_id' => $tour->id,
+                'qr_code' => $qrCode,
+                'js_path' => $jsPath,
+                'json_path' => $jsonPath
             ]);
-        }
 
-        return redirect()->back()->with(['success' => 'Tour updated successfully from booking edit.', 'active_tab' => 'tour']);
+            return true;
+
+        } catch (\Exception $e) {
+            \Log::error('Error updating tour JSON and JS files in S3', [
+                'tour_id' => $tour->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return false;
+        }
     }
 
     /**
@@ -1314,6 +1369,9 @@ class TourController extends Controller
             ])
             ->log('Contact information updated');
 
+        // Update JSON and JS files in S3
+        $this->updateTourJsonAndJsFilesInS3($tour, $final_json);
+
         // Return JSON response for AJAX requests
         if ($request->expectsJson()) {
             return response()->json([
@@ -1435,6 +1493,9 @@ class TourController extends Controller
                 'new' => $newData,
             ])
             ->log('Tour settings updated');
+
+        // Update JSON and JS files in S3
+        $this->updateTourJsonAndJsFilesInS3($tour, $finalJson);
 
         // Return JSON response for AJAX requests
         if ($request->expectsJson()) {
