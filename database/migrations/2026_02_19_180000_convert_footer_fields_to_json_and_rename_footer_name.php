@@ -15,16 +15,28 @@ return new class extends Migration
             return;
         }
 
-        if (Schema::hasColumn('tours', 'footer_name') && !Schema::hasColumn('tours', 'footer_title')) {
-                        DB::statement("\n                UPDATE `tours`
+        if (Schema::hasColumn('tours', 'footer_name')) {
+            DB::statement("\n                UPDATE `tours`
                 SET `footer_name` = JSON_QUOTE(`footer_name`)
                 WHERE `footer_name` IS NOT NULL
                   AND JSON_VALID(`footer_name`) = 0
             ");
 
-            DB::statement("ALTER TABLE `tours` CHANGE `footer_name` `footer_title` JSON NULL");
-        } elseif (Schema::hasColumn('tours', 'footer_title')) {
-                        DB::statement("\n                UPDATE `tours`
+            if (!Schema::hasColumn('tours', 'footer_title')) {
+                DB::statement("ALTER TABLE `tours` CHANGE `footer_name` `footer_title` JSON NULL");
+            } else {
+                DB::statement("\n                    UPDATE `tours`
+                    SET `footer_title` = `footer_name`
+                    WHERE `footer_name` IS NOT NULL
+                      AND (`footer_title` IS NULL OR `footer_title` = '')
+                ");
+
+                DB::statement("ALTER TABLE `tours` DROP COLUMN `footer_name`");
+            }
+        }
+
+        if (Schema::hasColumn('tours', 'footer_title')) {
+            DB::statement("\n                UPDATE `tours`
                 SET `footer_title` = JSON_QUOTE(`footer_title`)
                 WHERE `footer_title` IS NOT NULL
                   AND JSON_VALID(`footer_title`) = 0
@@ -63,15 +75,32 @@ return new class extends Migration
             return;
         }
 
-        if (Schema::hasColumn('tours', 'footer_title') && !Schema::hasColumn('tours', 'footer_name')) {
-            DB::statement("ALTER TABLE `tours` CHANGE `footer_title` `footer_name` LONGTEXT NULL");
+        if (Schema::hasColumn('tours', 'footer_title')) {
+            if (!Schema::hasColumn('tours', 'footer_name')) {
+                DB::statement("ALTER TABLE `tours` CHANGE `footer_title` `footer_name` LONGTEXT NULL");
 
-                        DB::statement("\n                UPDATE `tours`
-                SET `footer_name` = JSON_UNQUOTE(`footer_name`)
-                WHERE `footer_name` IS NOT NULL
-                  AND JSON_VALID(`footer_name`) = 1
-                  AND JSON_TYPE(`footer_name`) = 'STRING'
-            ");
+                DB::statement("\n                    UPDATE `tours`
+                    SET `footer_name` = JSON_UNQUOTE(`footer_name`)
+                    WHERE `footer_name` IS NOT NULL
+                      AND JSON_VALID(`footer_name`) = 1
+                      AND JSON_TYPE(`footer_name`) = 'STRING'
+                ");
+            } else {
+                DB::statement("\n                    UPDATE `tours`
+                    SET `footer_name` = `footer_title`
+                    WHERE `footer_title` IS NOT NULL
+                      AND (`footer_name` IS NULL OR `footer_name` = '')
+                ");
+
+                DB::statement("ALTER TABLE `tours` DROP COLUMN `footer_title`");
+
+                DB::statement("\n                    UPDATE `tours`
+                    SET `footer_name` = JSON_UNQUOTE(`footer_name`)
+                    WHERE `footer_name` IS NOT NULL
+                      AND JSON_VALID(`footer_name`) = 1
+                      AND JSON_TYPE(`footer_name`) = 'STRING'
+                ");
+            }
         }
 
         if (Schema::hasColumn('tours', 'footer_subtitle')) {
