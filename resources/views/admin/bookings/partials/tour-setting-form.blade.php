@@ -145,7 +145,7 @@
                 @php
                     $spinnerColors = is_array($tour->spinner_color) ? $tour->spinner_color : [];
                     if (empty($spinnerColors)) {
-                        $spinnerColors = ['#b47e37', '#d4a574'];
+                        $spinnerColors = ['#b47e37', '#d4a574', '#efd477'];
                     }
                 @endphp
                 <div class="row g-2 mb-2" id="spinnerColorContainer">
