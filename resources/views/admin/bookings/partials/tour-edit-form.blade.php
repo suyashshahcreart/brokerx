@@ -284,36 +284,74 @@
                     </div>
                 </div>
 
-                <div class="col-md-12 d-flex gap-3 align-items-center mb-3">
-                    <div class="col-md-4">
-                        <label for="sidebar_footer_link_show" class="form-label">Footer button Show</label>
-                        <select name="sidebar_footer_link_show" id="sidebar_footer_link_show" class="form-select">
-                            <option value="1"
-                                {{ old('sidebar_footer_link_show', $tour->sidebar_footer_link_show) == 1 ? 'selected' : '' }}>
-                                Show</option>
-                            <option value="0"
-                                {{ old('sidebar_footer_link_show', $tour->sidebar_footer_link_show) == 0 ? 'selected' : '' }}>
-                                Hide</option>
-                        </select>
-                        @error('sidebar_footer_link_show')<div class="text-danger">{{ $message }}</div>@enderror
+                <div class="col-md-12">
+                    <h5 class="mb-3">Sidebar Tag <span class="text-muted">(optional)</span></h5>
+                    <p class="text-muted mb-3">Vertical tag on the right side of the sidebar. Leave empty to hide.</p>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <label for="sidebar_tag_text" class="form-label">Tag Title</label>
+                        <input type="text" name="sidebar_tag_text" id="sidebar_tag_text" class="form-control"
+                            placeholder="e.g, sold out"
+                            value="{{ old('sidebar_tag_text', $tour->sidebar_tag_text ?? '') }}">
+                        @error('sidebar_tag_text')<div class="text-danger">{{ $message }}</div>@enderror
                     </div>
-                    <div class="col-md-8" id="sidebar-footer-fields" style="display: none;">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <label for="sidebar_footer_text" class="form-label">Footer button Text</label>
-                                <input type="text" name="sidebar_footer_text" id="sidebar_footer_text"
-                                    class="form-control" placeholder="e.g, Designed By Prop Pik"
-                                    value="{{ old('sidebar_footer_text', $tour->sidebar_footer_text) }}">
-                                @error('sidebar_footer_text')<div class="text-danger">{{ $message }}</div>@enderror
-                            </div>
-                            <div class="col-md-6">
-                                <label for="sidebar_footer_link" class="form-label">Footer button Link</label>
-                                <input type="text" name="sidebar_footer_link" id="sidebar_footer_link"
-                                    class="form-control" placeholder="e.g, https://www.proppik.com/contact.html"
-                                    value="{{ old('sidebar_footer_link', $tour->sidebar_footer_link) }}">
-                                @error('sidebar_footer_link')<div class="text-danger">{{ $message }}</div>@enderror
-                            </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <label class="form-label" for="sidebar_tag_bg_color">Tag Background Color</label>
+                        <div class="input-group">
+                            <span class="input-group-text p-1">
+                                <input type="color" id="sidebar_tag_bg_color_picker" class="form-control form-control-color"
+                                    value="{{ old('sidebar_tag_bg_color', $tour->sidebar_tag_bg_color ?? '#ff000d') }}"
+                                    onchange="document.getElementById('sidebar_tag_bg_color').value = this.value">
+                            </span>
+                            <input type="text" name="sidebar_tag_bg_color" id="sidebar_tag_bg_color" class="form-control"
+                                placeholder="e.g. #ff000d"
+                                oninput="document.getElementById('sidebar_tag_bg_color_picker').value = this.value"
+                                value="{{ old('sidebar_tag_bg_color', $tour->sidebar_tag_bg_color ?? '#ff000d') }}">
                         </div>
+                        @error('sidebar_tag_bg_color')<div class="text-danger">{{ $message }}</div>@enderror
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <label class="form-label" for="sidebar_tag_color">Tag Text Color</label>
+                        <div class="input-group">
+                            <span class="input-group-text p-1">
+                                <input type="color" id="sidebar_tag_color_picker" class="form-control form-control-color"
+                                    value="{{ old('sidebar_tag_color', $tour->sidebar_tag_color ?? '#ffffff') }}"
+                                    onchange="document.getElementById('sidebar_tag_color').value = this.value">
+                            </span>
+                            <input type="text" name="sidebar_tag_color" id="sidebar_tag_color" class="form-control"
+                                placeholder="e.g. #ffffff"
+                                oninput="document.getElementById('sidebar_tag_color_picker').value = this.value"
+                                value="{{ old('sidebar_tag_color', $tour->sidebar_tag_color ?? '#ffffff') }}">
+                        </div>
+                        @error('sidebar_tag_color')<div class="text-danger">{{ $message }}</div>@enderror
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="made_by_text" class="form-label">Made by text <span class="text-muted">(optional)</span></label>
+                        <input type="text" name="sidebar_footer_text" id="made_by_text" class="form-control"
+                            placeholder="e.g, Prop Pik"
+                            value="{{ old('sidebar_footer_text', $tour->sidebar_footer_text ?? '') }}">
+                        @error('made_by_text')<div class="text-danger">{{ $message }}</div>@enderror
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="made_by_link" class="form-label">Made by link <span class="text-danger">*</span></label>
+                        <input type="url" name="sidebar_footer_link" id="made_by_link" class="form-control"
+                            placeholder="e.g,   https://proppik.com/contact"
+                            value="{{ old('sidebar_footer_link', $tour->sidebar_footer_link ?? '') }}">
+                        @error('made_by_link')<div class="text-danger">{{ $message }}</div>@enderror
                     </div>
                 </div>
             </div>
@@ -347,36 +385,123 @@
                         @error('footer_logo')<div class="text-danger">{{ $message }}</div>@enderror
                     </div>
                 </div>
-                <!-- <div class="col-md-6">
-                    <div class="mb-3">
-                        <label for="footer_info_type" class="form-label">Footer Info Type</label>
-                        <select name="footer_info_type" id="footer_info_type" class="form-select">
-                            <option value="company"
-                                {{ old('footer_info_type', $tour->footer_info_type) == 'company' ? 'selected' : '' }}>
-                                Company</option>
-                            <option value="agent"
-                                {{ old('footer_info_type', $tour->footer_info_type) == 'agent' ? 'selected' : '' }}>
-                                Agent</option>
-                        </select>
-                        @error('footer_info_type')<div class="text-danger">{{ $message }}</div>@enderror
-                    </div>
-                </div> -->
-                <div class="col-md-6">
-                    <div class="mb-3">
-                        <label for="footer_name" class="form-label">Top Title</label>
-                        <input type="text" name="footer_name" id="footer_name" class="form-control" placeholder="e.g, Ramesh Mehta"
-                            value="{{ old('footer_name', $tour->footer_name) }}">
-                        @error('footer_name')<div class="text-danger">{{ $message }}</div>@enderror
+            </div>
+
+            <!-- Language tabs -->
+            <ul class="nav nav-tabs mb-3" id="footerLanguageTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="footer-lang-english-tab" data-bs-toggle="tab" data-bs-target="#footer-lang-english-pane"
+                        type="button" role="tab" aria-controls="footer-lang-english-pane" aria-selected="true">
+                        <span class="badge bg-success me-2">✓</span>English
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="footer-lang-gujarati-tab" data-bs-toggle="tab" data-bs-target="#footer-lang-gujarati-pane"
+                        type="button" role="tab" aria-controls="footer-lang-gujarati-pane" aria-selected="false">
+                        <span class="badge bg-success me-2">✓</span>Gujarati
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="footer-lang-hindi-tab" data-bs-toggle="tab" data-bs-target="#footer-lang-hindi-pane"
+                        type="button" role="tab" aria-controls="footer-lang-hindi-pane" aria-selected="false">
+                        <span class="badge bg-success me-2">✓</span>Hindi
+                    </button>
+                </li>
+            </ul>
+
+            <div class="tab-content" id="footerLanguageTabsContent">
+                <div class="tab-pane fade show active" id="footer-lang-english-pane" role="tabpanel" aria-labelledby="footer-lang-english-tab" tabindex="0">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="footer_title_en" class="form-label">Top Title (English) <span class="text-danger">*</span></label>
+                                <input type="text" name="footer_title[en]" id="footer_title_en" class="form-control" placeholder="e.g, Ramesh Mehta"
+                                    value="{{ old('footer_title.en', data_get($tour, 'footer_title.en', '')) }}">
+                                @error('footer_title.en')<div class="text-danger">{{ $message }}</div>@enderror
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="footer_subtitle_en" class="form-label">Top Sub Title (English) <span class="text-danger">*</span></label>
+                                <input type="text" name="footer_subtitle[en]" id="footer_subtitle_en" class="form-control" placeholder="e.g, JK Real Estate"
+                                    value="{{ old('footer_subtitle.en', data_get($tour, 'footer_subtitle.en', '')) }}">
+                                @error('footer_subtitle.en')<div class="text-danger">{{ $message }}</div>@enderror
+                            </div>
+                        </div>
+                        <div class="col-md-12">
+                            <div class="mb-3">
+                                <label for="footer_decription_en" class="form-label">Top Description (English) <span class="text-muted">(optional)</span></label>
+                                <textarea name="footer_decription[en]" id="footer_decription_en" class="form-control"
+                                 placeholder="e.g, For Reant / For Sell / For Lease"
+                                    rows="2">{{ old('footer_decription.en', data_get($tour, 'footer_decription.en', '')) }}</textarea>
+                                @error('footer_decription.en')<div class="text-danger">{{ $message }}</div>@enderror
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="col-md-6">
-                    <div class="mb-3">
-                        <label for="footer_subtitle" class="form-label">Top Subtitle</label>
-                        <input type="text" name="footer_subtitle" id="footer_subtitle" class="form-control" placeholder="e.g, JK Real Estate"
-                            value="{{ old('footer_subtitle', $tour->footer_subtitle) }}">
-                        @error('footer_subtitle')<div class="text-danger">{{ $message }}</div>@enderror
+
+                <div class="tab-pane fade" id="footer-lang-gujarati-pane" role="tabpanel" aria-labelledby="footer-lang-gujarati-tab" tabindex="0">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="footer_title_gu" class="form-label">Top Title (Gujarati) <span class="text-danger">*</span></label>
+                                <input type="text" name="footer_title[gu]" id="footer_title_gu" class="form-control" placeholder="e.g, રમેશ મહતા"
+                                    value="{{ old('footer_title.gu', data_get($tour, 'footer_title.gu', '')) }}">
+                                @error('footer_title.gu')<div class="text-danger">{{ $message }}</div>@enderror
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="footer_subtitle_gu" class="form-label">Top Sub Title (Gujarati) <span class="text-danger">*</span></label>
+                                <input type="text" name="footer_subtitle[gu]" id="footer_subtitle_gu" class="form-control" placeholder="e.g, જે કે રીયલ એસ્ટેટ"
+                                    value="{{ old('footer_subtitle.gu', data_get($tour, 'footer_subtitle.gu', '')) }}">
+                                @error('footer_subtitle.gu')<div class="text-danger">{{ $message }}</div>@enderror
+                            </div>
+                        </div>
+                        <div class="col-md-12">
+                            <div class="mb-3">
+                                <label for="footer_decription_gu" class="form-label">Top Description (Gujarati) <span class="text-muted">(optional)</span></label>
+                                <textarea name="footer_decription[gu]" id="footer_decription_gu" class="form-control"
+                                 placeholder="e.g, ભાડે માટે / વેચવા માટે / ભાડે માટે"
+                                    rows="2">{{ old('footer_decription.gu', data_get($tour, 'footer_decription.gu', '')) }}</textarea>
+                                @error('footer_decription.gu')<div class="text-danger">{{ $message }}</div>@enderror
+                            </div>
+                        </div>
                     </div>
                 </div>
+
+                <div class="tab-pane fade" id="footer-lang-hindi-pane" role="tabpanel" aria-labelledby="footer-lang-hindi-tab" tabindex="0">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="footer_title_hi" class="form-label">Top Title (Hindi) <span class="text-danger">*</span></label>
+                                <input type="text" name="footer_title[hi]" id="footer_title_hi" class="form-control" placeholder="e.g, रमेश मेहता"
+                                    value="{{ old('footer_title.hi', data_get($tour, 'footer_title.hi', '')) }}">
+                                @error('footer_title.hi')<div class="text-danger">{{ $message }}</div>@enderror
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="footer_subtitle_hi" class="form-label">Top Sub Title (Hindi) <span class="text-danger">*</span></label>
+                                <input type="text" name="footer_subtitle[hi]" id="footer_subtitle_hi" class="form-control" placeholder="e.g, जे के रीयल एस्टेट"
+                                    value="{{ old('footer_subtitle.hi', data_get($tour, 'footer_subtitle.hi', '')) }}">
+                                @error('footer_subtitle.hi')<div class="text-danger">{{ $message }}</div>@enderror
+                            </div>
+                        </div>
+                        <div class="col-md-12">
+                            <div class="mb-3">
+                                <label for="footer_decription_hi" class="form-label">Top Description (Hindi) <span class="text-muted">(optional)</span></label>
+                                <textarea name="footer_decription[hi]" id="footer_decription_hi" class="form-control"
+                                 placeholder="e.g, किराए के लिए / बिक्री के लिए / पट्टे के लिए"
+                                    rows="2">{{ old('footer_decription.hi', data_get($tour, 'footer_decription.hi', '')) }}</textarea>
+                                @error('footer_decription.hi')<div class="text-danger">{{ $message }}</div>@enderror
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row mt-4">
                 <div class="col-md-6">
                     <div class="mb-3">
                         <label for="footer_email" class="form-label">Contact Email</label>
@@ -387,19 +512,10 @@
                 </div>
                 <div class="col-md-6">
                     <div class="mb-3">
-                        <label for="footer_mobile" class="form-label">Contact Mobile</label>
-                        <input type="number" name="footer_mobile" id="footer_mobile" class="form-control"
+                        <label for="footer_mobile" class="form-label">Contact Number</label>
+                        <input type="text" name="footer_mobile" id="footer_mobile" class="form-control"
                             value="{{ old('footer_mobile', $tour->footer_mobile) }}" placeholder="eg.+91 9898 363026">
                         @error('footer_mobile')<div class="text-danger">{{ $message }}</div>@enderror
-                    </div>
-                </div>
-                <div class="col-md-12">
-                    <div class="mb-3">
-                        <label for="footer_decription" class="form-label">Top Description</label>
-                        <textarea name="footer_decription" id="footer_decription" class="form-control"
-                        placeholder="e.g, For Reant / For Sell / For Lease"
-                            rows="2">{{ old('footer_decription', $tour->footer_decription) }}</textarea>
-                        @error('footer_decription')<div class="text-danger">{{ $message }}</div>@enderror
                     </div>
                 </div>
             </div>
@@ -455,6 +571,139 @@
         </div>
     </div>
 
+    <!-- Bottommark Multilingual Fields Section -->
+    <div class="card panel-card border-info border-top mt-3">
+        <div class="card-header bg-info-subtle border-info">
+            <h4 class="card-title mb-0"><i class="ri-layout-row-line"></i> Bottom Mark: Property Details</h4>
+        </div>
+        <div class="card-body">
+            <p class="text-muted mb-3">Add property details in multiple languages</p>
+
+            <!-- Language tabs -->
+            <ul class="nav nav-tabs mb-3" id="bottommarkLanguageTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="bottommark-lang-english-tab" data-bs-toggle="tab" data-bs-target="#bottommark-lang-english-pane"
+                        type="button" role="tab" aria-controls="bottommark-lang-english-pane" aria-selected="true">
+                        English
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="bottommark-lang-gujarati-tab" data-bs-toggle="tab" data-bs-target="#bottommark-lang-gujarati-pane"
+                        type="button" role="tab" aria-controls="bottommark-lang-gujarati-pane" aria-selected="false">
+                        Gujarati
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="bottommark-lang-hindi-tab" data-bs-toggle="tab" data-bs-target="#bottommark-lang-hindi-pane"
+                        type="button" role="tab" aria-controls="bottommark-lang-hindi-pane" aria-selected="false">
+                        Hindi
+                    </button>
+                </li>
+            </ul>
+
+            <div class="tab-content" id="bottommarkLanguageTabsContent">
+                <!-- English Tab -->
+                <div class="tab-pane fade show active" id="bottommark-lang-english-pane" role="tabpanel" aria-labelledby="bottommark-lang-english-tab" tabindex="0">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="bottommark_property_name_en" class="form-label">Property Name</label>
+                                <input type="text" name="bottommark_property_name_en" id="bottommark_property_name_en" class="form-control"
+                                    placeholder="e.g., 3 BHK Apartment"
+                                    value="{{ old('bottommark_property_name_en', $tour->bottommark_property_name['en'] ?? '') }}">
+                                @error('bottommark_property_name_en')<div class="text-danger">{{ $message }}</div>@enderror
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="bottommark_room_type_en" class="form-label">Room Type</label>
+                                <input type="text" name="bottommark_room_type_en" id="bottommark_room_type_en" class="form-control"
+                                    placeholder="e.g., Residential"
+                                    value="{{ old('bottommark_room_type_en', $tour->bottommark_room_type['en'] ?? '') }}">
+                                @error('bottommark_room_type_en')<div class="text-danger">{{ $message }}</div>@enderror
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="bottommark_dimensions_en" class="form-label">Dimensions</label>
+                                <input type="text" name="bottommark_dimensions_en" id="bottommark_dimensions_en" class="form-control"
+                                    placeholder="e.g., 1200 sq ft"
+                                    value="{{ old('bottommark_dimensions_en', $tour->bottommark_dimensions['en'] ?? '') }}">
+                                @error('bottommark_dimensions_en')<div class="text-danger">{{ $message }}</div>@enderror
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Gujarati Tab -->
+                <div class="tab-pane fade" id="bottommark-lang-gujarati-pane" role="tabpanel" aria-labelledby="bottommark-lang-gujarati-tab" tabindex="0">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="bottommark_property_name_gu" class="form-label">Property Name</label>
+                                <input type="text" name="bottommark_property_name_gu" id="bottommark_property_name_gu" class="form-control"
+                                    placeholder="e.g., 3 BHK એપાર્ટમેન્ટ"
+                                    value="{{ old('bottommark_property_name_gu', $tour->bottommark_property_name['gu'] ?? '') }}">
+                                @error('bottommark_property_name_gu')<div class="text-danger">{{ $message }}</div>@enderror
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="bottommark_room_type_gu" class="form-label">Room Type</label>
+                                <input type="text" name="bottommark_room_type_gu" id="bottommark_room_type_gu" class="form-control"
+                                    placeholder="e.g., રહેણાંક"
+                                    value="{{ old('bottommark_room_type_gu', $tour->bottommark_room_type['gu'] ?? '') }}">
+                                @error('bottommark_room_type_gu')<div class="text-danger">{{ $message }}</div>@enderror
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="bottommark_dimensions_gu" class="form-label">Dimensions</label>
+                                <input type="text" name="bottommark_dimensions_gu" id="bottommark_dimensions_gu" class="form-control"
+                                    placeholder="e.g., 1200 ચોક્સ ફૂટ"
+                                    value="{{ old('bottommark_dimensions_gu', $tour->bottommark_dimensions['gu'] ?? '') }}">
+                                @error('bottommark_dimensions_gu')<div class="text-danger">{{ $message }}</div>@enderror
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Hindi Tab -->
+                <div class="tab-pane fade" id="bottommark-lang-hindi-pane" role="tabpanel" aria-labelledby="bottommark-lang-hindi-tab" tabindex="0">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="bottommark_property_name_hi" class="form-label">Property Name</label>
+                                <input type="text" name="bottommark_property_name_hi" id="bottommark_property_name_hi" class="form-control"
+                                    placeholder="e.g., 3 BHK अपार्टमेंट"
+                                    value="{{ old('bottommark_property_name_hi', $tour->bottommark_property_name['hi'] ?? '') }}">
+                                @error('bottommark_property_name_hi')<div class="text-danger">{{ $message }}</div>@enderror
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="bottommark_room_type_hi" class="form-label">Room Type</label>
+                                <input type="text" name="bottommark_room_type_hi" id="bottommark_room_type_hi" class="form-control"
+                                    placeholder="e.g., आवासीय"
+                                    value="{{ old('bottommark_room_type_hi', $tour->bottommark_room_type['hi'] ?? '') }}">
+                                @error('bottommark_room_type_hi')<div class="text-danger">{{ $message }}</div>@enderror
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="bottommark_dimensions_hi" class="form-label">Dimensions</label>
+                                <input type="text" name="bottommark_dimensions_hi" id="bottommark_dimensions_hi" class="form-control"
+                                    placeholder="e.g., 1200 वर्ग फुट"
+                                    value="{{ old('bottommark_dimensions_hi', $tour->bottommark_dimensions['hi'] ?? '') }}">
+                                @error('bottommark_dimensions_hi')<div class="text-danger">{{ $message }}</div>@enderror
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Button of actions -->
     <div class="d-flex justify-content-end gap-2">
         <button class="btn btn-primary" type="submit">
@@ -469,6 +718,36 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // Color sync function for sidebar tag
+        function bindColorSync(textId, pickerId) {
+            const textInput = document.getElementById(textId);
+            const pickerInput = document.getElementById(pickerId);
+
+            if (!textInput || !pickerInput) {
+                return;
+            }
+
+            const applyToPicker = function (value) {
+                if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(value)) {
+                    pickerInput.value = value;
+                }
+            };
+
+            textInput.addEventListener('input', function (event) {
+                applyToPicker(event.target.value.trim());
+            });
+
+            pickerInput.addEventListener('input', function (event) {
+                textInput.value = event.target.value;
+            });
+
+            applyToPicker(textInput.value.trim());
+        }
+
+        // Bind sidebar tag color sync
+        bindColorSync('sidebar_tag_bg_color', 'sidebar_tag_bg_color_picker');
+        bindColorSync('sidebar_tag_color', 'sidebar_tag_color_picker');
+
         // Get Tour Active checkbox and related fields
         const isActive = document.getElementById('is_active');
         const credentialsRequiredField = document.getElementById('credentials-required-field');

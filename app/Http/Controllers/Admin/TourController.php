@@ -141,6 +141,8 @@ class TourController extends Controller
             // Custom fields
             'sidebar_logo' => ['nullable'],
             'footer_logo' => ['nullable', 'string', 'max:255'],
+            'footer_title' => ['nullable', 'array'],
+            'footer_title.*' => ['nullable', 'string'],
             'footer_name' => ['nullable', 'string', 'max:255'],
             'footer_email' => ['nullable', 'string', 'max:255'],
             'footer_mobile' => ['nullable', 'string', 'max:255'],
@@ -155,6 +157,18 @@ class TourController extends Controller
             'footer_brand_logo' => ['nullable'],
             'footer_brand_text' => ['nullable', 'string'],
             'footer_brand_mobile' => ['nullable', 'string'],
+            'sidebar_tag_text' => ['nullable', 'string', 'max:255'],
+            'sidebar_tag_color' => ['nullable', 'string', 'max:255'],
+            'sidebar_tag_bg_color' => ['nullable', 'string', 'max:255'],
+            'bottommark_property_name_en' => ['nullable', 'string'],
+            'bottommark_property_name_gu' => ['nullable', 'string'],
+            'bottommark_property_name_hi' => ['nullable', 'string'],
+            'bottommark_room_type_en' => ['nullable', 'string'],
+            'bottommark_room_type_gu' => ['nullable', 'string'],
+            'bottommark_room_type_hi' => ['nullable', 'string'],
+            'bottommark_dimensions_en' => ['nullable', 'string'],
+            'bottommark_dimensions_gu' => ['nullable', 'string'],
+            'bottommark_dimensions_hi' => ['nullable', 'string'],
         ]);
 
         // Auto-generate slug if not provided
@@ -309,6 +323,8 @@ class TourController extends Controller
             // Custom fields
             'sidebar_logo' => ['nullable'],
             'footer_logo' => ['nullable'],
+            'footer_title' => ['nullable', 'array'],
+            'footer_title.*' => ['nullable', 'string'],
             'footer_name' => ['nullable', 'string', 'max:255'],
             'footer_email' => ['nullable', 'string', 'max:255'],
             'footer_mobile' => ['nullable', 'string', 'max:255'],
@@ -323,6 +339,18 @@ class TourController extends Controller
             'footer_brand_logo' => ['nullable'],
             'footer_brand_text' => ['nullable', 'string'],
             'footer_brand_mobile' => ['nullable', 'string'],
+            'sidebar_tag_text' => ['nullable', 'string', 'max:255'],
+            'sidebar_tag_color' => ['nullable', 'string', 'max:255'],
+            'sidebar_tag_bg_color' => ['nullable', 'string', 'max:255'],
+            'bottommark_property_name_en' => ['nullable', 'string'],
+            'bottommark_property_name_gu' => ['nullable', 'string'],
+            'bottommark_property_name_hi' => ['nullable', 'string'],
+            'bottommark_room_type_en' => ['nullable', 'string'],
+            'bottommark_room_type_gu' => ['nullable', 'string'],
+            'bottommark_room_type_hi' => ['nullable', 'string'],
+            'bottommark_dimensions_en' => ['nullable', 'string'],
+            'bottommark_dimensions_gu' => ['nullable', 'string'],
+            'bottommark_dimensions_hi' => ['nullable', 'string'],
         ]);
 
         // Auto-generate slug if not provided
@@ -337,6 +365,11 @@ class TourController extends Controller
                 $counter++;
             }
         }
+
+        if (isset($validated['footer_name']) && !isset($validated['footer_title'])) {
+            $validated['footer_title'] = ['en' => $validated['footer_name']];
+        }
+        unset($validated['footer_name']);
 
 
         // Temporarily remove logo fields for file upload
@@ -434,11 +467,45 @@ class TourController extends Controller
             'footer_brand_logo_text' => ['nullable', 'string'],
             'footer_brand_text' => ['nullable', 'string'],
             'footer_brand_mobile' => ['nullable', 'string'],
+            'footer_title' => ['nullable', 'array'],
+            'footer_title.en' => ['nullable', 'string'],
+            'footer_title.gu' => ['nullable', 'string'],
+            'footer_title.hi' => ['nullable', 'string'],
+            'footer_subtitle' => ['nullable', 'array'],
+            'footer_subtitle.en' => ['nullable', 'string'],
+            'footer_subtitle.gu' => ['nullable', 'string'],
+            'footer_subtitle.hi' => ['nullable', 'string'],
+            'footer_decription' => ['nullable', 'array'],
+            'footer_decription.en' => ['nullable', 'string'],
+            'footer_decription.gu' => ['nullable', 'string'],
+            'footer_decription.hi' => ['nullable', 'string'],
+            'footer_name_en' => ['nullable', 'string'],
+            'footer_name_gu' => ['nullable', 'string'],
+            'footer_name_hi' => ['nullable', 'string'],
+            'footer_subtitle_en' => ['nullable', 'string'],
+            'footer_subtitle_gu' => ['nullable', 'string'],
+            'footer_subtitle_hi' => ['nullable', 'string'],
+            'footer_decription_en' => ['nullable', 'string'],
+            'footer_decription_gu' => ['nullable', 'string'],
+            'footer_decription_hi' => ['nullable', 'string'],
             'footer_name' => ['nullable', 'string'],
-            'footer_subtitle' => ['nullable', 'string'],
             'footer_email' => ['nullable', 'string'],
             'footer_mobile' => ['nullable', 'string'],
-            'footer_decription' => ['nullable', 'string'],
+            'sidebar_tag_text' => ['nullable', 'string', 'max:255'],
+            'sidebar_tag_color' => ['nullable', 'string', 'max:255'],
+            'sidebar_tag_bg_color' => ['nullable', 'string', 'max:255'],
+            // Bottommark multilingual fields
+            'bottommark_property_name_en' => ['nullable', 'string'],
+            'bottommark_property_name_gu' => ['nullable', 'string'],
+            'bottommark_property_name_hi' => ['nullable', 'string'],
+            'bottommark_room_type_en' => ['nullable', 'string'],
+            'bottommark_room_type_gu' => ['nullable', 'string'],
+            'bottommark_room_type_hi' => ['nullable', 'string'],
+            'bottommark_dimensions_en' => ['nullable', 'string'],
+            'bottommark_dimensions_gu' => ['nullable', 'string'],
+            'bottommark_dimensions_hi' => ['nullable', 'string'],
+            'made_by_text' => ['nullable', 'string'],
+            'made_by_link' => ['nullable', 'string', 'max:500'],
             'is_active' => ['nullable', 'boolean'],
             'is_credentials' => ['nullable', 'boolean'],
             'is_mobile_validation' => ['nullable', 'boolean'],
@@ -485,23 +552,147 @@ class TourController extends Controller
         // Ensure expected structure exists before updates
         $finalJson['sidebarConfig'] = $finalJson['sidebarConfig'] ?? [];
         $finalJson['sidebarConfig']['footerButton'] = $finalJson['sidebarConfig']['footerButton'] ?? [];
+        $finalJson['sidebarConfig']['sidebarTag'] = $finalJson['sidebarConfig']['sidebarTag'] ?? [];
         $finalJson['bottomMarker'] = $finalJson['bottomMarker'] ?? [];
 
-        // update the sidebar data in json;
-        $finalJson['sidebarConfig']['footerButton']['text'] = $validated['sidebar_footer_text'];
-        $finalJson['sidebarConfig']['footerButton']['link'] = $validated['sidebar_footer_link'];
-        $finalJson['sidebarConfig']['footerButton']['show'] = $validated['sidebar_footer_link_show'];
-        // footer data update in json
-        // $finalJson['bottomMarker']
-        $finalJson['bottomMarker']['topTitle'] = $validated['footer_name'];
-        $finalJson['bottomMarker']['topSubTitle'] = $validated['footer_subtitle'];
-        $finalJson['bottomMarker']['topDescription'] = $validated['footer_decription'];
-        $finalJson['bottomMarker']['contactNumber'] = $validated['footer_mobile'];
-        $finalJson['bottomMarker']['contactEmail'] = $validated['footer_email'];
+        // Update sidebar footer button JSON while preserving multilingual structure if present
+        $existingFooterButtonText = $finalJson['sidebarConfig']['footerButton']['text'] ?? [];
+        if (!is_array($existingFooterButtonText)) {
+            $existingFooterButtonText = ['en' => $existingFooterButtonText];
+        }
+        if (array_key_exists('sidebar_footer_text', $validated)) {
+            $existingFooterButtonText['en'] = $validated['sidebar_footer_text'];
+        }
+        $finalJson['sidebarConfig']['footerButton']['text'] = $existingFooterButtonText;
+        if (array_key_exists('sidebar_footer_link', $validated)) {
+            $finalJson['sidebarConfig']['footerButton']['link'] = $validated['sidebar_footer_link'];
+        }
+        if (array_key_exists('sidebar_footer_link_show', $validated)) {
+            $finalJson['sidebarConfig']['footerButton']['show'] = (bool) $validated['sidebar_footer_link_show'];
+        }
 
-        // footer brand info update in json
-        $finalJson['bottomMarker']['tourContactText'] = $validated['footer_brand_text'];
-        $finalJson['bottomMarker']['tourContactNumber'] = $validated['footer_brand_mobile'];
+        // Sidebar tag and made-by info
+        if (array_key_exists('sidebar_tag_text', $validated)) {
+            $finalJson['sidebarConfig']['sidebarTag']['text'] = $validated['sidebar_tag_text'];
+        }
+        if (array_key_exists('sidebar_tag_color', $validated)) {
+            $finalJson['sidebarConfig']['sidebarTag']['color'] = $validated['sidebar_tag_color'];
+        }
+        if (array_key_exists('sidebar_tag_bg_color', $validated)) {
+            $finalJson['sidebarConfig']['sidebarTag']['backgroundColor'] = $validated['sidebar_tag_bg_color'];
+        }
+
+        $existingMadeByText = $finalJson['bottomMarker']['madeByText'] ?? [];
+        if (!is_array($existingMadeByText)) {
+            $existingMadeByText = ['en' => $existingMadeByText];
+        }
+        if (array_key_exists('made_by_text', $validated)) {
+            $existingMadeByText['en'] = $validated['made_by_text'];
+        }
+        $finalJson['bottomMarker']['madeByText'] = $existingMadeByText;
+        if (array_key_exists('made_by_link', $validated)) {
+            $finalJson['bottomMarker']['madeByLink'] = $validated['made_by_link'];
+        }
+
+        // Handle bottommark multilingual fields (property name, room type, dimensions)
+        $resolveBotommarkField = function ($legacyPrefix) use ($validated) {
+            $resolved = [];
+            foreach (['en', 'gu', 'hi'] as $lang) {
+                $legacyKey = $legacyPrefix . '_' . $lang;
+                if (array_key_exists($legacyKey, $validated) && !empty($validated[$legacyKey])) {
+                    $resolved[$lang] = $validated[$legacyKey];
+                }
+            }
+            return $resolved;
+        };
+
+        $resolvedPropertyName = $resolveBotommarkField('bottommark_property_name');
+        if (!empty($resolvedPropertyName)) {
+            $finalJson['bottomMarker']['propertyName'] = $resolvedPropertyName;
+        }
+
+        $resolvedRoomType = $resolveBotommarkField('bottommark_room_type');
+        if (!empty($resolvedRoomType)) {
+            $finalJson['bottomMarker']['roomType'] = $resolvedRoomType;
+        }
+
+        $resolvedDimensions = $resolveBotommarkField('bottommark_dimensions');
+        if (!empty($resolvedDimensions)) {
+            $finalJson['bottomMarker']['dimensions'] = $resolvedDimensions;
+        }
+
+        // Normalize multilingual footer payload (supports new JSON fields and legacy flat fields)
+        $resolveLangMap = function ($field, $legacyPrefix) use ($validated) {
+            $resolved = $validated[$field] ?? [];
+            if (!is_array($resolved)) {
+                $resolved = [];
+            }
+
+            foreach (['en', 'gu', 'hi'] as $lang) {
+                $legacyKey = $legacyPrefix . '_' . $lang;
+                if (array_key_exists($legacyKey, $validated)) {
+                    $resolved[$lang] = $validated[$legacyKey];
+                }
+            }
+
+            return $resolved;
+        };
+
+        $resolvedFooterTitle = $resolveLangMap('footer_title', 'footer_name');
+        if (isset($validated['footer_name']) && !array_key_exists('en', $resolvedFooterTitle)) {
+            $resolvedFooterTitle['en'] = $validated['footer_name'];
+        }
+        $resolvedFooterSubtitle = $resolveLangMap('footer_subtitle', 'footer_subtitle');
+        $resolvedFooterDescription = $resolveLangMap('footer_decription', 'footer_decription');
+
+        // Footer multilingual fields
+        $existingTopTitle = $finalJson['bottomMarker']['topTitle'] ?? [];
+        if (!is_array($existingTopTitle)) {
+            $existingTopTitle = ['en' => $existingTopTitle];
+        }
+        foreach (['en', 'gu', 'hi'] as $lang) {
+            if (array_key_exists($lang, $resolvedFooterTitle)) {
+                $existingTopTitle[$lang] = $resolvedFooterTitle[$lang];
+            }
+        }
+        $finalJson['bottomMarker']['topTitle'] = $existingTopTitle;
+
+        $existingTopSubTitle = $finalJson['bottomMarker']['topSubTitle'] ?? [];
+        if (!is_array($existingTopSubTitle)) {
+            $existingTopSubTitle = ['en' => $existingTopSubTitle];
+        }
+        foreach (['en', 'gu', 'hi'] as $lang) {
+            if (array_key_exists($lang, $resolvedFooterSubtitle)) {
+                $existingTopSubTitle[$lang] = $resolvedFooterSubtitle[$lang];
+            }
+        }
+        $finalJson['bottomMarker']['topSubTitle'] = $existingTopSubTitle;
+
+        $existingTopDescription = $finalJson['bottomMarker']['topDescription'] ?? [];
+        if (!is_array($existingTopDescription)) {
+            $existingTopDescription = ['en' => $existingTopDescription];
+        }
+        foreach (['en', 'gu', 'hi'] as $lang) {
+            if (array_key_exists($lang, $resolvedFooterDescription)) {
+                $existingTopDescription[$lang] = $resolvedFooterDescription[$lang];
+            }
+        }
+        $finalJson['bottomMarker']['topDescription'] = $existingTopDescription;
+
+        if (array_key_exists('footer_mobile', $validated)) {
+            $finalJson['bottomMarker']['contactNumber'] = $validated['footer_mobile'];
+        }
+        if (array_key_exists('footer_email', $validated)) {
+            $finalJson['bottomMarker']['contactEmail'] = $validated['footer_email'];
+        }
+
+        // Footer brand info update in json
+        if (array_key_exists('footer_brand_text', $validated)) {
+            $finalJson['bottomMarker']['tourContactText'] = $validated['footer_brand_text'];
+        }
+        if (array_key_exists('footer_brand_mobile', $validated)) {
+            $finalJson['bottomMarker']['tourContactNumber'] = $validated['footer_brand_mobile'];
+        }
 
         // Handle file uploads (sidebar_logo, footer_logo, footer_brand_logo)
         $logoSidebarFile = $request->file('sidebar_logo');
@@ -509,6 +700,40 @@ class TourController extends Controller
         $logoBrandFile = $request->file('footer_brand_logo');
 
         $updateData = $validated;
+
+        // Map multilingual fields into legacy DB columns for compatibility
+        $updateData['footer_title'] = empty($resolvedFooterTitle) ? null : $resolvedFooterTitle;
+        $updateData['footer_subtitle'] = empty($resolvedFooterSubtitle) ? null : $resolvedFooterSubtitle;
+        $updateData['footer_decription'] = empty($resolvedFooterDescription) ? null : $resolvedFooterDescription;
+        // Map bottommark multilingual fields into DB columns
+        $updateData['bottommark_property_name'] = empty($resolvedPropertyName) ? null : $resolvedPropertyName;
+        $updateData['bottommark_room_type'] = empty($resolvedRoomType) ? null : $resolvedRoomType;
+        $updateData['bottommark_dimensions'] = empty($resolvedDimensions) ? null : $resolvedDimensions;
+
+        // Form-only keys should only update final_json, not DB columns
+        unset(
+            $updateData['footer_name_en'],
+            $updateData['footer_name_gu'],
+            $updateData['footer_name_hi'],
+            $updateData['footer_name'],
+            $updateData['footer_subtitle_en'],
+            $updateData['footer_subtitle_gu'],
+            $updateData['footer_subtitle_hi'],
+            $updateData['footer_decription_en'],
+            $updateData['footer_decription_gu'],
+            $updateData['footer_decription_hi'],
+            $updateData['made_by_text'],
+            $updateData['made_by_link'],
+            $updateData['bottommark_property_name_en'],
+            $updateData['bottommark_property_name_gu'],
+            $updateData['bottommark_property_name_hi'],
+            $updateData['bottommark_room_type_en'],
+            $updateData['bottommark_room_type_gu'],
+            $updateData['bottommark_room_type_hi'],
+            $updateData['bottommark_dimensions_en'],
+            $updateData['bottommark_dimensions_gu'],
+            $updateData['bottommark_dimensions_hi']
+        );
 
         // Sidebar logo
         if ($logoSidebarFile && $qr_code) {
@@ -629,18 +854,18 @@ class TourController extends Controller
         try {
             // Refresh tour to ensure we have fresh relationships
             $tour->refresh();
-            
+
             // Load booking relationship if not already loaded
             if (!$tour->relationLoaded('booking')) {
                 $tour->load('booking');
             }
-            
+
             $booking = $tour->booking;
             if ($booking && !empty($booking->tour_code)) {
                 // Check if Cloudflare credentials are configured
                 $zoneId = getCloudflareZoneId();
                 $apiToken = getCloudflareApiToken();
-                
+
                 if (!$zoneId || !$apiToken) {
                     \Log::info('Cloudflare cache purge skipped - credentials not configured', [
                         'tour_id' => $tour->id,
@@ -650,7 +875,7 @@ class TourController extends Controller
                     $cloudflareService = app(\App\Services\CloudflareCacheService::class);
                     $prefix = $cloudflareService->buildTourPrefix($booking->tour_code);
                     $purgeResult = $cloudflareService->purgeByPrefixes([$prefix]);
-                    
+
                     // Log purge result (success or failure) but don't fail the request
                     if (!$purgeResult['success']) {
                         \Log::warning('Cloudflare cache purge failed after tour update', [
@@ -694,13 +919,62 @@ class TourController extends Controller
             return redirect()->back()->with(['warning' => 'Tour updated, but files were not uploaded to S3 because final JSON was empty.', 'active_tab' => 'tour']);
         }
 
-        //  create a new js file with updated final json
-        $jsonString = json_encode(
-            $finalJson,
-            JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
-        );
+        // Update JSON and JS files in S3
+        $this->updateTourJsonAndJsFilesInS3($tour, $finalJson);
 
-        $jsFileContent = '
+        // Return JSON response for AJAX requests
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Tour updated successfully'
+            ]);
+        }
+
+        return redirect()->back()->with(['success' => 'Tour updated successfully from booking edit.', 'active_tab' => 'tour']);
+    }
+
+    /**
+     * Update tour JSON and JS files in S3 storage
+     * 
+     * @param Tour $tour The tour model
+     * @param array $finalJson The final JSON data to save
+     * @return bool True if successful, false otherwise
+     */
+    private function updateTourJsonAndJsFilesInS3(Tour $tour, array $finalJson): bool
+    {
+        // Check if tour has a booking
+        if (!$tour->booking_id) {
+            \Log::warning('Cannot update tour files - no booking associated', ['tour_id' => $tour->id]);
+            return false;
+        }
+
+        try {
+            // Get QR code for the tour
+            $qrCode = QR::where('booking_id', $tour->booking_id)->value('code');
+            
+            if (!$qrCode) {
+                \Log::warning('Cannot update tour files - no QR code found', ['booking_id' => $tour->booking_id]);
+                return false;
+            }
+
+            // Check if finalJson is empty
+            if (empty($finalJson)) {
+                \Log::info('Skipping S3 update - final_json is empty', ['tour_id' => $tour->id]);
+                return false;
+            }
+
+            // Build S3 paths
+            $jsPath = 'tours/' . $qrCode . '/assets/js/tour-data.js';
+            $jsonPath = 'tours/' . $qrCode . '/virtual-tour-nodes.json';
+
+            // Create JSON string
+            $jsonString = json_encode(
+                $finalJson,
+                JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+            );
+
+            // Create JS file content with helper functions
+            $jsFileContent = '
         window.EMBEDDED_TOUR_DATA= ' . $jsonString . '
         // Helper function to extract YouTube video ID from URL
         window.extractYouTubeVideoId = function(url) {
@@ -734,24 +1008,30 @@ class TourController extends Controller
         return iframe;
         };';
 
-        // encript the js code and testing things.
-        $obfuscatedJs = obfuscateJs($jsFileContent);
+            // Obfuscate JS
+            $obfuscatedJs = obfuscateJs($jsFileContent);
 
-        // Upload the JS file to S3
-        Storage::disk('s3')->put($jsPath, $obfuscatedJs, ['ContentType' => 'application/javascript']);
+            // Upload files to S3
+            Storage::disk('s3')->put($jsPath, $obfuscatedJs, ['ContentType' => 'application/javascript']);
+            Storage::disk('s3')->put($jsonPath, $jsonString, ['ContentType' => 'application/json']);
 
-        // update the json file of virtual-tour-nodes.json
-        Storage::disk('s3')->put('tours/' . $qr_code . '/virtual-tour-nodes.json', $jsonString, ['ContentType' => 'application/json']);
-
-        // Return JSON response for AJAX requests
-        if ($request->expectsJson()) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Tour updated successfully'
+            \Log::info('Tour JSON and JS files updated successfully in S3', [
+                'tour_id' => $tour->id,
+                'qr_code' => $qrCode,
+                'js_path' => $jsPath,
+                'json_path' => $jsonPath
             ]);
-        }
 
-        return redirect()->back()->with(['success' => 'Tour updated successfully from booking edit.', 'active_tab' => 'tour']);
+            return true;
+
+        } catch (\Exception $e) {
+            \Log::error('Error updating tour JSON and JS files in S3', [
+                'tour_id' => $tour->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return false;
+        }
     }
 
     /**
@@ -960,4 +1240,274 @@ class TourController extends Controller
             'message' => 'Tour unlinked from booking successfully',
         ]);
     }
+
+    /**
+     * Update contact information for a tour
+     */
+    public function updateContactInfo(Request $request, Tour $tour)
+    {
+        $validated = $request->validate([
+            'contact_google_location' => ['nullable', 'string', 'max:255'],
+            'contact_website' => ['nullable', 'url', 'max:255'],
+            'contact_email' => ['nullable', 'email', 'max:255'],
+            'contact_phone_no' => ['nullable', 'string', 'max:20'],
+            'contact_whatsapp_no' => ['nullable', 'string', 'max:20'],
+            // New validation rules for attachments
+            'attachment_file' => ['nullable', 'array'],
+            'attachment_file.*.type' => ['nullable', 'string', 'in:image,video,document'],
+            'attachment_file.*.tooltip' => ['nullable', 'string', 'max:255'],
+            'attachment_file.*.file' => ['nullable', 'file', 'max:10240'], // 10MB max
+            'attachment_file.*.action' => ['nullable', 'string', 'in:modal,download'],
+        ]);
+
+        $oldData = $tour->toArray();
+        $final_json = $tour->toArray()['final_json'] ?? [];
+
+        // Process attachment files
+        $attachmentFiles = [];
+        if ($request->has('attachment_file')) {
+            $existingAttachments = $tour->attachment_file ?? [];
+
+            foreach ($request->input('attachment_file') as $index => $attachment) {
+                // Skip if all fields are empty
+                if (
+                    empty($attachment['type']) && empty($attachment['tooltip']) &&
+                    empty($attachment['action']) && !$request->hasFile("attachment_file.{$index}.file")
+                ) {
+                    // Keep existing attachment if it exists
+                    if (isset($existingAttachments[$index])) {
+                        $attachmentFiles[] = $existingAttachments[$index];
+                    }
+                    continue;
+                }
+
+                $attachmentData = [
+                    'documentType' => $attachment['type'] ?? $existingAttachments[$index]['documentType'] ?? null,
+                    'documentTooltip' => $attachment['tooltip'] ?? $existingAttachments[$index]['documentTooltip'] ?? null,
+                    'documentAction' => $attachment['action'] ?? $existingAttachments[$index]['documentAction'] ?? 'modal',
+                ];
+
+                // Handle file upload
+                if ($request->hasFile("attachment_file.{$index}.file")) {
+                    $file = $request->file("attachment_file.{$index}.file");
+                    if ($file->isValid()) {
+                        $fileName = time() . '_' . $index . '_' . Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME)) . '.' . $file->getClientOriginalExtension();
+                        $path = $file->storeAs('attachments', $fileName, 'public');
+
+                        $attachmentData['documentUrl'] = 'storage/' . $path;
+                        $attachmentData['documentFileName'] = $fileName;
+                    }
+                } else {
+
+                    if ($request->input("attachment_file.{$index}.link")) {
+                        $attachmentData['documentUrl'] = $request->input("attachment_file.{$index}.link");
+                    } else {
+                        // Keep existing file data if no new file uploaded
+                        $attachmentData['documentUrl'] = $existingAttachments[$index]['documentUrl'] ?? null;
+                        $attachmentData['documentFileName'] = $existingAttachments[$index]['documentFileName'] ?? null;
+                    }
+                }
+
+                $attachmentFiles[] = $attachmentData;
+            }
+        }
+
+        $userInfo = $final_json['userInfo'] ?? [];
+        
+        // Update the contact info of the user.
+        $userInfo['googleLocation'] = $validated['contact_google_location'] ?? null;
+        $userInfo['website'] = $validated['contact_website'] ?? null;
+        $userInfo['email'] = $validated['contact_email'] ?? null;
+        $userInfo['phoneNumber'] = $validated['contact_phone_no'] ?? null;
+        $userInfo['whatsAppNumber'] = $validated['contact_whatsapp_no'] ?? null;
+        $userInfo['autoRotateOnLoad'] = $validated['autoRotateOnLoad'] ?? false;
+
+        // Update validated data with processed attachments
+        if (!empty($attachmentFiles)) {
+            $validated['attachment_file'] = $attachmentFiles;
+
+            foreach ($attachmentFiles as $index => $doc) {
+
+                // First document has no suffix
+                $suffix = $index === 0 ? '' : $index + 1;
+
+                $userInfo["documentType{$suffix}"] = $doc['documentType'] ?? null;
+                $userInfo["documentUrl{$suffix}"] = $doc['documentUrl'] ?? null;
+                $userInfo["documentTooltip{$suffix}"] = $doc['documentTooltip'] ?? null;
+                $userInfo["documentAction{$suffix}"] = $doc['documentAction'] ?? null;
+
+                // Only set fileName if exists
+                if (!empty($doc['documentFileName'])) {
+                    $userInfo["documentFileName{$suffix}"] = $doc['documentFileName'];
+                }
+
+                // Optional: if second document is video
+                if ($suffix === '2' && ($doc['documentType'] ?? null) === 'video') {
+                    $userInfo["documentIsYouTube2"] = false;
+                }
+            }
+        } else {
+            $validated['attachment_file'] = null;
+        }
+
+        $final_json['userInfo'] = $userInfo;
+        
+        // Add final_json to validated data to save in DB
+        $validated['final_json'] = $final_json;
+        
+        $oldData = $tour->toArray();
+        $tour->update($validated);
+        $newData = $tour->fresh()->toArray();
+
+        // Log activity
+        activity('tours')
+            ->performedOn($tour)
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'old' => $oldData,
+                'new' => $newData,
+            ])
+            ->log('Contact information updated');
+
+        // Update JSON and JS files in S3
+        $this->updateTourJsonAndJsFilesInS3($tour, $final_json);
+
+        // Return JSON response for AJAX requests
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Contact information updated successfully.',
+                'tour' => $tour->fresh(),
+            ]);
+        }
+
+        return redirect()->back()->with(['success' => 'Contact information updated successfully.', 'active_tab' => 'contact']);
+    }
+
+    /**
+     * Update tour settings (language and other settings)
+     */
+    public function updateTourSettings(Request $request, Tour $tour)
+    {
+        $validated = $request->validate([
+            // language settings validation
+            'enable_language' => ['nullable', 'array'],
+            'enable_language.*' => ['string'],
+            'default_language' => ['nullable', 'string', 'max:10'],
+            //Loader settings validation
+            'overlay_bg_color' => ['nullable', 'string', 'max:255'],
+            'loader_text' => ['nullable', 'string', 'max:255'],
+            'loader_color' => ['nullable', 'array'],
+            'loader_color.*' => ['string'],
+            'spinner_color' => ['nullable', 'array'],
+            'spinner_color.*' => ['string'],
+        ]);
+
+        // Ensure array fields are arrays or null
+        if (isset($validated['enable_language'])) {
+            $validated['enable_language'] = array_values($validated['enable_language']);
+        } else {
+            $validated['enable_language'] = null;
+        }
+
+        if (isset($validated['loader_color'])) {
+            $validated['loader_color'] = array_values($validated['loader_color']);
+        } else {
+            $validated['loader_color'] = null;
+        }
+
+        if (isset($validated['spinner_color'])) {
+            $validated['spinner_color'] = array_values($validated['spinner_color']);
+        } else {
+            $validated['spinner_color'] = null;
+        }
+
+        $oldData = $tour->toArray();
+
+        // Normalize final_json from DB (can be array, JSON string, or empty)
+        $rawFinalJson = $tour->final_json;
+        $finalJson = [];
+
+        if (is_array($rawFinalJson)) {
+            $finalJson = $rawFinalJson;
+        } elseif (is_string($rawFinalJson) && trim($rawFinalJson) !== '') {
+            $decoded = json_decode($rawFinalJson, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                $finalJson = $decoded;
+            }
+        } elseif (is_object($rawFinalJson)) {
+            $decoded = json_decode(json_encode($rawFinalJson), true);
+            $finalJson = is_array($decoded) ? $decoded : [];
+        }
+
+        // Initialize or update loaderConfig in final_json
+        $finalJson['loaderConfig'] = $finalJson['loaderConfig'] ?? [];
+        
+        // Update loader configuration in JSON
+        if (!empty($validated['overlay_bg_color'])) {
+            $finalJson['loaderConfig']['overlayBackgroundColor'] = $validated['overlay_bg_color'];
+        }
+        if (!empty($validated['loader_text'])) {
+            $finalJson['loaderConfig']['loadingText'] = $validated['loader_text'];
+        }
+        if (!empty($validated['loader_color'])) {
+            // Map array colors to gradient colors (assuming 3 colors for gradient)
+            $finalJson['loaderConfig']['spinnerGradientColor1'] = $validated['loader_color'][0] ?? null;
+            $finalJson['loaderConfig']['spinnerGradientColor2'] = $validated['loader_color'][1] ?? null;
+            $finalJson['loaderConfig']['spinnerGradientColor3'] = $validated['loader_color'][2] ?? null;
+            
+            $finalJson['loaderConfig']['textGradientColor1'] = $validated['loader_color'][0] ?? null;
+            $finalJson['loaderConfig']['textGradientColor2'] = $validated['loader_color'][1] ?? null;
+            $finalJson['loaderConfig']['textGradientColor3'] = $validated['loader_color'][2] ?? null;
+        }
+        if (!empty($validated['spinner_color'])) {
+            // Map array colors to spinner gradient (assuming 3 colors for gradient)
+            $finalJson['loaderConfig']['spinnerGradientColor1'] = $validated['spinner_color'][0] ?? null;
+            $finalJson['loaderConfig']['spinnerGradientColor2'] = $validated['spinner_color'][1] ?? null;
+            $finalJson['loaderConfig']['spinnerGradientColor3'] = $validated['spinner_color'][2] ?? null;
+        }
+
+        // Initialize or update localeConfig in final_json
+        $finalJson['localeConfig'] = $finalJson['localeConfig'] ?? [];
+        
+        // Update locale configuration in JSON
+        if (!empty($validated['enable_language'])) {
+            $finalJson['localeConfig']['enabledLanguages'] = $validated['enable_language'];
+        }
+        if (!empty($validated['default_language'])) {
+            $finalJson['localeConfig']['defaultLanguage'] = $validated['default_language'];
+        }
+
+        // Add final_json to validated data to save in DB
+        $validated['final_json'] = $finalJson;
+        
+        $tour->update($validated);
+        $newData = $tour->fresh()->toArray();
+
+        // Log activity
+        activity('tours')
+            ->performedOn($tour)
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'old' => $oldData,
+                'new' => $newData,
+            ])
+            ->log('Tour settings updated');
+
+        // Update JSON and JS files in S3
+        $this->updateTourJsonAndJsFilesInS3($tour, $finalJson);
+
+        // Return JSON response for AJAX requests
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Tour settings updated successfully.',
+                'tour' => $tour->fresh(),
+            ]);
+        }
+
+        return redirect()->back()->with(['success' => 'Tour settings updated successfully.', 'active_tab' => 'tour-setting']);
+    }
 }
+
+
