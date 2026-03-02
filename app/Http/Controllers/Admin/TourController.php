@@ -519,8 +519,6 @@ class TourController extends Controller
             'credentials.*.is_active' => ['boolean'],
         ]);
 
-        dd($validated);
-
         $qr_code = QR::where('booking_id', $tour->booking_id)->value('code');
         $jsPath = 'tours/' . $qr_code . '/assets/js/tour-data.js';
         // Handle slug uniqueness
