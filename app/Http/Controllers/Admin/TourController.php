@@ -935,9 +935,16 @@ class TourController extends Controller
 
     /**
      * Update tour JSON and JS files in S3 storage
-     * 
+     *
+     * Updates 3 files in order:
+     * 1. virtual-tour-nodes.json - other data from $finalJson, nodes preserved from S3
+     * 2. tour-data.json - other data from $finalJson, nodes preserved from S3
+     * 3. tour-data.js - same content as tour-data.json, wrapped in JS and obfuscated
+     *
+     * Nodes are NEVER overwritten with $finalJson['nodes']. Only nodes from existing S3 files are used.
+     *
      * @param Tour $tour The tour model
-     * @param array $finalJson The final JSON data to save
+     * @param array $finalJson The final JSON data to save (userInfo, bottomMarker, etc.)
      * @return bool True if successful, false otherwise
      */
     private function updateTourJsonAndJsFilesInS3(Tour $tour, array $finalJson): bool
@@ -951,7 +958,7 @@ class TourController extends Controller
         try {
             // Get QR code for the tour
             $qrCode = QR::where('booking_id', $tour->booking_id)->value('code');
-            
+
             if (!$qrCode) {
                 \Log::warning('Cannot update tour files - no QR code found', ['booking_id' => $tour->booking_id]);
                 return false;
@@ -964,18 +971,54 @@ class TourController extends Controller
             }
 
             // Build S3 paths
-            $jsPath = 'tours/' . $qrCode . '/assets/js/tour-data.js';
-            $jsonPath = 'tours/' . $qrCode . '/virtual-tour-nodes.json';
+            $virtualTourNodesPath = 'tours/' . $qrCode . '/virtual-tour-nodes.json';
+            $tourDataJsonPath = 'tours/' . $qrCode . '/assets/js/tour-data.json';
+            $tourDataJsPath = 'tours/' . $qrCode . '/assets/js/tour-data.js';
 
-            // Create JSON string
-            $jsonString = json_encode(
-                $finalJson,
+            // Fetch existing nodes from S3 - NEVER use $finalJson['nodes'], only S3
+            $existingVirtualTourNodes = [];
+            $existingTourDataJsonNodes = [];
+
+            if (Storage::disk('s3')->exists($virtualTourNodesPath)) {
+                $content = Storage::disk('s3')->get($virtualTourNodesPath);
+                $decoded = json_decode($content, true);
+                if (json_last_error() === JSON_ERROR_NONE && !empty($decoded['nodes'])) {
+                    $existingVirtualTourNodes = $decoded['nodes'];
+                }
+            }
+
+            if (Storage::disk('s3')->exists($tourDataJsonPath)) {
+                $content = Storage::disk('s3')->get($tourDataJsonPath);
+                $decoded = json_decode($content, true);
+                if (json_last_error() === JSON_ERROR_NONE && !empty($decoded['nodes'])) {
+                    $existingTourDataJsonNodes = $decoded['nodes'];
+                }
+            }
+
+            // Merge: our updates (userInfo, etc.) + nodes from S3 only (never $finalJson['nodes'])
+            $virtualTourNodesContent = $finalJson;
+            $virtualTourNodesContent['nodes'] = $existingVirtualTourNodes;
+
+            $tourDataJsonContent = $finalJson;
+            $tourDataJsonContent['nodes'] = $existingTourDataJsonNodes;
+
+            // Upload 1: virtual-tour-nodes.json (first)
+            $virtualTourNodesString = json_encode(
+                $virtualTourNodesContent,
                 JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
             );
+            Storage::disk('s3')->put($virtualTourNodesPath, $virtualTourNodesString, ['ContentType' => 'application/json']);
 
-            // Create JS file content with helper functions
+            // Upload 2: tour-data.json (second)
+            $tourDataJsonString = json_encode(
+                $tourDataJsonContent,
+                JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+            );
+            Storage::disk('s3')->put($tourDataJsonPath, $tourDataJsonString, ['ContentType' => 'application/json']);
+
+            // Upload 3: tour-data.js (third) - based on tour-data.json content
             $jsFileContent = '
-        window.EMBEDDED_TOUR_DATA= ' . $jsonString . '
+        window.EMBEDDED_TOUR_DATA= ' . $tourDataJsonString . '
         // Helper function to extract YouTube video ID from URL
         window.extractYouTubeVideoId = function(url) {
         if (!url) return null;
@@ -1008,18 +1051,15 @@ class TourController extends Controller
         return iframe;
         };';
 
-            // Obfuscate JS
             $obfuscatedJs = obfuscateJs($jsFileContent);
-
-            // Upload files to S3
-            Storage::disk('s3')->put($jsPath, $obfuscatedJs, ['ContentType' => 'application/javascript']);
-            Storage::disk('s3')->put($jsonPath, $jsonString, ['ContentType' => 'application/json']);
+            Storage::disk('s3')->put($tourDataJsPath, $obfuscatedJs, ['ContentType' => 'application/javascript']);
 
             \Log::info('Tour JSON and JS files updated successfully in S3', [
                 'tour_id' => $tour->id,
                 'qr_code' => $qrCode,
-                'js_path' => $jsPath,
-                'json_path' => $jsonPath
+                'virtual_tour_nodes_path' => $virtualTourNodesPath,
+                'tour_data_json_path' => $tourDataJsonPath,
+                'tour_data_js_path' => $tourDataJsPath,
             ]);
 
             return true;
