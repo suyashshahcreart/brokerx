@@ -491,6 +491,7 @@ class TourController extends Controller
             'footer_name' => ['nullable', 'string'],
             'footer_email' => ['nullable', 'string'],
             'footer_mobile' => ['nullable', 'string'],
+            // sidebar tag fields 
             'sidebar_tag_text' => ['nullable', 'string', 'max:255'],
             'sidebar_tag_color' => ['nullable', 'string', 'max:255'],
             'sidebar_tag_bg_color' => ['nullable', 'string', 'max:255'],
@@ -517,6 +518,8 @@ class TourController extends Controller
             'credentials.*.password' => ['required_with:credentials', 'string', 'max:255'],
             'credentials.*.is_active' => ['boolean'],
         ]);
+
+        dd($validated);
 
         $qr_code = QR::where('booking_id', $tour->booking_id)->value('code');
         $jsPath = 'tours/' . $qr_code . '/assets/js/tour-data.js';
