@@ -334,19 +334,37 @@
                                     <i class="ri-flashlight-line me-1"></i> Quick Actions
                                 </button>
                             </li>
-                            <li class="nav-item" role="presentation">
+
+                            <!-- <li class="nav-item" role="presentation">
                                 <button class="nav-link" id="tour-setting-tab" data-bs-toggle="tab"
                                     data-bs-target="#tour-setting-pane" type="button" role="tab"
                                     aria-controls="tour-setting-pane" aria-selected="false">
                                     <i class="ri-settings-2-line"></i> Tour Settings
                                 </button>
                             </li>
+
                             <li class="nav-item" role="presentation">
                                 <button class="nav-link" id="tour-tab" data-bs-toggle="tab" data-bs-target="#tour-pane"
                                     type="button" role="tab" aria-controls="tour-pane" aria-selected="false">
                                     <i class="ri-file-list-line"></i> Tour Details
                                 </button>
                             </li>
+
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="contact-info-tab" data-bs-toggle="tab"
+                                    data-bs-target="#contact-info-pane" type="button" role="tab"
+                                    aria-controls="contact-info-pane" aria-selected="false">
+                                    <i class="ri-id-card-line"></i> User Info
+                                </button>
+                            </li> -->
+
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="test-tab" data-bs-toggle="tab" data-bs-target="#test-pane"
+                                    type="button" role="tab" aria-controls="test-pane" aria-selected="false">
+                                    <i class="ri-file-list-line"></i> Tour Details
+                                </button>
+                            </li>
+
                             <li class="nav-item" role="presentation">
                                 <button class="nav-link" id="seo-tab" data-bs-toggle="tab" data-bs-target="#seo-pane"
                                     type="button" role="tab" aria-controls="seo-pane" aria-selected="false">
@@ -357,13 +375,6 @@
                                 <button class="nav-link" id="json-tab" data-bs-toggle="tab" data-bs-target="#json-pane"
                                     type="button" role="tab" aria-controls="json-pane" aria-selected="false">
                                     <i class="ri-code-s-slash-line me-1"></i> JSON
-                                </button>
-                            </li>
-                            
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link" id="test-tab" data-bs-toggle="tab" data-bs-target="#test-pane"
-                                    type="button" role="tab" aria-controls="test-pane" aria-selected="false">
-                                    <i class="ri-file-list-line"></i> Tour Details
                                 </button>
                             </li>
                         </ul>
@@ -436,6 +447,13 @@
                             @include('admin.bookings.partials.seo-form')
                         </div>
 
+                        <!-- contact-info-tab -->
+                        <div class="tab-pane fade" id="contact-info-pane" role="tabpanel" aria-labelledby="tour-setting-tab"
+                            tabindex="0">
+                            @include('admin.bookings.partials.tour-contact-form')
+                        </div>
+
+
                         <!-- JSON Tab -->
                         <div class="tab-pane fade" id="json-pane" role="tabpanel" aria-labelledby="json-tab" tabindex="0">
                             <div class="mt-3">
@@ -447,7 +465,7 @@
 
                         <!-- Tour Detail Tab's Tab -->
                         <div class="tab-pane fade" id="test-pane" role="tabpanel" aria-labelledby="test-tab" tabindex="0">
-                           @include('admin.bookings.partials.tour-testing')
+                            @include('admin.bookings.partials.tour-testing')
                         </div>
 
                     </div>
@@ -487,13 +505,13 @@
         window.bookingData = {
             id: {{ $booking->id }},
             @if($tour ?? null)
-                    tourId: {{ $tour->id }},
+                                                    tourId: {{ $tour->id }},
                 hasTour: true
             @else
                     tourId: null,
                         hasTour: false
                 @endif
-            };
+                            };
 
         // Store old values for restoration after main JS loads (for validation errors)
         window.bookingOldValues = {
@@ -507,7 +525,7 @@
             city_id: '{{ old("city_id", $booking->city_id) }}',
             different_billing_name: '{{ old("different_billing_name", ($booking->firm_name || $booking->gst_no) ? "on" : "") }}',
             has_old_data: {{ $errors->any() ? 'true' : 'false' }}
-            };
+                            };
 
         // Flag to prevent clearing fields during restoration
         window.isRestoringOldValues = false;

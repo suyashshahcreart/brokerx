@@ -63,7 +63,6 @@
         </div>
     </div>
     <div class="col-md-9">
-
         <!-- all tabs in this Div -->
         <div class="tab-content pt-0" id="vl-pills-tabContent">
 
