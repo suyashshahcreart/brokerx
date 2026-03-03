@@ -1430,6 +1430,171 @@ class TourController extends Controller
     }
 
     /**
+     * Update only tour contact information tab data.
+     */
+    public function updateTourContactInfoTab(Request $request, Tour $tour): JsonResponse|RedirectResponse
+    {
+        $validated = $request->validate([
+            'contact_google_location' => ['nullable', 'string', 'max:255'],
+            'contact_website' => ['nullable', 'url', 'max:255'],
+            'contact_email' => ['nullable', 'email', 'max:255'],
+            'contact_phone_no' => ['nullable', 'string', 'max:20'],
+            'contact_whatsapp_no' => ['nullable', 'string', 'max:20'],
+        ]);
+
+        $oldData = $tour->toArray();
+        $finalJson = $this->normalizeFinalJsonPayload($tour);
+        $userInfo = $finalJson['userInfo'] ?? [];
+
+        $userInfo['googleLocation'] = $validated['contact_google_location'] ?? null;
+        $userInfo['website'] = $validated['contact_website'] ?? null;
+        $userInfo['email'] = $validated['contact_email'] ?? null;
+        $userInfo['phoneNumber'] = $validated['contact_phone_no'] ?? null;
+        $userInfo['whatsAppNumber'] = $validated['contact_whatsapp_no'] ?? null;
+
+        $finalJson['userInfo'] = $userInfo;
+
+        $updateData = $validated;
+        $updateData['final_json'] = $finalJson;
+
+        $tour->update($updateData);
+        $newData = $tour->fresh()->toArray();
+
+        activity('tours')
+            ->performedOn($tour)
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'old' => $oldData,
+                'new' => $newData,
+            ])
+            ->log('Tour contact info tab updated');
+
+        $this->updateTourJsonAndJsFilesInS3($tour, $finalJson);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Tour contact information updated successfully.',
+                'tour' => $tour->fresh(),
+            ]);
+        }
+
+        return redirect()->back()->with(['success' => 'Tour contact information updated successfully.', 'active_tab' => 'vl-pills-tour-contact-info']);
+    }
+
+    /**
+     * Update only tour attachments tab data.
+     */
+    public function updateTourAttachmentsTab(Request $request, Tour $tour): JsonResponse|RedirectResponse
+    {
+        $validated = $request->validate([
+            'attachment_file' => ['nullable', 'array'],
+            'attachment_file.*.type' => ['nullable', 'string', 'in:image,video,document'],
+            'attachment_file.*.tooltip' => ['nullable', 'string', 'max:255'],
+            'attachment_file.*.link' => ['nullable', 'url', 'max:255'],
+            'attachment_file.*.file' => ['nullable', 'file', 'max:10240'],
+            'attachment_file.*.action' => ['nullable', 'string', 'in:modal,download'],
+        ]);
+
+        $oldData = $tour->toArray();
+        $finalJson = $this->normalizeFinalJsonPayload($tour);
+        $userInfo = $finalJson['userInfo'] ?? [];
+
+        $attachmentFiles = [];
+        if ($request->has('attachment_file')) {
+            $existingAttachments = $tour->attachment_file ?? [];
+
+            foreach ($request->input('attachment_file') as $index => $attachment) {
+                if (
+                    empty($attachment['type']) && empty($attachment['tooltip']) &&
+                    empty($attachment['action']) && empty($attachment['link']) &&
+                    !$request->hasFile("attachment_file.{$index}.file")
+                ) {
+                    if (isset($existingAttachments[$index])) {
+                        $attachmentFiles[] = $existingAttachments[$index];
+                    }
+                    continue;
+                }
+
+                $attachmentData = [
+                    'documentType' => $attachment['type'] ?? $existingAttachments[$index]['documentType'] ?? null,
+                    'documentTooltip' => $attachment['tooltip'] ?? $existingAttachments[$index]['documentTooltip'] ?? null,
+                    'documentAction' => $attachment['action'] ?? $existingAttachments[$index]['documentAction'] ?? 'modal',
+                ];
+
+                if ($request->hasFile("attachment_file.{$index}.file")) {
+                    $file = $request->file("attachment_file.{$index}.file");
+                    if ($file->isValid()) {
+                        $fileName = time() . '_' . $index . '_' . Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME)) . '.' . $file->getClientOriginalExtension();
+                        $path = $file->storeAs('attachments', $fileName, 'public');
+
+                        $attachmentData['documentUrl'] = 'storage/' . $path;
+                        $attachmentData['documentFileName'] = $fileName;
+                    }
+                } else {
+                    if (!empty($attachment['link'])) {
+                        $attachmentData['documentUrl'] = $attachment['link'];
+                    } else {
+                        $attachmentData['documentUrl'] = $existingAttachments[$index]['documentUrl'] ?? null;
+                        $attachmentData['documentFileName'] = $existingAttachments[$index]['documentFileName'] ?? null;
+                    }
+                }
+
+                $attachmentFiles[] = $attachmentData;
+            }
+        }
+
+        if (!empty($attachmentFiles)) {
+            foreach ($attachmentFiles as $index => $doc) {
+                $suffix = $index === 0 ? '' : $index + 1;
+                $userInfo["documentType{$suffix}"] = $doc['documentType'] ?? null;
+                $userInfo["documentUrl{$suffix}"] = $doc['documentUrl'] ?? null;
+                $userInfo["documentTooltip{$suffix}"] = $doc['documentTooltip'] ?? null;
+                $userInfo["documentAction{$suffix}"] = $doc['documentAction'] ?? null;
+
+                if (!empty($doc['documentFileName'])) {
+                    $userInfo["documentFileName{$suffix}"] = $doc['documentFileName'];
+                }
+
+                if ($suffix === '2' && ($doc['documentType'] ?? null) === 'video') {
+                    $userInfo['documentIsYouTube2'] = false;
+                }
+            }
+        }
+
+        $finalJson['userInfo'] = $userInfo;
+
+        $updateData = [
+            'attachment_file' => empty($attachmentFiles) ? null : $attachmentFiles,
+            'final_json' => $finalJson,
+        ];
+
+        $tour->update($updateData);
+        $newData = $tour->fresh()->toArray();
+
+        activity('tours')
+            ->performedOn($tour)
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'old' => $oldData,
+                'new' => $newData,
+            ])
+            ->log('Tour attachments tab updated');
+
+        $this->updateTourJsonAndJsFilesInS3($tour, $finalJson);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Tour attachments updated successfully.',
+                'tour' => $tour->fresh(),
+            ]);
+        }
+
+        return redirect()->back()->with(['success' => 'Tour attachments updated successfully.', 'active_tab' => 'vl-pills-attachments']);
+    }
+
+    /**
      * Update tour settings (language and other settings)
      */
     public function updateTourSettings(Request $request, Tour $tour)

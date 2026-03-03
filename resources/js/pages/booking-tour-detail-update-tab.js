@@ -297,7 +297,78 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     };
 
+    const syncBottomMarkLanguageTabs = function () {
+        const enabledLangInputs = document.querySelectorAll('#languageTabUpdateForm input[name="enable_language[]"]');
+        if (enabledLangInputs.length === 0) {
+            return;
+        }
+
+        const enabledLanguages = Array.from(enabledLangInputs)
+            .filter((input) => input.checked)
+            .map((input) => input.value);
+
+        const languagesToShow = enabledLanguages.length > 0 ? enabledLanguages : ['en'];
+
+        const tabGroups = [
+            {
+                tabsSelector: '#testingFooterLanguageTabs [data-language]',
+                panesSelector: '#testingFooterLanguageTabsContent .tab-pane[data-language]'
+            },
+            {
+                tabsSelector: '#testingBottommarkLanguageTabs [data-language]',
+                panesSelector: '#testingBottommarkLanguageTabsContent .tab-pane[data-language]'
+            }
+        ];
+
+        tabGroups.forEach((group) => {
+            const tabButtons = Array.from(document.querySelectorAll(group.tabsSelector));
+            const panes = Array.from(document.querySelectorAll(group.panesSelector));
+
+            tabButtons.forEach((button) => {
+                const lang = button.getAttribute('data-language');
+                const shouldShow = !!lang && languagesToShow.includes(lang);
+                const navItem = button.closest('.nav-item');
+
+                if (navItem) {
+                    navItem.classList.toggle('d-none', !shouldShow);
+                } else {
+                    button.classList.toggle('d-none', !shouldShow);
+                }
+
+                if (!shouldShow) {
+                    button.classList.remove('active');
+                    button.setAttribute('aria-selected', 'false');
+                }
+            });
+
+            panes.forEach((pane) => {
+                const lang = pane.getAttribute('data-language');
+                const shouldShow = !!lang && languagesToShow.includes(lang);
+                pane.classList.toggle('d-none', !shouldShow);
+
+                if (!shouldShow) {
+                    pane.classList.remove('active', 'show');
+                }
+            });
+
+            const activeTabButton = tabButtons.find((button) => button.classList.contains('active') && !button.closest('.nav-item')?.classList.contains('d-none'));
+
+            if (!activeTabButton) {
+                const firstVisibleButton = tabButtons.find((button) => !button.closest('.nav-item')?.classList.contains('d-none'));
+                if (firstVisibleButton && window.bootstrap) {
+                    new bootstrap.Tab(firstVisibleButton).show();
+                }
+            }
+        });
+    };
+
     const initTabForms = function () {
+        submitFormAjax(document.querySelector('#tourContactInfoTabUpdateForm'), {
+            loadingText: 'Updating...',
+            successMessage: 'Tour contact information updated successfully!',
+            errorMessage: 'An error occurred while updating tour contact information. Please try again.',
+        });
+
         submitFormAjax(document.querySelector('#loaderConfigTabUpdateForm'), {
             loadingText: 'Updating...',
             successMessage: 'Loader configuration updated successfully!',
@@ -308,12 +379,21 @@ document.addEventListener('DOMContentLoaded', function () {
             loadingText: 'Updating...',
             successMessage: 'Tour settings updated successfully!',
             errorMessage: 'An error occurred while updating language settings. Please try again.',
+            afterSuccess: () => {
+                syncBottomMarkLanguageTabs();
+            },
         });
 
         submitFormAjax(document.querySelector('#sidebarTabUpdateForm'), {
             loadingText: 'Updating...',
             successMessage: 'Tour details updated successfully!',
             errorMessage: 'An error occurred while updating sidebar section. Please try again.',
+        });
+
+        submitFormAjax(document.querySelector('#attachmentsTabUpdateForm'), {
+            loadingText: 'Updating...',
+            successMessage: 'Tour attachments updated successfully!',
+            errorMessage: 'An error occurred while updating attachments. Please try again.',
         });
 
         submitFormAjax(document.querySelector('#bottomTopTabUpdateForm'), {
@@ -332,4 +412,11 @@ document.addEventListener('DOMContentLoaded', function () {
     persistPillState();
     initBasicInfoFields();
     initTabForms();
+
+    const enabledLanguageInputs = document.querySelectorAll('#languageTabUpdateForm input[name="enable_language[]"]');
+    enabledLanguageInputs.forEach((input) => {
+        input.addEventListener('change', syncBottomMarkLanguageTabs);
+    });
+
+    syncBottomMarkLanguageTabs();
 });

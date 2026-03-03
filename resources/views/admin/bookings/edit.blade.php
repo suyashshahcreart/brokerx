@@ -335,13 +335,6 @@
                                 </button>
                             </li>
                             <li class="nav-item" role="presentation">
-                                <button class="nav-link" id="contact-info-tab" data-bs-toggle="tab"
-                                    data-bs-target="#contact-info-pane" type="button" role="tab"
-                                    aria-controls="contact-info-pane" aria-selected="false">
-                                    <i class="ri-id-card-line"></i> User Info
-                                </button>
-                            </li>
-                            <li class="nav-item" role="presentation">
                                 <button class="nav-link" id="tour-setting-tab" data-bs-toggle="tab"
                                     data-bs-target="#tour-setting-pane" type="button" role="tab"
                                     aria-controls="tour-setting-pane" aria-selected="false">
@@ -423,14 +416,8 @@
                             @include('admin.bookings.partials.quick-actions')
                         </div>
 
-                        <!-- contact-info-tab -->
-                        <div class="tab-pane fade" id="contact-info-pane" role="tabpanel" aria-labelledby="tour-setting-tab"
-                            tabindex="0">
-                            @include('admin.bookings.partials.tour-contact-form')
-                        </div>
-
                         <!-- tour-setting-tab -->
-                        <div class="tab-pane fade" id="tour-setting-pane" role="tabpanel" aria-labelledby="contact-info-tab"
+                        <div class="tab-pane fade" id="tour-setting-pane" role="tabpanel" aria-labelledby="tour-setting-tab"
                             tabindex="0">
                             @include('admin.bookings.partials.tour-setting-form')
                         </div>
@@ -472,7 +459,7 @@
 
 <!-- script section  -->
 @section('script')
-    @vite(['resources/js/pages/bookings-edit.js', 'resources/js/pages/edit-booking-tour.js', 'resources/js/pages/edit-booking-contact-info.js', 'resources/js/pages/edit-booking-tour-settings.js'])
+    @vite(['resources/js/pages/bookings-edit.js', 'resources/js/pages/edit-booking-tour.js', 'resources/js/pages/edit-booking-tour-settings.js'])
     @include('admin.bookings.partials.quick-actions-script')
     <script>
         // Persist active tab across reloads

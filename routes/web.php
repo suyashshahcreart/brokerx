@@ -210,6 +210,8 @@ Route::group(['prefix' => 'ppadmlog', 'as' => 'admin.', 'middleware' => ['web', 
     Route::put('admin/tours/{tour}/update-tour-basic-info-tab', [TourController::class, 'UpdateBasicInfoOfTourDetails'])->name('tours.UpdateBasicInfoTourTab');
     Route::put('admin/tours/{tour}/update-tour-loader-config-tab', [TourController::class, 'updateTourLoaderConfigTab'])->name('tours.updateTourLoaderConfigTab');
     Route::put('admin/tours/{tour}/update-tour-language-tab', [TourController::class, 'updateTourLanguageTab'])->name('tours.updateTourLanguageTab');
+    Route::put('admin/tours/{tour}/update-tour-contact-info-tab', [TourController::class, 'updateTourContactInfoTab'])->name('tours.updateTourContactInfoTab');
+    Route::put('admin/tours/{tour}/update-tour-attachments-tab', [TourController::class, 'updateTourAttachmentsTab'])->name('tours.updateTourAttachmentsTab');
     Route::put('admin/tours/{tour}/update-tour-sidebar-tab', [TourController::class, 'updateTourSidebarTab'])->name('tours.updateTourSidebarTab');
     Route::put('admin/tours/{tour}/update-tour-bottom-top-tab', [TourController::class, 'updateTourBottomTopTab'])->name('tours.updateTourBottomTopTab');
     Route::put('admin/tours/{tour}/update-tour-bottom-property-tab', [TourController::class, 'updateTourBottomPropertyTab'])->name('tours.updateTourBottomPropertyTab');

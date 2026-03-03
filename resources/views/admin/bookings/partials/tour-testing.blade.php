@@ -18,6 +18,13 @@
                 <i class="ri-translate-2 me-2"></i>
                 <span>Language Section</span>
             </a>
+            <a class="nav-link {{ ($firstActiveTab === 'vl-pills-tour-contact-info') ? 'active show' : '' }}"
+                id="vl-pills-tour-contact-info-tab" data-bs-toggle="pill" href="#vl-pills-tour-contact-info"
+                role="tab" aria-controls="vl-pills-tour-contact-info"
+                aria-selected="{{ ($firstActiveTab === 'vl-pills-tour-contact-info') ? 'true' : 'false' }}">
+                <i class="ri-contacts-line me-2"></i>
+                <span>Tour Contact Information</span>
+            </a>
             <a class="nav-link {{ ($firstActiveTab === 'vl-pills-loader-config') ? 'active show' : '' }}"
                 id="vl-pills-loader-config-tab" data-bs-toggle="pill" href="#vl-pills-loader-config" role="tab"
                 aria-controls="vl-pills-loader-config"
@@ -31,6 +38,13 @@
                 aria-selected="{{ ($firstActiveTab === 'vl-pills-sidebar-section') ? 'true' : 'false' }}">
                 <i class="ri-layout-left-line me-2"></i>
                 <span>Sidebar Section</span>
+            </a>
+            <a class="nav-link {{ ($firstActiveTab === 'vl-pills-attachments') ? 'active show' : '' }}"
+                id="vl-pills-attachments-tab" data-bs-toggle="pill" href="#vl-pills-attachments" role="tab"
+                aria-controls="vl-pills-attachments"
+                aria-selected="{{ ($firstActiveTab === 'vl-pills-attachments') ? 'true' : 'false' }}">
+                <i class="ri-attachment-line me-2"></i>
+                <span>Attachments</span>
             </a>
             <a class="nav-link {{ ($firstActiveTab === 'vl-pills-bottom-mark-top') ? 'active show' : '' }}"
                 id="vl-pills-bottom-mark-top-tab" data-bs-toggle="pill" href="#vl-pills-bottom-mark-top" role="tab"
@@ -430,6 +444,87 @@
                 </div>
             </div>
 
+            <div class="tab-pane fade {{ ($firstActiveTab === 'vl-pills-tour-contact-info') ? 'active show' : '' }}"
+                id="vl-pills-tour-contact-info" role="tabpanel" aria-labelledby="vl-pills-tour-contact-info-tab">
+                <div class="card border-1 shadow-sm">
+                    <div class="card-header">
+                        <h4 class="card-title mb-0">Tour Contact Information</h4>
+                    </div>
+                    <div class="card-body">
+                        <form id="tourContactInfoTabUpdateForm" method="POST"
+                            action="{{ route('admin.tours.updateTourContactInfoTab', $tour) }}"
+                            class="needs-validation" novalidate>
+                            @csrf
+                            @method('PUT')
+                            <input type="hidden" name="booking_id" value="{{ $booking->id }}">
+
+                            <div class="row">
+                                <div class="col-lg-6">
+                                    <div class="mb-3">
+                                        <label class="form-label" for="tour_contact_google_location">Google Location <span
+                                                class="text-muted">(optional)</span></label>
+                                        <input type="text" name="contact_google_location" id="tour_contact_google_location"
+                                            class="form-control" placeholder="e.g., https://maps.google.com/?q=123+Main+St"
+                                            value="{{ old('contact_google_location', $tour->contact_google_location ?? '') }}">
+                                        @error('contact_google_location')<div class="text-danger">{{ $message }}</div>@enderror
+                                    </div>
+                                </div>
+
+                                <div class="col-lg-6">
+                                    <div class="mb-3">
+                                        <label class="form-label" for="tour_contact_website">Website <span
+                                                class="text-muted">(optional)</span></label>
+                                        <input type="text" name="contact_website" id="tour_contact_website" class="form-control"
+                                            placeholder="e.g, https://example.com"
+                                            value="{{ old('contact_website', $tour->contact_website ?? '') }}">
+                                        @error('contact_website')<div class="text-danger">{{ $message }}</div>@enderror
+                                    </div>
+                                </div>
+
+                                <div class="col-lg-6">
+                                    <div class="mb-3">
+                                        <label class="form-label" for="tour_contact_email">Email <span
+                                                class="text-muted">(optional)</span></label>
+                                        <input type="email" name="contact_email" id="tour_contact_email" class="form-control"
+                                            placeholder="e.g, contact@example.com"
+                                            value="{{ old('contact_email', $tour->contact_email ?? '') }}">
+                                        @error('contact_email')<div class="text-danger">{{ $message }}</div>@enderror
+                                    </div>
+                                </div>
+
+                                <div class="col-lg-6">
+                                    <div class="mb-3">
+                                        <label class="form-label" for="tour_contact_phone_no">Phone Number <span
+                                                class="text-muted">(optional)</span></label>
+                                        <input type="text" name="contact_phone_no" id="tour_contact_phone_no" class="form-control"
+                                            placeholder="e.g, +91 9876543210"
+                                            value="{{ old('contact_phone_no', $tour->contact_phone_no ?? '') }}">
+                                        @error('contact_phone_no')<div class="text-danger">{{ $message }}</div>@enderror
+                                    </div>
+                                </div>
+
+                                <div class="col-lg-6">
+                                    <div class="mb-3">
+                                        <label class="form-label" for="tour_contact_whatsapp_no">WhatsApp Number <span
+                                                class="text-muted">(optional)</span></label>
+                                        <input type="text" name="contact_whatsapp_no" id="tour_contact_whatsapp_no" class="form-control"
+                                            placeholder="e.g, +91 9876543210"
+                                            value="{{ old('contact_whatsapp_no', $tour->contact_whatsapp_no ?? '') }}">
+                                        @error('contact_whatsapp_no')<div class="text-danger">{{ $message }}</div>@enderror
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="d-flex justify-content-end mt-3">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="ri-save-line me-1"></i> Update Tour Contact Information
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
             <!-- Loader Configuration Tab -->
             <div class="tab-pane fade {{ ($firstActiveTab === 'vl-pills-loader-config') ? 'active show' : '' }}"
                 id="vl-pills-loader-config" role="tabpanel" aria-labelledby="vl-pills-loader-config-tab">
@@ -693,6 +788,186 @@
                 </div>
             </div>
 
+            <div class="tab-pane fade {{ ($firstActiveTab === 'vl-pills-attachments') ? 'active show' : '' }}"
+                id="vl-pills-attachments" role="tabpanel" aria-labelledby="vl-pills-attachments-tab">
+                <div class="card border-1 shadow-sm">
+                    <div class="card-header">
+                        <h4 class="card-title mb-0">Attachments</h4>
+                    </div>
+                    <div class="card-body">
+                        <form id="attachmentsTabUpdateForm" method="POST"
+                            action="{{ route('admin.tours.updateTourAttachmentsTab', $tour) }}"
+                            enctype="multipart/form-data" class="needs-validation" novalidate>
+                            @csrf
+                            @method('PUT')
+                            <input type="hidden" name="booking_id" value="{{ $booking->id }}">
+
+                            <ul class="nav nav-tabs mb-3" id="tourAttachmentsTabs" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active" id="tour-attachment-1-tab" data-bs-toggle="tab"
+                                        data-bs-target="#tour-attachment-1-pane" type="button" role="tab"
+                                        aria-controls="tour-attachment-1-pane" aria-selected="true">Attachment 1</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="tour-attachment-2-tab" data-bs-toggle="tab"
+                                        data-bs-target="#tour-attachment-2-pane" type="button" role="tab"
+                                        aria-controls="tour-attachment-2-pane" aria-selected="false">Attachment 2</button>
+                                </li>
+                            </ul>
+
+                            <div class="tab-content" id="tourAttachmentsTabsContent">
+                                @php
+                                    $attachment1 = isset($tour->attachment_file[0]) ? $tour->attachment_file[0] : null;
+                                @endphp
+                                <div class="tab-pane fade show active" id="tour-attachment-1-pane" role="tabpanel"
+                                    aria-labelledby="tour-attachment-1-tab" tabindex="0">
+                                    <h6 class="mb-3">Attachment 1 (Image, Video, or Document)</h6>
+
+                                    <div class="mb-3">
+                                        <label class="form-label">Type <span class="text-muted">(optional)</span></label>
+                                        <div class="d-flex flex-wrap gap-4">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio" name="attachment_file[0][type]"
+                                                    id="tour_attachment_0_type_image" value="image"
+                                                    {{ old('attachment_file.0.type', $attachment1['documentType'] ?? 'image') == 'image' ? 'checked' : '' }}>
+                                                <label class="form-check-label" for="tour_attachment_0_type_image">Image</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio" name="attachment_file[0][type]"
+                                                    id="tour_attachment_0_type_video" value="video"
+                                                    {{ old('attachment_file.0.type', $attachment1['documentType'] ?? '') == 'video' ? 'checked' : '' }}>
+                                                <label class="form-check-label" for="tour_attachment_0_type_video">Video</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio" name="attachment_file[0][type]"
+                                                    id="tour_attachment_0_type_document" value="document"
+                                                    {{ old('attachment_file.0.type', $attachment1['documentType'] ?? '') == 'document' ? 'checked' : '' }}>
+                                                <label class="form-check-label" for="tour_attachment_0_type_document">Document</label>
+                                            </div>
+                                        </div>
+                                        @error('attachment_file.0.type')<div class="text-danger">{{ $message }}</div>@enderror
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label" for="tour_attachment_0_tooltip">Tooltip <span class="text-muted">(optional)</span></label>
+                                        <input type="text" name="attachment_file[0][tooltip]" id="tour_attachment_0_tooltip" class="form-control"
+                                            placeholder="e.g., Tour Brochure"
+                                            value="{{ old('attachment_file.0.tooltip', $attachment1['documentTooltip'] ?? '') }}">
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label" for="tour_attachment_0_link">Link URL <span class="text-muted">(optional)</span></label>
+                                        <input type="url" name="attachment_file[0][link]" id="tour_attachment_0_link" class="form-control"
+                                            placeholder="e.g, http://www.example.com/assets/image.jpeg"
+                                            value="{{ old('attachment_file.0.link', $attachment1['documentUrl'] ?? '') }}">
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label" for="tour_attachment_0_file">Or Upload File <span class="text-muted">(optional)</span></label>
+                                        <input type="file" name="attachment_file[0][file]" id="tour_attachment_0_file" class="form-control"
+                                            accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx">
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label">Action <span class="text-muted">(optional)</span></label>
+                                        <div class="d-flex flex-wrap gap-4">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio" name="attachment_file[0][action]"
+                                                    id="tour_attachment_0_action_modal" value="modal"
+                                                    {{ old('attachment_file.0.action', $attachment1['documentAction'] ?? 'modal') == 'modal' ? 'checked' : '' }}>
+                                                <label class="form-check-label" for="tour_attachment_0_action_modal">View in modal</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio" name="attachment_file[0][action]"
+                                                    id="tour_attachment_0_action_download" value="download"
+                                                    {{ old('attachment_file.0.action', $attachment1['documentAction'] ?? '') == 'download' ? 'checked' : '' }}>
+                                                <label class="form-check-label" for="tour_attachment_0_action_download">Download</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                @php
+                                    $attachment2 = isset($tour->attachment_file[1]) ? $tour->attachment_file[1] : null;
+                                @endphp
+                                <div class="tab-pane fade" id="tour-attachment-2-pane" role="tabpanel"
+                                    aria-labelledby="tour-attachment-2-tab" tabindex="0">
+                                    <h6 class="mb-3">Attachment 2 (Image, Video, or Document)</h6>
+
+                                    <div class="mb-3">
+                                        <label class="form-label">Type <span class="text-muted">(optional)</span></label>
+                                        <div class="d-flex flex-wrap gap-4">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio" name="attachment_file[1][type]"
+                                                    id="tour_attachment_1_type_image" value="image"
+                                                    {{ old('attachment_file.1.type', $attachment2['documentType'] ?? 'image') == 'image' ? 'checked' : '' }}>
+                                                <label class="form-check-label" for="tour_attachment_1_type_image">Image</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio" name="attachment_file[1][type]"
+                                                    id="tour_attachment_1_type_video" value="video"
+                                                    {{ old('attachment_file.1.type', $attachment2['documentType'] ?? '') == 'video' ? 'checked' : '' }}>
+                                                <label class="form-check-label" for="tour_attachment_1_type_video">Video</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio" name="attachment_file[1][type]"
+                                                    id="tour_attachment_1_type_document" value="document"
+                                                    {{ old('attachment_file.1.type', $attachment2['documentType'] ?? '') == 'document' ? 'checked' : '' }}>
+                                                <label class="form-check-label" for="tour_attachment_1_type_document">Document</label>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label" for="tour_attachment_1_tooltip">Tooltip <span class="text-muted">(optional)</span></label>
+                                        <input type="text" name="attachment_file[1][tooltip]" id="tour_attachment_1_tooltip" class="form-control"
+                                            placeholder="e.g., Property Documents"
+                                            value="{{ old('attachment_file.1.tooltip', $attachment2['documentTooltip'] ?? '') }}">
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label" for="tour_attachment_1_link">Link URL <span class="text-muted">(optional)</span></label>
+                                        <input type="url" name="attachment_file[1][link]" id="tour_attachment_1_link" class="form-control"
+                                            placeholder="e.g, http://www.example.com/assets/image.jpeg"
+                                            value="{{ old('attachment_file.1.link', $attachment2['documentUrl'] ?? '') }}">
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label" for="tour_attachment_1_file">Or Upload File <span class="text-muted">(optional)</span></label>
+                                        <input type="file" name="attachment_file[1][file]" id="tour_attachment_1_file" class="form-control"
+                                            accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx">
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label">Action <span class="text-muted">(optional)</span></label>
+                                        <div class="d-flex flex-wrap gap-4">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio" name="attachment_file[1][action]"
+                                                    id="tour_attachment_1_action_modal" value="modal"
+                                                    {{ old('attachment_file.1.action', $attachment2['documentAction'] ?? 'modal') == 'modal' ? 'checked' : '' }}>
+                                                <label class="form-check-label" for="tour_attachment_1_action_modal">View in modal</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio" name="attachment_file[1][action]"
+                                                    id="tour_attachment_1_action_download" value="download"
+                                                    {{ old('attachment_file.1.action', $attachment2['documentAction'] ?? '') == 'download' ? 'checked' : '' }}>
+                                                <label class="form-check-label" for="tour_attachment_1_action_download">Download</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="d-flex justify-content-end mt-3">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="ri-save-line me-1"></i> Update Attachments
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
             <!--  Bottom Mark: Top section  -->
             <div class="tab-pane fade {{ ($firstActiveTab === 'vl-pills-bottom-mark-top') ? 'active show' : '' }}"
                 id="vl-pills-bottom-mark-top" role="tabpanel" aria-labelledby="vl-pills-bottom-mark-top-tab">
@@ -736,6 +1011,7 @@
                             <ul class="nav nav-tabs mb-3" id="testingFooterLanguageTabs" role="tablist">
                                 <li class="nav-item" role="presentation">
                                     <button class="nav-link active" id="testing-footer-lang-english-tab"
+                                        data-language="en"
                                         data-bs-toggle="tab" data-bs-target="#testing-footer-lang-english-pane"
                                         type="button" role="tab" aria-controls="testing-footer-lang-english-pane"
                                         aria-selected="true">
@@ -743,14 +1019,14 @@
                                     </button>
                                 </li>
                                 <li class="nav-item" role="presentation">
-                                    <button class="nav-link" id="testing-footer-lang-gujarati-tab" data-bs-toggle="tab"
+                                    <button class="nav-link" id="testing-footer-lang-gujarati-tab" data-language="gu" data-bs-toggle="tab"
                                         data-bs-target="#testing-footer-lang-gujarati-pane" type="button" role="tab"
                                         aria-controls="testing-footer-lang-gujarati-pane" aria-selected="false">
                                         <span class="badge bg-success me-2">✓</span>Gujarati
                                     </button>
                                 </li>
                                 <li class="nav-item" role="presentation">
-                                    <button class="nav-link" id="testing-footer-lang-hindi-tab" data-bs-toggle="tab"
+                                    <button class="nav-link" id="testing-footer-lang-hindi-tab" data-language="hi" data-bs-toggle="tab"
                                         data-bs-target="#testing-footer-lang-hindi-pane" type="button" role="tab"
                                         aria-controls="testing-footer-lang-hindi-pane" aria-selected="false">
                                         <span class="badge bg-success me-2">✓</span>Hindi
@@ -759,7 +1035,7 @@
                             </ul>
 
                             <div class="tab-content" id="testingFooterLanguageTabsContent">
-                                <div class="tab-pane fade show active" id="testing-footer-lang-english-pane"
+                                <div class="tab-pane fade show active" id="testing-footer-lang-english-pane" data-language="en"
                                     role="tabpanel" aria-labelledby="testing-footer-lang-english-tab" tabindex="0">
                                     <div class="row">
                                         <div class="col-md-6">
@@ -799,7 +1075,7 @@
                                     </div>
                                 </div>
 
-                                <div class="tab-pane fade" id="testing-footer-lang-gujarati-pane" role="tabpanel"
+                                <div class="tab-pane fade" id="testing-footer-lang-gujarati-pane" data-language="gu" role="tabpanel"
                                     aria-labelledby="testing-footer-lang-gujarati-tab" tabindex="0">
                                     <div class="row">
                                         <div class="col-md-6">
@@ -839,7 +1115,7 @@
                                     </div>
                                 </div>
 
-                                <div class="tab-pane fade" id="testing-footer-lang-hindi-pane" role="tabpanel"
+                                <div class="tab-pane fade" id="testing-footer-lang-hindi-pane" data-language="hi" role="tabpanel"
                                     aria-labelledby="testing-footer-lang-hindi-tab" tabindex="0">
                                     <div class="row">
                                         <div class="col-md-6">
@@ -928,7 +1204,7 @@
                             <!-- Language tabs -->
                             <ul class="nav nav-tabs mb-3" id="testingBottommarkLanguageTabs" role="tablist">
                                 <li class="nav-item" role="presentation">
-                                    <button class="nav-link active" id="testing-bottommark-lang-english-tab"
+                                    <button class="nav-link active" id="testing-bottommark-lang-english-tab" data-language="en"
                                         data-bs-toggle="tab" data-bs-target="#testing-bottommark-lang-english-pane"
                                         type="button" role="tab" aria-controls="testing-bottommark-lang-english-pane"
                                         aria-selected="true">
@@ -936,7 +1212,7 @@
                                     </button>
                                 </li>
                                 <li class="nav-item" role="presentation">
-                                    <button class="nav-link" id="testing-bottommark-lang-gujarati-tab"
+                                    <button class="nav-link" id="testing-bottommark-lang-gujarati-tab" data-language="gu"
                                         data-bs-toggle="tab" data-bs-target="#testing-bottommark-lang-gujarati-pane"
                                         type="button" role="tab" aria-controls="testing-bottommark-lang-gujarati-pane"
                                         aria-selected="false">
@@ -944,7 +1220,7 @@
                                     </button>
                                 </li>
                                 <li class="nav-item" role="presentation">
-                                    <button class="nav-link" id="testing-bottommark-lang-hindi-tab" data-bs-toggle="tab"
+                                    <button class="nav-link" id="testing-bottommark-lang-hindi-tab" data-language="hi" data-bs-toggle="tab"
                                         data-bs-target="#testing-bottommark-lang-hindi-pane" type="button" role="tab"
                                         aria-controls="testing-bottommark-lang-hindi-pane" aria-selected="false">
                                         Hindi
@@ -954,7 +1230,7 @@
 
                             <div class="tab-content" id="testingBottommarkLanguageTabsContent">
                                 <!-- English Tab -->
-                                <div class="tab-pane fade show active" id="testing-bottommark-lang-english-pane"
+                                <div class="tab-pane fade show active" id="testing-bottommark-lang-english-pane" data-language="en"
                                     role="tabpanel" aria-labelledby="testing-bottommark-lang-english-tab" tabindex="0">
                                     <div class="row">
                                         <div class="col-md-4">
@@ -999,7 +1275,7 @@
                                 </div>
 
                                 <!-- Gujarati Tab -->
-                                <div class="tab-pane fade" id="testing-bottommark-lang-gujarati-pane" role="tabpanel"
+                                <div class="tab-pane fade" id="testing-bottommark-lang-gujarati-pane" data-language="gu" role="tabpanel"
                                     aria-labelledby="testing-bottommark-lang-gujarati-tab" tabindex="0">
                                     <div class="row">
                                         <div class="col-md-4">
@@ -1044,7 +1320,7 @@
                                 </div>
 
                                 <!-- Hindi Tab -->
-                                <div class="tab-pane fade" id="testing-bottommark-lang-hindi-pane" role="tabpanel"
+                                <div class="tab-pane fade" id="testing-bottommark-lang-hindi-pane" data-language="hi" role="tabpanel"
                                     aria-labelledby="testing-bottommark-lang-hindi-tab" tabindex="0">
                                     <div class="row">
                                         <div class="col-md-4">
