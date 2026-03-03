@@ -1,3 +1,6 @@
+// CSS Import: CSS for Settings page
+import '../../css/pages/setting-index.css';
+
 // Helper function to show SweetAlert notifications
 function showContactAlert(message, type = 'success') {
     if (type === 'success') {
@@ -295,6 +298,12 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
     const initTabForms = function () {
+        submitFormAjax(document.querySelector('#loaderConfigTabUpdateForm'), {
+            loadingText: 'Updating...',
+            successMessage: 'Loader configuration updated successfully!',
+            errorMessage: 'An error occurred while updating loader configuration. Please try again.',
+        });
+
         submitFormAjax(document.querySelector('#languageTabUpdateForm'), {
             loadingText: 'Updating...',
             successMessage: 'Tour settings updated successfully!',

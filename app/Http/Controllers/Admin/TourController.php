@@ -1555,6 +1555,84 @@ class TourController extends Controller
     }
 
     /**
+     * Update only loader configuration tab data.
+     */
+    public function updateTourLoaderConfigTab(Request $request, Tour $tour): JsonResponse|RedirectResponse
+    {
+        $validated = $request->validate([
+            'overlay_bg_color' => ['nullable', 'string', 'max:255'],
+            'loader_text' => ['nullable', 'string', 'max:255'],
+            'loader_color' => ['nullable', 'array'],
+            'loader_color.*' => ['nullable', 'string'],
+            'spinner_color' => ['nullable', 'array'],
+            'spinner_color.*' => ['nullable', 'string'],
+        ]);
+
+        $validated['loader_color'] = isset($validated['loader_color'])
+            ? array_values(array_filter($validated['loader_color'], static fn($value) => !is_null($value) && $value !== ''))
+            : null;
+
+        $validated['spinner_color'] = isset($validated['spinner_color'])
+            ? array_values(array_filter($validated['spinner_color'], static fn($value) => !is_null($value) && $value !== ''))
+            : null;
+
+        $oldData = $tour->toArray();
+        $finalJson = $this->normalizeFinalJsonPayload($tour);
+        $finalJson['loaderConfig'] = $finalJson['loaderConfig'] ?? [];
+
+        if (array_key_exists('overlay_bg_color', $validated)) {
+            $finalJson['loaderConfig']['overlayBackgroundColor'] = $validated['overlay_bg_color'];
+        }
+        if (array_key_exists('loader_text', $validated)) {
+            $finalJson['loaderConfig']['loadingText'] = $validated['loader_text'];
+        }
+
+        if (!empty($validated['loader_color'])) {
+            $finalJson['loaderConfig']['textGradientColor1'] = $validated['loader_color'][0] ?? null;
+            $finalJson['loaderConfig']['textGradientColor2'] = $validated['loader_color'][1] ?? null;
+            $finalJson['loaderConfig']['textGradientColor3'] = $validated['loader_color'][2] ?? null;
+        }
+
+        if (!empty($validated['spinner_color'])) {
+            $finalJson['loaderConfig']['spinnerGradientColor1'] = $validated['spinner_color'][0] ?? null;
+            $finalJson['loaderConfig']['spinnerGradientColor2'] = $validated['spinner_color'][1] ?? null;
+            $finalJson['loaderConfig']['spinnerGradientColor3'] = $validated['spinner_color'][2] ?? null;
+        }
+
+        $updateData = [
+            'overlay_bg_color' => $validated['overlay_bg_color'] ?? null,
+            'loader_text' => $validated['loader_text'] ?? null,
+            'loader_color' => $validated['loader_color'] ?? null,
+            'spinner_color' => $validated['spinner_color'] ?? null,
+            'final_json' => $finalJson,
+        ];
+
+        $tour->update($updateData);
+        $newData = $tour->fresh()->toArray();
+
+        activity('tours')
+            ->performedOn($tour)
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'old' => $oldData,
+                'new' => $newData,
+            ])
+            ->log('Tour loader config tab updated');
+
+        $this->updateTourJsonAndJsFilesInS3($tour, $finalJson);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Loader configuration updated successfully.',
+                'tour' => $tour->fresh(),
+            ]);
+        }
+
+        return redirect()->back()->with(['success' => 'Loader configuration updated successfully.', 'active_tab' => 'vl-pills-loader-config']);
+    }
+
+    /**
      * Update only language tab data.
      */
     public function updateTourLanguageTab(Request $request, Tour $tour): JsonResponse|RedirectResponse
