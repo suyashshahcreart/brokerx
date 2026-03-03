@@ -370,7 +370,7 @@
                             <li class="nav-item" role="presentation">
                                 <button class="nav-link" id="test-tab" data-bs-toggle="tab" data-bs-target="#test-pane"
                                     type="button" role="tab" aria-controls="test-pane" aria-selected="false">
-                                    <i class="ri-code-s-slash-line me-1"></i> Testing
+                                    <i class="ri-file-list-line"></i> Tour Details
                                 </button>
                             </li>
                         </ul>
@@ -458,7 +458,7 @@
                             </div>
                         </div>
 
-                        <!-- Testing -->
+                        <!-- Tour Detail Tab's Tab -->
                         <div class="tab-pane fade" id="test-pane" role="tabpanel" aria-labelledby="test-tab" tabindex="0">
                            @include('admin.bookings.partials.tour-testing')
                         </div>
