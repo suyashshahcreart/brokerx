@@ -152,17 +152,21 @@ class OtpVerificationController extends Controller
                 ], 422);
             }
 
-            // Get latest pending OTP request
+            // Get latest pending OTP request by mobile or email
             $otpRequest = VisitorsOtpRequest::where('customer_id', $request->customer_id)
                 ->where('booking_id', $request->booking_id)
                 ->where('status', 'pending')
+                ->where(function($query) use ($request) {
+                    $query->where('visitors_mobile', $request->visitors_mobile)
+                          ->orWhere('visitors_email', $request->visitors_email);
+                })
                 ->latest()
                 ->first();
 
             if (!$otpRequest) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'No pending OTP request found',
+                    'message' => 'No pending OTP request found, send Again.',
                 ], 404);
             }
 
@@ -272,7 +276,7 @@ class OtpVerificationController extends Controller
         } catch (\Exception $e) {
             Log::error('Failed to send OTP via SMS', [
                 'error' => $e->getMessage(),
-                'mobile' => $otpRequest->customer_mobile,
+                'mobile' => $otpRequest->visitors_mobile,
             ]);
         }
     }
@@ -297,7 +301,7 @@ class OtpVerificationController extends Controller
         } catch (\Exception $e) {
             Log::error('Failed to send OTP via Email', [
                 'error' => $e->getMessage(),
-                'email' => $otpRequest->customer_email,
+                'email' => $otpRequest->visitors_email,
             ]);
         }
     }
