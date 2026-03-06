@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\PortfolioApiController;
 use App\Http\Controllers\Api\CustomerAuthController;
 use App\Http\Controllers\Api\CustomerPortfolioController;
 use App\Http\Controllers\Api\CustomerProfileController;
+use App\Http\Controllers\Api\OtpVerificationController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -74,6 +75,10 @@ Route::middleware(['verify.portfolio.api.token'])->group(function () {
 Route::post('/customer/register', [CustomerAuthController::class, 'register']);
 Route::post('/customer/login/send-otp', [CustomerAuthController::class, 'sendOtp']);
 Route::post('/customer/login/verify-otp', [CustomerAuthController::class, 'verifyOtp']);
+
+// Customer OTP Verification APIs (for Tour Booking & Download Links)
+Route::post('/visitor/otp/send', [OtpVerificationController::class, 'sendOtp']);
+Route::post('/visitor/otp/verify', [OtpVerificationController::class, 'verifyOtp']);
 
 // Customer Portfolio API (requires customer token)
 Route::middleware('auth:sanctum')->group(function () {
