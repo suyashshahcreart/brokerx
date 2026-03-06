@@ -465,7 +465,7 @@
 
                         <!-- Tour Detail Tab's Tab -->
                         <div class="tab-pane fade" id="test-pane" role="tabpanel" aria-labelledby="test-tab" tabindex="0">
-                            @include('admin.bookings.partials.tour-testing')
+                            @include('admin.bookings.partials.tour-detail')
                         </div>
 
                     </div>
