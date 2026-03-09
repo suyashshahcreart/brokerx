@@ -54,6 +54,8 @@ class SettingController extends Controller
             'base_area' => '1500',
             'extra_area' => '500',
             'extra_area_price' => '200',
+            // Visitor OTP toggle for download link email
+            'visitor_otp_verification_email' => '0',
             // Payment Gateway defaults
             'active_payment_gateway' => '', // Comma-separated list of active gateways
             'cashfree_status' => '0',
@@ -437,6 +439,8 @@ class SettingController extends Controller
         $smsFields = ['active_sms_gateway', 'msg91_templates'];
         $ftpFields = ['ftp_configuration']; // FTP is handled separately via API routes
         $portfolioApiFields = ['portfolio_api_mobile', 'portfolio_api_token_validity_minutes', 'portfolio_api_enabled'];
+        // Contact/FTP related settings (includes support info and visitor OTP toggle)
+        $contactFields = ['support_email','support_phone','api_base_url','qr_link_base','s3_link_base','visitor_otp_verification_email'];
         
         // Check which sections are being updated and validate permissions
         $fieldsToCheck = array_keys($settingsData);
@@ -447,6 +451,16 @@ class SettingController extends Controller
                 return response()->json([
                     'success' => false,
                     'message' => 'You do not have permission to update Booking Schedule settings.'
+                ], 403);
+            }
+        }
+
+        // Check Contact/FTP permissions (used for support info and visitor OTP toggle)
+        if (array_intersect($fieldsToCheck, $contactFields)) {
+            if (!$request->user()->can('setting_ftp_configuration')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You do not have permission to update Contact information settings.'
                 ], 403);
             }
         }
@@ -599,6 +613,18 @@ class SettingController extends Controller
             }
         }
         
+        // Ensure visitor_otp_verification_email checkbox is normalized (default 0 when absent)
+        if (!isset($settingsData['visitor_otp_verification_email'])) {
+            $settingsData['visitor_otp_verification_email'] = '0';
+        } else {
+            $settingsData['visitor_otp_verification_email'] = (
+                $settingsData['visitor_otp_verification_email'] === true ||
+                $settingsData['visitor_otp_verification_email'] === '1' ||
+                $settingsData['visitor_otp_verification_email'] === 1 ||
+                $settingsData['visitor_otp_verification_email'] === 'on'
+            ) ? '1' : '0';
+        }
+
         // Separate Cashfree credentials for .env update
         $cashfreeEnvFields = ['cashfree_app_id', 'cashfree_secret_key', 'cashfree_env', 'cashfree_base_url', 'cashfree_return_url'];
         $cashfreeEnvData = [];
@@ -784,7 +810,8 @@ class SettingController extends Controller
             'portfolio_api_enabled',
             'cashfree_status',
             'payu_status',
-            'razorpay_status'
+            'razorpay_status',
+            'visitor_otp_verification_email',
         ]);
         
         // Loop through each setting and update/create

@@ -242,6 +242,14 @@ class SettingsSeeder extends Seeder
                     'updated_at' => $seedTime,
                 ],
                 [
+                    'name' => 'visitor_otp_verification_email',
+                    'value' => '0',
+                    'created_by' => $userId,
+                    'updated_by' => $userId,
+                    'created_at' => $seedTime,
+                    'updated_at' => $seedTime,
+                ],
+                [
                     'name' => 'qr_link_base',
                     'value' => 'https://qr.proppik.cloud/',
                     'created_by' => $userId,

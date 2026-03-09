@@ -73,12 +73,13 @@ import '../../css/pages/setting-index.css';
             
             // Handle checkboxes explicitly for known forms
             // Checkboxes don't send values when unchecked, so we need to explicitly add them
-            if (form.id === 'cashfreeForm' || form.id === 'payuForm' || form.id === 'razorpayForm' || form.id === 'portfolioApiForm') {
+            if (form.id === 'cashfreeForm' || form.id === 'payuForm' || form.id === 'razorpayForm' || form.id === 'portfolioApiForm' || form.id === 'settingscontactForm') {
                 const checkboxIdMap = {
                     'cashfreeForm': 'cashfree_status',
                     'payuForm': 'payu_status',
                     'razorpayForm': 'razorpay_status',
-                    'portfolioApiForm': 'portfolio_api_enabled'
+                    'portfolioApiForm': 'portfolio_api_enabled',
+                    'settingscontactForm': 'visitor_otp_verification_email'
                 };
                 const checkboxId = checkboxIdMap[form.id];
                 const checkbox = document.getElementById(checkboxId);
