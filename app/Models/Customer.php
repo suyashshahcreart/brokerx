@@ -7,11 +7,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
 class Customer extends Model
 {
-    use HasFactory,SoftDeletes, HasApiTokens;
+    use HasFactory, SoftDeletes, HasApiTokens, Notifiable;
 
     protected $fillable = [
         'firstname',

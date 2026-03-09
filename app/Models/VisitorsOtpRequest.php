@@ -60,7 +60,7 @@ class VisitorsOtpRequest extends Model
      */
     public function booking(): BelongsTo
     {
-        return $this->belongsTo(Booking::class);
+        return $this->belongsTo(Booking::class, 'booking_id');
     }
 
     /**
@@ -68,7 +68,7 @@ class VisitorsOtpRequest extends Model
      */
     public function tour(): BelongsTo
     {
-        return $this->belongsTo(Tour::class);
+        return $this->belongsTo(Tour::class, 'tour_id');
     }
 
     /**

@@ -3,13 +3,13 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Mail\agentNewInquery;
+use App\Mail\visitorOtpMaile;
+use App\Models\Tour;
 use App\Models\VisitorsOtpRequest;
 use App\Models\Customer;
 use App\Models\Booking;
-use App\Models\Tour;
 use App\Services\SmsService;
-use App\Notifications\OtpVerificationNotification;
-use App\Notifications\OtpVerifiedNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
@@ -69,7 +69,7 @@ class OtpVerificationController extends Controller
                 ], 404);
             }
 
-           
+
             // Generate 6-digit OTP
             $otp = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
             $expiresAt = now()->addMinutes(5); // OTP valid for 5 minutes
@@ -88,16 +88,10 @@ class OtpVerificationController extends Controller
             ]);
 
             // Send OTP via SMS
-            $this->sendOtpViaSms($otpRequest, $otp);
+            // $this->sendOtpViaSms($otpRequest, $otp);
 
             // Send OTP via Email
             $this->sendOtpViaEmail($otpRequest, $otp);
-
-            Log::info('OTP sent successfully', [
-                'customer_id' => $request->customer_id,
-                'booking_id' => $request->booking_id,
-                'otp_request_id' => $otpRequest->id,
-            ]);
 
             return response()->json([
                 'success' => true,
@@ -156,10 +150,10 @@ class OtpVerificationController extends Controller
             $otpRequest = VisitorsOtpRequest::where('customer_id', $request->customer_id)
                 ->where('booking_id', $request->booking_id)
                 ->where('status', 'pending')
-                ->where(function($query) use ($request) {
+                ->where(function ($query) use ($request) {
                     $query->where('visitors_mobile', $request->visitors_mobile)
-                          ->orWhere('visitors_email', $request->visitors_email);
-                })
+                        ->orWhere('visitors_email', $request->visitors_email);
+                })->with(['customer', 'booking', 'tour'])
                 ->latest()
                 ->first();
 
@@ -208,15 +202,15 @@ class OtpVerificationController extends Controller
 
             // Get customer and booking details
             $customer = $otpRequest->customer;
-            $booking = $otpRequest->booking;
+            $tour = Tour::select(['name'])->find($otpRequest->tour_id);
 
             // Send notification to agent (admin)
-            $this->notifyAgent($otpRequest);
+            $this->notifyAgent($otpRequest,$customer,$tour);
 
             // Send download link to customer
-            $this->sendDownloadLinkToCustomer($otpRequest);
+            // $this->sendDownloadLinkToCustomer($otpRequest);
 
-            Log::info('OTP verified successfully', [
+            Log::info('OTP verified successfully', context: [
                 'customer_id' => $request->customer_id,
                 'booking_id' => $request->booking_id,
                 'otp_request_id' => $otpRequest->id,
@@ -290,18 +284,31 @@ class OtpVerificationController extends Controller
     private function sendOtpViaEmail(VisitorsOtpRequest $otpRequest, string $otp): void
     {
         try {
-            // Send email using notification
-            $otpRequest->customer->notify(new OtpVerificationNotification($otpRequest, $otp));
+            // Get customer and verify they exist
+            $customer = $otpRequest->customer;
 
+            if (!$customer) {
+                Log::warning('Customer not found for OTP notification', [
+                    'customer_id' => $otpRequest->customer_id,
+                    'otp_request_id' => $otpRequest->id,
+                ]);
+                return;
+            }
+
+            // Send email using Laravel notification (Notifiable trait)
+            // This follows Laravel standard for sending emails via notifications
+            Mail::to($otpRequest->visitors_email)
+                ->send(new visitorOtpMaile($otp, $otpRequest));
+
+            // Update the flag indicating email was sent
             $otpRequest->update(['otp_sent_via_email' => true]);
-            Log::info('OTP sent via Email', [
-                'email' => $otpRequest->visitors_email,
-                'otp_request_id' => $otpRequest->id,
-            ]);
+
         } catch (\Exception $e) {
             Log::error('Failed to send OTP via Email', [
                 'error' => $e->getMessage(),
                 'email' => $otpRequest->visitors_email,
+                'otp_request_id' => $otpRequest->id,
+                'customer_id' => $otpRequest->customer_id,
             ]);
         }
     }
@@ -311,24 +318,23 @@ class OtpVerificationController extends Controller
      *
      * @param VisitorsOtpRequest $otpRequest
      */
-    private function notifyAgent(VisitorsOtpRequest $otpRequest): void
+    private function notifyAgent(VisitorsOtpRequest $otpRequest,Customer $customer,Tour $tour): void
     {
         try {
-            // Get admin/agent users (you may need to adjust this based on your User model)
-            // For now, sending to all admin users
-            $agents = \App\Models\User::where('is_admin', true)->get();
-
-            foreach ($agents as $agent) {
-                $agent->notify(new OtpVerifiedNotification($otpRequest));
+            if (!$customer) {
+                Log::warning('No admin agents found for notification', [
+                    'otp_request_id' => $otpRequest->id,
+                ]);
+                return;
             }
-
+            // send the email to agent inquiry
+            Mail::to($customer->email)
+                ->send(new agentNewInquery($otpRequest,$tour));
+            // Mark notification as sent
             $otpRequest->markNotificationAsSent();
-            Log::info('Agent notification sent', [
-                'otp_request_id' => $otpRequest->id,
-                'agents_count' => $agents->count(),
-            ]);
+
         } catch (\Exception $e) {
-            Log::error('Failed to notify agent', [
+            Log::error('Failed to notify agents', [
                 'error' => $e->getMessage(),
                 'otp_request_id' => $otpRequest->id,
             ]);
@@ -350,16 +356,32 @@ class OtpVerificationController extends Controller
                 return;
             }
 
-            $otpRequest->customer->notify(new OtpVerifiedNotification($otpRequest));
+            // Get customer and verify they exist
+            $customer = $otpRequest->customer;
 
-            Log::info('Download link sent to customer', [
+            if (!$customer) {
+                Log::warning('Customer not found for download link notification', [
+                    'customer_id' => $otpRequest->customer_id,
+                    'otp_request_id' => $otpRequest->id,
+                ]);
+                return;
+            }
+
+            // Send email using Laravel notification with download link
+            // This follows Laravel standard for sending emails via notifications
+            $customer->notify(new OtpVerifiedNotification($otpRequest));
+
+            Log::info('Download link sent to customer successfully', [
+                'email' => $otpRequest->visitors_email,
                 'otp_request_id' => $otpRequest->id,
                 'customer_id' => $otpRequest->customer_id,
             ]);
         } catch (\Exception $e) {
             Log::error('Failed to send download link to customer', [
                 'error' => $e->getMessage(),
+                'email' => $otpRequest->visitors_email,
                 'otp_request_id' => $otpRequest->id,
+                'customer_id' => $otpRequest->customer_id,
             ]);
         }
     }
