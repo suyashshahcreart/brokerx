@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Mail\agentNewInquery;
 use App\Mail\visitorOtpMaile;
+use App\Mail\visitorVerifyOtp;
+use App\Models\Setting;
 use App\Models\Tour;
 use App\Models\VisitorsOtpRequest;
 use App\Models\Customer;
@@ -146,6 +148,9 @@ class OtpVerificationController extends Controller
                 ], 422);
             }
 
+            // settigns data
+            $sendOtpVerificationEmail = Setting::where('name','visitor_otp_verification_email')->value('value') ?? '0';
+            
             // Get latest pending OTP request by mobile or email
             $otpRequest = VisitorsOtpRequest::where('customer_id', $request->customer_id)
                 ->where('booking_id', $request->booking_id)
@@ -205,16 +210,12 @@ class OtpVerificationController extends Controller
             $tour = Tour::select(['name'])->find($otpRequest->tour_id);
 
             // Send notification to agent (admin)
-            $this->notifyAgent($otpRequest,$customer,$tour);
+            $this->notifyAgent($otpRequest, $customer, $tour);
 
-            // Send download link to customer
-            // $this->sendDownloadLinkToCustomer($otpRequest);
-
-            Log::info('OTP verified successfully', context: [
-                'customer_id' => $request->customer_id,
-                'booking_id' => $request->booking_id,
-                'otp_request_id' => $otpRequest->id,
-            ]);
+            if ($sendOtpVerificationEmail === '1') {
+                // Send download link to customer
+                $this->sendDownloadLinkToCustomer($otpRequest, $tour);
+            }
 
             return response()->json([
                 'success' => true,
@@ -318,7 +319,7 @@ class OtpVerificationController extends Controller
      *
      * @param VisitorsOtpRequest $otpRequest
      */
-    private function notifyAgent(VisitorsOtpRequest $otpRequest,Customer $customer,Tour $tour): void
+    private function notifyAgent(VisitorsOtpRequest $otpRequest, Customer $customer, Tour $tour): void
     {
         try {
             if (!$customer) {
@@ -329,7 +330,7 @@ class OtpVerificationController extends Controller
             }
             // send the email to agent inquiry
             Mail::to($customer->email)
-                ->send(new agentNewInquery($otpRequest,$tour));
+                ->send(new agentNewInquery($otpRequest, $tour));
             // Mark notification as sent
             $otpRequest->markNotificationAsSent();
 
@@ -346,7 +347,7 @@ class OtpVerificationController extends Controller
      *
      * @param VisitorsOtpRequest $otpRequest
      */
-    private function sendDownloadLinkToCustomer(VisitorsOtpRequest $otpRequest): void
+    private function sendDownloadLinkToCustomer(VisitorsOtpRequest $otpRequest, Tour $tour): void
     {
         try {
             if (!$otpRequest->download_link) {
@@ -369,13 +370,9 @@ class OtpVerificationController extends Controller
 
             // Send email using Laravel notification with download link
             // This follows Laravel standard for sending emails via notifications
-            $customer->notify(new OtpVerifiedNotification($otpRequest));
+            Mail::to($otpRequest->visitors_email)
+                ->send(new visitorVerifyOtp($otpRequest, $otpRequest->download_link, $tour));
 
-            Log::info('Download link sent to customer successfully', [
-                'email' => $otpRequest->visitors_email,
-                'otp_request_id' => $otpRequest->id,
-                'customer_id' => $otpRequest->customer_id,
-            ]);
         } catch (\Exception $e) {
             Log::error('Failed to send download link to customer', [
                 'error' => $e->getMessage(),

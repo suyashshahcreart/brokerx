@@ -13,14 +13,17 @@ class visitorVerifyOtp extends Mailable
 {
     use Queueable, SerializesModels;
     public $otpRequest;
+    public $link;
     public $tour;
     /**
      * Create a new message instance.
      */
-    public function __construct($otpRequest)
-     {
-         $this->otpRequest = $otpRequest;
-     }
+    public function __construct($otpRequest, $link, $tour)
+    {
+        $this->otpRequest = $otpRequest;
+        $this->link = $link;
+        $this->tour = $tour;
+    }
 
     /**
      * Get the message envelope.
@@ -28,7 +31,7 @@ class visitorVerifyOtp extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Visitor Verify Otp',
+            subject: 'OTP Verified - Download Link - Proppik',
         );
     }
 
@@ -38,7 +41,7 @@ class visitorVerifyOtp extends Mailable
     public function content(): Content
     {
         return new Content(
-            view: 'view.name',
+            view: 'mailTemplate.visitor_verify_otp',
         );
     }
 
