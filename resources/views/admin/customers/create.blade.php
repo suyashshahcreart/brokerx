@@ -152,7 +152,7 @@
                             <div class="mb-3">
                                 <label for="company_name" class="form-label">Company Name</label>
                                 <input type="text" name="company_name" id="company_name" value="{{ old('company_name') }}"
-                                    class="form-control @error('company_name') is-invalid @enderror" maxlength="255">
+                                    class="form-control @error('company_name') is-invalid @enderror" placeholder="e.g, Prop Pik Global" maxlength="255">
                                 <div class="invalid-feedback">
                                     @error('company_name')
                                         {{ $message }}
@@ -166,7 +166,7 @@
                             <div class="mb-3">
                                 <label for="designation" class="form-label">Designation</label>
                                 <input type="text" name="designation" id="designation" value="{{ old('designation') }}"
-                                    class="form-control @error('designation') is-invalid @enderror" maxlength="255">
+                                    class="form-control @error('designation') is-invalid @enderror" placeholder="e.g, Agent, Broker" maxlength="255">
                                 <div class="invalid-feedback">
                                     @error('designation')
                                         {{ $message }}
@@ -178,7 +178,7 @@
                             <div class="mb-3">
                                 <label for="company_website" class="form-label">Company Website</label>
                                 <input type="url" name="company_website" id="company_website" value="{{ old('company_website') }}"
-                                    class="form-control @error('company_website') is-invalid @enderror" maxlength="255">
+                                    class="form-control @error('company_website') is-invalid @enderror" placeholder="e.g, https://www.proppik.com" maxlength="255">
                                 <div class="invalid-feedback">
                                     @error('company_website')
                                         {{ $message }}
@@ -192,7 +192,7 @@
                             <div class="mb-3">
                                 <label for="tag_line" class="form-label">Tag Line</label>
                                 <input type="text" name="tag_line" id="tag_line" value="{{ old('tag_line') }}"
-                                    class="form-control @error('tag_line') is-invalid @enderror" maxlength="255">
+                                    class="form-control @error('tag_line') is-invalid @enderror" placeholder="e.g, We build tours, not just trips" maxlength="255">
                                 <div class="invalid-feedback">
                                     @error('tag_line')
                                         {{ $message }}
@@ -288,7 +288,7 @@
                                 <div class="mb-3">
                                     <label for="meta_title" class="form-label">Meta Title</label>
                                     <input type="text" name="meta_title" id="meta_title" value="{{ old('meta_title') }}"
-                                        class="form-control @error('meta_title') is-invalid @enderror" maxlength="255">
+                                        class="form-control @error('meta_title') is-invalid @enderror" placeholder="e.g, Meta Title" maxlength="255">
                                     <div class="invalid-feedback">
                                         @error('meta_title')
                                             {{ $message }}
@@ -300,7 +300,7 @@
                                 <div class="mb-3">
                                     <label for="meta_keywords" class="form-label">Meta Keywords</label>
                                     <input type="text" name="meta_keywords" id="meta_keywords" value="{{ old('meta_keywords') }}"
-                                        class="form-control @error('meta_keywords') is-invalid @enderror" maxlength="255">
+                                        class="form-control @error('meta_keywords') is-invalid @enderror" placeholder="e.g, keyword1, keyword2, keyword3" maxlength="255">
                                     <div class="invalid-feedback">
                                         @error('meta_keywords')
                                             {{ $message }}
@@ -311,7 +311,7 @@
                         </div>
                         <div class="mb-3">
                             <label for="meta_description" class="form-label">Meta Description</label>
-                            <textarea name="meta_description" id="meta_description" rows="3"
+                            <textarea name="meta_description" id="meta_description" rows="3" placeholder="e.g, Meta Description"
                                 class="form-control @error('meta_description') is-invalid @enderror">{{ old('meta_description') }}</textarea>
                             <div class="invalid-feedback">
                                 @error('meta_description')
@@ -324,7 +324,7 @@
                                 <div class="mb-3">
                                     <label for="canonical_url" class="form-label">Canonical URL</label>
                                     <input type="url" name="canonical_url" id="canonical_url" value="{{ old('canonical_url') }}"
-                                        class="form-control @error('canonical_url') is-invalid @enderror" maxlength="2048">
+                                        class="form-control @error('canonical_url') is-invalid @enderror" placeholder="e.g, https://www.proppik.com" maxlength="2048">
                                     <div class="invalid-feedback">
                                         @error('canonical_url')
                                             {{ $message }}
@@ -336,7 +336,7 @@
                                 <div class="mb-3">
                                     <label for="meta_robots" class="form-label">Meta Robots</label>
                                     <input type="text" name="meta_robots" id="meta_robots" value="{{ old('meta_robots') }}"
-                                        class="form-control @error('meta_robots') is-invalid @enderror">
+                                        class="form-control @error('meta_robots') is-invalid @enderror" placeholder="e.g, index, follow">
                                     <div class="invalid-feedback">
                                         @error('meta_robots')
                                             {{ $message }}
@@ -350,7 +350,7 @@
                                 <div class="mb-3">
                                     <label for="twitter_title" class="form-label">Twitter Title</label>
                                     <input type="text" name="twitter_title" id="twitter_title" value="{{ old('twitter_title') }}"
-                                        class="form-control @error('twitter_title') is-invalid @enderror" maxlength="255">
+                                        class="form-control @error('twitter_title') is-invalid @enderror" placeholder="e.g, Twitter title" maxlength="255">
                                     <div class="invalid-feedback">
                                         @error('twitter_title')
                                             {{ $message }}
@@ -362,7 +362,7 @@
                                 <div class="mb-3">
                                     <label for="twitter_image" class="form-label">Twitter Image URL</label>
                                     <input type="text" name="twitter_image" id="twitter_image" value="{{ old('twitter_image') }}"
-                                        class="form-control @error('twitter_image') is-invalid @enderror" maxlength="255">
+                                        class="form-control @error('twitter_image') is-invalid @enderror" placeholder="e.g, https://example.com/image.jpg" maxlength="255">
                                     <div class="invalid-feedback">
                                         @error('twitter_image')
                                             {{ $message }}
@@ -373,7 +373,7 @@
                         </div>
                         <div class="mb-3">
                             <label for="twitter_description" class="form-label">Twitter Description</label>
-                            <textarea name="twitter_description" id="twitter_description" rows="2"
+                            <textarea name="twitter_description" id="twitter_description" rows="2" placeholder="e.g, Twitter Description"
                                 class="form-control @error('twitter_description') is-invalid @enderror">{{ old('twitter_description') }}</textarea>
                             <div class="invalid-feedback">
                                 @error('twitter_description')
@@ -386,7 +386,7 @@
                                 <div class="mb-3">
                                     <label for="og_title" class="form-label">OG Title</label>
                                     <input type="text" name="og_title" id="og_title" value="{{ old('og_title') }}"
-                                        class="form-control @error('og_title') is-invalid @enderror" maxlength="255">
+                                        class="form-control @error('og_title') is-invalid @enderror" placeholder="e.g, OG Title" maxlength="255">
                                     <div class="invalid-feedback">
                                         @error('og_title')
                                             {{ $message }}
@@ -397,7 +397,7 @@
                             <div class="col-lg-6">
                                 <div class="mb-3">
                                     <label for="og_description" class="form-label">OG Description</label>
-                                    <textarea name="og_description" id="og_description" rows="2"
+                                    <textarea name="og_description" id="og_description" rows="2" placeholder="e.g, OG Description"
                                         class="form-control @error('og_description') is-invalid @enderror">{{ old('og_description') }}</textarea>
                                     <div class="invalid-feedback">
                                         @error('og_description')
@@ -409,7 +409,7 @@
                         </div>
                         <div class="mb-3">
                             <label for="header_code" class="form-label">Header Code</label>
-                            <textarea name="header_code" id="header_code" rows="3"
+                            <textarea name="header_code" id="header_code" rows="3" placeholder="e.g, <meta name='custom' content='value'>"
                                 class="form-control @error('header_code') is-invalid @enderror">{{ old('header_code') }}</textarea>
                             <div class="invalid-feedback">
                                 @error('header_code')
@@ -419,7 +419,7 @@
                         </div>
                         <div class="mb-3">
                             <label for="footer_code" class="form-label">Footer Code</label>
-                            <textarea name="footer_code" id="footer_code" rows="3"
+                            <textarea name="footer_code" id="footer_code" rows="3" placeholder="Custom footer code"
                                 class="form-control @error('footer_code') is-invalid @enderror">{{ old('footer_code') }}</textarea>
                             <div class="invalid-feedback">
                                 @error('footer_code')
@@ -430,7 +430,7 @@
                         <div class="mb-3">
                             <label for="gtm_tag" class="form-label">GTM Tag</label>
                             <input type="text" name="gtm_tag" id="gtm_tag" value="{{ old('gtm_tag') }}"
-                                class="form-control @error('gtm_tag') is-invalid @enderror">
+                                class="form-control @error('gtm_tag') is-invalid @enderror" placeholder="e.g, GTM-XXXXXX">
                             <div class="invalid-feedback">
                                 @error('gtm_tag')
                                     {{ $message }}
