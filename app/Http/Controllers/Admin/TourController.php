@@ -4,8 +4,12 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Tour;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Str;
+use JsonException;
 use Spatie\Activitylog\Models\Activity;
 use App\Models\QR;
 use Storage;
@@ -491,6 +495,7 @@ class TourController extends Controller
             'footer_name' => ['nullable', 'string'],
             'footer_email' => ['nullable', 'string'],
             'footer_mobile' => ['nullable', 'string'],
+            // sidebar tag fields 
             'sidebar_tag_text' => ['nullable', 'string', 'max:255'],
             'sidebar_tag_color' => ['nullable', 'string', 'max:255'],
             'sidebar_tag_bg_color' => ['nullable', 'string', 'max:255'],
@@ -1425,6 +1430,171 @@ class TourController extends Controller
     }
 
     /**
+     * Update only tour contact information tab data.
+     */
+    public function updateTourContactInfoTab(Request $request, Tour $tour): JsonResponse|RedirectResponse
+    {
+        $validated = $request->validate([
+            'contact_google_location' => ['nullable', 'string', 'max:255'],
+            'contact_website' => ['nullable', 'url', 'max:255'],
+            'contact_email' => ['nullable', 'email', 'max:255'],
+            'contact_phone_no' => ['nullable', 'string', 'max:20'],
+            'contact_whatsapp_no' => ['nullable', 'string', 'max:20'],
+        ]);
+
+        $oldData = $tour->toArray();
+        $finalJson = $this->normalizeFinalJsonPayload($tour);
+        $userInfo = $finalJson['userInfo'] ?? [];
+
+        $userInfo['googleLocation'] = $validated['contact_google_location'] ?? null;
+        $userInfo['website'] = $validated['contact_website'] ?? null;
+        $userInfo['email'] = $validated['contact_email'] ?? null;
+        $userInfo['phoneNumber'] = $validated['contact_phone_no'] ?? null;
+        $userInfo['whatsAppNumber'] = $validated['contact_whatsapp_no'] ?? null;
+
+        $finalJson['userInfo'] = $userInfo;
+
+        $updateData = $validated;
+        $updateData['final_json'] = $finalJson;
+
+        $tour->update($updateData);
+        $newData = $tour->fresh()->toArray();
+
+        activity('tours')
+            ->performedOn($tour)
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'old' => $oldData,
+                'new' => $newData,
+            ])
+            ->log('Tour contact info tab updated');
+
+        $this->updateTourJsonAndJsFilesInS3($tour, $finalJson);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Tour contact information updated successfully.',
+                'tour' => $tour->fresh(),
+            ]);
+        }
+
+        return redirect()->back()->with(['success' => 'Tour contact information updated successfully.', 'active_tab' => 'vl-pills-tour-contact-info']);
+    }
+
+    /**
+     * Update only tour attachments tab data.
+     */
+    public function updateTourAttachmentsTab(Request $request, Tour $tour): JsonResponse|RedirectResponse
+    {
+        $validated = $request->validate([
+            'attachment_file' => ['nullable', 'array'],
+            'attachment_file.*.type' => ['nullable', 'string', 'in:image,video,document'],
+            'attachment_file.*.tooltip' => ['nullable', 'string', 'max:255'],
+            'attachment_file.*.link' => ['nullable', 'url', 'max:255'],
+            'attachment_file.*.file' => ['nullable', 'file', 'max:10240'],
+            'attachment_file.*.action' => ['nullable', 'string', 'in:modal,download'],
+        ]);
+
+        $oldData = $tour->toArray();
+        $finalJson = $this->normalizeFinalJsonPayload($tour);
+        $userInfo = $finalJson['userInfo'] ?? [];
+
+        $attachmentFiles = [];
+        if ($request->has('attachment_file')) {
+            $existingAttachments = $tour->attachment_file ?? [];
+
+            foreach ($request->input('attachment_file') as $index => $attachment) {
+                if (
+                    empty($attachment['type']) && empty($attachment['tooltip']) &&
+                    empty($attachment['action']) && empty($attachment['link']) &&
+                    !$request->hasFile("attachment_file.{$index}.file")
+                ) {
+                    if (isset($existingAttachments[$index])) {
+                        $attachmentFiles[] = $existingAttachments[$index];
+                    }
+                    continue;
+                }
+
+                $attachmentData = [
+                    'documentType' => $attachment['type'] ?? $existingAttachments[$index]['documentType'] ?? null,
+                    'documentTooltip' => $attachment['tooltip'] ?? $existingAttachments[$index]['documentTooltip'] ?? null,
+                    'documentAction' => $attachment['action'] ?? $existingAttachments[$index]['documentAction'] ?? 'modal',
+                ];
+
+                if ($request->hasFile("attachment_file.{$index}.file")) {
+                    $file = $request->file("attachment_file.{$index}.file");
+                    if ($file->isValid()) {
+                        $fileName = time() . '_' . $index . '_' . Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME)) . '.' . $file->getClientOriginalExtension();
+                        $path = $file->storeAs('attachments', $fileName, 'public');
+
+                        $attachmentData['documentUrl'] = 'storage/' . $path;
+                        $attachmentData['documentFileName'] = $fileName;
+                    }
+                } else {
+                    if (!empty($attachment['link'])) {
+                        $attachmentData['documentUrl'] = $attachment['link'];
+                    } else {
+                        $attachmentData['documentUrl'] = $existingAttachments[$index]['documentUrl'] ?? null;
+                        $attachmentData['documentFileName'] = $existingAttachments[$index]['documentFileName'] ?? null;
+                    }
+                }
+
+                $attachmentFiles[] = $attachmentData;
+            }
+        }
+
+        if (!empty($attachmentFiles)) {
+            foreach ($attachmentFiles as $index => $doc) {
+                $suffix = $index === 0 ? '' : $index + 1;
+                $userInfo["documentType{$suffix}"] = $doc['documentType'] ?? null;
+                $userInfo["documentUrl{$suffix}"] = $doc['documentUrl'] ?? null;
+                $userInfo["documentTooltip{$suffix}"] = $doc['documentTooltip'] ?? null;
+                $userInfo["documentAction{$suffix}"] = $doc['documentAction'] ?? null;
+
+                if (!empty($doc['documentFileName'])) {
+                    $userInfo["documentFileName{$suffix}"] = $doc['documentFileName'];
+                }
+
+                if ($suffix === '2' && ($doc['documentType'] ?? null) === 'video') {
+                    $userInfo['documentIsYouTube2'] = false;
+                }
+            }
+        }
+
+        $finalJson['userInfo'] = $userInfo;
+
+        $updateData = [
+            'attachment_file' => empty($attachmentFiles) ? null : $attachmentFiles,
+            'final_json' => $finalJson,
+        ];
+
+        $tour->update($updateData);
+        $newData = $tour->fresh()->toArray();
+
+        activity('tours')
+            ->performedOn($tour)
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'old' => $oldData,
+                'new' => $newData,
+            ])
+            ->log('Tour attachments tab updated');
+
+        $this->updateTourJsonAndJsFilesInS3($tour, $finalJson);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Tour attachments updated successfully.',
+                'tour' => $tour->fresh(),
+            ]);
+        }
+
+        return redirect()->back()->with(['success' => 'Tour attachments updated successfully.', 'active_tab' => 'vl-pills-attachments']);
+    }
+
+    /**
      * Update tour settings (language and other settings)
      */
     public function updateTourSettings(Request $request, Tour $tour)
@@ -1548,6 +1718,576 @@ class TourController extends Controller
 
         return redirect()->back()->with(['success' => 'Tour settings updated successfully.', 'active_tab' => 'tour-setting']);
     }
+
+    /**
+     * Update only loader configuration tab data.
+     */
+    public function updateTourLoaderConfigTab(Request $request, Tour $tour): JsonResponse|RedirectResponse
+    {
+        $validated = $request->validate([
+            'overlay_bg_color' => ['nullable', 'string', 'max:255'],
+            'loader_text' => ['nullable', 'string', 'max:255'],
+            'loader_color' => ['nullable', 'array'],
+            'loader_color.*' => ['nullable', 'string'],
+            'spinner_color' => ['nullable', 'array'],
+            'spinner_color.*' => ['nullable', 'string'],
+        ]);
+
+        $validated['loader_color'] = isset($validated['loader_color'])
+            ? array_values(array_filter($validated['loader_color'], static fn($value) => !is_null($value) && $value !== ''))
+            : null;
+
+        $validated['spinner_color'] = isset($validated['spinner_color'])
+            ? array_values(array_filter($validated['spinner_color'], static fn($value) => !is_null($value) && $value !== ''))
+            : null;
+
+        $oldData = $tour->toArray();
+        $finalJson = $this->normalizeFinalJsonPayload($tour);
+        $finalJson['loaderConfig'] = $finalJson['loaderConfig'] ?? [];
+
+        if (array_key_exists('overlay_bg_color', $validated)) {
+            $finalJson['loaderConfig']['overlayBackgroundColor'] = $validated['overlay_bg_color'];
+        }
+        if (array_key_exists('loader_text', $validated)) {
+            $finalJson['loaderConfig']['loadingText'] = $validated['loader_text'];
+        }
+
+        if (!empty($validated['loader_color'])) {
+            $finalJson['loaderConfig']['textGradientColor1'] = $validated['loader_color'][0] ?? null;
+            $finalJson['loaderConfig']['textGradientColor2'] = $validated['loader_color'][1] ?? null;
+            $finalJson['loaderConfig']['textGradientColor3'] = $validated['loader_color'][2] ?? null;
+        }
+
+        if (!empty($validated['spinner_color'])) {
+            $finalJson['loaderConfig']['spinnerGradientColor1'] = $validated['spinner_color'][0] ?? null;
+            $finalJson['loaderConfig']['spinnerGradientColor2'] = $validated['spinner_color'][1] ?? null;
+            $finalJson['loaderConfig']['spinnerGradientColor3'] = $validated['spinner_color'][2] ?? null;
+        }
+
+        $updateData = [
+            'overlay_bg_color' => $validated['overlay_bg_color'] ?? null,
+            'loader_text' => $validated['loader_text'] ?? null,
+            'loader_color' => $validated['loader_color'] ?? null,
+            'spinner_color' => $validated['spinner_color'] ?? null,
+            'final_json' => $finalJson,
+        ];
+
+        $tour->update($updateData);
+        $newData = $tour->fresh()->toArray();
+
+        activity('tours')
+            ->performedOn($tour)
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'old' => $oldData,
+                'new' => $newData,
+            ])
+            ->log('Tour loader config tab updated');
+
+        $this->updateTourJsonAndJsFilesInS3($tour, $finalJson);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Loader configuration updated successfully.',
+                'tour' => $tour->fresh(),
+            ]);
+        }
+
+        return redirect()->back()->with(['success' => 'Loader configuration updated successfully.', 'active_tab' => 'vl-pills-loader-config']);
+    }
+
+    /**
+     * Update only language tab data.
+     */
+    public function updateTourLanguageTab(Request $request, Tour $tour): JsonResponse|RedirectResponse
+    {
+        $validated = $request->validate([
+            'enable_language' => ['nullable', 'array'],
+            'enable_language.*' => ['string'],
+            'default_language' => ['nullable', 'string', 'max:10'],
+        ]);
+
+        $validated['enable_language'] = isset($validated['enable_language'])
+            ? array_values($validated['enable_language'])
+            : null;
+
+        $oldData = $tour->toArray();
+        $finalJson = $this->normalizeFinalJsonPayload($tour);
+
+        $finalJson['localeConfig'] = $finalJson['localeConfig'] ?? [];
+        $finalJson['localeConfig']['enabledLanguages'] = $validated['enable_language'] ?? [];
+
+        if (array_key_exists('default_language', $validated)) {
+            $finalJson['localeConfig']['defaultLanguage'] = $validated['default_language'];
+        }
+
+        $updateData = [
+            'enable_language' => $validated['enable_language'],
+            'default_language' => $validated['default_language'] ?? null,
+            'final_json' => $finalJson,
+        ];
+
+        $tour->update($updateData);
+        $newData = $tour->fresh()->toArray();
+
+        activity('tours')
+            ->performedOn($tour)
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'old' => $oldData,
+                'new' => $newData,
+            ])
+            ->log('Tour language tab updated');
+
+        $this->updateTourJsonAndJsFilesInS3($tour, $finalJson);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Language section updated successfully.',
+                'tour' => $tour->fresh(),
+            ]);
+        }
+
+        return redirect()->back()->with(['success' => 'Language section updated successfully.', 'active_tab' => 'vl-pills-language']);
+    }
+
+    /**
+     * Update only sidebar tab data.
+     */
+    public function updateTourSidebarTab(Request $request, Tour $tour): JsonResponse|RedirectResponse
+    {
+        $validated = $request->validate([
+            'sidebar_logo' => ['nullable', 'file', 'image', 'max:5120'],
+            'sidebar_tag_text' => ['nullable', 'string', 'max:255'],
+            'sidebar_tag_color' => ['nullable', 'string', 'max:255'],
+            'sidebar_tag_bg_color' => ['nullable', 'string', 'max:255'],
+            'sidebar_footer_text' => ['nullable', 'string'],
+            'sidebar_footer_link' => ['nullable', 'string'],
+        ]);
+
+        $oldData = $tour->toArray();
+        $finalJson = $this->normalizeFinalJsonPayload($tour);
+        $finalJson['sidebarConfig'] = $finalJson['sidebarConfig'] ?? [];
+        $finalJson['sidebarConfig']['footerButton'] = $finalJson['sidebarConfig']['footerButton'] ?? [];
+        $finalJson['sidebarConfig']['sidebarTag'] = $finalJson['sidebarConfig']['sidebarTag'] ?? [];
+
+        $existingFooterButtonText = $finalJson['sidebarConfig']['footerButton']['text'] ?? [];
+        if (!is_array($existingFooterButtonText)) {
+            $existingFooterButtonText = ['en' => $existingFooterButtonText];
+        }
+
+        if (array_key_exists('sidebar_footer_text', $validated)) {
+            $existingFooterButtonText['en'] = $validated['sidebar_footer_text'];
+        }
+        $finalJson['sidebarConfig']['footerButton']['text'] = $existingFooterButtonText;
+
+        if (array_key_exists('sidebar_footer_link', $validated)) {
+            $finalJson['sidebarConfig']['footerButton']['link'] = $validated['sidebar_footer_link'];
+        }
+        if (array_key_exists('sidebar_tag_text', $validated)) {
+            $finalJson['sidebarConfig']['sidebarTag']['text'] = $validated['sidebar_tag_text'];
+        }
+        if (array_key_exists('sidebar_tag_color', $validated)) {
+            $finalJson['sidebarConfig']['sidebarTag']['color'] = $validated['sidebar_tag_color'];
+        }
+        if (array_key_exists('sidebar_tag_bg_color', $validated)) {
+            $finalJson['sidebarConfig']['sidebarTag']['backgroundColor'] = $validated['sidebar_tag_bg_color'];
+        }
+
+        $updateData = $validated;
+        $qrCode = QR::where('booking_id', $tour->booking_id)->value('code');
+        $logoSidebarFile = $request->file('sidebar_logo');
+
+        if ($logoSidebarFile && $qrCode) {
+            $sidebarFilename = 'logo_sidebar_' . time() . '_' . Str::random(8) . '.' . $logoSidebarFile->getClientOriginalExtension();
+            $sidebarPath = 'tours/' . $qrCode . '/assets/' . $sidebarFilename;
+            $sidebarContent = file_get_contents($logoSidebarFile->getRealPath());
+            $sidebarMime = $logoSidebarFile->getMimeType();
+            $uploaded = Storage::disk('s3')->put($sidebarPath, $sidebarContent, ['ContentType' => $sidebarMime]);
+            $finalJson['sidebarConfig']['logo'] = 'assets/' . $sidebarFilename;
+
+            if ($uploaded) {
+                $updateData['sidebar_logo'] = $sidebarPath;
+            }
+        }
+
+        $updateData['final_json'] = $finalJson;
+        $tour->update($updateData);
+        $newData = $tour->fresh()->toArray();
+
+        activity('tours')
+            ->performedOn($tour)
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'old' => $oldData,
+                'new' => $newData,
+            ])
+            ->log('Tour sidebar tab updated');
+
+        $this->updateTourJsonAndJsFilesInS3($tour, $finalJson);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Sidebar section updated successfully.',
+                'tour' => $tour->fresh(),
+            ]);
+        }
+
+        return redirect()->back()->with(['success' => 'Sidebar section updated successfully.', 'active_tab' => 'vl-pills-sidebar-section']);
+    }
+
+    /**
+     * Update only bottom top tab data.
+     */
+    public function updateTourBottomTopTab(Request $request, Tour $tour): JsonResponse|RedirectResponse
+    {
+        $validated = $request->validate([
+            'footer_logo' => ['nullable', 'file', 'image', 'max:5120'],
+            'footer_title' => ['nullable', 'array'],
+            'footer_title.en' => ['nullable', 'string'],
+            'footer_title.gu' => ['nullable', 'string'],
+            'footer_title.hi' => ['nullable', 'string'],
+            'footer_subtitle' => ['nullable', 'array'],
+            'footer_subtitle.en' => ['nullable', 'string'],
+            'footer_subtitle.gu' => ['nullable', 'string'],
+            'footer_subtitle.hi' => ['nullable', 'string'],
+            'footer_decription' => ['nullable', 'array'],
+            'footer_decription.en' => ['nullable', 'string'],
+            'footer_decription.gu' => ['nullable', 'string'],
+            'footer_decription.hi' => ['nullable', 'string'],
+            'footer_email' => ['nullable', 'string', 'max:255'],
+            'footer_mobile' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $oldData = $tour->toArray();
+        $finalJson = $this->normalizeFinalJsonPayload($tour);
+        $finalJson['bottomMarker'] = $finalJson['bottomMarker'] ?? [];
+
+        $resolvedFooterTitle = is_array($validated['footer_title'] ?? null) ? $validated['footer_title'] : [];
+        $resolvedFooterSubtitle = is_array($validated['footer_subtitle'] ?? null) ? $validated['footer_subtitle'] : [];
+        $resolvedFooterDescription = is_array($validated['footer_decription'] ?? null) ? $validated['footer_decription'] : [];
+
+        $existingTopTitle = $finalJson['bottomMarker']['topTitle'] ?? [];
+        if (!is_array($existingTopTitle)) {
+            $existingTopTitle = ['en' => $existingTopTitle];
+        }
+        foreach (['en', 'gu', 'hi'] as $lang) {
+            if (array_key_exists($lang, $resolvedFooterTitle)) {
+                $existingTopTitle[$lang] = $resolvedFooterTitle[$lang];
+            }
+        }
+        $finalJson['bottomMarker']['topTitle'] = $existingTopTitle;
+
+        $existingTopSubTitle = $finalJson['bottomMarker']['topSubTitle'] ?? [];
+        if (!is_array($existingTopSubTitle)) {
+            $existingTopSubTitle = ['en' => $existingTopSubTitle];
+        }
+        foreach (['en', 'gu', 'hi'] as $lang) {
+            if (array_key_exists($lang, $resolvedFooterSubtitle)) {
+                $existingTopSubTitle[$lang] = $resolvedFooterSubtitle[$lang];
+            }
+        }
+        $finalJson['bottomMarker']['topSubTitle'] = $existingTopSubTitle;
+
+        $existingTopDescription = $finalJson['bottomMarker']['topDescription'] ?? [];
+        if (!is_array($existingTopDescription)) {
+            $existingTopDescription = ['en' => $existingTopDescription];
+        }
+        foreach (['en', 'gu', 'hi'] as $lang) {
+            if (array_key_exists($lang, $resolvedFooterDescription)) {
+                $existingTopDescription[$lang] = $resolvedFooterDescription[$lang];
+            }
+        }
+        $finalJson['bottomMarker']['topDescription'] = $existingTopDescription;
+
+        if (array_key_exists('footer_mobile', $validated)) {
+            $finalJson['bottomMarker']['contactNumber'] = $validated['footer_mobile'];
+        }
+        if (array_key_exists('footer_email', $validated)) {
+            $finalJson['bottomMarker']['contactEmail'] = $validated['footer_email'];
+        }
+
+        $updateData = $validated;
+        $updateData['footer_title'] = empty($resolvedFooterTitle) ? null : $resolvedFooterTitle;
+        $updateData['footer_subtitle'] = empty($resolvedFooterSubtitle) ? null : $resolvedFooterSubtitle;
+        $updateData['footer_decription'] = empty($resolvedFooterDescription) ? null : $resolvedFooterDescription;
+
+        $qrCode = QR::where('booking_id', $tour->booking_id)->value('code');
+        $logoFooterFile = $request->file('footer_logo');
+        if ($logoFooterFile && $qrCode) {
+            $footerFilename = 'logo_footer_' . time() . '_' . Str::random(8) . '.' . $logoFooterFile->getClientOriginalExtension();
+            $footerPath = 'tours/' . $qrCode . '/assets/' . $footerFilename;
+            $footerContent = file_get_contents($logoFooterFile->getRealPath());
+            $footerMime = $logoFooterFile->getMimeType();
+            $uploaded = Storage::disk('s3')->put($footerPath, $footerContent, ['ContentType' => $footerMime]);
+            $finalJson['bottomMarker']['topImage'] = 'assets/' . $footerFilename;
+
+            if ($uploaded) {
+                $updateData['footer_logo'] = $footerPath;
+            }
+        }
+
+        $updateData['final_json'] = $finalJson;
+        $tour->update($updateData);
+        $newData = $tour->fresh()->toArray();
+
+        activity('tours')
+            ->performedOn($tour)
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'old' => $oldData,
+                'new' => $newData,
+            ])
+            ->log('Tour bottom top tab updated');
+
+        $this->updateTourJsonAndJsFilesInS3($tour, $finalJson);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Bottom top section updated successfully.',
+                'tour' => $tour->fresh(),
+            ]);
+        }
+
+        return redirect()->back()->with(['success' => 'Bottom top section updated successfully.', 'active_tab' => 'vl-pills-bottom-mark-top']);
+    }
+
+    /**
+     * Update only bottom property tab data.
+     */
+    public function updateTourBottomPropertyTab(Request $request, Tour $tour): JsonResponse|RedirectResponse
+    {
+        $validated = $request->validate([
+            'bottommark_property_name_en' => ['nullable', 'string'],
+            'bottommark_property_name_gu' => ['nullable', 'string'],
+            'bottommark_property_name_hi' => ['nullable', 'string'],
+            'bottommark_room_type_en' => ['nullable', 'string'],
+            'bottommark_room_type_gu' => ['nullable', 'string'],
+            'bottommark_room_type_hi' => ['nullable', 'string'],
+            'bottommark_dimensions_en' => ['nullable', 'string'],
+            'bottommark_dimensions_gu' => ['nullable', 'string'],
+            'bottommark_dimensions_hi' => ['nullable', 'string'],
+        ]);
+
+        $oldData = $tour->toArray();
+        $finalJson = $this->normalizeFinalJsonPayload($tour);
+        $finalJson['bottomMarker'] = $finalJson['bottomMarker'] ?? [];
+
+        $resolvedPropertyName = array_filter([
+            'en' => $validated['bottommark_property_name_en'] ?? null,
+            'gu' => $validated['bottommark_property_name_gu'] ?? null,
+            'hi' => $validated['bottommark_property_name_hi'] ?? null,
+        ], static fn($value) => !is_null($value) && $value !== '');
+
+        $resolvedRoomType = array_filter([
+            'en' => $validated['bottommark_room_type_en'] ?? null,
+            'gu' => $validated['bottommark_room_type_gu'] ?? null,
+            'hi' => $validated['bottommark_room_type_hi'] ?? null,
+        ], static fn($value) => !is_null($value) && $value !== '');
+
+        $resolvedDimensions = array_filter([
+            'en' => $validated['bottommark_dimensions_en'] ?? null,
+            'gu' => $validated['bottommark_dimensions_gu'] ?? null,
+            'hi' => $validated['bottommark_dimensions_hi'] ?? null,
+        ], static fn($value) => !is_null($value) && $value !== '');
+
+        if (!empty($resolvedPropertyName)) {
+            $finalJson['bottomMarker']['propertyName'] = $resolvedPropertyName;
+        }
+        if (!empty($resolvedRoomType)) {
+            $finalJson['bottomMarker']['roomType'] = $resolvedRoomType;
+        }
+        if (!empty($resolvedDimensions)) {
+            $finalJson['bottomMarker']['dimensions'] = $resolvedDimensions;
+        }
+
+        $updateData = $validated;
+        $updateData['bottommark_property_name'] = empty($resolvedPropertyName) ? null : $resolvedPropertyName;
+        $updateData['bottommark_room_type'] = empty($resolvedRoomType) ? null : $resolvedRoomType;
+        $updateData['bottommark_dimensions'] = empty($resolvedDimensions) ? null : $resolvedDimensions;
+
+        unset(
+            $updateData['bottommark_property_name_en'],
+            $updateData['bottommark_property_name_gu'],
+            $updateData['bottommark_property_name_hi'],
+            $updateData['bottommark_room_type_en'],
+            $updateData['bottommark_room_type_gu'],
+            $updateData['bottommark_room_type_hi'],
+            $updateData['bottommark_dimensions_en'],
+            $updateData['bottommark_dimensions_gu'],
+            $updateData['bottommark_dimensions_hi']
+        );
+
+        $updateData['final_json'] = $finalJson;
+        $tour->update($updateData);
+        $newData = $tour->fresh()->toArray();
+
+        activity('tours')
+            ->performedOn($tour)
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'old' => $oldData,
+                'new' => $newData,
+            ])
+            ->log('Tour bottom property tab updated');
+
+        $this->updateTourJsonAndJsFilesInS3($tour, $finalJson);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Bottom property section updated successfully.',
+                'tour' => $tour->fresh(),
+            ]);
+        }
+
+        return redirect()->back()->with(['success' => 'Bottom property section updated successfully.', 'active_tab' => 'vl-pills-bottom-mark-property']);
+    }
+
+    private function normalizeFinalJsonPayload(Tour $tour): array
+    {
+        $rawFinalJson = $tour->final_json;
+
+        if (is_array($rawFinalJson)) {
+            return $rawFinalJson;
+        }
+
+        if (is_string($rawFinalJson) && trim($rawFinalJson) !== '') {
+            $decoded = json_decode($rawFinalJson, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                return $decoded;
+            }
+        }
+
+        if (is_object($rawFinalJson)) {
+            $decoded = json_decode(json_encode($rawFinalJson), true);
+            if (is_array($decoded)) {
+                return $decoded;
+            }
+        }
+
+        return [];
+    }
+
+    /**
+    * Method to update the basic details of the tour.
+    * tab page function
+    * @param Tour $tour The tour model
+    * @param Request $request
+    * @return \Illuminate\Http\JsonResponse | \Illuminate\Http\RedirectResponse
+    */
+    public function UpdateBasicInfoOfTourDetails(Request $request, Tour $tour): JsonResponse|RedirectResponse
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'title' => ['required', 'string', 'max:255'],
+            'slug' => ['nullable', 'string', 'max:255', 'unique:tours,slug,' . $tour->id],
+            'description' => ['nullable', 'string'],
+            'content' => ['nullable', 'string'],
+            'location' => ['nullable', 'string', 'max:255'],
+            'status' => ['required', 'in:draft,published,archived'],
+            'revision' => ['nullable', 'string', 'max:255'],
+            'price' => ['nullable', 'numeric', 'min:0'],
+            'duration_days' => ['nullable', 'integer', 'min:1'],
+            'start_date' => ['nullable', 'date'],
+            'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
+            'max_participants' => ['nullable', 'integer', 'min:1'],
+            'featured_image' => ['nullable', 'string'],
+            'tour_thumbnail' => ['nullable', 'file', 'image', 'max:5120'],
+            'is_active' => ['nullable', 'boolean'],
+            'is_credentials' => ['nullable', 'boolean'],
+            'is_mobile_validation' => ['nullable', 'boolean'],
+            'is_hosted' => ['nullable', 'boolean'],
+            'hosted_link' => ['nullable', 'url', 'max:255'],
+            'credentials' => ['nullable', 'array'],
+            'credentials.*.id' => ['nullable', 'exists:tour_credentials,id'],
+            'credentials.*.user_name' => ['required_with:credentials', 'string', 'max:255'],
+            'credentials.*.password' => ['required_with:credentials', 'string', 'max:255'],
+            'credentials.*.is_active' => ['nullable', 'boolean'],
+        ]);
+
+        // Generate slug if not provided
+        if (empty($validated['slug'])) {
+            $validated['slug'] = Str::slug($validated['title']);
+
+            $originalSlug = $validated['slug'];
+            $counter = 1;
+            while (Tour::where('slug', $validated['slug'])->where('id', '!=', $tour->id)->exists()) {
+                $validated['slug'] = $originalSlug . '-' . $counter;
+                $counter++;
+            }
+        }
+
+        $updateData = $validated;
+
+        $updateData['is_active'] = $request->has('is_active');
+        $updateData['is_credentials'] = $request->has('is_credentials');
+        $updateData['is_mobile_validation'] = $request->has('is_mobile_validation');
+        $updateData['is_hosted'] = $request->has('is_hosted');
+
+        if (!$updateData['is_hosted']) {
+            $updateData['hosted_link'] = null;
+        }
+
+        $tourThumbnailFile = $request->file('tour_thumbnail');
+        if ($tourThumbnailFile) {
+            $thumbFilename = 'tour_thumb_' . time() . '_' . Str::random(8) . '.' . $tourThumbnailFile->getClientOriginalExtension();
+            $thumbPath = 'settings/tour_thumbnails/' . $thumbFilename;
+            $thumbContent = file_get_contents($tourThumbnailFile->getRealPath());
+            $thumbMime = $tourThumbnailFile->getMimeType();
+            $uploaded = Storage::disk('s3')->put($thumbPath, $thumbContent, ['ContentType' => $thumbMime]);
+            if ($uploaded) {
+                $updateData['tour_thumbnail'] = $thumbPath;
+            }
+        }
+
+        if ($request->has('credentials')) {
+            $tour->credentials()->delete();
+            foreach ($request->credentials as $credentialData) {
+                if (!empty($credentialData['user_name']) && !empty($credentialData['password'])) {
+                    $tour->credentials()->create([
+                        'user_name' => $credentialData['user_name'],
+                        'password' => $credentialData['password'],
+                        'is_active' => isset($credentialData['is_active']) ? (bool) $credentialData['is_active'] : true,
+                    ]);
+                }
+            }
+        } elseif (!$updateData['is_credentials']) {
+            $tour->credentials()->delete();
+        }
+
+        unset($updateData['credentials']);
+
+        $oldData = $tour->toArray();
+        $tour->update($updateData);
+        $newData = $tour->fresh()->toArray();
+
+        // Log activity
+        activity('tours')
+            ->performedOn($tour)
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'old' => $oldData,
+                'new' => $newData,
+            ])
+            ->log('Tour basic info updated');
+
+        // Return JSON response for AJAX requests
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Tour basic information updated successfully.',
+                'tour' => $tour->fresh(),
+            ]);
+        }
+
+        return redirect()->back()->with(['success' => 'Tour basic information updated successfully.', 'active_tab' => 'basic-info']);
+    }
+    
 }
 
 
