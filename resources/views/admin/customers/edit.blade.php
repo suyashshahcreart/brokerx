@@ -135,7 +135,7 @@
                             <div class="mb-3">
                                 <label for="slug" class="form-label">Slug </label>
                                 <input type="text" name="slug" id="slug" value="{{ old('slug',$customer->slug) }}"
-                                    class="form-control @error('slug') is-invalid @enderror" placeholder="unique-identifier">
+                                    class="form-control @error('slug') is-invalid @enderror" placeholder="e.g, unique-identifier">
                                 <div class="invalid-feedback">
                                     @error('slug')
                                         {{ $message }}
@@ -152,7 +152,7 @@
                             <div class="mb-3">
                                 <label for="company_name" class="form-label">Company Name</label>
                                 <input type="text" name="company_name" id="company_name" value="{{ old('company_name',$customer->company_name) }}"
-                                    class="form-control @error('company_name') is-invalid @enderror" maxlength="255">
+                                    placeholder="e.g, Prop Pik Global" class="form-control @error('company_name') is-invalid @enderror" maxlength="255">
                                 <div class="invalid-feedback">
                                     @error('company_name')
                                         {{ $message }}
@@ -166,7 +166,7 @@
                             <div class="mb-3">
                                 <label for="designation" class="form-label">Designation</label>
                                 <input type="text" name="designation" id="designation" value="{{ old('designation',$customer->designation) }}"
-                                    class="form-control @error('designation') is-invalid @enderror" maxlength="255">
+                                    placeholder="e.g, Agent" class="form-control @error('designation') is-invalid @enderror" maxlength="255">
                                 <div class="invalid-feedback">
                                     @error('designation')
                                         {{ $message }}
@@ -178,7 +178,7 @@
                             <div class="mb-3">
                                 <label for="company_website" class="form-label">Company Website</label>
                                 <input type="url" name="company_website" id="company_website" value="{{ old('company_website',$customer->company_website) }}"
-                                    class="form-control @error('company_website') is-invalid @enderror" maxlength="255">
+                                    placeholder="e.g, https://www.proppik.com/" class="form-control @error('company_website') is-invalid @enderror" maxlength="255">
                                 <div class="invalid-feedback">
                                     @error('company_website')
                                         {{ $message }}
@@ -192,7 +192,7 @@
                             <div class="mb-3">
                                 <label for="tag_line" class="form-label">Tag Line</label>
                                 <input type="text" name="tag_line" id="tag_line" value="{{ old('tag_line',$customer->tag_line) }}"
-                                    class="form-control @error('tag_line') is-invalid @enderror" maxlength="255">
+                                    placeholder="e.g, We not build tour, we Build Experiences." class="form-control @error('tag_line') is-invalid @enderror" maxlength="255">
                                 <div class="invalid-feedback">
                                     @error('tag_line')
                                         {{ $message }}
@@ -202,9 +202,12 @@
                         </div>
                         <div class="col-lg-6">
                             <div class="mb-3">
-                                <label for="social_link" class="form-label">Social Links (JSON)</label>
-                                <textarea name="social_link" id="social_link" rows="2" class="form-control @error('social_link') is-invalid @enderror">{{ old('social_link',$customer->social_link ? json_encode($customer->social_link) : '') }}</textarea>
-                                <div class="invalid-feedback">
+                                <label class="form-label">Social Links</label>
+                                <div id="social-links-container" data-links='{{ json_encode(old('social_link', $customer->social_link ?? [])) }}'>
+                                    <!-- JS will render existing pairs -->
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-secondary mt-2" id="add-social-pair">Add link</button>
+                                <div class="invalid-feedback d-block">
                                     @error('social_link')
                                         {{ $message }}
                                     @enderror
@@ -246,7 +249,7 @@
                         <label for="password" class="form-label">Password <small class="text-muted">(leave blank to keep current)</small></label>
                         <div class="input-group">
                             <input type="password" name="password" id="password" 
-                                class="form-control @error('password') is-invalid @enderror" 
+                                class="form-control @error('password') is-invalid @enderror"  placeholder="e.g, Pass@123"
                                 minlength="6">
                             <button class="btn btn-outline-secondary" type="button" id="togglePassword" tabindex="-1">
                                 <i class="ri-eye-off-line" id="togglePasswordIcon"></i>
@@ -263,14 +266,13 @@
                             <div class="valid-feedback">Looks good!</div>
                         @endif
                     </div>
-                    </div> <!-- end first card body -->
-                </div> <!-- end first card -->
-
-                <!-- end customer form -->
                     <div class="d-flex gap-2">
                         <button class="btn btn-primary" type="submit"><i class="ri-save-line me-1"></i> Update Customer</button>
                         <a href="{{ route('admin.customer.index') }}" class="btn btn-soft-secondary"><i class="ri-close-line me-1"></i> Cancel</a>
                     </div>
+                    </div> <!-- end first card body -->
+                </div> <!-- end first card -->
+                <!-- end customer form -->
                 </form>
 
                 <!-- SEO settings form (separate) -->
@@ -300,7 +302,7 @@
                             <div class="col-lg-6">
                                 <div class="mb-3">
                                     <label for="meta_title" class="form-label">Meta Title</label>
-                                    <input type="text" name="meta_title" id="meta_title" value="{{ old('meta_title',$customer->meta_title) }}"
+                                    <input type="text" name="meta_title" id="meta_title" placeholder="e.g, Meta Title" value="{{ old('meta_title',$customer->meta_title) }}"
                                         class="form-control @error('meta_title') is-invalid @enderror" maxlength="255">
                                     <div class="invalid-feedback">
                                         @error('meta_title')
@@ -313,7 +315,8 @@
                                 <div class="mb-3">
                                     <label for="meta_keywords" class="form-label">Meta Keywords</label>
                                     <input type="text" name="meta_keywords" id="meta_keywords" value="{{ old('meta_keywords',$customer->meta_keywords) }}"
-                                        class="form-control @error('meta_keywords') is-invalid @enderror" maxlength="255">
+                                    placeholder="e.g, keyword1, keyword2, keyword3"    
+                                    class="form-control @error('meta_keywords') is-invalid @enderror" maxlength="255">
                                     <div class="invalid-feedback">
                                         @error('meta_keywords')
                                             {{ $message }}
@@ -324,7 +327,7 @@
                         </div>
                         <div class="mb-3">
                             <label for="meta_description" class="form-label">Meta Description</label>
-                            <textarea name="meta_description" id="meta_description" rows="3"
+                            <textarea name="meta_description" id="meta_description" rows="3" placeholder="e.g, Meta Description"
                                 class="form-control @error('meta_description') is-invalid @enderror">{{ old('meta_description',$customer->meta_description) }}</textarea>
                             <div class="invalid-feedback">
                                 @error('meta_description')
@@ -337,7 +340,8 @@
                                 <div class="mb-3">
                                     <label for="canonical_url" class="form-label">Canonical URL</label>
                                     <input type="url" name="canonical_url" id="canonical_url" value="{{ old('canonical_url',$customer->canonical_url) }}"
-                                        class="form-control @error('canonical_url') is-invalid @enderror" maxlength="2048">
+                                    placeholder="e.g, https://www.proppik.com/"    
+                                    class="form-control @error('canonical_url') is-invalid @enderror" maxlength="2048">
                                     <div class="invalid-feedback">
                                         @error('canonical_url')
                                             {{ $message }}
@@ -349,7 +353,8 @@
                                 <div class="mb-3">
                                     <label for="meta_robots" class="form-label">Meta Robots</label>
                                     <input type="text" name="meta_robots" id="meta_robots" value="{{ old('meta_robots',$customer->meta_robots) }}"
-                                        class="form-control @error('meta_robots') is-invalid @enderror">
+                                    placeholder="e.g, No index, no follow"    
+                                    class="form-control @error('meta_robots') is-invalid @enderror">
                                     <div class="invalid-feedback">
                                         @error('meta_robots')
                                             {{ $message }}
@@ -363,7 +368,8 @@
                                 <div class="mb-3">
                                     <label for="twitter_title" class="form-label">Twitter Title</label>
                                     <input type="text" name="twitter_title" id="twitter_title" value="{{ old('twitter_title',$customer->twitter_title) }}"
-                                        class="form-control @error('twitter_title') is-invalid @enderror" maxlength="255">
+                                    placeholder="e.g, Twitter title"    
+                                    class="form-control @error('twitter_title') is-invalid @enderror" maxlength="255">
                                     <div class="invalid-feedback">
                                         @error('twitter_title')
                                             {{ $message }}
@@ -375,7 +381,7 @@
                                 <div class="mb-3">
                                     <label for="twitter_image" class="form-label">Twitter Image URL</label>
                                     <input type="text" name="twitter_image" id="twitter_image" value="{{ old('twitter_image',$customer->twitter_image) }}"
-                                        class="form-control @error('twitter_image') is-invalid @enderror" maxlength="255">
+                                       placeholder="e.g, Twitter Image Url" class="form-control @error('twitter_image') is-invalid @enderror" maxlength="255">
                                     <div class="invalid-feedback">
                                         @error('twitter_image')
                                             {{ $message }}
@@ -386,7 +392,7 @@
                         </div>
                         <div class="mb-3">
                             <label for="twitter_description" class="form-label">Twitter Description</label>
-                            <textarea name="twitter_description" id="twitter_description" rows="2"
+                            <textarea name="twitter_description" id="twitter_description" rows="2" placeholder="e.g, Twitter Description"
                                 class="form-control @error('twitter_description') is-invalid @enderror">{{ old('twitter_description',$customer->twitter_description) }}</textarea>
                             <div class="invalid-feedback">
                                 @error('twitter_description')
@@ -399,7 +405,7 @@
                                 <div class="mb-3">
                                     <label for="og_title" class="form-label">OG Title</label>
                                     <input type="text" name="og_title" id="og_title" value="{{ old('og_title',$customer->og_title) }}"
-                                        class="form-control @error('og_title') is-invalid @enderror" maxlength="255">
+                                        placeholder="e..g, OG Title" class="form-control @error('og_title') is-invalid @enderror" maxlength="255">
                                     <div class="invalid-feedback">
                                         @error('og_title')
                                             {{ $message }}
@@ -410,7 +416,7 @@
                             <div class="col-lg-6">
                                 <div class="mb-3">
                                     <label for="og_description" class="form-label">OG Description</label>
-                                    <textarea name="og_description" id="og_description" rows="2"
+                                    <textarea name="og_description" id="og_description" rows="2" placeholder="e..g, OG Description"
                                         class="form-control @error('og_description') is-invalid @enderror">{{ old('og_description',$customer->og_description) }}</textarea>
                                     <div class="invalid-feedback">
                                         @error('og_description')
@@ -423,6 +429,7 @@
                         <div class="mb-3">
                             <label for="header_code" class="form-label">Header Code</label>
                             <textarea name="header_code" id="header_code" rows="3"
+                                placeholder="e.g, <meta name='custom' content='value'>"
                                 class="form-control @error('header_code') is-invalid @enderror">{{ old('header_code',$customer->header_code) }}</textarea>
                             <div class="invalid-feedback">
                                 @error('header_code')
@@ -433,6 +440,7 @@
                         <div class="mb-3">
                             <label for="footer_code" class="form-label">Footer Code</label>
                             <textarea name="footer_code" id="footer_code" rows="3"
+                                placeholder="e.g, <script>console.log('Hello')</script>" "
                                 class="form-control @error('footer_code') is-invalid @enderror">{{ old('footer_code',$customer->footer_code) }}</textarea>
                             <div class="invalid-feedback">
                                 @error('footer_code')
@@ -443,7 +451,7 @@
                         <div class="mb-3">
                             <label for="gtm_tag" class="form-label">GTM Tag</label>
                             <input type="text" name="gtm_tag" id="gtm_tag" value="{{ old('gtm_tag',$customer->gtm_tag) }}"
-                                class="form-control @error('gtm_tag') is-invalid @enderror">
+                                placeholder="e.g, GTM-010129394102" class="form-control @error('gtm_tag') is-invalid @enderror">
                             <div class="invalid-feedback">
                                 @error('gtm_tag')
                                     {{ $message }}
@@ -464,6 +472,7 @@
 
 @endsection
 @section('script')
+@vite(['resources/js/pages/customer-edit.js'])
 <script>
 (function() {
     'use strict';

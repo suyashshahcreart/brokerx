@@ -202,9 +202,12 @@
                         </div>
                         <div class="col-lg-6">
                             <div class="mb-3">
-                                <label for="social_link" class="form-label">Social Links (JSON)</label>
-                                <textarea name="social_link" id="social_link" rows="2" class="form-control @error('social_link') is-invalid @enderror">{{ old('social_link') }}</textarea>
-                                <div class="invalid-feedback">
+                                <label class="form-label">Social Links</label>
+                                <div id="social-links-container" data-links='{{ json_encode(old('social_link', [])) }}'>
+                                    <!-- dynamic rows inserted by JS -->
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-secondary mt-2" id="add-social-pair">Add link</button>
+                                <div class="invalid-feedback d-block">
                                     @error('social_link')
                                         {{ $message }}
                                     @enderror
@@ -447,11 +450,12 @@
 </div>
 @endsection
 @section('script')
+@vite(['resources/js/pages/customer-edit.js'])
 <script>
 (function() {
     'use strict';
-    const form = document.querySelector('.needs-validation');
-    if (form) {
+    const forms = document.querySelectorAll('.needs-validation');
+    forms.forEach(form => {
         form.addEventListener('submit', function(event) {
             if (!form.checkValidity()) {
                 event.preventDefault();
@@ -459,7 +463,7 @@
             }
             form.classList.add('was-validated');
         }, false);
-    }
+    });
     // Show/hide password toggle
     const togglePassword = document.getElementById('togglePassword');
     const passwordInput = document.getElementById('password');

@@ -70,6 +70,7 @@ export default defineConfig({
                 'resources/js/pages/bookings-report-index.js',
                 'resources/js/pages/report-index.js',
                 'resources/js/pages/report-sales-index.js',
+                'resources/js/pages/customer-edit.js',
 
                 //components
                 'resources/js/components/maps-google.js',

@@ -164,7 +164,10 @@ class CustomerController extends Controller
             'designation' => ['nullable', 'string', 'max:255'],
             'company_website' => ['nullable', 'url', 'max:255'],
             'tag_line' => ['nullable', 'string', 'max:255'],
-            'social_link' => ['nullable', 'json'],
+            // new social links structure: array of {platform,url} pairs
+            'social_link' => ['nullable', 'array'],
+            'social_link.*.platform' => ['nullable', 'string', 'max:255'],
+            'social_link.*.url' => ['nullable', 'url'],
             // SEO fields are optional but add basic rules here in case they're submitted
             'slug' => ['nullable', 'string', 'alpha_dash', 'unique:customers,slug'],
             'meta_title' => ['nullable', 'string', 'max:255'],
@@ -188,6 +191,14 @@ class CustomerController extends Controller
             'country_id.required' => 'Country is required.',
         ]);
 
+        // support legacy JSON payloads
+        if ($request->has('social_link') && is_string($request->input('social_link'))) {
+            $decoded = json_decode($request->input('social_link'), true);
+            if (json_last_error() === JSON_ERROR_NONE) {
+                $request->merge(['social_link' => $decoded]);
+            }
+        }
+
         $country = null;
         if ($validator->passes()) {
             $country = Country::find($request->country_id);
@@ -203,6 +214,18 @@ class CustomerController extends Controller
         }
 
         $validated = $validator->validate();
+
+        // if social_link was submitted as array-of-pairs, convert to associative map
+        if (!empty($validated['social_link']) && is_array($validated['social_link'])) {
+            $assoc = [];
+            foreach ($validated['social_link'] as $pair) {
+                if (is_array($pair) && !empty($pair['platform'])) {
+                    $assoc[$pair['platform']] = $pair['url'] ?? '';
+                }
+            }
+            $validated['social_link'] = $assoc;
+        }
+
         $dialCode = ltrim($country->dial_code, '+');
         $fullMobile = $dialCode . $validated['base_mobile'];
 
@@ -304,24 +327,20 @@ class CustomerController extends Controller
             'designation' => ['nullable', 'string', 'max:255'],
             'company_website' => ['nullable', 'url', 'max:255'],
             'tag_line' => ['nullable', 'string', 'max:255'],
-            'social_link' => ['nullable', 'json'],
+            'social_link' => ['nullable', 'array'],
+            'social_link.*.platform' => ['nullable', 'string', 'max:255'],
+            'social_link.*.url' => ['nullable', 'url'],
             // slug should remain unique except for this customer
             'slug' => ['nullable', 'string', 'alpha_dash', 'unique:customers,slug,' . $customer->id],
-            'meta_title' => ['nullable', 'string', 'max:255'],
-            'meta_description' => ['nullable', 'string'],
-            'meta_keywords' => ['nullable', 'string', 'max:255'],
-            'canonical_url' => ['nullable', 'url', 'max:2048'],
-            'meta_robots' => ['nullable', 'string', 'max:255'],
-            'twitter_title' => ['nullable', 'string', 'max:255'],
-            'twitter_description' => ['nullable', 'string'],
-            'twitter_image' => ['nullable', 'string', 'max:255'],
-            'og_title' => ['nullable', 'string', 'max:255'],
-            'og_description' => ['nullable', 'string'],
-            'header_code' => ['nullable', 'string'],
-            'footer_code' => ['nullable', 'string'],
-            'gtm_tag' => ['nullable', 'string'],
         ];
 
+        // support old json format for social_link
+        if ($request->has('social_link') && is_string($request->input('social_link'))) {
+            $decoded = json_decode($request->input('social_link'), true);
+            if (json_last_error() === JSON_ERROR_NONE) {
+                $request->merge(['social_link' => $decoded]);
+            }
+        }
         $validator = Validator::make($request->all(), $rules, [
             'base_mobile.required' => 'Mobile number is required.',
             'base_mobile.digits_between' => 'Mobile number must be between 6 and 15 digits.',
@@ -346,12 +365,26 @@ class CustomerController extends Controller
         }
 
         $validated = $validator->validate();
+
+        // incoming social_link may be array of objects or associative array, normalize to associative
+        if (isset($validated['social_link']) && is_array($validated['social_link'])) {
+            // if it is list of pairs
+            if (array_values($validated['social_link']) === $validated['social_link']) {
+                $assoc = [];
+                foreach ($validated['social_link'] as $pair) {
+                    if (is_array($pair) && !empty($pair['platform'])) {
+                        $assoc[$pair['platform']] = $pair['url'] ?? '';
+                    }
+                }
+                $validated['social_link'] = $assoc;
+            }
+        }
+
         $dialCode = ltrim($country->dial_code, '+');
         $fullMobile = $dialCode . $validated['base_mobile'];
 
         // Capture before state
-        $before = [
-            'name' => $customer->name,
+        $before = [            'name' => $customer->name,
             'firstname' => $customer->firstname,
             'lastname' => $customer->lastname,
             'mobile' => $customer->mobile,
@@ -371,12 +404,14 @@ class CustomerController extends Controller
             'lastname' => $validated['lastname'],
             'mobile' => $fullMobile,
             'base_mobile' => $validated['base_mobile'],
+            'slug'=> $validated['slug'] ?? $customer->slug,
             'country_code' => strtoupper($country->country_code),
             'dial_code' => $country->dial_code,
             'country_id' => $country->id,
             'email' => $validated['email'],
             'updated_by' => $request->user()->id,
         ];
+
         // include profile / contact fields
         foreach (['company_name','designation','company_website','tag_line','social_link'] as $fld) {
             if (array_key_exists($fld, $validated)) {
