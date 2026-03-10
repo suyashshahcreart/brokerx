@@ -39,7 +39,7 @@
                 </div>
             </div>
             <div class="card-body">
-                <form method="POST" action="{{ route('admin.customer.store') }}" class="needs-validation" novalidate>
+                <form method="POST" action="{{ route('admin.customer.store') }}" class="needs-validation" novalidate enctype="multipart/form-data">
                     @csrf
                     <div class="row">
                         <div class="col-lg-6">
@@ -130,6 +130,112 @@
                             </div>
                         </div>
                     </div>
+                    <div class="row">
+                        <div class="col-lg-6">
+                            <div class="mb-3">
+                                <label for="slug" class="form-label">Slug </label>
+                                <input type="text" name="slug" id="slug" value="{{ old('slug') }}"
+                                    class="form-control @error('slug') is-invalid @enderror" placeholder="unique-identifier">
+                                <div class="invalid-feedback">
+                                    @error('slug')
+                                        {{ $message }}
+                                    @else
+                                        Slug must consist of letters, numbers, dashes or underscores and be unique.
+                                    @enderror
+                                </div>
+                                @if(!$errors->has('slug'))
+                                    <div class="valid-feedback">Looks good!</div>
+                                @endif
+                            </div>
+                        </div>
+                        <div class="col-lg-6">
+                            <div class="mb-3">
+                                <label for="company_name" class="form-label">Company Name</label>
+                                <input type="text" name="company_name" id="company_name" value="{{ old('company_name') }}"
+                                    class="form-control @error('company_name') is-invalid @enderror" maxlength="255">
+                                <div class="invalid-feedback">
+                                    @error('company_name')
+                                        {{ $message }}
+                                    @enderror
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-lg-6">
+                            <div class="mb-3">
+                                <label for="designation" class="form-label">Designation</label>
+                                <input type="text" name="designation" id="designation" value="{{ old('designation') }}"
+                                    class="form-control @error('designation') is-invalid @enderror" maxlength="255">
+                                <div class="invalid-feedback">
+                                    @error('designation')
+                                        {{ $message }}
+                                    @enderror
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-6">
+                            <div class="mb-3">
+                                <label for="company_website" class="form-label">Company Website</label>
+                                <input type="url" name="company_website" id="company_website" value="{{ old('company_website') }}"
+                                    class="form-control @error('company_website') is-invalid @enderror" maxlength="255">
+                                <div class="invalid-feedback">
+                                    @error('company_website')
+                                        {{ $message }}
+                                    @enderror
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-lg-6">
+                            <div class="mb-3">
+                                <label for="tag_line" class="form-label">Tag Line</label>
+                                <input type="text" name="tag_line" id="tag_line" value="{{ old('tag_line') }}"
+                                    class="form-control @error('tag_line') is-invalid @enderror" maxlength="255">
+                                <div class="invalid-feedback">
+                                    @error('tag_line')
+                                        {{ $message }}
+                                    @enderror
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-6">
+                            <div class="mb-3">
+                                <label for="social_link" class="form-label">Social Links (JSON)</label>
+                                <textarea name="social_link" id="social_link" rows="2" class="form-control @error('social_link') is-invalid @enderror">{{ old('social_link') }}</textarea>
+                                <div class="invalid-feedback">
+                                    @error('social_link')
+                                        {{ $message }}
+                                    @enderror
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-lg-6">
+                            <div class="mb-3">
+                                <label for="profile_photo" class="form-label">Profile Photo</label>
+                                <input type="file" name="profile_photo" id="profile_photo" class="form-control @error('profile_photo') is-invalid @enderror">
+                                <div class="invalid-feedback">
+                                    @error('profile_photo')
+                                        {{ $message }}
+                                    @enderror
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-6">
+                            <div class="mb-3">
+                                <label for="cover_photo" class="form-label">Cover Photo</label>
+                                <input type="file" name="cover_photo" id="cover_photo" class="form-control @error('cover_photo') is-invalid @enderror">
+                                <div class="invalid-feedback">
+                                    @error('cover_photo')
+                                        {{ $message }}
+                                    @enderror
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     <div class="mb-3">
                         <label for="password" class="form-label">Password <span class="text-danger">*</span></label>
                         <div class="input-group">
@@ -151,10 +257,189 @@
                             <div class="valid-feedback">Looks good!</div>
                         @endif
                     </div>
-                    <div class="d-flex gap-2">
-                        <button class="btn btn-primary" type="submit"><i class="ri-check-line me-1"></i> Save Customer</button>
-                        <a href="{{ route('admin.customer.index') }}" class="btn btn-soft-secondary"><i class="ri-close-line me-1"></i> Cancel</a>
+                    </div> <!-- end first card body -->
+                </div> <!-- end first card -->
+
+                <!-- SEO settings card -->
+                <div class="card panel-card border-secondary border-top mt-3" data-panel-card>
+                    <div class="card-header d-flex justify-content-between align-items-start flex-wrap gap-2">
+                        <div>
+                            <h4 class="card-title mb-1">SEO Settings</h4>
+                            <p class="text-muted mb-0">Optional meta tags and social information</p>
+                        </div>
+                        <div class="panel-actions d-flex gap-2">
+                            <button type="button" class="btn btn-light border" data-panel-action="collapse" title="Collapse">
+                                <i class="ri-arrow-up-s-line"></i>
+                            </button>
+                            <button type="button" class="btn btn-light border" data-panel-action="fullscreen" title="Fullscreen">
+                                <i class="ri-fullscreen-line"></i>
+                            </button>
+                            <button type="button" class="btn btn-light border" data-panel-action="close" title="Close">
+                                <i class="ri-close-line"></i>
+                            </button>
+                        </div>
                     </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-lg-6">
+                                <div class="mb-3">
+                                    <label for="meta_title" class="form-label">Meta Title</label>
+                                    <input type="text" name="meta_title" id="meta_title" value="{{ old('meta_title') }}"
+                                        class="form-control @error('meta_title') is-invalid @enderror" maxlength="255">
+                                    <div class="invalid-feedback">
+                                        @error('meta_title')
+                                            {{ $message }}
+                                        @enderror
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-6">
+                                <div class="mb-3">
+                                    <label for="meta_keywords" class="form-label">Meta Keywords</label>
+                                    <input type="text" name="meta_keywords" id="meta_keywords" value="{{ old('meta_keywords') }}"
+                                        class="form-control @error('meta_keywords') is-invalid @enderror" maxlength="255">
+                                    <div class="invalid-feedback">
+                                        @error('meta_keywords')
+                                            {{ $message }}
+                                        @enderror
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="meta_description" class="form-label">Meta Description</label>
+                            <textarea name="meta_description" id="meta_description" rows="3"
+                                class="form-control @error('meta_description') is-invalid @enderror">{{ old('meta_description') }}</textarea>
+                            <div class="invalid-feedback">
+                                @error('meta_description')
+                                    {{ $message }}
+                                @enderror
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-lg-6">
+                                <div class="mb-3">
+                                    <label for="canonical_url" class="form-label">Canonical URL</label>
+                                    <input type="url" name="canonical_url" id="canonical_url" value="{{ old('canonical_url') }}"
+                                        class="form-control @error('canonical_url') is-invalid @enderror" maxlength="2048">
+                                    <div class="invalid-feedback">
+                                        @error('canonical_url')
+                                            {{ $message }}
+                                        @enderror
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-6">
+                                <div class="mb-3">
+                                    <label for="meta_robots" class="form-label">Meta Robots</label>
+                                    <input type="text" name="meta_robots" id="meta_robots" value="{{ old('meta_robots') }}"
+                                        class="form-control @error('meta_robots') is-invalid @enderror">
+                                    <div class="invalid-feedback">
+                                        @error('meta_robots')
+                                            {{ $message }}
+                                        @enderror
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-lg-6">
+                                <div class="mb-3">
+                                    <label for="twitter_title" class="form-label">Twitter Title</label>
+                                    <input type="text" name="twitter_title" id="twitter_title" value="{{ old('twitter_title') }}"
+                                        class="form-control @error('twitter_title') is-invalid @enderror" maxlength="255">
+                                    <div class="invalid-feedback">
+                                        @error('twitter_title')
+                                            {{ $message }}
+                                        @enderror
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-6">
+                                <div class="mb-3">
+                                    <label for="twitter_image" class="form-label">Twitter Image URL</label>
+                                    <input type="text" name="twitter_image" id="twitter_image" value="{{ old('twitter_image') }}"
+                                        class="form-control @error('twitter_image') is-invalid @enderror" maxlength="255">
+                                    <div class="invalid-feedback">
+                                        @error('twitter_image')
+                                            {{ $message }}
+                                        @enderror
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="twitter_description" class="form-label">Twitter Description</label>
+                            <textarea name="twitter_description" id="twitter_description" rows="2"
+                                class="form-control @error('twitter_description') is-invalid @enderror">{{ old('twitter_description') }}</textarea>
+                            <div class="invalid-feedback">
+                                @error('twitter_description')
+                                    {{ $message }}
+                                @enderror
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-lg-6">
+                                <div class="mb-3">
+                                    <label for="og_title" class="form-label">OG Title</label>
+                                    <input type="text" name="og_title" id="og_title" value="{{ old('og_title') }}"
+                                        class="form-control @error('og_title') is-invalid @enderror" maxlength="255">
+                                    <div class="invalid-feedback">
+                                        @error('og_title')
+                                            {{ $message }}
+                                        @enderror
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-6">
+                                <div class="mb-3">
+                                    <label for="og_description" class="form-label">OG Description</label>
+                                    <textarea name="og_description" id="og_description" rows="2"
+                                        class="form-control @error('og_description') is-invalid @enderror">{{ old('og_description') }}</textarea>
+                                    <div class="invalid-feedback">
+                                        @error('og_description')
+                                            {{ $message }}
+                                        @enderror
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="header_code" class="form-label">Header Code</label>
+                            <textarea name="header_code" id="header_code" rows="3"
+                                class="form-control @error('header_code') is-invalid @enderror">{{ old('header_code') }}</textarea>
+                            <div class="invalid-feedback">
+                                @error('header_code')
+                                    {{ $message }}
+                                @enderror
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="footer_code" class="form-label">Footer Code</label>
+                            <textarea name="footer_code" id="footer_code" rows="3"
+                                class="form-control @error('footer_code') is-invalid @enderror">{{ old('footer_code') }}</textarea>
+                            <div class="invalid-feedback">
+                                @error('footer_code')
+                                    {{ $message }}
+                                @enderror
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="gtm_tag" class="form-label">GTM Tag</label>
+                            <input type="text" name="gtm_tag" id="gtm_tag" value="{{ old('gtm_tag') }}"
+                                class="form-control @error('gtm_tag') is-invalid @enderror">
+                            <div class="invalid-feedback">
+                                @error('gtm_tag')
+                                    {{ $message }}
+                                @enderror
+                            </div>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-primary" type="submit"><i class="ri-check-line me-1"></i> Save Customer</button>
+                            <a href="{{ route('admin.customer.index') }}" class="btn btn-soft-secondary"><i class="ri-close-line me-1"></i> Cancel</a>
+                        </div>
+                    </div>
+                </div> <!-- end seo card -->
                 </form>
             </div>
         </div>

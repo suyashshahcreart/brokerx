@@ -37,6 +37,21 @@ class Customer extends Model
         'is_active',
         'created_by',
         'updated_by',
+        // SEO fields
+        'meta_title',
+        'meta_description',
+        'meta_keywords',
+        'canonical_url',
+        'meta_robots',
+        'twitter_title',
+        'twitter_description',
+        'twitter_image',
+        'og_title',
+        'og_description',
+        'header_code',
+        'footer_code',
+        'gtm_tag',
+        'slug',
     ];
 
     protected $hidden = [
@@ -56,6 +71,36 @@ class Customer extends Model
     public function getNameAttribute(): string
     {
         return trim(($this->firstname ?? '') . ' ' . ($this->lastname ?? ''));
+    }
+
+    /**
+     * Update only SEO related attributes on the model.
+     * Accepts a subset of fields and ignores others.
+     *
+     * @param  array  $data
+     * @return bool
+     */
+    public function updateSeo(array $data): bool
+    {
+        $allowed = [
+            'meta_title',
+            'meta_description',
+            'meta_keywords',
+            'canonical_url',
+            'meta_robots',
+            'twitter_title',
+            'twitter_description',
+            'twitter_image',
+            'og_title',
+            'og_description',
+            'header_code',
+            'footer_code',
+            'gtm_tag',
+            'slug',
+        ];
+
+        $updateData = array_intersect_key($data, array_flip($allowed));
+        return $this->update($updateData);
     }
 
     public function country(): BelongsTo
