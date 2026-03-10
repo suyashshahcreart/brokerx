@@ -1,11 +1,11 @@
-// handle dynamic social links as array of platform/url pairs
+// handle dynamic social links as associative key/value pairs
 (function() {
-    function createRow(platform = '', url = '') {
+    function createRow(key = '', value = '') {
         const row = document.createElement('div');
         row.className = 'input-group mb-2 social-pair';
         row.innerHTML = `
-            <input type="text" class="form-control platform-input" placeholder="Platform (e.g, Twitter)" value="${platform}">
-            <input type="url" class="form-control url-input" placeholder="URL (e.g, https://twitter.com/username)" value="${url}">
+            <input type="text" class="form-control key-input" placeholder="Key" value="${key}">
+            <input type="text" class="form-control value-input" placeholder="Value/URL" value="${value}">
             <button class="btn btn-outline-danger remove-btn" type="button"><i class="ri-delete-bin-line"></i></button>
         `;
         row.querySelector('.remove-btn').addEventListener('click', () => {
@@ -19,53 +19,63 @@
     function syncHidden() {
         const container = document.getElementById('social-links-container');
         if (!container) return;
-        // clear previous hidden inputs
         container.querySelectorAll('input[type=hidden].social-hidden').forEach(i => i.remove());
-        container.querySelectorAll('.social-pair').forEach((p, idx) => {
-            const plat = p.querySelector('.platform-input').value.trim();
-            const url = p.querySelector('.url-input').value.trim();
-            if (plat || url) {
-                const hidPlat = document.createElement('input');
-                hidPlat.type = 'hidden';
-                hidPlat.name = `social_link[${idx}][platform]`;
-                hidPlat.value = plat;
-                hidPlat.className = 'social-hidden';
-                container.appendChild(hidPlat);
-
-                const hidUrl = document.createElement('input');
-                hidUrl.type = 'hidden';
-                hidUrl.name = `social_link[${idx}][url]`;
-                hidUrl.value = url;
-                hidUrl.className = 'social-hidden';
-                container.appendChild(hidUrl);
+        let hasAny = false;
+        container.querySelectorAll('.social-pair').forEach(p => {
+            const key = p.querySelector('.key-input').value.trim();
+            const val = p.querySelector('.value-input').value.trim();
+            if (key) {
+                hasAny = true;
+                const hid = document.createElement('input');
+                hid.type = 'hidden';
+                hid.name = `social_link[${key}]`;
+                hid.value = val;
+                hid.className = 'social-hidden';
+                container.appendChild(hid);
             }
         });
+        if (!hasAny) {
+            // send explicit empty array so backend updates to []
+            const hid = document.createElement('input');
+            hid.type = 'hidden';
+            hid.name = 'social_link';
+            hid.value = '[]';
+            hid.className = 'social-hidden';
+            container.appendChild(hid);
+        }
     }
 
     function init() {
         const container = document.getElementById('social-links-container');
         if (!container) return;
 
-        // read initial data from data-links attribute (expects JSON array or object)
-        let data = [];
+        // data-links should be an object; convert to key/value rows
+        let data = {};
         try {
-            const raw = container.dataset.links || '[]';
+            const raw = container.dataset.links || '{}';
             data = JSON.parse(raw);
-            if (data && typeof data === 'object' && !Array.isArray(data)) {
-                // convert associative object to array of pairs
-                data = Object.entries(data).map(([platform, url]) => ({ platform, url }));
+            if (Array.isArray(data)) {
+                // legacy array-of-pairs support
+                const arr = data;
+                data = {};
+                arr.forEach(item => {
+                    if (item && typeof item === 'object') {
+                        const k = item.platform || item.key || '';
+                        const v = item.url || item.value || '';
+                        if (k) data[k] = v;
+                    }
+                });
             }
         } catch (e) {
-            data = [];
+            data = {};
         }
 
-        data.forEach(item => container.appendChild(createRow(item.platform || '', item.url || '')));
+        Object.entries(data).forEach(([k, v]) => container.appendChild(createRow(k, v)));
 
         document.getElementById('add-social-pair').addEventListener('click', () => {
             container.appendChild(createRow());
         });
 
-        // keep hidden inputs in sync when form submitted or fields change
         document.querySelectorAll('form.needs-validation').forEach(form => {
             form.addEventListener('submit', syncHidden);
         });

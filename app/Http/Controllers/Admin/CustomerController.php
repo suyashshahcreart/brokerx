@@ -164,10 +164,10 @@ class CustomerController extends Controller
             'designation' => ['nullable', 'string', 'max:255'],
             'company_website' => ['nullable', 'url', 'max:255'],
             'tag_line' => ['nullable', 'string', 'max:255'],
-            // new social links structure: array of {platform,url} pairs
+            // social links as associative array key=>value
             'social_link' => ['nullable', 'array'],
-            'social_link.*.platform' => ['nullable', 'string', 'max:255'],
-            'social_link.*.url' => ['nullable', 'url'],
+            // allow any string value (not limited to URL)
+            'social_link.*' => ['nullable', 'string', 'max:255'],
             // SEO fields are optional but add basic rules here in case they're submitted
             'slug' => ['nullable', 'string', 'alpha_dash', 'unique:customers,slug'],
             'meta_title' => ['nullable', 'string', 'max:255'],
@@ -215,16 +215,8 @@ class CustomerController extends Controller
 
         $validated = $validator->validate();
 
-        // if social_link was submitted as array-of-pairs, convert to associative map
-        if (!empty($validated['social_link']) && is_array($validated['social_link'])) {
-            $assoc = [];
-            foreach ($validated['social_link'] as $pair) {
-                if (is_array($pair) && !empty($pair['platform'])) {
-                    $assoc[$pair['platform']] = $pair['url'] ?? '';
-                }
-            }
-            $validated['social_link'] = $assoc;
-        }
+        // ensure social_link is always an array (empty when absent)
+        $validated['social_link'] = $validated['social_link'] ?? [];
 
         $dialCode = ltrim($country->dial_code, '+');
         $fullMobile = $dialCode . $validated['base_mobile'];
@@ -313,7 +305,7 @@ class CustomerController extends Controller
     @param Customer $customer
      */
     public function update(Request $request, Customer $customer)
-    {
+    {   
         $rules = [
             'firstname' => ['required', 'string', 'max:255'],
             'lastname' => ['required', 'string', 'max:255'],
@@ -328,19 +320,20 @@ class CustomerController extends Controller
             'company_website' => ['nullable', 'url', 'max:255'],
             'tag_line' => ['nullable', 'string', 'max:255'],
             'social_link' => ['nullable', 'array'],
-            'social_link.*.platform' => ['nullable', 'string', 'max:255'],
-            'social_link.*.url' => ['nullable', 'url'],
+            // any string accepted
+            'social_link.*' => ['nullable', 'string', 'max:255'],
             // slug should remain unique except for this customer
             'slug' => ['nullable', 'string', 'alpha_dash', 'unique:customers,slug,' . $customer->id],
         ];
 
-        // support old json format for social_link
+        // support old json format for social_link (stringified associative or array)
         if ($request->has('social_link') && is_string($request->input('social_link'))) {
             $decoded = json_decode($request->input('social_link'), true);
             if (json_last_error() === JSON_ERROR_NONE) {
                 $request->merge(['social_link' => $decoded]);
             }
         }
+        
         $validator = Validator::make($request->all(), $rules, [
             'base_mobile.required' => 'Mobile number is required.',
             'base_mobile.digits_between' => 'Mobile number must be between 6 and 15 digits.',
@@ -366,25 +359,15 @@ class CustomerController extends Controller
 
         $validated = $validator->validate();
 
-        // incoming social_link may be array of objects or associative array, normalize to associative
-        if (isset($validated['social_link']) && is_array($validated['social_link'])) {
-            // if it is list of pairs
-            if (array_values($validated['social_link']) === $validated['social_link']) {
-                $assoc = [];
-                foreach ($validated['social_link'] as $pair) {
-                    if (is_array($pair) && !empty($pair['platform'])) {
-                        $assoc[$pair['platform']] = $pair['url'] ?? '';
-                    }
-                }
-                $validated['social_link'] = $assoc;
-            }
-        }
+        // ensure social_link always present as array
+        $validated['social_link'] = $validated['social_link'] ?? [];
 
         $dialCode = ltrim($country->dial_code, '+');
         $fullMobile = $dialCode . $validated['base_mobile'];
-
+        
         // Capture before state
-        $before = [            'name' => $customer->name,
+        $before = [            
+            'name' => $customer->name,
             'firstname' => $customer->firstname,
             'lastname' => $customer->lastname,
             'mobile' => $customer->mobile,
@@ -410,6 +393,7 @@ class CustomerController extends Controller
             'country_id' => $country->id,
             'email' => $validated['email'],
             'updated_by' => $request->user()->id,
+            'socail_link' => json_encode($validated['social_link']),    
         ];
 
         // include profile / contact fields
