@@ -11,18 +11,15 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Yajra\DataTables\Facades\DataTables;
 
-class CustomerController extends Controller
-{
-    public function __construct()
-    {
+class CustomerController extends Controller{
+    public function __construct(){
         $this->middleware('permission:customer_view')->only(['index', 'show']);
         $this->middleware('permission:customer_create')->only(['create', 'store']);
         $this->middleware('permission:customer_edit')->only(['edit', 'update']);
         $this->middleware('permission:customer_delete')->only(['destroy']);
     }
 
-    public function index(Request $request)
-    {
+    public function index(Request $request){
         if ($request->ajax()) {
             // Filter only users with 'customer' role and load bookings count
             $query = Customer::query()
@@ -80,8 +77,7 @@ class CustomerController extends Controller
     Show function for a customer; displays all the booking and tour details of the customer.
     @param Customer $customer
     */
-    public function show(Request $request, Customer $customer)
-    {
+    public function show(Request $request, Customer $customer){
         if ($request->ajax()) {
             // DataTable AJAX for bookings
             $query = $customer->bookings()->with(['customer'])->latest();
@@ -129,8 +125,7 @@ class CustomerController extends Controller
     /* 
     Display form to create a new customer.
     */
-    public function create()
-    {
+    public function create(){
         // Permission check is handled by middleware
         $countries = Country::where('is_active', true)->orderBy('name')->get();
         $defaultCountryId = old('country_id');
@@ -147,15 +142,16 @@ class CustomerController extends Controller
     Store customer record in the database.
     @param  Request  $request
     */
-    public function store(Request $request)
-    {
+    public function store(Request $request){
+
+        
         $rules = [
             'firstname' => ['required', 'string', 'max:255'],
             'lastname' => ['required', 'string', 'max:255'],
             'base_mobile' => ['required', 'numeric', 'digits_between:6,15'],
             'country_id' => ['required', 'exists:countries,id'],
             'email' => ['required', 'email', 'max:255', 'unique:customers,email'],
-            'password' => ['required', 'string', 'min:6'],
+            'password' => ['nullable', 'string', 'min:6'],
             // profile/cover photos
             'profile_photo' => ['nullable', 'image', 'max:2048'],
             'cover_photo' => ['nullable', 'image', 'max:2048'],
@@ -191,6 +187,8 @@ class CustomerController extends Controller
             'country_id.required' => 'Country is required.',
         ]);
 
+        
+
         // support legacy JSON payloads
         if ($request->has('social_link') && is_string($request->input('social_link'))) {
             $decoded = json_decode($request->input('social_link'), true);
@@ -215,6 +213,8 @@ class CustomerController extends Controller
 
         $validated = $validator->validate();
 
+        // dd($request->all(), $validator, $validated);
+
         // ensure social_link is always an array (empty when absent)
         $validated['social_link'] = $validated['social_link'] ?? [];
 
@@ -231,7 +231,7 @@ class CustomerController extends Controller
             'dial_code' => $country->dial_code,
             'country_id' => $country->id,
             'email' => $validated['email'],
-            'password' => Hash::make($validated['password']),
+            // 'password' => Hash::make($validated['password']),
             'created_by' => $request->user()->id,
             'updated_by' => $request->user()->id,
         ];
@@ -243,7 +243,7 @@ class CustomerController extends Controller
         }
 
         // include any supplied seo fields
-        foreach (['slug','meta_title','meta_description','meta_keywords','canonical_url','meta_robots','twitter_title','twitter_description','twitter_image','og_title','og_description','header_code','footer_code','gtm_tag'] as $seoField) {
+        foreach (['slug','meta_title','meta_description','meta_keywords','meta_image','canonical_url','meta_robots','og_title','og_description','og_image','og_type','og_url','twitter_title','twitter_description','twitter_image','twitter_card','header_code','footer_code','gtm_tag'] as $seoField) {
             if (array_key_exists($seoField, $validated)) {
                 $data[$seoField] = $validated[$seoField];
             }
@@ -285,8 +285,7 @@ class CustomerController extends Controller
     Show form for editing customer details.
     @param Customer $customer
     */
-    public function edit(Customer $customer)
-    {
+    public function edit(Customer $customer){
         // Permission check is handled by middleware
         $countries = Country::where('is_active', true)->orderBy('name')->get();
         $defaultCountryId = old('country_id', $customer->country_id);
@@ -513,16 +512,21 @@ class CustomerController extends Controller
             'meta_title' => ['nullable', 'string', 'max:255'],
             'meta_description' => ['nullable', 'string'],
             'meta_keywords' => ['nullable', 'string', 'max:255'],
+            'meta_image' => ['nullable', 'string', 'max:2048'],
             'canonical_url' => ['nullable', 'url', 'max:2048'],
             'meta_robots' => ['nullable', 'string', 'max:255'],
-            'twitter_title' => ['nullable', 'string', 'max:255'],
-            'twitter_description' => ['nullable', 'string'],
-            'twitter_image' => ['nullable', 'string', 'max:255'],
             'og_title' => ['nullable', 'string', 'max:255'],
             'og_description' => ['nullable', 'string'],
+            'og_image' => ['nullable', 'string', 'max:2048'],
+            'og_type' => ['nullable', 'string', 'max:64'],
+            'og_url' => ['nullable', 'url', 'max:2048'],
+            'twitter_title' => ['nullable', 'string', 'max:255'],
+            'twitter_description' => ['nullable', 'string'],
+            'twitter_image' => ['nullable', 'string', 'max:2048'],
+            'twitter_card' => ['nullable', 'string', 'max:64'],
             'header_code' => ['nullable', 'string'],
             'footer_code' => ['nullable', 'string'],
-            'gtm_tag' => ['nullable', 'string'],
+            'gtm_tag' => ['nullable', 'string', 'max:64'],
             'slug' => ['nullable', 'string', 'alpha_dash', 'unique:customers,slug,' . $customer->id],
         ];
 
