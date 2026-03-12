@@ -306,23 +306,41 @@ class CustomerController extends Controller{
     public function update(Request $request, Customer $customer)
     {   
         $rules = [
-            'firstname' => ['required', 'string', 'max:255'],
-            'lastname' => ['required', 'string', 'max:255'],
-            'base_mobile' => ['required', 'numeric', 'digits_between:6,15'],
-            'country_id' => ['required', 'exists:countries,id'],
-            'email' => ['required', 'email', 'max:255', 'unique:customers,email,' . $customer->id],
-            'password' => ['nullable', 'string', 'min:6'],
-            'profile_photo' => ['nullable', 'image', 'max:2048'],
-            'cover_photo' => ['nullable', 'image', 'max:2048'],
-            'company_name' => ['nullable', 'string', 'max:255'],
-            'designation' => ['nullable', 'string', 'max:255'],
+            'firstname'       => ['required', 'string', 'max:255'],
+            'lastname'        => ['required', 'string', 'max:255'],
+            'base_mobile'     => ['required', 'numeric', 'digits_between:6,15'],
+            'country_id'      => ['required', 'exists:countries,id'],
+            'email'           => ['required', 'email', 'max:255', 'unique:customers,email,' . $customer->id],
+            'password'        => ['nullable', 'string', 'min:6'],
+            'profile_photo'   => ['nullable', 'image', 'max:2048'],
+            'cover_photo'     => ['nullable', 'image', 'max:2048'],
+            'company_name'    => ['nullable', 'string', 'max:255'],
+            'designation'     => ['nullable', 'string', 'max:255'],
             'company_website' => ['nullable', 'url', 'max:255'],
-            'tag_line' => ['nullable', 'string', 'max:255'],
-            'social_link' => ['nullable', 'array'],
-            // any string accepted
-            'social_link.*' => ['nullable', 'string', 'max:255'],
-            // slug should remain unique except for this customer
-            'slug' => ['nullable', 'string', 'alpha_dash', 'unique:customers,slug,' . $customer->id],
+            'tag_line'        => ['nullable', 'string', 'max:255'],
+            'social_link'     => ['nullable', 'array'],
+            'social_link.*'   => ['nullable', 'string', 'max:255'],
+            // slug must remain unique except for this customer
+            'slug'                => ['nullable', 'string', 'alpha_dash', 'unique:customers,slug,' . $customer->id],
+            // SEO fields
+            'meta_title'          => ['nullable', 'string', 'max:255'],
+            'meta_description'    => ['nullable', 'string'],
+            'meta_keywords'       => ['nullable', 'string', 'max:255'],
+            'meta_image'          => ['nullable', 'string', 'max:2048'],
+            'canonical_url'       => ['nullable', 'url', 'max:2048'],
+            'meta_robots'         => ['nullable', 'string', 'max:255'],
+            'og_title'            => ['nullable', 'string', 'max:255'],
+            'og_description'      => ['nullable', 'string'],
+            'og_image'            => ['nullable', 'string', 'max:2048'],
+            'og_type'             => ['nullable', 'string', 'max:64'],
+            'og_url'              => ['nullable', 'url', 'max:2048'],
+            'twitter_title'       => ['nullable', 'string', 'max:255'],
+            'twitter_description' => ['nullable', 'string'],
+            'twitter_image'       => ['nullable', 'string', 'max:2048'],
+            'twitter_card'        => ['nullable', 'string', 'max:64'],
+            'header_code'         => ['nullable', 'string'],
+            'footer_code'         => ['nullable', 'string'],
+            'gtm_tag'             => ['nullable', 'string', 'max:64'],
         ];
 
         // support old json format for social_link (stringified associative or array)
@@ -399,6 +417,13 @@ class CustomerController extends Controller{
         foreach (['company_name','designation','company_website','tag_line','social_link'] as $fld) {
             if (array_key_exists($fld, $validated)) {
                 $data[$fld] = $validated[$fld];
+            }
+        }
+
+        // include SEO fields
+        foreach (['meta_title','meta_description','meta_keywords','meta_image','canonical_url','meta_robots','og_title','og_description','og_image','og_type','og_url','twitter_title','twitter_description','twitter_image','twitter_card','header_code','footer_code','gtm_tag'] as $seoField) {
+            if (array_key_exists($seoField, $validated)) {
+                $data[$seoField] = $validated[$seoField];
             }
         }
 
