@@ -6,8 +6,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use App\Models\User;
 
-return new class extends Migration
-{
+return new class extends Migration {
     /**
      * Run the migrations.
      */
@@ -52,6 +51,9 @@ return new class extends Migration
                     $now = now();
                     foreach ($users as $user) {
                         $rows[] = [
+                            // ✅ FIX 1: Include the original user ID so the customer
+                            //    gets the exact same ID instead of a new auto-increment one.
+                            'id' => $user->id,
                             'firstname' => $user->firstname,
                             'lastname' => $user->lastname,
                             'mobile' => $user->mobile,
@@ -92,6 +94,11 @@ return new class extends Migration
                         );
                     }
                 }, 'id');
+
+            // ✅ FIX 2: Reset AUTO_INCREMENT to max(id) + 1 so future customer
+            //    inserts don't collide with the manually-set IDs we just inserted.
+            $maxId = DB::table('customers')->max('id') ?? 0;
+            DB::statement("ALTER TABLE customers AUTO_INCREMENT = " . ($maxId + 1));
         }
 
         DB::table('bookings as b')
@@ -176,32 +183,38 @@ return new class extends Migration
             }
 
             $customersQuery->chunkById(500, function ($customers) use ($roleId) {
-                    $now = now();
-                    foreach ($customers as $customer) {
-                        $userId = DB::table('users')->insertGetId([
-                            'firstname' => $customer->firstname,
-                            'lastname' => $customer->lastname,
-                            'mobile' => $customer->mobile,
-                            'base_mobile' => $customer->base_mobile ?? $customer->mobile,
-                            'country_code' => $customer->country_code,
-                            'dial_code' => $customer->dial_code,
-                            'country_id' => $customer->country_id,
-                            'email' => $customer->email,
-                            'password' => $customer->password,
-                            'mobile_verified_at' => $customer->mobile_verified_at,
-                            'otp' => $customer->otp,
-                            'otp_expires_at' => $customer->otp_expires_at,
-                            'created_at' => $customer->created_at ?? $now,
-                            'updated_at' => $customer->updated_at ?? $now,
-                        ]);
+                $now = now();
+                foreach ($customers as $customer) {
+                    // Restore with the original ID so referential integrity is preserved
+                    DB::table('users')->insert([
+                        'id' => $customer->id,
+                        'firstname' => $customer->firstname,
+                        'lastname' => $customer->lastname,
+                        'mobile' => $customer->mobile,
+                        'base_mobile' => $customer->base_mobile ?? $customer->mobile,
+                        'country_code' => $customer->country_code,
+                        'dial_code' => $customer->dial_code,
+                        'country_id' => $customer->country_id,
+                        'email' => $customer->email,
+                        'password' => $customer->password,
+                        'mobile_verified_at' => $customer->mobile_verified_at,
+                        'otp' => $customer->otp,
+                        'otp_expires_at' => $customer->otp_expires_at,
+                        'created_at' => $customer->created_at ?? $now,
+                        'updated_at' => $customer->updated_at ?? $now,
+                    ]);
 
-                        DB::table('model_has_roles')->insert([
-                            'role_id' => $roleId,
-                            'model_type' => User::class,
-                            'model_id' => $userId,
-                        ]);
-                    }
-                });
+                    DB::table('model_has_roles')->insert([
+                        'role_id' => $roleId,
+                        'model_type' => User::class,
+                        'model_id' => $customer->id,
+                    ]);
+                }
+            });
+
+            // Reset AUTO_INCREMENT on users table after manual ID inserts
+            $maxId = DB::table('users')->max('id') ?? 0;
+            DB::statement("ALTER TABLE users AUTO_INCREMENT = " . ($maxId + 1));
         }
 
         Schema::table('bookings', function (Blueprint $table) {
@@ -235,4 +248,4 @@ return new class extends Migration
             $table->index(['user_id', 'booking_date']);
         });
     }
-};
+};  

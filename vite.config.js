@@ -71,6 +71,9 @@ export default defineConfig({
                 'resources/js/pages/report-index.js',
                 'resources/js/pages/report-sales-index.js',
                 'resources/js/pages/customer-edit.js',
+                'resources/js/pages/booking-tour-detail-update-tab.js',
+                'resources/js/pages/edit-booking-contact-info.js',
+                'resources/js/pages/edit-booking-tour-settings.js',
 
                 //components
                 'resources/js/components/maps-google.js',

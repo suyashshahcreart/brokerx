@@ -204,9 +204,20 @@ Route::group(['prefix' => 'ppadmlog', 'as' => 'admin.', 'middleware' => ['web', 
     // PHOTOGRAPHER VISITS
     Route::resource('photographer-visits', PhotographerVisitController::class);
     Route::resource('holidays', HolidayController::class);
+    // tour update routes Booking-edit page.
     Route::resource('tours', TourController::class);
     Route::put('tours/{tour}/update-tour-details', [TourController::class, 'updateTourDetails'])->name('tours.updateTourDetails');
     Route::put('admin/tours/{tour}/update-seo', [TourController::class, 'updateTourSeo'])->name('tours.updateSeo');
+    Route::put('admin/tours/{tour}/update-contact-info', [TourController::class, 'updateContactInfo'])->name('tours.updateContactInfo');
+    Route::put('admin/tours/{tour}/update-tour-settings', [TourController::class, 'updateTourSettings'])->name('tours.updateTourSettings');
+    Route::put('admin/tours/{tour}/update-tour-basic-info-tab', [TourController::class, 'UpdateBasicInfoOfTourDetails'])->name('tours.UpdateBasicInfoTourTab');
+    Route::put('admin/tours/{tour}/update-tour-loader-config-tab', [TourController::class, 'updateTourLoaderConfigTab'])->name('tours.updateTourLoaderConfigTab');
+    Route::put('admin/tours/{tour}/update-tour-language-tab', [TourController::class, 'updateTourLanguageTab'])->name('tours.updateTourLanguageTab');
+    Route::put('admin/tours/{tour}/update-tour-contact-info-tab', [TourController::class, 'updateTourContactInfoTab'])->name('tours.updateTourContactInfoTab');
+    Route::put('admin/tours/{tour}/update-tour-attachments-tab', [TourController::class, 'updateTourAttachmentsTab'])->name('tours.updateTourAttachmentsTab');
+    Route::put('admin/tours/{tour}/update-tour-sidebar-tab', [TourController::class, 'updateTourSidebarTab'])->name('tours.updateTourSidebarTab');
+    Route::put('admin/tours/{tour}/update-tour-bottom-top-tab', [TourController::class, 'updateTourBottomTopTab'])->name('tours.updateTourBottomTopTab');
+    Route::put('admin/tours/{tour}/update-tour-bottom-property-tab', [TourController::class, 'updateTourBottomPropertyTab'])->name('tours.updateTourBottomPropertyTab');
 
     // AJAX Tour routes
     Route::post('tours/{tour}/update-ajax', [TourController::class, 'updateAjax'])->name('admin.tours.update-ajax');
