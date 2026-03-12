@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\ajax\BookingAssigneController;
 use App\Http\Controllers\Admin\Api\TourManagerController;
 use App\Http\Controllers\Api\PortfolioApiController;
 use App\Http\Controllers\Api\CustomerAuthController;
+use App\Http\Controllers\Api\CustomerBookingController;
 use App\Http\Controllers\Api\CustomerPortfolioController;
 use App\Http\Controllers\Api\CustomerProfileController;
 /*
@@ -74,6 +75,9 @@ Route::middleware(['verify.portfolio.api.token'])->group(function () {
 Route::post('/customer/register', [CustomerAuthController::class, 'register']);
 Route::post('/customer/login/send-otp', [CustomerAuthController::class, 'sendOtp']);
 Route::post('/customer/login/verify-otp', [CustomerAuthController::class, 'verifyOtp']);
+
+// Customer Booking API (public - no auth, pass customer_id)
+Route::get('/customer/booking', [CustomerBookingController::class, 'list']);
 
 // Customer Portfolio API (requires customer token)
 Route::middleware('auth:sanctum')->group(function () {
