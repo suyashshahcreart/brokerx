@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\City;
+use App\Models\Customer;
 use App\Models\State;
 use App\Models\PropertyType;
 use App\Models\PropertySubType;
@@ -29,7 +30,7 @@ class ReportController extends Controller
         $totalCustomers = User::count();
         $totalTours = Tour::count();
 
-        $recentSales = Booking::select(['id', 'user_id', 'cashfree_payment_amount', 'price', 'status', 'created_at'])
+        $recentSales = Booking::select(['id', 'customer_id', 'cashfree_payment_amount', 'price', 'status', 'created_at'])
             ->latest()
             ->limit(5)
             ->get();
@@ -53,8 +54,7 @@ class ReportController extends Controller
             )
             ->orderBy('name')
             ->get();
-        $customers = User::orderBy('firstname')
-            ->orderBy('lastname')
+        $customers = Customer::orderBy('lastname')
             ->select(['id', 'firstname', 'lastname', 'email','mobile'])
             ->get();
         $states = State::whereIn('id', Booking::query()
@@ -104,7 +104,7 @@ class ReportController extends Controller
             }
 
             // Handle DataTables pagination and sorting for individual bookings
-            $query = Booking::with('user')
+            $query = Booking::with('customer')
                 ->whereBetween('created_at', [$from, $to]);
 
             $totalRecords = $query->count();
@@ -113,7 +113,7 @@ class ReportController extends Controller
             $orderDir = isset($order[0]['dir']) ? $order[0]['dir'] : 'desc';
             $orderColumn = isset($order[0]['column']) ? $order[0]['column'] : 0;
             
-            $columns = ['user_id', 'id', 'cashfree_payment_amount', 'price', 'booking_date', 'created_at'];
+            $columns = ['customer_id', 'id', 'cashfree_payment_amount', 'price', 'booking_date', 'created_at'];
             if (isset($columns[$orderColumn])) {
                 $query->orderBy($columns[$orderColumn], $orderDir);
             } else {
@@ -128,8 +128,8 @@ class ReportController extends Controller
             $formatRupees = fn($amount) => '₹' . number_format(($amount ?? 0) / 100, 2);
             $data = $bookings->map(function ($booking) use ($formatRupees) {
                 return [
-                    'customer' => ($booking->user ? $booking->user->firstname . ' ' . $booking->user->lastname : 'N/A') . 
-                                  '<div class="text-muted small">' . ($booking->user?->mobile ?? 'N/A') . '</div>',
+                    'customer' => ($booking->customer ? $booking->customer->firstname . ' ' . $booking->customer->lastname : 'N/A') . 
+                                  '<div class="text-muted small">' . ($booking->customer?->mobile ?? 'N/A') . '</div>',
                     'booking_info' => '#' . $booking->id . '<div class="text-muted small">Booking</div>',
                     'payment_amount' => $formatRupees($booking->cashfree_payment_amount),
                     'booking_price' => $formatRupees($booking->price),
@@ -176,7 +176,7 @@ class ReportController extends Controller
         $cities = City::orderBy('name')->get();
 
         if ($request->ajax()) {
-            $query = Booking::with(['user', 'propertyType', 'propertySubType', 'bhk', 'city', 'state', 'assignees']);
+            $query = Booking::with(['customer', 'propertyType', 'propertySubType', 'bhk', 'city', 'state', 'assignees']);
 
             // Filter bookings based on user role
             if (auth()->user()->hasRole('admin')) {
@@ -210,7 +210,10 @@ class ReportController extends Controller
 
             return DataTables::of($query)
                 ->addColumn('user', function (Booking $booking) {
-                    return $booking->user ? $booking->user->firstname . ' ' . $booking->user->lastname : '-';
+                    return $booking->customer ? trim($booking->customer->firstname . ' ' . $booking->customer->lastname) : 'N/A';
+                })
+                ->addColumn('customer', function (Booking $booking) {
+                    return $booking->customer ? trim($booking->customer->firstname . ' ' . $booking->customer->lastname) : '-';
                 })
                 ->addColumn('type_subtype', function (Booking $booking) {
                     return $booking->propertyType?->name . '<div class="text-muted small">' . ($booking->propertySubType?->name ?? '-') . '</div>';
@@ -264,7 +267,7 @@ class ReportController extends Controller
             'state_id' => $request->state_id,
             'city_id' => $request->city_id,
             'owner_type' => $request->owner_type,
-            'user_id' => $request->user_id,
+            'customer_id' => $request->customer_id,
             'property_type_id' => $request->property_type_id,
             'property_sub_type_id' => $request->property_sub_type_id,
             'pin_code' => $request->pin_code,

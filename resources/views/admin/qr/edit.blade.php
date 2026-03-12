@@ -60,7 +60,7 @@
                             @foreach($bookings as $booking)
                                 @php
                                     // Build customer name
-                                    $customerName = trim(($booking->user->firstname ?? '') . ' ' . ($booking->user->lastname ?? ''));
+                                    $customerName = trim(($booking->customer->firstname ?? '') . ' ' . ($booking->customer->lastname ?? ''));
                                     if (empty($customerName)) {
                                         $customerName = 'N/A';
                                     }
@@ -107,8 +107,8 @@
                                     $displayParts = [
                                         'ID: ' . $booking->id,
                                         $customerName,
-                                        $booking->user->mobile ?? 'N/A',
-                                        ($booking->user->email ? $booking->user->email : ''),
+                                        $booking->customer->mobile ?? 'N/A',
+                                        ($booking->customer->email ? $booking->customer->email : ''),
                                         $propertyText,
                                         $addressText
                                     ];

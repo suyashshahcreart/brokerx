@@ -39,7 +39,7 @@ class BookingAssigneeController extends Controller
         if ($request->ajax()) {
             // Add joins for searchable columns to avoid "Column not found" errors
             $query = Booking::query()
-                ->leftJoin('users', 'bookings.user_id', '=', 'users.id')
+                ->leftJoin('customers', 'bookings.customer_id', '=', 'customers.id')
                 ->leftJoin('property_types', 'bookings.property_type_id', '=', 'property_types.id')
                 ->leftJoin('cities', 'bookings.city_id', '=', 'cities.id')
                 ->leftJoin('users as creator', 'bookings.created_by', '=', 'creator.id')
@@ -73,8 +73,11 @@ class BookingAssigneeController extends Controller
                     return '<span class="badge bg-primary">#' . $booking->id . '</span>';
                 })
                 ->addColumn('user', function (Booking $booking) {
-                    if ($booking->user) {
-                        return $booking->user->name;
+                    return $booking->customer ? trim($booking->customer->firstname . ' ' . $booking->customer->lastname) : 'N/A';
+                })
+                ->addColumn('customer', function (Booking $booking) {
+                    if ($booking->customer) {
+                        return $booking->customer->name . ' | ' . $booking->customer->mobile;
                     }
                     return '<span class="text-muted">-</span>';
                 })
@@ -135,7 +138,7 @@ class BookingAssigneeController extends Controller
                     $city = htmlspecialchars($booking->city ? $booking->city->name : '');
                     $state = htmlspecialchars($booking->state ? $booking->state->name : '');
                     $pincode = htmlspecialchars($booking->pin_code ?? '');
-                    $userName = htmlspecialchars($booking->user ? $booking->user->name : '');
+                    $userName = htmlspecialchars($booking->customer ? trim($booking->customer->firstname . ' ' . $booking->customer->lastname) : '');
 
                     // Check if already assigned
                     if ($booking->status === 'schedul_assign') {
@@ -193,7 +196,7 @@ class BookingAssigneeController extends Controller
                         </a>
                     </div>';
                 })
-                ->rawColumns(['id', 'status', 'payment_status', 'assign_action', 'view_action'])
+                ->rawColumns(['id', 'customer', 'status', 'payment_status', 'assign_action', 'view_action'])
                 ->toJson();
         }
 

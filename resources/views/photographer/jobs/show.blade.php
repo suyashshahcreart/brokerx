@@ -73,7 +73,7 @@
                     <div class="row">
                         <div class="col-md-6">
                             <p><strong>Booking ID:</strong> #{{ $job->booking->id }}</p>
-                            <p><strong>Client:</strong> {{ $job->booking->user->name ?? 'N/A' }}</p>
+                            <p><strong>Client:</strong> {{ $job->booking->customer ? trim($job->booking->customer->firstname . ' ' . $job->booking->customer->lastname) : 'N/A' }}</p>
                             <p><strong>Property Type:</strong> {{ $job->booking->propertyType?->name ?? 'N/A' }}</p>
                         </div>
                         <div class="col-md-6">

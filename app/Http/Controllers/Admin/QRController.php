@@ -163,7 +163,7 @@ class QRController extends Controller
     public function create()
     {
         // Get bookings that don't already have a QR code assigned
-        $bookings = Booking::with(['user', 'propertyType', 'propertySubType', 'bhk', 'city', 'state'])
+        $bookings = Booking::with(['customer', 'propertyType', 'propertySubType', 'bhk', 'city', 'state'])
             ->whereDoesntHave('qr')
             ->orderBy('id', 'desc')
             ->get();
@@ -253,7 +253,7 @@ class QRController extends Controller
         $qr = QR::findOrFail($id);
         
         // Get bookings that don't have a QR code assigned, OR the current booking (even if it has a QR)
-        $bookings = Booking::with(['user', 'propertyType', 'propertySubType', 'bhk', 'city', 'state'])
+        $bookings = Booking::with(['customer', 'propertyType', 'propertySubType', 'bhk', 'city', 'state'])
             ->where(function($query) use ($qr) {
                 $query->whereDoesntHave('qr')
                       ->orWhere('id', $qr->booking_id); // Include current booking even if it has QR
@@ -355,7 +355,7 @@ class QRController extends Controller
     public function download($id)
     {
         try {
-            $qr = QR::with(['booking.user', 'booking.propertyType', 'booking.propertySubType', 'booking.bhk', 'booking.city', 'booking.state'])->findOrFail($id);
+            $qr = QR::with(['booking.customer', 'booking.propertyType', 'booking.propertySubType', 'booking.bhk', 'booking.city', 'booking.state'])->findOrFail($id);
             
             // Generate QR code and save as temporary PNG file using endroid/qr-code
             $qrCodePath = null;

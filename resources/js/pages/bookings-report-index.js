@@ -132,7 +132,7 @@ document.addEventListener('DOMContentLoaded', function () {
         order: [[0, 'desc']],
         columns: [
             { data: 'id', name: 'id' },
-            { data: 'user', name: 'user.firstname', orderable: false, searchable: false },
+            { data: 'customer', name: 'customers.firstname', orderable: false, searchable: false },
             { data: 'type_subtype', name: 'propertyType.name', orderable: false, searchable: false },
             { data: 'city_state', name: 'city.name', orderable: false, searchable: false },
             { data: 'area', name: 'area' },

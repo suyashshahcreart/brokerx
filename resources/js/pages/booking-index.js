@@ -129,14 +129,14 @@ document.addEventListener('DOMContentLoaded', function () {
 		},
 		order: [[0, 'desc']],
 		columns: [
-			{ data: 'id', name: 'id' },
-			{ data: 'user', name: 'user', searchable: true },
-			{ data: 'type_subtype', name: 'property_types.name', orderable: false, searchable: false },
-			{ data: 'qr_code', name: 'qr.code', orderable: false, searchable: true },
-			{ data: 'city_state', name: 'cities.name', orderable: false, searchable: true },
-			{ data: 'area', name: 'area' },
-			{ data: 'price', name: 'price' },
-			{ data: 'booking_date', name: 'booking_date' },
+			{ data: 'id', name: 'id', searchable: false },
+			{ data: 'customer', name: 'customer', searchable: true },
+			{ data: 'type_subtype', name: 'type_subtype', orderable: false, searchable: false },
+			{ data: 'qr_code', name: 'qr_code', orderable: false, searchable: true },
+			{ data: 'city_state', name: 'city_state', orderable: false, searchable: true },
+			{ data: 'area', name: 'area', searchable: false },
+			{ data: 'price', name: 'price', searchable: false },
+			{ data: 'booking_date', name: 'booking_date', searchable: false },
 			{ data: 'status', name: 'status', orderable: false, searchable: false },
 			{ data: 'payment_status', name: 'payment_status', orderable: false, searchable: false },
 			{ data: 'actions', name: 'actions', orderable: false, searchable: false, className: 'text-center' },
@@ -419,7 +419,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 		const requestedDate = rowData?.booking_date || 'Not specified';
 		const customerNotes = rowData?.booking_notes || '';
-		const userName = rowData?.user || 'N/A';
+		const userName = rowData?.user || rowData?.customer || 'N/A';
 
 		const htmlContent = `
 			<div class="text-start mb-3">
@@ -502,7 +502,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 		const requestedDate = rowData?.booking_date || 'Not specified';
 		const customerNotes = rowData?.booking_notes || '';
-		const userName = rowData?.user || 'N/A';
+		const userName = rowData?.user || rowData?.customer || 'N/A';
 
 		const htmlContent = `
 			<div class="text-start mb-3">

@@ -129,7 +129,7 @@
                 },
                 columns: [
                     { data: 'id', name: 'id' },
-                    { data: 'user', name: 'user.firstname' },
+                    { data: 'customer', name: 'customers.firstname' },
                     { data: 'type_subtype', name: 'propertyType.name' },
                     { data: 'bhk', name: 'bhk.name' },
                     { data: 'city_state', name: 'city.name' },
@@ -163,7 +163,7 @@
 
             const requestedDate = rowData?.booking_date || 'Not specified';
             const customerNotes = (rowData?.booking_notes || '').trim();
-            const userName = rowData?.user || 'N/A';
+            const userName = rowData?.user || rowData?.customer || 'N/A';
 
             // Escape HTML to prevent XSS
             const escapeHtml = (text) => {
@@ -264,7 +264,7 @@
 
             const requestedDate = rowData?.booking_date || 'Not specified';
             const customerNotes = (rowData?.booking_notes || '').trim();
-            const userName = rowData?.user || 'N/A';
+            const userName = rowData?.user || rowData?.customer || 'N/A';
 
             // Escape HTML to prevent XSS
             const escapeHtml = (text) => {

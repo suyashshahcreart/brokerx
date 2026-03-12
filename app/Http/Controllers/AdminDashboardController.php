@@ -87,7 +87,7 @@ class AdminDashboardController extends Controller
             ->sum('amount');
 
         // Latest 10 bookings (all time)
-        $latestTransactions = Booking::with(['user'])
+        $latestTransactions = Booking::with(['customer'])
             ->orderBy('created_at', 'desc')
             ->limit(10)
             ->get();

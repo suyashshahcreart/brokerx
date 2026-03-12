@@ -493,12 +493,12 @@
                                 </td>
                                 <td>
                                     <div>
-                                        <p class="mb-0 fw-medium text-dark">{{ $transaction->user->firstname ?? 'N/A' }} {{ $transaction->user->lastname ?? '' }}</p>
+                                        <p class="mb-0 fw-medium text-dark">{{ $transaction->customer->firstname ?? 'N/A' }} {{ $transaction->customer->lastname ?? '' }}</p>
                                         <small class="text-muted">
-                                            <i class="ri-phone-line"></i> {{ $transaction->user->mobile ?? 'N/A' }}
+                                            <i class="ri-phone-line"></i> {{ $transaction->customer->mobile ?? 'N/A' }}
                                         </small>
-                                        @if($transaction->user->email)
-                                            <br><small class="text-muted"><i class="ri-mail-line"></i> {{ $transaction->user->email }}</small>
+                                        @if($transaction->customer->email)
+                                            <br><small class="text-muted"><i class="ri-mail-line"></i> {{ $transaction->customer->email }}</small>
                                         @endif
                                     </div>
                                 </td>

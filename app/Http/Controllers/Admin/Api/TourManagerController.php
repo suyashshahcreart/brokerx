@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin\Api;
 
 
 use App\Models\Booking;
+use App\Models\Customer;
 use App\Models\Tour;
 use App\Models\User;
 use App\Models\Setting;
@@ -63,7 +64,7 @@ class TourManagerController extends Controller
      */
     public function getCustomers(Request $request)
     {
-        $customers = User::role('customer')->get(['id', 'firstname', 'lastname', 'email', 'mobile']);
+        $customers = Customer::query()->get(['id', 'firstname', 'lastname', 'email', 'mobile']);
         return response()->json([
             'success' => true,
             'customers' => $customers
@@ -71,15 +72,17 @@ class TourManagerController extends Controller
     }
 
     /**
-     * Get all tours for a given customer (user_id) via bookings
+     * Get all tours for a given customer via bookings
      */
     public function getToursByCustomer(Request $request)
     {
         $data = $request->validate([
-            'user_id' => 'required|integer|exists:users,id',
+            'customer_id' => 'required|integer|exists:customers,id',
         ]);
-        // Get bookings for this user
-        $bookingIds = Booking::where('user_id', $data['user_id'])->pluck('id');
+
+        $bookingQuery = Booking::query()->where('customer_id', $data['customer_id']);
+
+        $bookingIds = $bookingQuery->pluck('id');
         // Get API, QR, and S3 base URLs from settings
         $apiBaseUrl = getApiBaseUrl();
         $qrLinkBase = getQrLinkBase();
@@ -104,7 +107,7 @@ class TourManagerController extends Controller
             
             $tour->top_image = $tour->footer_logo ? $tour->footer_logo : null;
             $tour->top_number  = $tour->footer_mobile;
-            $tour->top_title  = $tour->footer_name;
+            $tour->top_title  = $tour->footer_title;
             $tour->top_email  = $tour->footer_email;
             $tour->top_sub_title  = $tour->footer_subtitle;
             $tour->top_description  = $tour->footer_decription;
@@ -170,7 +173,7 @@ class TourManagerController extends Controller
         
         $tour->top_image = $tour->footer_logo ? $s3LinkBase . $tour->footer_logo : null;
         $tour->top_number  = $tour->footer_mobile;
-        $tour->top_title  = $tour->footer_name;
+        $tour->top_title  = $tour->footer_title;
         $tour->top_email  = $tour->footer_email;
         $tour->top_sub_title  = $tour->footer_subtitle;
         $tour->top_description  = $tour->footer_decription;

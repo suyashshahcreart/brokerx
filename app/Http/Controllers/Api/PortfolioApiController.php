@@ -285,7 +285,7 @@ class PortfolioApiController extends Controller
         // Ensure booking relationship is set on tour for getTourLiveUrl() to work
         $tourLiveLink = '#';
         if ($tour) {
-            // Set the booking relationship on the tour so getTourLiveUrl() can access booking->user_id
+            // Set the booking relationship on the tour so getTourLiveUrl() can access booking->customer_id
             $tour->setRelation('booking', $booking);
             $tourLiveLink = $tour->getTourLiveUrl();
         }

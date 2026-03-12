@@ -14,17 +14,17 @@ class TourApiController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Tour::with(['booking:id,user_id,booking_date'])->select('id', 'title', 'name', 'location', 'status','tour_thumbnail');
+        $query = Tour::with(['booking:id,customer_id,booking_date'])->select('id', 'title', 'name', 'location', 'status','tour_thumbnail');
 
         // Filter by category (mapped to tour location)
         if ($request->filled('category')) {
             $query->where('location', $request->category);
         }
 
-        // Filter by customer_id matching booking->user_id
+        // Filter by customer_id matching booking->customer_id
         if ($request->filled('customer_id')) {
             $query->whereHas('booking', function ($q) use ($request) {
-                $q->where('user_id', $request->customer_id);
+                $q->where('customer_id', $request->customer_id);
             });
         }
 

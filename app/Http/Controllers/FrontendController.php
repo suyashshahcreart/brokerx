@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use App\Models\Booking;
 use App\Models\BookingAssignee;
 use App\Models\BookingHistory;
+use App\Models\Customer;
 use App\Models\PaymentHistory;
 use App\Models\User;
 use App\Models\City;
@@ -56,7 +57,7 @@ class FrontendController extends Controller
         $states = State::with(['cities:id,state_id,name'])->get(['id', 'name', 'code']);
         $cities = City::get(['id', 'name', 'state_id']);
         $bhk = BHK::all();
-        $hasBookings = Auth::check() ? Booking::where('user_id', Auth::id())->exists() : false;
+        $hasBookings = Auth::check() ? Booking::where('customer_id', \App\Models\Customer::where('mobile', Auth::user()->mobile)->value('id'))->exists() : false;
         return view('frontend.setup', [
             'propTypes' => $types,
             'states' => $states,
@@ -528,6 +529,8 @@ class FrontendController extends Controller
             ]
         );
 
+        $customer = $this->resolveCustomerFromNamePhone($validated['name'], $validated['phone']);
+
         // Get city (default to Ahmedabad)
         $city = City::where('name', $validated['city'])->first();
         if (!$city) {
@@ -543,7 +546,7 @@ class FrontendController extends Controller
 
         // Create booking (aligned to bookings schema)
         $booking = Booking::create([
-            'user_id' => $user->id,
+            'customer_id' => $customer->id,
             'property_type_id' => $propertyData['property_type_id'],
             'property_sub_type_id' => $propertyData['property_sub_type_id'],
             'owner_type' => $validated['owner_type'],
@@ -721,6 +724,8 @@ class FrontendController extends Controller
             $user->assignRole($customerRole);
         }
 
+        $customer = $this->resolveCustomerFromNamePhone($validated['name'], $validated['phone']);
+
         // Resolve property mapping
         $mapping = $this->mapPropertyData($validated);
 
@@ -739,7 +744,7 @@ class FrontendController extends Controller
 
         $isNewBooking = !$validated['booking_id'];
 
-        $booking->user_id = $user->id;
+        $booking->customer_id = $booking->customer_id ?? $customer->id;
         $booking->property_type_id = $mapping['property_type_id'];
         $booking->property_sub_type_id = $mapping['property_sub_type_id'];
         $booking->owner_type = $validated['owner_type'];
@@ -981,8 +986,9 @@ class FrontendController extends Controller
                 return response()->json(['success' => false, 'message' => 'Booking not found.'], 404);
             }
 
-            // Check if user owns this booking
-            if ($booking->user_id !== $user->id) {
+            // Check if user owns this booking (via customer)
+            $customerId = \App\Models\Customer::where('mobile', $user->mobile)->value('id');
+            if ($booking->customer_id !== $customerId) {
                 return response()->json(['success' => false, 'message' => 'Unauthorized.'], 403);
             }
 
@@ -1400,7 +1406,7 @@ class FrontendController extends Controller
                 'booking_id' => 'required|integer|exists:bookings,id',
             ]);
 
-            $booking = Booking::with(['propertyType', 'propertySubType', 'bhk', 'city', 'state', 'user'])->find($validated['booking_id']);
+            $booking = Booking::with(['propertyType', 'propertySubType', 'bhk', 'city', 'state', 'customer'])->find($validated['booking_id']);
 
             if (!$booking) {
                 return response()->json(['success' => false, 'message' => 'Booking not found.'], 404);
@@ -1499,8 +1505,9 @@ class FrontendController extends Controller
             ], 401);
         }
 
-        $bookings = Booking::with(['propertyType', 'propertySubType', 'bhk', 'city'])
-            ->where('user_id', $user->id)
+        $customerId = \App\Models\Customer::where('mobile', $user->mobile)->value('id');
+        $bookings = Booking::with(['customer', 'propertyType', 'propertySubType', 'bhk', 'city'])
+            ->where('customer_id', $customerId)
             ->latest()
             ->get();
 
@@ -1513,6 +1520,30 @@ class FrontendController extends Controller
     /**
      * Internal helper: map property request data to DB ids
      */
+    protected function resolveCustomerFromNamePhone(string $name, string $phone): Customer
+    {
+        $name = trim($name);
+        $nameParts = preg_split('/\s+/', $name, 2);
+        $firstname = $nameParts[0] ?? null;
+        $lastname = $nameParts[1] ?? null;
+
+        $customer = Customer::firstOrCreate(
+            ['mobile' => $phone],
+            [
+                'firstname' => $firstname,
+                'lastname' => $lastname,
+                'base_mobile' => $phone,
+            ]
+        );
+
+        if (empty($customer->base_mobile)) {
+            $customer->base_mobile = $phone;
+            $customer->save();
+        }
+
+        return $customer;
+    }
+
     protected function mapPropertyData(array $data): array
     {
         $main = $data['main_property_type'] ?? null;
@@ -1571,7 +1602,7 @@ class FrontendController extends Controller
             'other_option_details' => $otherDetails,
         ];
     }
-
+            // Step 2 logic
     /**
      * Simple dynamic price estimator (same logic as frontend)
      * Uses settings from database for dynamic pricing
@@ -1642,7 +1673,7 @@ class FrontendController extends Controller
             ]);
 
             // Reload booking to get latest data (especially after price updates)
-            $booking = Booking::with('user')->findOrFail($validated['booking_id']);
+            $booking = Booking::with('customer')->findOrFail($validated['booking_id']);
             $booking->refresh(); // Ensure we have the latest data from database
 
             // Check if user owns this booking
@@ -1654,7 +1685,8 @@ class FrontendController extends Controller
                 ], 401);
             }
 
-            if ($booking->user_id !== $user->id) {
+            $customerId = \App\Models\Customer::where('mobile', $user->mobile)->value('id');
+            if ($booking->customer_id !== $customerId) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Unauthorized. You can only make payment for your own bookings.',
@@ -1685,7 +1717,7 @@ class FrontendController extends Controller
                 ], 422);
             }
 
-            $customer = $booking->user;
+            $customer = $booking->customer;
             if (!$customer) {
                 return response()->json([
                     'success' => false,
@@ -1848,7 +1880,7 @@ class FrontendController extends Controller
             // Create payment history entry for this payment attempt
             PaymentHistory::create([
                 'booking_id' => $booking->id,
-                'user_id' => $booking->user_id,
+                'user_id' => null,
                 'gateway' => 'cashfree',
                 'gateway_order_id' => $orderIdFromResponse,
                 'gateway_session_id' => $sessionId,
@@ -1903,7 +1935,7 @@ class FrontendController extends Controller
             'booking_id' => 'required|integer|exists:bookings,id',
         ]);
 
-        $booking = Booking::with('user')->findOrFail($validated['booking_id']);
+        $booking = Booking::with('customer')->findOrFail($validated['booking_id']);
 
         if (!$booking->cashfree_order_id) {
             return response()->json([
@@ -2059,7 +2091,7 @@ class FrontendController extends Controller
                 // Create new payment history entry
                 $paymentHistory = PaymentHistory::create([
                     'booking_id' => $booking->id,
-                    'user_id' => $booking->user_id,
+                    'user_id' => null,
                     'gateway' => 'cashfree',
                     'gateway_order_id' => $orderId,
                     'gateway_payment_id' => $paymentId,
@@ -2109,7 +2141,7 @@ class FrontendController extends Controller
             if (!$paymentHistory) {
                 PaymentHistory::create([
                     'booking_id' => $booking->id,
-                    'user_id' => $booking->user_id,
+                    'user_id' => null,
                     'gateway' => 'cashfree',
                     'gateway_order_id' => $orderId,
                     'status' => $historyStatus,
@@ -2217,7 +2249,7 @@ class FrontendController extends Controller
                 'booking_id' => $booking->id,
                 'from_status' => $oldStatus,
                 'to_status' => $booking->status,
-                'changed_by' => $booking->user_id,
+                'changed_by' => null,
                 'notes' => $notes,
                 'metadata' => [
                     'step' => 'payment_callback',
@@ -2234,12 +2266,12 @@ class FrontendController extends Controller
 
             // Send SMS notification for successful payment (check if any payment was successful)
             $hasSuccessfulPayment = $booking->paymentHistories()->where('status', 'completed')->exists();
-            if (($orderStatus === 'PAID' || $hasSuccessfulPayment) && $booking->user && $booking->user->mobile && $sendSMS) {
+            if (($orderStatus === 'PAID' || $hasSuccessfulPayment) && $booking->customer && $booking->customer->mobile && $sendSMS) {
                 try {
                     // PROPPIK: Your order is confirmed. You can now schedule your appointment on ##LINK##. – CREART
                     // Template ID: 69295ee79cb8142aae77f2a2
 
-                    $mobile = $booking->user->mobile;
+                    $mobile = $booking->customer->mobile;
 
                     // Ensure mobile has country code (91 for India)
                     if (!str_starts_with($mobile, '91')) {
@@ -2275,7 +2307,7 @@ class FrontendController extends Controller
                     // Log error but don't fail the payment process
                     \Log::error('Failed to send order confirmation SMS', [
                         'booking_id' => $booking->id,
-                        'mobile' => $booking->user->mobile ?? 'N/A',
+                        'mobile' => $booking->customer->mobile ?? 'N/A',
                         'error' => $e->getMessage(),
                         'trace' => $e->getTraceAsString()
                     ]);
@@ -2283,12 +2315,12 @@ class FrontendController extends Controller
             }
 
             // Send SMS notification for failed payment
-            if (in_array($orderStatus, ['FAILED', 'EXPIRED', 'TERMINATED', 'TERMINATION_REQUESTED', 'ACTIVE']) && $booking->user && $booking->user->mobile && $sendSMS) {
+            if (in_array($orderStatus, ['FAILED', 'EXPIRED', 'TERMINATED', 'TERMINATION_REQUESTED', 'ACTIVE']) && $booking->customer && $booking->customer->mobile && $sendSMS) {
                 try {
                     // PROPPIK: Your payment could not be processed. Please try again or use another method. – CREART
                     // Template ID: 69295eabe5d99077c61b7ac1
 
-                    $mobile = $booking->user->mobile;
+                    $mobile = $booking->customer->mobile;
 
                     // Ensure mobile has country code (91 for India)
                     if (!str_starts_with($mobile, '91')) {
@@ -2323,7 +2355,7 @@ class FrontendController extends Controller
                     // Log error but don't fail the payment process
                     \Log::error('Failed to send payment failed SMS', [
                         'booking_id' => $booking->id,
-                        'mobile' => $booking->user->mobile ?? 'N/A',
+                        'mobile' => $booking->customer->mobile ?? 'N/A',
                         'order_status' => $orderStatus,
                         'error' => $e->getMessage(),
                         'trace' => $e->getTraceAsString()
@@ -2405,9 +2437,10 @@ class FrontendController extends Controller
      */
     public function bookingDashboard()
     {
-        // Fetch authenticated user's bookings with related data
-        $bookings = Booking::where('user_id', Auth::id())
-            ->with(['user', 'propertyType', 'propertySubType', 'bhk', 'city', 'state'])
+        // Fetch authenticated user's bookings with related data (via customer)
+        $customerId = \App\Models\Customer::where('mobile', Auth::user()->mobile)->value('id');
+        $bookings = Booking::where('customer_id', $customerId)
+            ->with(['customer', 'propertyType', 'propertySubType', 'bhk', 'city', 'state'])
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -2433,9 +2466,10 @@ class FrontendController extends Controller
      */
     public function bookingDashboardV2()
     {
-        // Fetch authenticated user's bookings with related data
-        $bookings = Booking::where('user_id', Auth::id())
-            ->with(['user', 'propertyType', 'propertySubType', 'bhk', 'city', 'state', 'assignees.user', 'histories'])
+        // Fetch authenticated user's bookings with related data (via customer)
+        $customerId = \App\Models\Customer::where('mobile', Auth::user()->mobile)->value('id');
+        $bookings = Booking::where('customer_id', $customerId)
+            ->with(['customer', 'propertyType', 'propertySubType', 'bhk', 'city', 'state', 'assignees.user', 'histories'])
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -2501,9 +2535,10 @@ class FrontendController extends Controller
      */
     public function showBooking($id)
     {
-        $booking = Booking::with(['user', 'propertyType', 'propertySubType', 'bhk', 'city', 'state', 'assignees.user'])
+        $customerId = \App\Models\Customer::where('mobile', Auth::user()->mobile)->value('id');
+        $booking = Booking::with(['customer', 'propertyType', 'propertySubType', 'bhk', 'city', 'state', 'assignees.user'])
             ->where('id', $id)
-            ->where('user_id', Auth::id())
+            ->where('customer_id', $customerId)
             ->first();
 
         // If booking doesn't exist or doesn't belong to the user, redirect with error
@@ -2595,9 +2630,10 @@ class FrontendController extends Controller
      */
     public function showBookingV2($id)
     {
-        $booking = Booking::with(['user', 'propertyType', 'propertySubType', 'bhk', 'city', 'state', 'assignees.user', 'histories'])
+        $customerId = \App\Models\Customer::where('mobile', Auth::user()->mobile)->value('id');
+        $booking = Booking::with(['customer', 'propertyType', 'propertySubType', 'bhk', 'city', 'state', 'assignees.user', 'histories'])
             ->where('id', $id)
-            ->where('user_id', Auth::id())
+            ->where('customer_id', $customerId)
             ->first();
 
         // If booking doesn't exist or doesn't belong to the user, redirect with error
@@ -2769,12 +2805,13 @@ class FrontendController extends Controller
             return redirect()->route('frontend.login');
         }
 
-        // Get user's booking count
-        $bookingCount = Booking::where('user_id', $user->id)->count();
+        // Get user's booking count (via customer)
+        $customerId = \App\Models\Customer::where('mobile', $user->mobile)->value('id');
+        $bookingCount = Booking::where('customer_id', $customerId)->count();
 
         // Get user's total bookings
-        $bookings = Booking::where('user_id', $user->id)
-            ->with(['propertyType', 'propertySubType', 'city', 'state'])
+        $bookings = Booking::where('customer_id', $customerId)
+            ->with(['customer', 'propertyType', 'propertySubType', 'city', 'state'])
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -2810,9 +2847,10 @@ class FrontendController extends Controller
      */
     public function downloadReceipt($bookingId)
     {
+        $customerId = \App\Models\Customer::where('mobile', Auth::user()->mobile)->value('id');
         $booking = Booking::where('id', $bookingId)
-            ->where('user_id', Auth::id())
-            ->with(['user', 'propertyType', 'propertySubType', 'bhk', 'city', 'state'])
+            ->where('customer_id', $customerId)
+            ->with(['customer', 'propertyType', 'propertySubType', 'bhk', 'city', 'state'])
             ->first();
 
         if (!$booking) {
@@ -2831,7 +2869,7 @@ class FrontendController extends Controller
             'payment_method' => $booking->cashfree_payment_method ?? 'Online Payment',
             'reference_id' => $booking->cashfree_reference_id,
             'payment_at' => $booking->cashfree_payment_at ?? $booking->updated_at,
-            'user' => $booking->user,
+            'customer' => $booking->customer,
             'property_type' => $booking->propertyType?->name ?? 'N/A',
             'property_sub_type' => $booking->propertySubType?->name ?? 'N/A',
             'furniture_type' => $booking->furniture_type ?? 'N/A',

@@ -81,7 +81,7 @@ $(document).ready(function () {
         },
         columns: [
             { data: 'id', name: 'id', width: '60px' },
-            { data: 'user', name: 'users.firstname' },
+            { data: 'customer', name: 'customers.firstname' },
             { data: 'property', name: 'property_types.name' },
             { data: 'location', name: 'cities.name' },
             { data: 'booking_date', name: 'booking_date', width: '120px' },

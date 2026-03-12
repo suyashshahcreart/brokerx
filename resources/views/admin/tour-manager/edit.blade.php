@@ -134,7 +134,7 @@
                             $s3RelativePath = 'tours/' . ($booking->tour_code ?? 'N/A') . '/';
                             
                             // Get customer_id for FTP URL generation
-                            $customerId = $booking->user_id ?? null;
+                            $customerId = $booking->customer_id ?? null;
                             
                             // Get FTP configuration if location is set
                             $ftpConfig = null;
@@ -397,8 +397,8 @@
                     @if($booking)
                         <div class="mb-3">
                             <label class="text-muted small">Customer</label>
-                            <p class="mb-0 fw-semibold">{{ $booking->user?->firstname }} {{ $booking->user?->lastname }}</p>
-                            <small class="text-muted">{{ $booking->user?->email }}</small>
+<p class="mb-0 fw-semibold">{{ $booking->customer?->firstname }} {{ $booking->customer?->lastname }}</p>
+                                        <small class="text-muted">{{ $booking->customer?->email }}</small>
                         </div>
                         <div class="mb-3">
                             <label class="text-muted small">Property Type</label>
@@ -496,6 +496,9 @@
 </div>
 @endsection
 @section('scripts')
+@php
+    $tourZipStatus = $booking->tour_zip_status ?? 'pending';
+@endphp
 @vite(['resources/js/pages/tour-manager-edit.js'])
 
 <script>
@@ -517,7 +520,7 @@
 // Inline script to ensure real-time path updates work
 (function() {
     // Customer ID from server
-    const customerId = {{ $booking->user_id ?? 'null' }};
+    const customerId = {{ $booking->customer_id ?? 'null' }};
     
     // FTP configurations data for URL generation
     @php
