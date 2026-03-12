@@ -149,6 +149,9 @@ Route::group(['prefix' => 'ppadmlog', 'as' => 'admin.', 'middleware' => ['web', 
     Route::resource('roles', RoleController::class);
     Route::resource('users', AdminUserController::class);
     Route::resource('customer', CustomerController::class);
+    // additional route for SEO updates
+    Route::patch('customer/{customer}/seo', [CustomerController::class, 'updateSeo'])->name('customer.update-seo');
+    
     Route::get('assignment-calendar', [BookingController::class, 'AssignementCalender'])->name('assignment-calendar');
     // Booking custom routes (BEFORE resource to prevent route conflicts)
     Route::post('bookings/{booking}/update-ajax', [BookingController::class, 'updateAjax'])->name('bookings.update-ajax');

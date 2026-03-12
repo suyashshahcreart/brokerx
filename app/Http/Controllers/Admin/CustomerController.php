@@ -11,18 +11,15 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Yajra\DataTables\Facades\DataTables;
 
-class CustomerController extends Controller
-{
-    public function __construct()
-    {
+class CustomerController extends Controller{
+    public function __construct(){
         $this->middleware('permission:customer_view')->only(['index', 'show']);
         $this->middleware('permission:customer_create')->only(['create', 'store']);
         $this->middleware('permission:customer_edit')->only(['edit', 'update']);
         $this->middleware('permission:customer_delete')->only(['destroy']);
     }
 
-    public function index(Request $request)
-    {
+    public function index(Request $request){
         if ($request->ajax()) {
             // Filter only users with 'customer' role and load bookings count
             $query = Customer::query()
@@ -77,11 +74,10 @@ class CustomerController extends Controller
         return view('admin.customers.index', compact('canEdit', 'canDelete', 'canCreate', 'canShow'));
     }
     /* 
-    show function of a customer show all the booking and tour details of the custoner
-    @paramer Customer $customer
+    Show function for a customer; displays all the booking and tour details of the customer.
+    @param Customer $customer
     */
-    public function show(Request $request, Customer $customer)
-    {
+    public function show(Request $request, Customer $customer){
         if ($request->ajax()) {
             // DataTable AJAX for bookings
             $query = $customer->bookings()->with(['customer'])->latest();
@@ -127,10 +123,9 @@ class CustomerController extends Controller
     }
 
     /* 
-    create customer form
+    Display form to create a new customer.
     */
-    public function create()
-    {
+    public function create(){
         // Permission check is handled by middleware
         $countries = Country::where('is_active', true)->orderBy('name')->get();
         $defaultCountryId = old('country_id');
@@ -144,19 +139,46 @@ class CustomerController extends Controller
     }
 
     /* 
-    stoere customer function
-    save the customer in DB
-    @params Request $request
+    Store customer record in the database.
+    @param  Request  $request
     */
-    public function store(Request $request)
-    {
+    public function store(Request $request){
+
+        
         $rules = [
             'firstname' => ['required', 'string', 'max:255'],
             'lastname' => ['required', 'string', 'max:255'],
             'base_mobile' => ['required', 'numeric', 'digits_between:6,15'],
             'country_id' => ['required', 'exists:countries,id'],
             'email' => ['required', 'email', 'max:255', 'unique:customers,email'],
-            'password' => ['required', 'string', 'min:6'],
+            'password' => ['nullable', 'string', 'min:6'],
+            // profile/cover photos
+            'profile_photo' => ['nullable', 'image', 'max:2048'],
+            'cover_photo' => ['nullable', 'image', 'max:2048'],
+            // additional profile details
+            'company_name' => ['nullable', 'string', 'max:255'],
+            'designation' => ['nullable', 'string', 'max:255'],
+            'company_website' => ['nullable', 'url', 'max:255'],
+            'tag_line' => ['nullable', 'string', 'max:255'],
+            // social links as associative array key=>value
+            'social_link' => ['nullable', 'array'],
+            // allow any string value (not limited to URL)
+            'social_link.*' => ['nullable', 'string', 'max:255'],
+            // SEO fields are optional but add basic rules here in case they're submitted
+            'slug' => ['nullable', 'string', 'alpha_dash', 'unique:customers,slug'],
+            'meta_title' => ['nullable', 'string', 'max:255'],
+            'meta_description' => ['nullable', 'string'],
+            'meta_keywords' => ['nullable', 'string', 'max:255'],
+            'canonical_url' => ['nullable', 'url', 'max:2048'],
+            'meta_robots' => ['nullable', 'string', 'max:255'],
+            'twitter_title' => ['nullable', 'string', 'max:255'],
+            'twitter_description' => ['nullable', 'string'],
+            'twitter_image' => ['nullable', 'string', 'max:255'],
+            'og_title' => ['nullable', 'string', 'max:255'],
+            'og_description' => ['nullable', 'string'],
+            'header_code' => ['nullable', 'string'],
+            'footer_code' => ['nullable', 'string'],
+            'gtm_tag' => ['nullable', 'string'],
         ];
 
         $validator = Validator::make($request->all(), $rules, [
@@ -164,6 +186,16 @@ class CustomerController extends Controller
             'base_mobile.digits_between' => 'Mobile number must be between 6 and 15 digits.',
             'country_id.required' => 'Country is required.',
         ]);
+
+        
+
+        // support legacy JSON payloads
+        if ($request->has('social_link') && is_string($request->input('social_link'))) {
+            $decoded = json_decode($request->input('social_link'), true);
+            if (json_last_error() === JSON_ERROR_NONE) {
+                $request->merge(['social_link' => $decoded]);
+            }
+        }
 
         $country = null;
         if ($validator->passes()) {
@@ -180,10 +212,17 @@ class CustomerController extends Controller
         }
 
         $validated = $validator->validate();
+
+        // dd($request->all(), $validator, $validated);
+
+        // ensure social_link is always an array (empty when absent)
+        $validated['social_link'] = $validated['social_link'] ?? [];
+
         $dialCode = ltrim($country->dial_code, '+');
         $fullMobile = $dialCode . $validated['base_mobile'];
 
-        $customer = Customer::create([
+        // Prepare the data for creation including SEO fields
+        $data = [
             'firstname' => $validated['firstname'],
             'lastname' => $validated['lastname'],
             'mobile' => $fullMobile,
@@ -192,10 +231,37 @@ class CustomerController extends Controller
             'dial_code' => $country->dial_code,
             'country_id' => $country->id,
             'email' => $validated['email'],
-            'password' => Hash::make($validated['password']),
+            // 'password' => Hash::make($validated['password']),
             'created_by' => $request->user()->id,
             'updated_by' => $request->user()->id,
-        ]);
+        ];
+        // add optional profile info
+        foreach (['company_name','designation','company_website','tag_line','social_link'] as $fld) {
+            if (array_key_exists($fld, $validated)) {
+                $data[$fld] = $validated[$fld];
+            }
+        }
+
+        // include any supplied seo fields
+        foreach (['slug','meta_title','meta_description','meta_keywords','meta_image','canonical_url','meta_robots','og_title','og_description','og_image','og_type','og_url','twitter_title','twitter_description','twitter_image','twitter_card','header_code','footer_code','gtm_tag'] as $seoField) {
+            if (array_key_exists($seoField, $validated)) {
+                $data[$seoField] = $validated[$seoField];
+            }
+        }
+
+        $customer = Customer::create($data);
+
+        // handle file uploads after customer is created (needs id)
+        if ($request->hasFile('profile_photo')) {
+            $path = $request->file('profile_photo')
+                ->storeAs('settings/customer/' . $customer->id . '/Files', 'profile_' . time() . '.' . $request->file('profile_photo')->extension(), 's3');
+            $customer->update(['profile_photo' => $path]);
+        }
+        if ($request->hasFile('cover_photo')) {
+            $path = $request->file('cover_photo')
+                ->storeAs('settings/customer/' . $customer->id . '/Files', 'cover_' . time() . '.' . $request->file('cover_photo')->extension(), 's3');
+            $customer->update(['cover_photo' => $path]);
+        }
 
         activity('Customers')
             ->performedOn($customer)
@@ -216,11 +282,10 @@ class CustomerController extends Controller
     }
 
     /* 
-    Edit the customer details form
-    @paramer Customer $customer
+    Show form for editing customer details.
+    @param Customer $customer
     */
-    public function edit(Customer $customer)
-    {
+    public function edit(Customer $customer){
         // Permission check is handled by middleware
         $countries = Country::where('is_active', true)->orderBy('name')->get();
         $defaultCountryId = old('country_id', $customer->country_id);
@@ -234,11 +299,12 @@ class CustomerController extends Controller
     }
 
     /* 
-    Update the customer details in DB
-    @paramer Request $request, Customer $customer
+    Update customer details in the database.
+    @param Request $request
+    @param Customer $customer
      */
     public function update(Request $request, Customer $customer)
-    {
+    {   
         $rules = [
             'firstname' => ['required', 'string', 'max:255'],
             'lastname' => ['required', 'string', 'max:255'],
@@ -246,8 +312,27 @@ class CustomerController extends Controller
             'country_id' => ['required', 'exists:countries,id'],
             'email' => ['required', 'email', 'max:255', 'unique:customers,email,' . $customer->id],
             'password' => ['nullable', 'string', 'min:6'],
+            'profile_photo' => ['nullable', 'image', 'max:2048'],
+            'cover_photo' => ['nullable', 'image', 'max:2048'],
+            'company_name' => ['nullable', 'string', 'max:255'],
+            'designation' => ['nullable', 'string', 'max:255'],
+            'company_website' => ['nullable', 'url', 'max:255'],
+            'tag_line' => ['nullable', 'string', 'max:255'],
+            'social_link' => ['nullable', 'array'],
+            // any string accepted
+            'social_link.*' => ['nullable', 'string', 'max:255'],
+            // slug should remain unique except for this customer
+            'slug' => ['nullable', 'string', 'alpha_dash', 'unique:customers,slug,' . $customer->id],
         ];
 
+        // support old json format for social_link (stringified associative or array)
+        if ($request->has('social_link') && is_string($request->input('social_link'))) {
+            $decoded = json_decode($request->input('social_link'), true);
+            if (json_last_error() === JSON_ERROR_NONE) {
+                $request->merge(['social_link' => $decoded]);
+            }
+        }
+        
         $validator = Validator::make($request->all(), $rules, [
             'base_mobile.required' => 'Mobile number is required.',
             'base_mobile.digits_between' => 'Mobile number must be between 6 and 15 digits.',
@@ -272,17 +357,28 @@ class CustomerController extends Controller
         }
 
         $validated = $validator->validate();
+
+        // ensure social_link always present as array
+        $validated['social_link'] = $validated['social_link'] ?? [];
+
         $dialCode = ltrim($country->dial_code, '+');
         $fullMobile = $dialCode . $validated['base_mobile'];
-
+        
         // Capture before state
-        $before = [
+        $before = [            
             'name' => $customer->name,
             'firstname' => $customer->firstname,
             'lastname' => $customer->lastname,
             'mobile' => $customer->mobile,
             'email' => $customer->email,
+            'slug' => $customer->slug,
+            'company_name' => $customer->company_name,
+            'designation' => $customer->designation,
+            'company_website' => $customer->company_website,
+            'tag_line' => $customer->tag_line,
+            'social_link' => $customer->social_link,
         ];
+
 
         // Prepare update data
         $data = [
@@ -290,12 +386,33 @@ class CustomerController extends Controller
             'lastname' => $validated['lastname'],
             'mobile' => $fullMobile,
             'base_mobile' => $validated['base_mobile'],
+            'slug'=> $validated['slug'] ?? $customer->slug,
             'country_code' => strtoupper($country->country_code),
             'dial_code' => $country->dial_code,
             'country_id' => $country->id,
             'email' => $validated['email'],
             'updated_by' => $request->user()->id,
+            'socail_link' => json_encode($validated['social_link']),    
         ];
+
+        // include profile / contact fields
+        foreach (['company_name','designation','company_website','tag_line','social_link'] as $fld) {
+            if (array_key_exists($fld, $validated)) {
+                $data[$fld] = $validated[$fld];
+            }
+        }
+
+        // handle file uploads
+        if ($request->hasFile('profile_photo')) {
+            $path = $request->file('profile_photo')
+                ->storeAs('settings/customer/' . $customer->id . '/Files', 'profile_' . time() . '.' . $request->file('profile_photo')->extension(), 's3');
+            $data['profile_photo'] = $path;
+        }
+        if ($request->hasFile('cover_photo')) {
+            $path = $request->file('cover_photo')
+                ->storeAs('settings/customer/' . $customer->id . '/Files', 'cover_' . time() . '.' . $request->file('cover_photo')->extension(), 's3');
+            $data['cover_photo'] = $path;
+        }
 
         if (!empty($validated['password'])) {
             $data['password'] = Hash::make($validated['password']);
@@ -312,6 +429,12 @@ class CustomerController extends Controller
             'lastname' => $customer->lastname,
             'mobile' => $customer->mobile,
             'email' => $customer->email,
+            'slug' => $customer->slug,
+            'company_name' => $customer->company_name,
+            'designation' => $customer->designation,
+            'company_website' => $customer->company_website,
+            'tag_line' => $customer->tag_line,
+            'social_link' => $customer->social_link,
         ];
 
         if (!empty($validated['password'])) {
@@ -344,8 +467,9 @@ class CustomerController extends Controller
     }
 
     /* 
-    Delete the customer from DB
-    @paramer Request $request, Customer $customer
+    Delete the customer record from the database.
+    @param Request $request
+    @param Customer $customer
     */
     public function destroy(Request $request, Customer $customer)
     {
@@ -372,5 +496,53 @@ class CustomerController extends Controller
             ->log('Customer deleted');
 
         return redirect()->route('admin.customer.index')->with('success', 'Customer deleted successfully.');
+    }
+
+    /**
+     * Endpoint to update only the SEO related fields for a customer.
+     * This method can be called from a dedicated form or ajax request.
+     *
+     * @param Request $request
+     * @param Customer $customer
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function updateSeo(Request $request, Customer $customer)
+    {
+        $rules = [
+            'meta_title' => ['nullable', 'string', 'max:255'],
+            'meta_description' => ['nullable', 'string'],
+            'meta_keywords' => ['nullable', 'string', 'max:255'],
+            'meta_image' => ['nullable', 'string', 'max:2048'],
+            'canonical_url' => ['nullable', 'url', 'max:2048'],
+            'meta_robots' => ['nullable', 'string', 'max:255'],
+            'og_title' => ['nullable', 'string', 'max:255'],
+            'og_description' => ['nullable', 'string'],
+            'og_image' => ['nullable', 'string', 'max:2048'],
+            'og_type' => ['nullable', 'string', 'max:64'],
+            'og_url' => ['nullable', 'url', 'max:2048'],
+            'twitter_title' => ['nullable', 'string', 'max:255'],
+            'twitter_description' => ['nullable', 'string'],
+            'twitter_image' => ['nullable', 'string', 'max:2048'],
+            'twitter_card' => ['nullable', 'string', 'max:64'],
+            'header_code' => ['nullable', 'string'],
+            'footer_code' => ['nullable', 'string'],
+            'gtm_tag' => ['nullable', 'string', 'max:64'],
+            'slug' => ['nullable', 'string', 'alpha_dash', 'unique:customers,slug,' . $customer->id],
+        ];
+
+        $validated = $request->validate($rules);
+
+        $customer->updateSeo($validated);
+
+        activity('Customers')
+            ->performedOn($customer)
+            ->causedBy($request->user())
+            ->withProperties([
+                'event' => 'seo_updated',
+                'changed' => $validated,
+            ])
+            ->log('Customer SEO updated');
+
+        return redirect()->back()->with('success', 'SEO fields updated');
     }
 }
