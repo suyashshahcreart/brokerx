@@ -94,7 +94,6 @@ class CustomerProfileController extends Controller
             'designation' => ['nullable', 'string', 'max:255'],
             'tag_line' => ['nullable', 'string', 'max:255'],
             'social_link' => ['nullable', 'array'],
-            'social_link.*' => ['nullable', 'url'],
         ]);
 
         if (array_key_exists('name', $validated)) {
