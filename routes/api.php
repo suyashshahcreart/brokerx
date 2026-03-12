@@ -1,6 +1,7 @@
 <?php
 use App\Http\Controllers\Admin\Api\AdminDashboardController;
 use App\Http\Controllers\Admin\BookingController;
+use App\Http\Controllers\Api\GeneralDataController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\SettingController;
@@ -13,6 +14,7 @@ use App\Http\Controllers\Api\PortfolioApiController;
 use App\Http\Controllers\Api\CustomerAuthController;
 use App\Http\Controllers\Api\CustomerPortfolioController;
 use App\Http\Controllers\Api\CustomerProfileController;
+
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -58,6 +60,10 @@ Route::get('/tour/page_data/{tour_code}', [\App\Http\Controllers\Api\TourAccessC
 // Booking APIs with token security
 Route::get('/bookings/list', [\App\Http\Controllers\Api\TourAccessController::class, 'getAllBookingsList']);
 Route::get('/booking/tour-code/{tour_code}', [\App\Http\Controllers\Api\TourAccessController::class, 'getBookingByTourCode']);
+
+// Country list API
+Route::get('/countries', [GeneralDataController::class, 'getCountries']);
+
 
 // Portfolio API Routes
 // Public OTP endpoints (no authentication required)
