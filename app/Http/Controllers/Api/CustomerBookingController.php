@@ -14,17 +14,20 @@ class CustomerBookingController extends Controller
     public function list(Request $request)
     {
         $customerId = $request->input('customer_id');
+        $customerSlug = $request->input('customer_slug');
 
-        if (empty($customerId)) {
+        if (empty($customerId) && empty($customerSlug)) {
             return response()->json([
                 'success' => false,
-                'message' => 'customer_id is required.',
+                'message' => 'customer_id or customer_slug is required.',
             ], 422);
         }
 
-        $customer = Customer::find($customerId);
+        $customer = !empty($customerId)
+            ? Customer::find($customerId)
+            : Customer::where('slug', $customerSlug)->first();
 
-        if (!$customer) {
+        if (!$customer || !$customer->is_active) {
             return response()->json([
                 'success' => false,
                 'message' => 'Customer not found.',
@@ -198,34 +201,101 @@ class CustomerBookingController extends Controller
 
     protected function formatCustomerData(Customer $customer): array
     {
-        $profilePhotoUrl = $customer->profile_photo
-            ? Storage::disk('public')->url($customer->profile_photo)
-            : null;
-        $coverPhotoUrl = $customer->cover_photo
-            ? Storage::disk('public')->url($customer->cover_photo)
-            : null;
+        $profilePhotoUrl = $this->getStorageUrl($customer->profile_photo);
+        $coverPhotoUrl   = $this->getStorageUrl($customer->cover_photo);
+        $metaImageUrl    = $this->getStorageUrl($customer->meta_image)    ?: $profilePhotoUrl;
+        $ogImageUrl      = $this->getStorageUrl($customer->og_image)      ?: $metaImageUrl;
+        $twitterImageUrl = $this->getStorageUrl($customer->twitter_image) ?: $ogImageUrl;
+
+        $defaultTitle = trim(($customer->firstname ?? '') . ' ' . ($customer->lastname ?? ''));
+        if ($customer->company_name) {
+            $defaultTitle .= ' | ' . $customer->company_name;
+        }
+        $defaultTitle = $defaultTitle ?: 'Portfolio | Proppik';
+
+        $defaultDesc = $customer->tag_line
+            ?: ($customer->designation ? $customer->designation . ' at ' . ($customer->company_name ?: 'Proppik') : 'Explore virtual property tours on Proppik.');
+
+        $seoTitle       = $customer->meta_title       ?: $defaultTitle;
+        $seoDescription = $customer->meta_description ?: $defaultDesc;
+        $ogTitle        = $customer->og_title         ?: $seoTitle;
+        $ogDescription  = $customer->og_description   ?: $seoDescription;
+        $twitterTitle   = $customer->twitter_title    ?: $ogTitle;
+        $twitterDesc    = $customer->twitter_description ?: $ogDescription;
 
         return [
-            'id' => $customer->id,
-            'name' => $customer->name,
-            'firstname' => $customer->firstname,
-            'lastname' => $customer->lastname,
-            'email' => $customer->email,
-            'base_mobile' => $customer->base_mobile,
-            'mobile' => $customer->mobile,
-            'country_id' => $customer->country_id,
-            'dial_code' => $customer->dial_code,
-            'country_code' => $customer->country_code,
-            'company_name' => $customer->company_name,
+            'id'              => $customer->id,
+            'slug'            => $customer->slug,
+            'name'            => $customer->name,
+            'firstname'       => $customer->firstname,
+            'lastname'        => $customer->lastname,
+            'email'           => $customer->email,
+            'base_mobile'     => $customer->base_mobile,
+            'mobile'          => $customer->mobile,
+            'country_id'      => $customer->country_id,
+            'dial_code'       => $customer->dial_code,
+            'country_code'    => $customer->country_code,
+            'company_name'    => $customer->company_name,
             'company_website' => $customer->company_website,
-            'designation' => $customer->designation,
-            'tag_line' => $customer->tag_line,
-            'social_link' => $customer->social_link,
-            'profile_photo' => $customer->profile_photo,
-            'cover_photo' => $customer->cover_photo,
+            'designation'     => $customer->designation,
+            'tag_line'        => $customer->tag_line,
+            'social_link'     => $customer->social_link,
+            'profile_photo'   => $customer->profile_photo,
+            'cover_photo'     => $customer->cover_photo,
             'profile_photo_url' => $profilePhotoUrl,
-            'cover_photo_url' => $coverPhotoUrl,
+            'cover_photo_url'   => $coverPhotoUrl,
+            // SEO fields
+            'seo' => [
+                'meta_title'       => $seoTitle,
+                'meta_description' => $seoDescription,
+                'meta_keywords'    => $customer->meta_keywords,
+                'meta_robots'      => $customer->meta_robots      ?: 'index, follow',
+                'canonical_url'    => $customer->canonical_url,
+                'meta_image_url'   => $metaImageUrl,
+                'og_title'         => $ogTitle,
+                'og_description'   => $ogDescription,
+                'og_image_url'     => $ogImageUrl,
+                'og_type'          => $customer->og_type          ?: 'website',
+                'og_url'           => $customer->og_url,
+                'twitter_card'     => $customer->twitter_card     ?: 'summary_large_image',
+                'twitter_title'    => $twitterTitle,
+                'twitter_description' => $twitterDesc,
+                'twitter_image_url'   => $twitterImageUrl,
+                'header_code'      => $customer->header_code,
+                'footer_code'      => $customer->footer_code,
+                'gtm_tag'          => $customer->gtm_tag,
+            ],
         ];
+    }
+
+    /**
+     * Lightweight SEO-only endpoint used by the PHP wrapper (customer.php)
+     * to server-side render meta tags before sending HTML to crawlers.
+     * Accepts: customer_id (int) OR customer_slug (string)
+     */
+    public function getSeoData(Request $request)
+    {
+        $customerId   = $request->input('customer_id');
+        $customerSlug = $request->input('customer_slug');
+
+        if (empty($customerId) && empty($customerSlug)) {
+            return response()->json(['success' => false, 'message' => 'customer_id or customer_slug is required.'], 422);
+        }
+
+        $customer = !empty($customerId)
+            ? Customer::find($customerId)
+            : Customer::where('slug', $customerSlug)->first();
+
+        if (!$customer || !$customer->is_active) {
+            return response()->json(['success' => false, 'message' => 'Customer not found.'], 404);
+        }
+
+        $data = $this->formatCustomerData($customer);
+
+        return response()->json([
+            'success'  => true,
+            'customer' => $data,
+        ]);
     }
 
     /**
@@ -262,6 +332,31 @@ class CustomerBookingController extends Controller
             'property_types' => $propertyTypes,
             'property_sub_types' => $propertySubTypes,
         ];
+    }
+
+    /**
+     * Resolve any stored image path to a full URL using the S3 disk.
+     * If the value is already an absolute URL it is returned as-is.
+     */
+    protected function getStorageUrl(?string $path): ?string
+    {
+        if (empty($path)) {
+            return null;
+        }
+
+        if (preg_match('#^https?://#i', $path)) {
+            return $path;
+        }
+
+        try {
+            return Storage::disk('s3')->url($path);
+        } catch (\Exception $e) {
+            Log::warning('Failed to get S3 URL for image', [
+                'path'  => $path,
+                'error' => $e->getMessage(),
+            ]);
+            return $path;
+        }
     }
 
     protected function getTourThumbnailUrl(?string $thumbnail): ?string

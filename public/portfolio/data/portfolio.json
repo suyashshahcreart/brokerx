@@ -1,0 +1,299 @@
+{
+    "settings": {
+        "default_per_page": 6,
+        "default_sort": "sr_no",
+        "default_sort_order": "asc"
+    },
+    "property_types": [
+        "Commercial",
+        "Health Care",
+        "Heritage",
+        "Hospitality",
+        "Industries",
+        "Religious",
+        "Residential",
+        "Spaces"
+    ],
+    "items": [
+        {
+            "id": "db-24",
+            "sr_no": 1,
+            "title": "The North Park",
+            "property_type": "Residential",
+            "property_sub_type": "Independent House",
+            "thumbnail": "https://www.proppik.in/portfolio/the-north-park/gallery/Drawing_Room.webp",
+            "tour_live_link": "https://www.proppik.in/portfolio/the-north-park/",
+            "date": "2026-02-18"
+        },
+        {
+            "id": "db-15",
+            "sr_no": 2,
+            "title": "Aranyam",
+            "property_type": "Residential",
+            "property_sub_type": "Independent House",
+            "thumbnail": "https://bk-proppik-global.s3.ap-south-1.amazonaws.com/settings/tour_thumbnails/tour_thumbnail_1770454180_C4nQzmyC.png",
+            "tour_live_link": "https://www.proppik.in/portfolio/aranyam/",
+            "date": "2026-02-18"
+        },
+        {
+            "id": "db-12",
+            "sr_no": 3,
+            "title": "Eminence 96",
+            "property_type": "Residential",
+            "property_sub_type": "Duplex",
+            "thumbnail": "https://bk-proppik-global.s3.ap-south-1.amazonaws.com/settings/tour_thumbnails/tour_thumbnail_1770446140_0Q3aNBFZ.jpg",
+            "tour_live_link": "https://www.proppik.in/portfolio/eminence-96/",
+            "date": "2026-02-18"
+        },
+        {
+            "id": "db-8",
+            "sr_no": 4,
+            "title": "Praveg's Grand Eulogia",
+            "property_type": "Hospitality",
+            "property_sub_type": "Hospitality",
+            "thumbnail": "https://bk-proppik-global.s3.ap-south-1.amazonaws.com/settings/tour_thumbnails/tour_thumbnail_1770446332_I1lhOjs0.png",
+            "tour_live_link": "https://www.proppik.in/portfolio/grand-eulogia/",
+            "date": "2026-02-18"
+        },
+        {
+            "id": "db-23",
+            "sr_no": 5,
+            "title": "Flower Show 2026",
+            "property_type": "Spaces",
+            "property_sub_type": "Spaces",
+            "thumbnail": "https://bk-proppik-global.s3.ap-south-1.amazonaws.com/settings/tour_thumbnails/tour_thumbnail_1770484139_b2IzN3jd.png",
+            "tour_live_link": "https://www.proppik.in/portfolio/flower-show-2026/",
+            "date": "2026-02-18"
+        },
+        {
+            "id": "db-5",
+            "sr_no": 6,
+            "title": "Club Babylon",
+            "property_type": "Hospitality",
+            "property_sub_type": "Hospitality",
+            "thumbnail": "https://bk-proppik-global.s3.ap-south-1.amazonaws.com/settings/tour_thumbnails/tour_thumbnail_1770446447_QJuGBZiB.jpg",
+            "tour_live_link": "https://www.proppik.in/portfolio/club-babylon/",
+            "date": "2026-02-18"
+        },
+        {
+            "id": "db-20",
+            "sr_no": 7,
+            "title": "Orchid Valley Furnished",
+            "property_type": "Residential",
+            "property_sub_type": "Independent House",
+            "thumbnail": "https://bk-proppik-global.s3.ap-south-1.amazonaws.com/settings/tour_thumbnails/tour_thumbnail_1770446184_2mMqv0A2.jpg",
+            "tour_live_link": "https://proppik.cloud/3/orchidfurnished",
+            "date": "2026-02-18"
+        },
+        {
+            "id": "db-10",
+            "sr_no": 8,
+            "title": "Viburnum-4",
+            "property_type": "Residential",
+            "property_sub_type": "Independent Floor",
+            "thumbnail": "https://bk-proppik-global.s3.ap-south-1.amazonaws.com/settings/tour_thumbnails/tour_thumbnail_1770446238_5AE37ujx.jpg",
+            "tour_live_link": "https://proppik.cloud/3/viburnum4",
+            "date": "2026-02-18"
+        },
+        {
+            "id": "db-19",
+            "sr_no": 9,
+            "title": "Nautanky",
+            "property_type": "Commercial",
+            "property_sub_type": "Showroom",
+            "thumbnail": "https://bk-proppik-global.s3.ap-south-1.amazonaws.com/settings/tour_thumbnails/tour_thumbnail_1770391942_nhy1Z1KK.jpg",
+            "tour_live_link": "https://www.proppik.in/portfolio/natanky/",
+            "date": "2026-02-18"
+        },
+        {
+            "id": "db-13",
+            "sr_no": 10,
+            "title": "IRA",
+            "property_type": "Commercial",
+            "property_sub_type": "Office",
+            "thumbnail": "https://bk-proppik-global.s3.ap-south-1.amazonaws.com/settings/tour_thumbnails/tour_thumbnail_1770453719_lFlihI5S.png",
+            "tour_live_link": "https://www.proppik.in/portfolio/ira/",
+            "date": "2026-02-18"
+        },
+        {
+            "id": "db-7",
+            "sr_no": 11,
+            "title": "United Nails",
+            "property_type": "Commercial",
+            "property_sub_type": "Retail Shop",
+            "thumbnail": "https://bk-proppik-global.s3.ap-south-1.amazonaws.com/settings/tour_thumbnails/tour_thumbnail_1770446365_TrKyUJis.jpg",
+            "tour_live_link": "https://proppik.cloud/3/unitednails",
+            "date": "2026-02-18"
+        },
+        {
+            "id": "db-1",
+            "sr_no": 12,
+            "title": "Amala Cafe",
+            "property_type": "Commercial",
+            "property_sub_type": "Cafe",
+            "thumbnail": "https://bk-proppik-global.s3.ap-south-1.amazonaws.com/settings/tour_thumbnails/tour_thumbnail_1770451339_ISi5wZaZ.jpg",
+            "tour_live_link": "https://proppik.cloud/3/amalacafe",
+            "date": "2026-02-18"
+        },
+        {
+            "id": "db-21",
+            "sr_no": 13,
+            "title": "Kisna Canteen",
+            "property_type": "Commercial",
+            "property_sub_type": "Restaurant",
+            "thumbnail": "https://bk-proppik-global.s3.ap-south-1.amazonaws.com/settings/tour_thumbnails/tour_thumbnail_1770459109_9TsFCIJ5.jpg",
+            "tour_live_link": "https://proppik.cloud/3/kisnacanteen",
+            "date": "2026-02-18"
+        },
+        {
+            "id": "db-18",
+            "sr_no": 14,
+            "title": "Mondeal Office",
+            "property_type": "Commercial",
+            "property_sub_type": "Office",
+            "thumbnail": "https://bk-proppik-global.s3.ap-south-1.amazonaws.com/settings/tour_thumbnails/tour_thumbnail_1770446055_Slysiwdl.jpg",
+            "tour_live_link": "https://proppik.cloud/3/Mondeal_Office",
+            "date": "2026-02-18"
+        },
+        {
+            "id": "db-17",
+            "sr_no": 15,
+            "title": "mahadev temple",
+            "property_type": "Other",
+            "property_sub_type": "Religious",
+            "thumbnail": "https://bk-proppik-global.s3.ap-south-1.amazonaws.com/settings/tour_thumbnails/tour_thumbnail_1770392040_DgFqPTGr.jpg",
+            "tour_live_link": "https://proppik.cloud/3/mahadev-temple",
+            "date": "2026-02-18"
+        },
+        {
+            "id": "db-14",
+            "sr_no": 16,
+            "title": "Jornang village temple",
+            "property_type": "Other",
+            "property_sub_type": "Religious",
+            "thumbnail": "https://bk-proppik-global.s3.ap-south-1.amazonaws.com/settings/tour_thumbnails/tour_thumbnail_1770446099_dixKURQm.png",
+            "tour_live_link": "https://proppik.cloud/3/Jornang-temple",
+            "date": "2026-02-18"
+        },
+        {
+            "id": "db-11",
+            "sr_no": 17,
+            "title": "Dandi Kutir",
+            "property_type": "Other",
+            "property_sub_type": "Heritage",
+            "thumbnail": "https://bk-proppik-global.s3.ap-south-1.amazonaws.com/settings/tour_thumbnails/tour_thumbnail_1770446215_V6Ybx2bi.jpg",
+            "tour_live_link": "https://proppik.cloud/3/dandikutir",
+            "date": "2026-02-18"
+        },
+        {
+            "id": "db-9",
+            "sr_no": 18,
+            "title": "Viburnum-3",
+            "property_type": "Residential",
+            "property_sub_type": "Independent Floor",
+            "thumbnail": "https://bk-proppik-global.s3.ap-south-1.amazonaws.com/settings/tour_thumbnails/tour_thumbnail_1770446268_mCnd74N2.jpg",
+            "tour_live_link": "https://proppik.cloud/3/viburnum3",
+            "date": "2026-02-18"
+        },
+        {
+            "id": "db-6",
+            "sr_no": 19,
+            "title": "Dental Clinic",
+            "property_type": "Health Care",
+            "property_sub_type": "Others",
+            "thumbnail": "https://bk-proppik-global.s3.ap-south-1.amazonaws.com/settings/tour_thumbnails/tour_thumbnail_1770446400_CI3CJcZf.jpg",
+            "tour_live_link": "https://proppik.cloud/3/Anvay-dental",
+            "date": "2026-02-18"
+        },
+        {
+            "id": "db-25",
+            "sr_no": 20,
+            "title": "DNT",
+            "property_type": "Other",
+            "property_sub_type": "Others",
+            "thumbnail": null,
+            "tour_live_link": "https://proppik.cloud/3/dnt",
+            "date": "2026-02-18"
+        },
+        {
+            "id": "db-2",
+            "sr_no": 21,
+            "title": "Sarhad Dairy",
+            "property_type": "Industries",
+            "property_sub_type": "Industries",
+            "thumbnail": "https://bk-proppik-global.s3.ap-south-1.amazonaws.com/settings/tour_thumbnails/tour_thumbnail_1770445805_aI0CERVJ.jpg",
+            "tour_live_link": "https://www.proppik.in/portfolio/sarhad-dairy/",
+            "date": "2026-02-18"
+        },
+        {
+            "id": "db-3",
+            "sr_no": 22,
+            "title": "Sarhad Dairy Cattle Feed Plant",
+            "property_type": "Other",
+            "property_sub_type": "Industries",
+            "thumbnail": "https://bk-proppik-global.s3.ap-south-1.amazonaws.com/settings/tour_thumbnails/tour_thumbnail_1770446572_2NMIzP3i.jpg",
+            "tour_live_link": "https://proppik.cloud/3/sdcattlefeed",
+            "date": "2026-02-18"
+        },
+        {
+            "id": "db-4",
+            "sr_no": 23,
+            "title": "Sarhad Dairy Solar Plant",
+            "property_type": "Other",
+            "property_sub_type": "Industries",
+            "thumbnail": "https://bk-proppik-global.s3.ap-south-1.amazonaws.com/settings/tour_thumbnails/tour_thumbnail_1770446479_MzHyM53Y.jpg",
+            "tour_live_link": "https://proppik.cloud/3/sdsolarpark",
+            "date": "2026-02-18"
+        },
+        {
+            "id": "item-1772709011553",
+            "sr_no": 24,
+            "title": "Nirvana Arise",
+            "property_type": "Residential",
+            "property_sub_type": "",
+            "thumbnail": "https://memegangs.com/proppik/nirvanaarise/gallery/Passage-1.png",
+            "tour_live_link": "https://memegangs.com/proppik/nirvanaarise/",
+            "date": "2026-03-05"
+        },
+        {
+            "id": "item-1772709207869",
+            "sr_no": 25,
+            "title": "Dharma Path",
+            "property_type": "Religious",
+            "property_sub_type": "",
+            "thumbnail": "https://www.proppik.in/portfolio/dharmapath/gallery/dharmapath.jpg",
+            "tour_live_link": "https://www.proppik.in/portfolio/dharmapath/",
+            "date": "2026-03-05"
+        },
+        {
+            "id": "item-1772709432411",
+            "sr_no": 26,
+            "title": "Hanuman Garhi",
+            "property_type": "Religious",
+            "property_sub_type": "",
+            "thumbnail": "https://www.proppik.in/portfolio/hanumangarhi/gallery/hanumangarhi.jpg",
+            "tour_live_link": "https://www.proppik.in/portfolio/hanumangarhi",
+            "date": "2026-03-05"
+        },
+        {
+            "id": "item-1772709661343",
+            "sr_no": 27,
+            "title": "Guptar Hari Temple",
+            "property_type": "Religious",
+            "property_sub_type": "",
+            "thumbnail": "https://www.proppik.in/portfolio/guptarharitemple/gallery/guptarharitemple.jpg",
+            "tour_live_link": "https://www.proppik.in/portfolio/guptarharitemple",
+            "date": "2026-03-05"
+        },
+        {
+            "id": "item-1772710309314",
+            "sr_no": 28,
+            "title": "Laxmi Narayan Club",
+            "property_type": "Hospitality",
+            "property_sub_type": "",
+            "thumbnail": "https://memegangs.com/proppik/laxminarayanclub/gallery/laxminarayanclub.jpg",
+            "tour_live_link": "https://memegangs.com/proppik/laxminarayanclub/",
+            "date": "2026-03-05"
+        }
+    ]
+}

@@ -57,7 +57,7 @@ class Tour extends Model
         // New fields added by migration
         'sidebar_logo',
         'footer_logo',
-        'footer_name',
+        'footer_title',
         'footer_email',
         'footer_mobile',
         'custom_type',
@@ -78,6 +78,30 @@ class Tour extends Model
         'is_mobile_validation',
         'is_hosted',
         'hosted_link',
+        // Contact fields
+        'contact_google_location',
+        'contact_website',
+        'contact_email',
+        'contact_phone_no',
+        'contact_whatsapp_no',
+        // Language fields
+        'enable_language',
+        'default_language',
+        // Customization fields
+        'overlay_bg_color',
+        'loader_text',
+        'loader_color',
+        'spinner_color',
+        // Attachment file
+        'attachment_file',
+        // Sidebar tag fields
+        'sidebar_tag_text',
+        'sidebar_tag_color',
+        'sidebar_tag_bg_color',
+        // Bottommark multilingual fields
+        'bottommark_property_name',
+        'bottommark_room_type',
+        'bottommark_dimensions',
     ];
 
     /**
@@ -102,6 +126,16 @@ class Tour extends Model
             'is_credentials' => 'boolean',
             'is_mobile_validation' => 'boolean',
             'is_hosted' => 'boolean',
+            'enable_language' => 'array',
+            'loader_color' => 'array',
+            'spinner_color' => 'array',
+            'attachment_file' => 'array',
+            'footer_title' => 'array',
+            'footer_subtitle' => 'array',
+            'footer_decription' => 'array',
+            'bottommark_property_name' => 'array',
+            'bottommark_room_type' => 'array',
+            'bottommark_dimensions' => 'array',
         ];
     }
 
