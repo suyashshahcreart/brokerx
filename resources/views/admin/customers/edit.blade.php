@@ -206,7 +206,7 @@
                                 <label for="profile_photo" class="form-label mb-0">Profile Photo</label>
                                 <input type="file" name="profile_photo" id="profile_photo" class="form-control @error('profile_photo') is-invalid @enderror" accept="image/*">
                                 <div id="profile_photo_preview" class="mt-2 {{ $customer->profile_photo ? '' : 'd-none' }} position-relative d-inline-block">
-                                    <img id="profile_photo_preview_img" src="{{ $customer->profile_photo ? Storage::disk('s3')->url($customer->profile_photo) : '' }}" alt="Profile preview" class="img-thumbnail" style="max-height: 120px; max-width: 100%; object-fit: cover; display: block;" data-existing="{{ $customer->profile_photo ? Storage::disk('s3')->url($customer->profile_photo) : '' }}">
+                                    <img id="profile_photo_preview_img" src="{{ $customer->profile_photo ? $customer->profile_photo : '' }}" alt="Profile preview" class="img-thumbnail" style="max-height: 120px; max-width: 100%; object-fit: cover; display: block;" data-existing="{{ $customer->profile_photo ? $customer->profile_photo : '' }}">
                                     <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1 rounded-circle p-1 photo-remove-btn" id="profile_photo_remove" title="Remove" style="width: 24px; height: 24px; font-size: 12px; line-height: 1;"><i class="ri-close-line"></i></button>
                                 </div>
                                 <div class="invalid-feedback">
@@ -221,7 +221,7 @@
                                 <label for="cover_photo" class="form-label mb-0">Cover Photo</label>
                                 <input type="file" name="cover_photo" id="cover_photo" class="form-control @error('cover_photo') is-invalid @enderror" accept="image/*">
                                 <div id="cover_photo_preview" class="mt-2 {{ $customer->cover_photo ? '' : 'd-none' }} position-relative d-inline-block">
-                                    <img id="cover_photo_preview_img" src="{{ $customer->cover_photo ? Storage::disk('s3')->url($customer->cover_photo) : '' }}" alt="Cover preview" class="img-thumbnail" style="max-height: 120px; max-width: 100%; object-fit: cover; display: block;" data-existing="{{ $customer->cover_photo ? Storage::disk('s3')->url($customer->cover_photo) : '' }}">
+                                    <img id="cover_photo_preview_img" src="{{ $customer->cover_photo ? $customer->cover_photo : '' }}" alt="Cover preview" class="img-thumbnail" style="max-height: 120px; max-width: 100%; object-fit: cover; display: block;" data-existing="{{ $customer->cover_photo ? $customer->cover_photo : '' }}">
                                     <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1 rounded-circle p-1 photo-remove-btn" id="cover_photo_remove" title="Remove" style="width: 24px; height: 24px; font-size: 12px; line-height: 1;"><i class="ri-close-line"></i></button>
                                 </div>
                                 <div class="invalid-feedback">
@@ -320,7 +320,7 @@
                 </div>
             </div>
             <div class="card-body">
-                <form method="POST" action="{{ route('admin.customer.update-seo', $customer) }}" class="needs-validation mt-3" novalidate>
+                <form method="POST" action="{{ route('admin.customer.update-seo', $customer) }}" class="needs-validation mt-3" novalidate enctype="multipart/form-data">
                 @csrf
                 @method('PATCH')
                 <div class="row">
@@ -350,9 +350,11 @@
                     </div>
                     <div class="col-md-3 col-6">
                         <div class="mb-1">
-                            <label for="meta_image" class="form-label mb-0">Meta Image URL</label>
-                            <input type="url" name="meta_image" id="meta_image" value="{{ old('meta_image',$customer->meta_image) }}"
-                                placeholder="e.g, https://example.com/image.jpg" class="form-control @error('meta_image') is-invalid @enderror" maxlength="2048">
+                            <label for="meta_image" class="form-label mb-0">Meta Image</label>
+                            <input type="file" name="meta_image" id="meta_image" class="form-control @error('meta_image') is-invalid @enderror" accept="image/*">
+                            <div id="meta_image_preview" class="mt-2 {{ $customer->meta_image ? '' : 'd-none' }}">
+                                <img id="meta_image_preview_img" src="{{ $customer->meta_image ?: '' }}" alt="Meta image preview" class="img-thumbnail" style="max-height: 120px; max-width: 100%; object-fit: cover; display: block;" data-existing="{{ $customer->meta_image ?: '' }}">
+                            </div>
                             <div class="invalid-feedback">
                                 @error('meta_image')
                                     {{ $message }}
@@ -391,9 +393,11 @@
                             </div>
                             <div class="col-md-6 col-6">
                                 <div class="mb-1">
-                                    <label for="og_image" class="form-label mb-0">OG Image URL</label>
-                                    <input type="url" name="og_image" id="og_image" value="{{ old('og_image',$customer->og_image) }}"
-                                        placeholder="e.g, https://example.com/og-image.jpg" class="form-control @error('og_image') is-invalid @enderror" maxlength="2048">
+                                    <label for="og_image" class="form-label mb-0">OG Image</label>
+                                    <input type="file" name="og_image" id="og_image" class="form-control @error('og_image') is-invalid @enderror" accept="image/*">
+                                    <div id="og_image_preview" class="mt-2 {{ $customer->og_image ? '' : 'd-none' }}">
+                                        <img id="og_image_preview_img" src="{{ $customer->og_image ?: '' }}" alt="OG image preview" class="img-thumbnail" style="max-height: 120px; max-width: 100%; object-fit: cover; display: block;" data-existing="{{ $customer->og_image ?: '' }}">
+                                    </div>
                                     <div class="invalid-feedback">
                                         @error('og_image')
                                             {{ $message }}
@@ -457,9 +461,11 @@
                     </div>
                     <div class="col-md-3 col-6">
                         <div class="mb-1">
-                            <label for="twitter_image" class="form-label mb-0">Twitter Image URL</label>
-                            <input type="url" name="twitter_image" id="twitter_image" value="{{ old('twitter_image',$customer->twitter_image) }}"
-                                placeholder="e.g, https://example.com/twitter.jpg" class="form-control @error('twitter_image') is-invalid @enderror" maxlength="2048">
+                            <label for="twitter_image" class="form-label mb-0">Twitter Image</label>
+                            <input type="file" name="twitter_image" id="twitter_image" class="form-control @error('twitter_image') is-invalid @enderror" accept="image/*">
+                            <div id="twitter_image_preview" class="mt-2 {{ $customer->twitter_image ? '' : 'd-none' }}">
+                                <img id="twitter_image_preview_img" src="{{ $customer->twitter_image ?: '' }}" alt="Twitter image preview" class="img-thumbnail" style="max-height: 120px; max-width: 100%; object-fit: cover; display: block;" data-existing="{{ $customer->twitter_image ?: '' }}">
+                            </div>
                             <div class="invalid-feedback">
                                 @error('twitter_image')
                                     {{ $message }}

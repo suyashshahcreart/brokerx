@@ -20,13 +20,6 @@ class CustomerProfileController extends Controller
             ], 403);
         }
 
-        $profilePhotoUrl = $customer->profile_photo
-            ? Storage::disk('s3')->url($customer->profile_photo)
-            : null;
-        $coverPhotoUrl = $customer->cover_photo
-            ? Storage::disk('s3')->url($customer->cover_photo)
-            : null;
-
         return response()->json([
             'success' => true,
             'data' => [
@@ -48,8 +41,8 @@ class CustomerProfileController extends Controller
                     'social_link' => $customer->social_link,
                     'profile_photo' => $customer->profile_photo,
                     'cover_photo' => $customer->cover_photo,
-                    'profile_photo_url' => $profilePhotoUrl,
-                    'cover_photo_url' => $coverPhotoUrl,
+                    'profile_photo_url' => $customer->profile_photo,
+                    'cover_photo_url' => $customer->cover_photo,
                     'social_links' => $customer->social_link
                 ],
             ],

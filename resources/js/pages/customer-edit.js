@@ -65,3 +65,40 @@ $(document).on("change", ".social-platform", function () {
     row.find(".social-type-value")
         .attr("name", `social_link[${platform}][value]`);
 });
+
+function setupImagePreview(inputId, previewId, imageId) {
+    const input = document.getElementById(inputId);
+    const preview = document.getElementById(previewId);
+    const image = document.getElementById(imageId);
+
+    if (!input || !preview || !image) {
+        return;
+    }
+
+    input.addEventListener('change', function () {
+        const file = this.files && this.files[0];
+
+        if (file && file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = function (event) {
+                image.src = event.target.result;
+                preview.classList.remove('d-none');
+            };
+            reader.readAsDataURL(file);
+            return;
+        }
+
+        const existing = image.getAttribute('data-existing');
+        if (existing) {
+            image.src = existing;
+            preview.classList.remove('d-none');
+        } else {
+            image.src = '';
+            preview.classList.add('d-none');
+        }
+    });
+}
+
+setupImagePreview('meta_image', 'meta_image_preview', 'meta_image_preview_img');
+setupImagePreview('og_image', 'og_image_preview', 'og_image_preview_img');
+setupImagePreview('twitter_image', 'twitter_image_preview', 'twitter_image_preview_img');

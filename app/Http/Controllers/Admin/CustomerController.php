@@ -8,6 +8,7 @@ use App\Models\Country;
 use App\Models\Customer;
 use Hash;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Yajra\DataTables\Facades\DataTables;
 
@@ -247,16 +248,19 @@ class CustomerController extends Controller
 
         $customer = Customer::create($data);
 
+        /** @var \Illuminate\Filesystem\FilesystemAdapter $s3Disk */
+        $s3Disk = Storage::disk('s3');
+
         // handle file uploads after customer is created (needs id)
         if ($request->hasFile('profile_photo')) {
             $path = $request->file('profile_photo')
                 ->storeAs('settings/customer/' . $customer->id . '/Files', 'profile_' . time() . '.' . $request->file('profile_photo')->extension(), 's3');
-            $customer->update(['profile_photo' => $path]);
+            $customer->update(['profile_photo' => $s3Disk->url($path)]);
         }
         if ($request->hasFile('cover_photo')) {
             $path = $request->file('cover_photo')
                 ->storeAs('settings/customer/' . $customer->id . '/Files', 'cover_' . time() . '.' . $request->file('cover_photo')->extension(), 's3');
-            $customer->update(['cover_photo' => $path]);
+            $customer->update(['cover_photo' => $s3Disk->url($path)]);
         }
 
         activity('Customers')
@@ -399,16 +403,47 @@ class CustomerController extends Controller
             }
         }
 
+        /** @var \Illuminate\Filesystem\FilesystemAdapter $s3Disk */
+        $s3Disk = Storage::disk('s3');
+
+        $extractS3Path = static function (?string $value): ?string {
+            if (empty($value)) {
+                return null;
+            }
+
+            $path = filter_var($value, FILTER_VALIDATE_URL)
+                ? (parse_url($value, PHP_URL_PATH) ?: '')
+                : $value;
+
+            $path = ltrim($path, '/');
+            $bucket = trim((string) config('filesystems.disks.s3.bucket'), '/');
+            if ($bucket !== '' && str_starts_with($path, $bucket . '/')) {
+                $path = substr($path, strlen($bucket) + 1);
+            }
+
+            return $path !== '' ? $path : null;
+        };
+
         // handle file uploads
         if ($request->hasFile('profile_photo')) {
+            $oldProfilePath = $extractS3Path($customer->profile_photo);
+            if ($oldProfilePath && $s3Disk->exists($oldProfilePath)) {
+                $s3Disk->delete($oldProfilePath);
+            }
+
             $path = $request->file('profile_photo')
                 ->storeAs('settings/customer/' . $customer->id . '/Files', 'profile_' . time() . '.' . $request->file('profile_photo')->extension(), 's3');
-            $data['profile_photo'] = $path;
+            $data['profile_photo'] = $s3Disk->url($path);
         }
         if ($request->hasFile('cover_photo')) {
+            $oldCoverPath = $extractS3Path($customer->cover_photo);
+            if ($oldCoverPath && $s3Disk->exists($oldCoverPath)) {
+                $s3Disk->delete($oldCoverPath);
+            }
+
             $path = $request->file('cover_photo')
                 ->storeAs('settings/customer/' . $customer->id . '/Files', 'cover_' . time() . '.' . $request->file('cover_photo')->extension(), 's3');
-            $data['cover_photo'] = $path;
+            $data['cover_photo'] = $s3Disk->url($path);
         }
 
         if (!empty($validated['password'])) {
@@ -509,17 +544,17 @@ class CustomerController extends Controller
             'meta_title' => ['nullable', 'string', 'max:255'],
             'meta_description' => ['nullable', 'string'],
             'meta_keywords' => ['nullable', 'string', 'max:255'],
-            'meta_image' => ['nullable', 'string', 'max:2048'],
+            'meta_image' => ['nullable', 'image', 'max:2048'],
             'canonical_url' => ['nullable', 'url', 'max:2048'],
             'meta_robots' => ['nullable', 'string', 'max:255'],
             'og_title' => ['nullable', 'string', 'max:255'],
             'og_description' => ['nullable', 'string'],
-            'og_image' => ['nullable', 'string', 'max:2048'],
+            'og_image' => ['nullable', 'image', 'max:2048'],
             'og_type' => ['nullable', 'string', 'max:64'],
             'og_url' => ['nullable', 'url', 'max:2048'],
             'twitter_title' => ['nullable', 'string', 'max:255'],
             'twitter_description' => ['nullable', 'string'],
-            'twitter_image' => ['nullable', 'string', 'max:2048'],
+            'twitter_image' => ['nullable', 'image', 'max:2048'],
             'twitter_card' => ['nullable', 'string', 'max:64'],
             'header_code' => ['nullable', 'string'],
             'footer_code' => ['nullable', 'string'],
@@ -528,6 +563,47 @@ class CustomerController extends Controller
         ];
 
         $validated = $request->validate($rules);
+
+        /** @var \Illuminate\Filesystem\FilesystemAdapter $s3Disk */
+        $s3Disk = Storage::disk('s3');
+
+        $extractS3Path = static function (?string $value): ?string {
+            if (empty($value)) {
+                return null;
+            }
+
+            $path = filter_var($value, FILTER_VALIDATE_URL)
+                ? (parse_url($value, PHP_URL_PATH) ?: '')
+                : $value;
+
+            $path = ltrim($path, '/');
+            $bucket = trim((string) config('filesystems.disks.s3.bucket'), '/');
+            if ($bucket !== '' && str_starts_with($path, $bucket . '/')) {
+                $path = substr($path, strlen($bucket) + 1);
+            }
+
+            return $path !== '' ? $path : null;
+        };
+
+        foreach (['meta_image', 'og_image', 'twitter_image'] as $field) {
+            if (!$request->hasFile($field)) {
+                unset($validated[$field]);
+                continue;
+            }
+
+            $oldPath = $extractS3Path($customer->{$field});
+            if ($oldPath && $s3Disk->exists($oldPath)) {
+                $s3Disk->delete($oldPath);
+            }
+
+            $path = $request->file($field)->storeAs(
+                'settings/customer/' . $customer->id . '/Seo',
+                $field . '_' . time() . '.' . $request->file($field)->extension(),
+                's3'
+            );
+
+            $validated[$field] = $s3Disk->url($path);
+        }
 
         $customer->updateSeo($validated);
 
