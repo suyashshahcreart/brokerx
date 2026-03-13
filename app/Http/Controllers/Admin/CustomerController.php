@@ -167,7 +167,7 @@ class CustomerController extends Controller
             // social links as associative array key=>value
             'social_link' => ['nullable', 'array'],
             // allow any string value (not limited to URL)
-            'social_link.*' => ['nullable', 'array', 'max:255'],
+            'social_link.*' => ['nullable', 'array'],
             // SEO fields are optional but add basic rules here in case they're submitted
             'slug' => ['nullable', 'string', 'alpha_dash', 'unique:customers,slug'],
             'meta_title' => ['nullable', 'string', 'max:255'],
@@ -317,7 +317,7 @@ class CustomerController extends Controller
             'tag_line' => ['nullable', 'string', 'max:255'],
             'social_link' => ['nullable', 'array'],
             // any string accepted
-            'social_link.*' => ['nullable', 'string', 'max:255'],
+            'social_link.*' => ['nullable', 'array'],
             // slug should remain unique except for this customer
             'slug' => ['nullable', 'string', 'alpha_dash', 'unique:customers,slug,' . $customer->id],
         ];
@@ -389,7 +389,7 @@ class CustomerController extends Controller
             'country_id' => $country->id,
             'email' => $validated['email'],
             'updated_by' => $request->user()->id,
-            'socail_link' => json_encode($validated['social_link']),
+            'socail_link' => $request->input('social_link', []),
         ];
 
         // include profile / contact fields

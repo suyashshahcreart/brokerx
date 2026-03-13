@@ -30,7 +30,7 @@ function createSocialLinkRowTour(platform = '', url = '', typeValue = '') {
         row.find('.icon-preview').html(`<i class="${typeValue}"></i>`);
     }
     // Listen for value change to update preview
-    row.find('.social-type-value').on('input', function () {
+    row.find('.social-type-value').on('change', function () {
         const val = $(this).val();
         const preview = $(this).closest('.d-flex').find('.icon-preview');
         if (val) {

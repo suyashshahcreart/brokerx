@@ -58,6 +58,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const btn = e.target.closest('.icon-lib-btn');
         if (btn && iconInputTarget) {
             iconInputTarget.value = btn.getAttribute('data-icon-class');
+            iconInputTarget.dispatchEvent(new Event('change')); // Trigger change event to update preview
             // Optionally, render the icon next to the input
             bootstrap.Modal.getOrCreateInstance(document.getElementById('iconLiberaryModal')).hide();
         }
