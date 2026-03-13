@@ -2,7 +2,7 @@ import $ from 'jquery';
 
 function createSocialLinkRowTour(platform = '', url = '', typeValue = '') {
     const row = $(`
-        <div class="row g-2 align-items-center social-link-row">
+        <div class="row g-2 align-items-center social-link-row mb-1">
             <div class="col-md-3">
                 <input type="text" class="form-control social-platform" placeholder="e.g, facebook" value="">
                 <input type="text" class="d-none social-type" value="fontawsome-icon">

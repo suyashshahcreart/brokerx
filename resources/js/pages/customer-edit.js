@@ -2,7 +2,7 @@ import $ from 'jquery';
 
 function createSocialLinkRowTour(platform = '', url = '', typeValue = '') {
     const row = $(`
-        <div class="row g-2 align-items-center social-link-row">
+        <div class="row g-2 align-items-center social-link-row mb-1">
             <div class="col-md-3">
                 <input type="text" class="form-control social-platform" placeholder="e.g, facebook" value="">
                 <input type="text" class="d-none social-type" value="fontawsome-icon">
@@ -66,7 +66,7 @@ $(document).on("change", ".social-platform", function () {
         .attr("name", `social_link[${platform}][value]`);
 });
 
-function setupImagePreview(inputId, previewId, imageId) {
+function setupImagePreview(inputId, previewId, imageId, removeId) {
     const input = document.getElementById(inputId);
     const preview = document.getElementById(previewId);
     const image = document.getElementById(imageId);
@@ -97,8 +97,27 @@ function setupImagePreview(inputId, previewId, imageId) {
             preview.classList.add('d-none');
         }
     });
+
+    if (removeId) {
+        const removeBtn = document.getElementById(removeId);
+        if (removeBtn) {
+            removeBtn.addEventListener('click', function () {
+                input.value = '';
+                const existing = image.getAttribute('data-existing');
+                if (existing) {
+                    image.src = existing;
+                    preview.classList.remove('d-none');
+                } else {
+                    image.src = '';
+                    preview.classList.add('d-none');
+                }
+            });
+        }
+    }
 }
 
-setupImagePreview('meta_image', 'meta_image_preview', 'meta_image_preview_img');
-setupImagePreview('og_image', 'og_image_preview', 'og_image_preview_img');
-setupImagePreview('twitter_image', 'twitter_image_preview', 'twitter_image_preview_img');
+document.addEventListener('DOMContentLoaded', function () {
+setupImagePreview('meta_image', 'meta_image_preview', 'meta_image_preview_img', 'meta_image_remove');
+setupImagePreview('og_image', 'og_image_preview', 'og_image_preview_img', 'og_image_remove');
+setupImagePreview('twitter_image', 'twitter_image_preview', 'twitter_image_preview_img', 'twitter_image_remove');
+});
