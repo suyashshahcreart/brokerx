@@ -1,8 +1,25 @@
 import $ from 'jquery';
 import Swal from 'sweetalert2';
 import 'jsoneditor/dist/jsoneditor.min.css';
-import JSONEditor from 'jsoneditor/dist/jsoneditor.min.js';
 import bootstrap from 'bootstrap/dist/js/bootstrap.min';
+import JSONEditor from 'jsoneditor/dist/jsoneditor.min.js';
+import * as jsondiffpatch from 'jsondiffpatch';
+
+const escapeHtml = (value) => String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+
+const buildDiffPreviewHtml = (delta) => {
+    const htmlFormatter = jsondiffpatch?.formatters?.html;
+    if (htmlFormatter && typeof htmlFormatter.format === 'function') {
+        return htmlFormatter.format(delta);
+    }
+    // Fallback when html formatter bundle is not available.
+    return `<pre class="text-start bg-light p-3 rounded">${escapeHtml(JSON.stringify(delta, null, 2))}</pre>`;
+};
 
 // Get references to the button and textarea
 let editbutton = $('#editJsonBtn');
@@ -25,7 +42,7 @@ const options = {
 const editor = new JSONEditor(container, options)
 
 editbutton.on('click', function () {
-    let josnData = jsonTextarea.val() ? JSON.parse(jsonTextarea.val()) : initialJson;
+    let josnData = jsonTextarea.val() ? JSON.parse(jsonTextarea.val()) : {};
     editor.set(josnData)
     OriginalJsonData = editor.get();
 });
@@ -37,8 +54,7 @@ $('#jsonDataSaveBtn').on('click', function () {
         jsonEditorModal.hide();
         return;
     }
-    console.log("Delta:", delta)
-    const html = jsondiffpatch.formatters.html.format(delta);
+    const html = buildDiffPreviewHtml(delta);
     // alert of the changes and fonform it.
     Swal.fire({
         title: "Do you want to save the changes? please Conform the changes below",
@@ -48,7 +64,7 @@ $('#jsonDataSaveBtn').on('click', function () {
         confirmButtonText: "Save",
         denyButtonText: `Don't save`,
         width: '60%',
-        height: '500px',
+        heightAuto: false,
     }).then((result) => {
         if (result.isConfirmed) {
             Swal.fire("Json Update Saved!", "", "success");

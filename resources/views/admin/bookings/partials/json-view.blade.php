@@ -1,19 +1,20 @@
-<form action="{{ route('admin.tours.updateTourJson',$tour) }}" method="post" id="jsonUpdateForm">
+<form action="{{ route('admin.tours.updateTourJson', $tour) }}" method="post" id="jsonUpdateForm">
     @csrf
     @method('PUT')
     <div class="mt-3">
-        <div class="d-flex align-items-center justify-items-between mb-2">
+        <div class="d-flex align-items-end justify-content-between mb-2 px-1">
             <h4>Booking JSON Data chenge</h4>
             <button type="button" class="btn btn-md btn-primary ms-3" id="editJsonBtn" data-bs-toggle="modal"
                 data-bs-target="#jsonEditorModal">
-                Edit Json
+                <i class="ri-edit-2-line"></i> Edit Json
             </button>
         </div>
-        <textarea id="jsonTextAreaView" name="final_josn" class="w-100 bg-light p-3 rounded border-0" rows="25" readonly>
+        <textarea id="jsonTextAreaView" name="final_josn" class="w-100 bg-light p-3 rounded border-0" rows="25"
+            readonly>
         {!! is_array($tour->final_json) ? json_encode($tour->final_json, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) : $tour->final_json !!}
         </textarea>
         <div type="submit" class="d-flex justify-content-end my-3">
-            <button id="jsonUpdatebtn" class="btn btn-primary"><i class="ri-save-line me-1"></i> Update SEO</button>
+            <button id="jsonUpdatebtn" class="btn btn-primary"><i class="ri-save-line me-1"></i> Update json</button>
         </div>
     </div>
 </form>
@@ -37,11 +38,11 @@
         </div>
     </div>
 </div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jsondiffpatch/0.3.11/jsondiffpatch.umd.js"
+<!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/jsondiffpatch/0.3.11/jsondiffpatch.umd.js"
     integrity="sha512-1/tJGdBwOGJ3QrvU2diNgmqBQBVcc7ioLKVwagMZNP4/LfvtQo3yTyxAxxuRWzSrpbEShaWG9bk/WUwr4KG07g=="
     crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <link rel="stylesheet"
     href="https://cdnjs.cloudflare.com/ajax/libs/jsondiffpatch/0.3.11/formatters-styles/annotated.css"
     integrity="sha512-g+Q5QP9G+qSkZ6YS9sYHxk0mUaf+nDOdr/UTqSSIvcYM8ETH93KWywztidF+e7o865rxh1VYl2beQxTbFxHGuA=="
-    crossorigin="anonymous" referrerpolicy="no-referrer" />
+    crossorigin="anonymous" referrerpolicy="no-referrer" /> -->
 @vite('resources/js/pages/booking-edit-json-edit.js')
