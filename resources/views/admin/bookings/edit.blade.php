@@ -456,11 +456,7 @@
 
                         <!-- JSON Tab -->
                         <div class="tab-pane fade" id="json-pane" role="tabpanel" aria-labelledby="json-tab" tabindex="0">
-                            <div class="mt-3">
-                                <h5>Booking JSON Data</h5>
-                                <pre class="bg-light p-3 rounded border"
-                                    style="font-size: 13px; max-height: 90%; overflow: auto;">{!! is_array($tour->final_json) ? json_encode($tour->final_json, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) : $tour->final_json !!}</pre>
-                            </div>
+                            @include('admin.bookings.partials.json-view')
                         </div>
 
                         <!-- Tour Detail Tab's Tab -->

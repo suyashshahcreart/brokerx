@@ -41,6 +41,7 @@
     "inputmask": "^5.0.7",
     "javascript-obfuscator": "^5.1.0",
     "jquery": "^3.7.1",
+    "jsoneditor": "^10.4.2",
     "jsvectormap": "^1.5.1",
     "moment": "2.29.4",
     "multi.js": "^0.5.3",

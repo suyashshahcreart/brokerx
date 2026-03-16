@@ -1,4 +1,47 @@
-<div class="mt-3">
-    <h5>Booking JSON Data</h5>
-    <pre class="bg-light p-3 rounded border" style="font-size: 13px; max-height: 400px; overflow: auto;">{{ json_encode($booking->toArray(), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) }}</pre>
+<form action="{{ route('admin.tours.updateTourJson',$tour) }}" method="post" id="jsonUpdateForm">
+    @csrf
+    @method('PUT')
+    <div class="mt-3">
+        <div class="d-flex align-items-center justify-items-between mb-2">
+            <h4>Booking JSON Data chenge</h4>
+            <button type="button" class="btn btn-md btn-primary ms-3" id="editJsonBtn" data-bs-toggle="modal"
+                data-bs-target="#jsonEditorModal">
+                Edit Json
+            </button>
+        </div>
+        <textarea id="jsonTextAreaView" name="final_josn" class="w-100 bg-light p-3 rounded border-0" rows="25" readonly>
+        {!! is_array($tour->final_json) ? json_encode($tour->final_json, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) : $tour->final_json !!}
+        </textarea>
+        <div type="submit" class="d-flex justify-content-end my-3">
+            <button id="jsonUpdatebtn" class="btn btn-primary"><i class="ri-save-line me-1"></i> Update SEO</button>
+        </div>
+    </div>
+</form>
+
+<!-- add model of edit json in the Page using jsoneditor -->
+<div class="modal fade w-100" id="jsonEditorModal" tabindex="-1" aria-labelledby="jsonEditorModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-3" id="exampleModalLabel">Json Editor</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="jsoneditor" style="width: 100%; height: 550px;"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" id="jsonDataSaveBtn" class="btn btn-primary">Save changes</button>
+            </div>
+        </div>
+    </div>
 </div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsondiffpatch/0.3.11/jsondiffpatch.umd.js"
+    integrity="sha512-1/tJGdBwOGJ3QrvU2diNgmqBQBVcc7ioLKVwagMZNP4/LfvtQo3yTyxAxxuRWzSrpbEShaWG9bk/WUwr4KG07g=="
+    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<link rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/jsondiffpatch/0.3.11/formatters-styles/annotated.css"
+    integrity="sha512-g+Q5QP9G+qSkZ6YS9sYHxk0mUaf+nDOdr/UTqSSIvcYM8ETH93KWywztidF+e7o865rxh1VYl2beQxTbFxHGuA=="
+    crossorigin="anonymous" referrerpolicy="no-referrer" />
+@vite('resources/js/pages/booking-edit-json-edit.js')
