@@ -150,10 +150,10 @@ class CustomerProfileController extends Controller
         $customer->update($validated);
 
         $profilePhotoUrl = $customer->profile_photo
-            ? Storage::disk('public')->url($customer->profile_photo)
+            ? Storage::disk('s3')->url($customer->profile_photo)
             : null;
         $coverPhotoUrl = $customer->cover_photo
-            ? Storage::disk('public')->url($customer->cover_photo)
+            ? Storage::disk('s3')->url($customer->cover_photo)
             : null;
 
         return response()->json([
