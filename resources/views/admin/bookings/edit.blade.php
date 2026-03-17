@@ -275,6 +275,11 @@
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
         }
 
+        .swal2-container .swal2-html-container {
+            max-height: 400px;
+            overflow: auto;
+        }
+
         .booking-edit-tabs .nav-link.active {
             background-color: #604ae3 !important;
             color: white !important;
@@ -336,27 +341,27 @@
                             </li>
 
                             <!-- <li class="nav-item" role="presentation">
-                                <button class="nav-link" id="tour-setting-tab" data-bs-toggle="tab"
-                                    data-bs-target="#tour-setting-pane" type="button" role="tab"
-                                    aria-controls="tour-setting-pane" aria-selected="false">
-                                    <i class="ri-settings-2-line"></i> Tour Settings
-                                </button>
-                            </li>
+                                        <button class="nav-link" id="tour-setting-tab" data-bs-toggle="tab"
+                                            data-bs-target="#tour-setting-pane" type="button" role="tab"
+                                            aria-controls="tour-setting-pane" aria-selected="false">
+                                            <i class="ri-settings-2-line"></i> Tour Settings
+                                        </button>
+                                    </li>
 
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link" id="tour-tab" data-bs-toggle="tab" data-bs-target="#tour-pane"
-                                    type="button" role="tab" aria-controls="tour-pane" aria-selected="false">
-                                    <i class="ri-file-list-line"></i> Tour Details
-                                </button>
-                            </li>
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link" id="tour-tab" data-bs-toggle="tab" data-bs-target="#tour-pane"
+                                            type="button" role="tab" aria-controls="tour-pane" aria-selected="false">
+                                            <i class="ri-file-list-line"></i> Tour Details
+                                        </button>
+                                    </li>
 
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link" id="contact-info-tab" data-bs-toggle="tab"
-                                    data-bs-target="#contact-info-pane" type="button" role="tab"
-                                    aria-controls="contact-info-pane" aria-selected="false">
-                                    <i class="ri-id-card-line"></i> User Info
-                                </button>
-                            </li> -->
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link" id="contact-info-tab" data-bs-toggle="tab"
+                                            data-bs-target="#contact-info-pane" type="button" role="tab"
+                                            aria-controls="contact-info-pane" aria-selected="false">
+                                            <i class="ri-id-card-line"></i> User Info
+                                        </button>
+                                    </li> -->
 
                             <li class="nav-item" role="presentation">
                                 <button class="nav-link" id="test-tab" data-bs-toggle="tab" data-bs-target="#test-pane"
@@ -501,13 +506,13 @@
         window.bookingData = {
             id: {{ $booking->id }},
             @if($tour ?? null)
-                                                    tourId: {{ $tour->id }},
+                                                                    tourId: {{ $tour->id }},
                 hasTour: true
             @else
                     tourId: null,
                         hasTour: false
                 @endif
-                            };
+                                    };
 
         // Store old values for restoration after main JS loads (for validation errors)
         window.bookingOldValues = {
@@ -521,7 +526,7 @@
             city_id: '{{ old("city_id", $booking->city_id) }}',
             different_billing_name: '{{ old("different_billing_name", ($booking->firm_name || $booking->gst_no) ? "on" : "") }}',
             has_old_data: {{ $errors->any() ? 'true' : 'false' }}
-                            };
+                                    };
 
         // Flag to prevent clearing fields during restoration
         window.isRestoringOldValues = false;
