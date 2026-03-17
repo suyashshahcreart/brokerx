@@ -8,7 +8,9 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Validator;
 use JsonException;
 use Spatie\Activitylog\Models\Activity;
 use App\Models\QR;
@@ -1079,6 +1081,140 @@ class TourController extends Controller
         }
     }
 
+    /** 
+     * Update the json in DB and js and json files
+     * This is a helper function to be used in updateTourSeo and updateAjax to avoid code duplication
+     * 
+     */
+    public function updateTourJson(Tour $tour, Request $request): JsonResponse|RedirectResponse
+    {
+        if (!$request->has('final_json') && $request->has('final_josn')) {
+            $request->merge(['final_json' => $request->input('final_josn')]);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'final_json' => [
+                'required',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    if (is_array($value)) {
+                        if (empty($value)) {
+                            $fail('The final json field must not be empty.');
+                        }
+                        return;
+                    }
+
+                    if (!is_string($value) || trim($value) === '') {
+                        $fail('The final json field is required.');
+                        return;
+                    }
+
+                    try {
+                        $decoded = json_decode($value, true, 512, JSON_THROW_ON_ERROR);
+                    } catch (JsonException) {
+                        $fail('The final json field must contain valid JSON.');
+                        return;
+                    }
+
+                    if (!is_array($decoded) || empty($decoded)) {
+                        $fail('The final json field must contain a non-empty JSON object or array.');
+                    }
+                },
+            ],
+        ]);
+
+        if ($validator->fails()) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $validator->errors()->first('final_json'),
+                    'errors' => $validator->errors(),
+                ], 422);
+            }
+
+            return redirect()->back()->withInput()->withErrors($validator);
+        }
+
+        try {
+            $finalJsonInput = $request->input('final_json');
+            $finalJson = is_array($finalJsonInput)
+                ? $finalJsonInput
+                : json_decode($finalJsonInput, true, 512, JSON_THROW_ON_ERROR);
+
+            DB::beginTransaction();
+
+            $tour->update(['final_json' => $finalJson]);
+
+            if (!$this->updateTourJsonAndJsFilesInS3($tour, $finalJson)) {
+                DB::rollBack();
+
+                $message = 'Tour JSON could not be uploaded to S3. No changes were saved.';
+
+                if ($request->expectsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => $message,
+                    ], 500);
+                }
+
+                return redirect()->back()->withInput()->withErrors(['final_json' => $message]);
+            }
+
+            DB::commit();
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Tour JSON updated successfully.',
+                    'tour' => $tour->fresh(),
+                ]);
+            }
+
+            return redirect()->back()->with('success', 'Tour JSON updated successfully.');
+        } catch (JsonException $e) {
+            if (DB::transactionLevel() > 0) {
+                DB::rollBack();
+            }
+
+            \Log::warning('Invalid JSON payload received for tour JSON update', [
+                'tour_id' => $tour->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            $message = 'The final json field must contain valid JSON.';
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $message,
+                ], 422);
+            }
+
+            return redirect()->back()->withInput()->withErrors(['final_json' => $message]);
+        } catch (\Throwable $e) {
+            if (DB::transactionLevel() > 0) {
+                DB::rollBack();
+            }
+
+            \Log::error('Failed to update tour JSON', [
+                'tour_id' => $tour->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            $message = 'An error occurred while updating the tour JSON.';
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $message,
+                ], 500);
+            }
+
+            return redirect()->back()->withInput()->withErrors(['final_json' => $message]);
+        }
+    }
+
+
     /**
      * Update SEO fields for a tour from the SEO form.
      */
@@ -1358,7 +1494,7 @@ class TourController extends Controller
         }
 
         $userInfo = $final_json['userInfo'] ?? [];
-        
+
         // Update the contact info of the user.
         $userInfo['googleLocation'] = $validated['contact_google_location'] ?? null;
         $userInfo['website'] = $validated['contact_website'] ?? null;
@@ -1396,10 +1532,10 @@ class TourController extends Controller
         }
 
         $final_json['userInfo'] = $userInfo;
-        
+
         // Add final_json to validated data to save in DB
         $validated['final_json'] = $final_json;
-        
+
         $oldData = $tour->toArray();
         $tour->update($validated);
         $newData = $tour->fresh()->toArray();
@@ -1652,7 +1788,7 @@ class TourController extends Controller
 
         // Initialize or update loaderConfig in final_json
         $finalJson['loaderConfig'] = $finalJson['loaderConfig'] ?? [];
-        
+
         // Update loader configuration in JSON
         if (!empty($validated['overlay_bg_color'])) {
             $finalJson['loaderConfig']['overlayBackgroundColor'] = $validated['overlay_bg_color'];
@@ -1665,7 +1801,7 @@ class TourController extends Controller
             $finalJson['loaderConfig']['spinnerGradientColor1'] = $validated['loader_color'][0] ?? null;
             $finalJson['loaderConfig']['spinnerGradientColor2'] = $validated['loader_color'][1] ?? null;
             $finalJson['loaderConfig']['spinnerGradientColor3'] = $validated['loader_color'][2] ?? null;
-            
+
             $finalJson['loaderConfig']['textGradientColor1'] = $validated['loader_color'][0] ?? null;
             $finalJson['loaderConfig']['textGradientColor2'] = $validated['loader_color'][1] ?? null;
             $finalJson['loaderConfig']['textGradientColor3'] = $validated['loader_color'][2] ?? null;
@@ -1679,7 +1815,7 @@ class TourController extends Controller
 
         // Initialize or update localeConfig in final_json
         $finalJson['localeConfig'] = $finalJson['localeConfig'] ?? [];
-        
+
         // Update locale configuration in JSON
         if (!empty($validated['enable_language'])) {
             $finalJson['localeConfig']['enabledLanguages'] = $validated['enable_language'];
@@ -1690,7 +1826,7 @@ class TourController extends Controller
 
         // Add final_json to validated data to save in DB
         $validated['final_json'] = $finalJson;
-        
+
         $tour->update($validated);
         $newData = $tour->fresh()->toArray();
 
@@ -2174,12 +2310,12 @@ class TourController extends Controller
     }
 
     /**
-    * Method to update the basic details of the tour.
-    * tab page function
-    * @param Tour $tour The tour model
-    * @param Request $request
-    * @return \Illuminate\Http\JsonResponse | \Illuminate\Http\RedirectResponse
-    */
+     * Method to update the basic details of the tour.
+     * tab page function
+     * @param Tour $tour The tour model
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse | \Illuminate\Http\RedirectResponse
+     */
     public function UpdateBasicInfoOfTourDetails(Request $request, Tour $tour): JsonResponse|RedirectResponse
     {
         $validated = $request->validate([
@@ -2287,7 +2423,7 @@ class TourController extends Controller
 
         return redirect()->back()->with(['success' => 'Tour basic information updated successfully.', 'active_tab' => 'basic-info']);
     }
-    
+
 }
 
 
