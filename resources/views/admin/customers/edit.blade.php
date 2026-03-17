@@ -236,18 +236,25 @@
                                 <label class="form-label mb-0">Social Links</label>
                                 <div id="social-links-container" >
                                     @if (is_array($customer->social_link) && count($customer->social_link) > 0)
-                                        @foreach ($customer->social_link as $icon=>$data)
+                                        @foreach ($customer->social_link as $icon => $data)
+                                            @php
+                                                // Support both formats: new = array with type/link/value, old = plain URL string
+                                                $isNewFormat = is_array($data);
+                                                $link = $isNewFormat ? ($data['link'] ?? '') : (string) $data;
+                                                $type = $isNewFormat ? ($data['type'] ?? 'fontawsome-icon') : 'fontawsome-icon';
+                                                $value = $isNewFormat ? ($data['value'] ?? '') : '';
+                                            @endphp
                                              <div class="row g-2 align-items-center social-link-row mb-1">
                                                 <div class="col-md-3">
-                                                    <input type="text" class="form-control social-platform" name="social_link[{{ $icon | '' }}]" placeholder="e.g, facebook" value="{{ $icon | '' }}">
-                                                    <input type="text" class="d-none social-type" name="social_link[{{ $icon | '' }}][type]" value="fontawsome-icon">
+                                                    <input type="text" class="form-control social-platform" name="social_link[{{ $icon ?? '' }}]" placeholder="e.g, facebook" value="{{ $icon ?? '' }}">
+                                                    <input type="text" class="d-none social-type" name="social_link[{{ $icon ?? '' }}][type]" value="{{ $type }}">
                                                 </div>
                                                 <div class="col-md-5">
-                                                    <input type="url" class="form-control social-url"  placeholder="e.g, https://..." name="social_link[{{ $icon | '' }}][link]" value="{{ $data['link'] | '' }}">
+                                                    <input type="url" class="form-control social-url"  placeholder="e.g, https://..." name="social_link[{{ $icon ?? '' }}][link]" value="{{ $link }}">
                                                 </div>
                                                 <div class="col-md-2 d-flex align-items-center gap-2">
-                                                    <input type="text" class="form-control social-type-value" placeholder="e.g, fa-solid fa-home" name="social_link[{{ $icon | '' }}][value]" value="{{ $data['value'] }}" readonly style="cursor:pointer;">
-                                                    <span class="icon-preview"><i class="{{ $data['value'] }}"></i></span>
+                                                    <input type="text" class="form-control social-type-value" placeholder="e.g, fa-solid fa-home" name="social_link[{{ $icon ?? '' }}][value]" value="{{ $value }}" readonly style="cursor:pointer;">
+                                                    <span class="icon-preview"><i class="{{ $value }}"></i></span>
                                                 </div>
                                                 <div class="col-md-2 text-end">
                                                     <button type="button" class="btn btn-outline-danger btn-sm btnRemoveSocialLink" title="Remove">
