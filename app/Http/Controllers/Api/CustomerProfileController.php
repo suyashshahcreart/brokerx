@@ -20,13 +20,6 @@ class CustomerProfileController extends Controller
             ], 403);
         }
 
-        $profilePhotoUrl = $customer->profile_photo
-            ? Storage::disk('public')->url($customer->profile_photo)
-            : null;
-        $coverPhotoUrl = $customer->cover_photo
-            ? Storage::disk('public')->url($customer->cover_photo)
-            : null;
-
         return response()->json([
             'success' => true,
             'data' => [
@@ -48,8 +41,9 @@ class CustomerProfileController extends Controller
                     'social_link' => $customer->social_link,
                     'profile_photo' => $customer->profile_photo,
                     'cover_photo' => $customer->cover_photo,
-                    'profile_photo_url' => $profilePhotoUrl,
-                    'cover_photo_url' => $coverPhotoUrl,
+                    'profile_photo_url' => $customer->profile_photo,
+                    'cover_photo_url' => $customer->cover_photo,
+                    'social_links' => $customer->social_link
                 ],
             ],
         ]);
@@ -93,7 +87,6 @@ class CustomerProfileController extends Controller
             'designation' => ['nullable', 'string', 'max:255'],
             'tag_line' => ['nullable', 'string', 'max:255'],
             'social_link' => ['nullable', 'array'],
-            'social_link.*' => ['nullable', 'url'],
         ]);
 
         if (array_key_exists('name', $validated)) {
@@ -157,10 +150,10 @@ class CustomerProfileController extends Controller
         $customer->update($validated);
 
         $profilePhotoUrl = $customer->profile_photo
-            ? Storage::disk('public')->url($customer->profile_photo)
+            ? Storage::disk('s3')->url($customer->profile_photo)
             : null;
         $coverPhotoUrl = $customer->cover_photo
-            ? Storage::disk('public')->url($customer->cover_photo)
+            ? Storage::disk('s3')->url($customer->cover_photo)
             : null;
 
         return response()->json([
@@ -214,29 +207,41 @@ class CustomerProfileController extends Controller
             ], 422);
         }
 
-        if ($request->hasFile('profile_photo')) {
-            if ($customer->profile_photo && Storage::disk('public')->exists($customer->profile_photo)) {
-                Storage::disk('public')->delete($customer->profile_photo);
-            }
-            $validated['profile_photo'] = $request->file('profile_photo')
-                ->store('customers/profiles', 'public');
-        }
+        // if ($request->hasFile('profile_photo')) {
+        //     if ($customer->profile_photo && Storage::disk('public')->exists($customer->profile_photo)) {
+        //         Storage::disk('public')->delete($customer->profile_photo);
+        //     }
+        //     $validated['profile_photo'] = $request->file('profile_photo')
+        //         ->store('customers/profiles', 'public');
+        // }
 
+        // if ($request->hasFile('cover_photo')) {
+        //     if ($customer->cover_photo && Storage::disk('public')->exists($customer->cover_photo)) {
+        //         Storage::disk('public')->delete($customer->cover_photo);
+        //     }
+        //     $validated['cover_photo'] = $request->file('cover_photo')
+        //         ->store('customers/covers', 'public');
+        // }
+
+        // handle file uploads
+        if ($request->hasFile('profile_photo')) {
+            $path = $request->file('profile_photo')
+                ->storeAs('settings/customer/' . $customer->id . '/Files', 'profile_' . time() . '.' . $request->file('profile_photo')->extension(), 's3');
+            $validated['profile_photo'] = $path;
+        }
         if ($request->hasFile('cover_photo')) {
-            if ($customer->cover_photo && Storage::disk('public')->exists($customer->cover_photo)) {
-                Storage::disk('public')->delete($customer->cover_photo);
-            }
-            $validated['cover_photo'] = $request->file('cover_photo')
-                ->store('customers/covers', 'public');
+            $path = $request->file('cover_photo')
+                ->storeAs('settings/customer/' . $customer->id . '/Files', 'cover_' . time() . '.' . $request->file('cover_photo')->extension(), 's3');
+            $validated['cover_photo'] = $path;
         }
 
         $customer->update($validated);
 
         $profilePhotoUrl = $customer->profile_photo
-            ? Storage::disk('public')->url($customer->profile_photo)
+            ? Storage::disk('s3')->url($customer->profile_photo)
             : null;
         $coverPhotoUrl = $customer->cover_photo
-            ? Storage::disk('public')->url($customer->cover_photo)
+            ? Storage::disk('s3')->url($customer->cover_photo)
             : null;
 
         return response()->json([

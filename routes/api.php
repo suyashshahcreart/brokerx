@@ -1,6 +1,7 @@
 <?php
 use App\Http\Controllers\Admin\Api\AdminDashboardController;
 use App\Http\Controllers\Admin\BookingController;
+use App\Http\Controllers\Api\GeneralDataController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\SettingController;
@@ -11,8 +12,10 @@ use App\Http\Controllers\Admin\ajax\BookingAssigneController;
 use App\Http\Controllers\Admin\Api\TourManagerController;
 use App\Http\Controllers\Api\PortfolioApiController;
 use App\Http\Controllers\Api\CustomerAuthController;
+use App\Http\Controllers\Api\CustomerBookingController;
 use App\Http\Controllers\Api\CustomerPortfolioController;
 use App\Http\Controllers\Api\CustomerProfileController;
+
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -59,6 +62,10 @@ Route::get('/tour/page_data/{tour_code}', [\App\Http\Controllers\Api\TourAccessC
 Route::get('/bookings/list', [\App\Http\Controllers\Api\TourAccessController::class, 'getAllBookingsList']);
 Route::get('/booking/tour-code/{tour_code}', [\App\Http\Controllers\Api\TourAccessController::class, 'getBookingByTourCode']);
 
+// Country list API
+Route::get('/countries', [GeneralDataController::class, 'getCountries']);
+
+
 // Portfolio API Routes
 // Public OTP endpoints (no authentication required)
 Route::post('/portfolio/send-otp', [PortfolioApiController::class, 'sendOtp']);
@@ -74,6 +81,12 @@ Route::middleware(['verify.portfolio.api.token'])->group(function () {
 Route::post('/customer/register', [CustomerAuthController::class, 'register']);
 Route::post('/customer/login/send-otp', [CustomerAuthController::class, 'sendOtp']);
 Route::post('/customer/login/verify-otp', [CustomerAuthController::class, 'verifyOtp']);
+
+// Customer Booking API (public - no auth, accepts customer_id OR customer_slug)
+Route::get('/customer/booking', [CustomerBookingController::class, 'list']);
+
+// Customer SEO data (public - lightweight endpoint for PHP SSR wrapper)
+Route::get('/customer/seo', [CustomerBookingController::class, 'getSeoData']);
 
 // Customer Portfolio API (requires customer token)
 Route::middleware('auth:sanctum')->group(function () {

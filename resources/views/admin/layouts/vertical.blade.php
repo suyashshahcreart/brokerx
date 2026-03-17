@@ -3,6 +3,7 @@
 
 <head>
     @include('admin.layouts.partials/title-meta', ['title' => $title])
+    @include('admin.layouts.partials.head-cdn-link')
     @include('admin.layouts.partials/head-css')
 </head>
 
@@ -43,4 +44,5 @@
     window.bookingIndexUrl = '{{ route("admin.bookings.index") }}';
 </script>
 @yield('scripts')
+
 </html>

@@ -54,14 +54,70 @@ $(document).on('click', '.btnRemoveSocialLink', function () {
     }
 });
 // Update input names based on platform value
-$(document).on("change", ".social-platform", function(){
+$(document).on("change", ".social-platform", function () {
     const row = $(this).closest(".social-link-row");
     const platform = $(this).val().trim();
-    if(!platform) return;
+    if (!platform) return;
     row.find(".social-type")
         .attr("name", `social_link[${platform}][type]`);
     row.find(".social-url")
         .attr("name", `social_link[${platform}][link]`);
     row.find(".social-type-value")
         .attr("name", `social_link[${platform}][value]`);
+});
+
+function setupImagePreview(inputId, previewId, imageId, removeId) {
+    const input = document.getElementById(inputId);
+    const preview = document.getElementById(previewId);
+    const image = document.getElementById(imageId);
+
+    if (!input || !preview || !image) {
+        return;
+    }
+
+    input.addEventListener('change', function () {
+        const file = this.files && this.files[0];
+
+        if (file && file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = function (event) {
+                image.src = event.target.result;
+                preview.classList.remove('d-none');
+            };
+            reader.readAsDataURL(file);
+            return;
+        }
+
+        const existing = image.getAttribute('data-existing');
+        if (existing) {
+            image.src = existing;
+            preview.classList.remove('d-none');
+        } else {
+            image.src = '';
+            preview.classList.add('d-none');
+        }
+    });
+
+    if (removeId) {
+        const removeBtn = document.getElementById(removeId);
+        if (removeBtn) {
+            removeBtn.addEventListener('click', function () {
+                input.value = '';
+                const existing = image.getAttribute('data-existing');
+                if (existing) {
+                    image.src = existing;
+                    preview.classList.remove('d-none');
+                } else {
+                    image.src = '';
+                    preview.classList.add('d-none');
+                }
+            });
+        }
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+setupImagePreview('meta_image', 'meta_image_preview', 'meta_image_preview_img', 'meta_image_remove');
+setupImagePreview('og_image', 'og_image_preview', 'og_image_preview_img', 'og_image_remove');
+setupImagePreview('twitter_image', 'twitter_image_preview', 'twitter_image_preview_img', 'twitter_image_remove');
 });

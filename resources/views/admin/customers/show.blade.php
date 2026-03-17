@@ -54,6 +54,9 @@
                                 <div class="col-6">
                                     <p class="mb-1"><strong>Mobile:</strong> {{ $customer->mobile }}</p>
                                 </div>
+                                <div class="col-6">
+                                    <p class="mb-1"><strong>Slug:</strong> {{ $customer->slug ?? '-' }}</p>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -81,6 +84,50 @@
                 </div>
             </div>
             <!-- Add more stat cards as needed -->
+        </div>
+    </div>
+
+    <!-- SEO Metadata Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-secondary">
+                <div class="card-header bg-secondary-subtle border-secondary">
+                    <h5 class="card-title mb-0"><i class="ri-shield-check-line me-2"></i>SEO Metadata</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        @foreach([
+                            'meta_title' => 'Meta Title',
+                            'meta_description' => 'Meta Description',
+                            'meta_keywords' => 'Meta Keywords',
+                            'canonical_url' => 'Canonical URL',
+                            'meta_robots' => 'Meta Robots',
+                            'twitter_title' => 'Twitter Title',
+                            'twitter_description' => 'Twitter Description',
+                            'twitter_image' => 'Twitter Image',
+                            'og_title' => 'OG Title',
+                            'og_description' => 'OG Description',
+                            'header_code' => 'Header Code',
+                            'footer_code' => 'Footer Code',
+                            'gtm_tag' => 'GTM Tag',
+                        ] as $field => $label)
+                            @if(!blank($customer->{$field}))
+                                <div class="col-md-6 mb-2">
+                                    <p class="mb-1"><strong>{{ $label }}:</strong>
+                                        @if(in_array($field, ['meta_description','twitter_description','og_description','header_code','footer_code']))
+                                            <br><small class="text-muted">{!! nl2br(e($customer->{$field})) !!}</small>
+                                        @elseif($field === 'twitter_image')
+                                            <a href="{{ $customer->{$field} }}" target="_blank">View image</a>
+                                        @else
+                                            {{ $customer->{$field} }}
+                                        @endif
+                                    </p>
+                                </div>
+                            @endif
+                        @endforeach
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
