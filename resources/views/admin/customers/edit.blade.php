@@ -19,7 +19,8 @@
                 <x-admin.back-button :fallback="route('admin.customer.index')" :classes="['btn', 'btn-soft-secondary']" :merge="false" icon="ri-arrow-go-back-line" />
             </div>
         </div>
-
+    </div>
+    <div class="col-12">
         <div class="card panel-card border-primary border-top" data-panel-card>
             <div class="card-header d-flex justify-content-between align-items-start flex-wrap gap-2">
                 <div>
@@ -200,12 +201,12 @@
                         </div>
                     </div>
                     <div class="row">
-                        <div class="col-md-4 col-6">
+                        <div class="col-md-6 col-12">
                             <div class="mb-1">
                                 <label for="profile_photo" class="form-label mb-0">Profile Photo</label>
                                 <input type="file" name="profile_photo" id="profile_photo" class="form-control @error('profile_photo') is-invalid @enderror" accept="image/*">
                                 <div id="profile_photo_preview" class="mt-2 {{ $customer->profile_photo ? '' : 'd-none' }} position-relative d-inline-block">
-                                    <img id="profile_photo_preview_img" src="{{ $customer->profile_photo ? Storage::disk('s3')->url($customer->profile_photo) : '' }}" alt="Profile preview" class="img-thumbnail" style="max-height: 120px; max-width: 100%; object-fit: cover; display: block;" data-existing="{{ $customer->profile_photo ? Storage::disk('s3')->url($customer->profile_photo) : '' }}">
+                                    <img id="profile_photo_preview_img" src="{{ $customer->profile_photo ? $customer->profile_photo : '' }}" alt="Profile preview" class="img-thumbnail" style="max-height: 120px; max-width: 100%; object-fit: cover; display: block;" data-existing="{{ $customer->profile_photo ? $customer->profile_photo : '' }}">
                                     <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1 rounded-circle p-1 photo-remove-btn" id="profile_photo_remove" title="Remove" style="width: 24px; height: 24px; font-size: 12px; line-height: 1;"><i class="ri-close-line"></i></button>
                                 </div>
                                 <div class="invalid-feedback">
@@ -215,12 +216,12 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-4 col-6">
+                        <div class="col-md-6 col-12">
                             <div class="mb-1">
                                 <label for="cover_photo" class="form-label mb-0">Cover Photo</label>
                                 <input type="file" name="cover_photo" id="cover_photo" class="form-control @error('cover_photo') is-invalid @enderror" accept="image/*">
                                 <div id="cover_photo_preview" class="mt-2 {{ $customer->cover_photo ? '' : 'd-none' }} position-relative d-inline-block">
-                                    <img id="cover_photo_preview_img" src="{{ $customer->cover_photo ? Storage::disk('s3')->url($customer->cover_photo) : '' }}" alt="Cover preview" class="img-thumbnail" style="max-height: 120px; max-width: 100%; object-fit: cover; display: block;" data-existing="{{ $customer->cover_photo ? Storage::disk('s3')->url($customer->cover_photo) : '' }}">
+                                    <img id="cover_photo_preview_img" src="{{ $customer->cover_photo ? $customer->cover_photo : '' }}" alt="Cover preview" class="img-thumbnail" style="max-height: 120px; max-width: 100%; object-fit: cover; display: block;" data-existing="{{ $customer->cover_photo ? $customer->cover_photo : '' }}">
                                     <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1 rounded-circle p-1 photo-remove-btn" id="cover_photo_remove" title="Remove" style="width: 24px; height: 24px; font-size: 12px; line-height: 1;"><i class="ri-close-line"></i></button>
                                 </div>
                                 <div class="invalid-feedback">
@@ -230,13 +231,34 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-4 col-6">
+                        <div class="col-12">
                             <div class="mb-1">
                                 <label class="form-label mb-0">Social Links</label>
-                                <div id="social-links-container" data-links='{{ json_encode(old('social_link', $customer->social_link ?? [])) }}'>
-                                    <!-- JS will render existing pairs -->
+                                <div id="social-links-container" >
+                                    @if (is_array($customer->social_link) && count($customer->social_link) > 0)
+                                        @foreach ($customer->social_link as $icon=>$data)
+                                             <div class="row g-2 align-items-center social-link-row mb-1">
+                                                <div class="col-md-3">
+                                                    <input type="text" class="form-control social-platform" name="social_link[{{ $icon | '' }}]" placeholder="e.g, facebook" value="{{ $icon | '' }}">
+                                                    <input type="text" class="d-none social-type" name="social_link[{{ $icon | '' }}][type]" value="fontawsome-icon">
+                                                </div>
+                                                <div class="col-md-5">
+                                                    <input type="url" class="form-control social-url"  placeholder="e.g, https://..." name="social_link[{{ $icon | '' }}][link]" value="{{ $data['link'] | '' }}">
+                                                </div>
+                                                <div class="col-md-2 d-flex align-items-center gap-2">
+                                                    <input type="text" class="form-control social-type-value" placeholder="e.g, fa-solid fa-home" name="social_link[{{ $icon | '' }}][value]" value="{{ $data['value'] }}" readonly style="cursor:pointer;">
+                                                    <span class="icon-preview"><i class="{{ $data['value'] }}"></i></span>
+                                                </div>
+                                                <div class="col-md-2 text-end">
+                                                    <button type="button" class="btn btn-outline-danger btn-sm btnRemoveSocialLink" title="Remove">
+                                                        <i class="fa-solid fa-xmark"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                    @endif
                                 </div>
-                                <button type="button" class="btn btn-sm btn-outline-secondary mt-2" id="add-social-pair">Add link</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary mt-2" id="add-social-link">Add link</button>
                                 <div class="invalid-feedback d-block">
                                     @error('social_link')
                                         {{ $message }}
@@ -274,36 +296,37 @@
                         <button class="btn btn-primary" type="submit"><i class="ri-save-line me-1"></i> Update Customer</button>
                         <a href="{{ route('admin.customer.index') }}" class="btn btn-soft-secondary"><i class="ri-close-line me-1"></i> Cancel</a>
                     </div>
-                    </div> <!-- end first card body -->
-                </div> <!-- end first card -->
-                <!-- end customer form -->
                 </form>
+            </div> <!-- end first card body -->
+        </div> <!-- end first card -->
 
-                <!-- SEO settings form (separate) -->
-                <form method="POST" action="{{ route('admin.customer.update-seo', $customer) }}" class="needs-validation mt-3" novalidate>
-                    @csrf
-                    @method('PATCH')
-                <div class="card panel-card border-secondary border-top mt-3" data-panel-card>
-                    <div class="card-header d-flex justify-content-between align-items-start flex-wrap gap-2">
-                        <div>
-                            <h4 class="card-title mb-1">SEO Settings</h4>
-                            <p class="text-muted mb-0">Optional meta tags and social information</p>
-                        </div>
-                        <div class="panel-actions d-flex gap-2">
-                            <button type="button" class="btn btn-light border" data-panel-action="collapse" title="Collapse">
-                                <i class="ri-arrow-up-s-line"></i>
-                            </button>
-                            <button type="button" class="btn btn-light border" data-panel-action="fullscreen" title="Fullscreen">
-                                <i class="ri-fullscreen-line"></i>
-                            </button>
-                            <button type="button" class="btn btn-light border" data-panel-action="close" title="Close">
-                                <i class="ri-close-line"></i>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="card-body">
+        <!-- SEO settings form (separate) -->
+        <div class="card panel-card border-secondary border-top mt-3" data-panel-card>
+            <div class="card-header d-flex justify-content-between align-items-start flex-wrap gap-2">
+                <div>
+                    <h4 class="card-title mb-1">SEO Settings</h4>
+                    <p class="text-muted mb-0">Optional meta tags and social information</p>
+                </div>
+                <div class="panel-actions d-flex gap-2">
+                    <button type="button" class="btn btn-light border" data-panel-action="collapse" title="Collapse">
+                        <i class="ri-arrow-up-s-line"></i>
+                    </button>
+                    <button type="button" class="btn btn-light border" data-panel-action="fullscreen" title="Fullscreen">
+                        <i class="ri-fullscreen-line"></i>
+                    </button>
+                    <button type="button" class="btn btn-light border" data-panel-action="close" title="Close">
+                        <i class="ri-close-line"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ route('admin.customer.update-seo', $customer) }}" class="needs-validation mt-3" novalidate enctype="multipart/form-data">
+                @csrf
+                @method('PATCH')
+                    <!-- meta SEO fields -->
+                    <div class="col-12">
                         <div class="row">
-                            <div class="col-md-3 col-6">
+                            <div class="col-md-4 col-12">
                                 <div class="mb-1">
                                     <label for="meta_title" class="form-label mb-0">Meta Title</label>
                                     <input type="text" name="meta_title" id="meta_title" value="{{ old('meta_title',$customer->meta_title) }}"
@@ -314,9 +337,7 @@
                                         @enderror
                                     </div>
                                 </div>
-                            </div>
-                            <div class="col-md-3 col-6">
-                                <div class="mb-1">
+                                <div class="mb-1 mt-2">
                                     <label for="meta_keywords" class="form-label mb-0">Meta Keywords</label>
                                     <input type="text" name="meta_keywords" id="meta_keywords" value="{{ old('meta_keywords',$customer->meta_keywords) }}"
                                         class="form-control @error('meta_keywords') is-invalid @enderror" placeholder="e.g, keyword1, keyword2, keyword3" maxlength="255">
@@ -327,22 +348,10 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-md-3 col-6">
-                                <div class="mb-1">
-                                    <label for="meta_image" class="form-label mb-0">Meta Image URL</label>
-                                    <input type="url" name="meta_image" id="meta_image" value="{{ old('meta_image',$customer->meta_image) }}"
-                                        placeholder="e.g, https://example.com/image.jpg" class="form-control @error('meta_image') is-invalid @enderror" maxlength="2048">
-                                    <div class="invalid-feedback">
-                                        @error('meta_image')
-                                            {{ $message }}
-                                        @enderror
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-3 col-6">
+                            <div class="col-md-4 col-12">
                                 <div class="mb-1">
                                     <label for="meta_description" class="form-label mb-0">Meta Description</label>
-                                    <textarea name="meta_description" id="meta_description" rows="2" placeholder="e.g, Meta Description"
+                                    <textarea name="meta_description" id="meta_description" rows="4" placeholder="e.g, Meta Description"
                                         class="form-control @error('meta_description') is-invalid @enderror">{{ old('meta_description',$customer->meta_description) }}</textarea>
                                     <div class="invalid-feedback">
                                         @error('meta_description')
@@ -351,66 +360,67 @@
                                     </div>
                                 </div>
                             </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-md-9 col-6">
-                                <div class="row">
-                                    <div class="col-md-6 col-6">
-                                        <div class="mb-1">
-                                            <label for="og_title" class="form-label mb-0">OG Title</label>
-                                            <input type="text" name="og_title" id="og_title" value="{{ old('og_title',$customer->og_title) }}"
-                                                class="form-control @error('og_title') is-invalid @enderror" placeholder="e.g, OG Title" maxlength="255">
-                                            <div class="invalid-feedback">
-                                                @error('og_title')
-                                                    {{ $message }}
-                                                @enderror
-                                            </div>
+                            <div class="col-md-4 col-12">
+                                <div class="mb-1">
+                                    <div class="d-flex align-items-end">    
+                                        <div class="w-30">
+                                            <label for="meta_image" class="form-label mb-0">Meta Image</label>
+                                            <input type="file" name="meta_image" id="meta_image" class="form-control @error('meta_image') is-invalid @enderror" accept="image/*">
+                                        </div>
+                                        <div id="meta_image_preview" class="w-70 mt-2 position-relative d-inline-block {{ $customer->meta_image ? '' : 'd-none' }}">
+                                            <img id="meta_image_preview_img" src="{{ $customer->meta_image ?: '' }}" alt="Meta image preview" class="img-thumbnail" style="max-height: 120px; max-width: 100%; object-fit: cover; display: block;" data-existing="{{ $customer->meta_image ?: '' }}">
+                                            <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1 rounded-circle p-1 photo-remove-btn" id="meta_image_remove" title="Remove" style="width: 24px; height: 24px; font-size: 12px; line-height: 1;"><i class="ri-close-line"></i></button>
                                         </div>
                                     </div>
-                                    <div class="col-md-6 col-6">
-                                        <div class="mb-1">
-                                            <label for="og_image" class="form-label mb-0">OG Image URL</label>
-                                            <input type="url" name="og_image" id="og_image" value="{{ old('og_image',$customer->og_image) }}"
-                                                placeholder="e.g, https://example.com/og-image.jpg" class="form-control @error('og_image') is-invalid @enderror" maxlength="2048">
-                                            <div class="invalid-feedback">
-                                                @error('og_image')
-                                                    {{ $message }}
-                                                @enderror
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6 col-6">
-                                        <div class="mb-1">
-                                            <label for="og_type" class="form-label mb-0">OG Type</label>
-                                            <input type="text" name="og_type" id="og_type" value="{{ old('og_type',$customer->og_type) }}"
-                                                placeholder="e.g, website" class="form-control @error('og_type') is-invalid @enderror" maxlength="64">
-                                            <small class="text-muted">e.g. website, article</small>
-                                            <div class="invalid-feedback">
-                                                @error('og_type')
-                                                    {{ $message }}
-                                                @enderror
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6 col-6">
-                                        <div class="mb-1">
-                                            <label for="og_url" class="form-label mb-0">OG URL</label>
-                                            <input type="url" name="og_url" id="og_url" value="{{ old('og_url',$customer->og_url) }}"
-                                                placeholder="e.g, https://www.example.com/customer-page" class="form-control @error('og_url') is-invalid @enderror" maxlength="2048">
-                                            <div class="invalid-feedback">
-                                                @error('og_url')
-                                                    {{ $message }}
-                                                @enderror
-                                            </div>
-                                        </div>
+                                    <div class="invalid-feedback">
+                                        @error('meta_image')
+                                            {{ $message }}
+                                        @enderror
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-md-3 col-6">
+                        </div>
+                    </div>
+                <!-- OG / facebook seo fields -->
+                    <div class="col-12 mt-3">
+                        <div class="row">
+                            <div class="col-md-4 col-12">
                                 <div class="mb-1">
+                                    <label for="og_title" class="form-label mb-0">OG Title</label>
+                                    <input type="text" name="og_title" id="og_title" value="{{ old('og_title',$customer->og_title) }}"
+                                        class="form-control @error('og_title') is-invalid @enderror" placeholder="e.g, OG Title" maxlength="255">
+                                    <div class="invalid-feedback">
+                                        @error('og_title')
+                                            {{ $message }}
+                                        @enderror
+                                    </div>
+                                </div>
+                                <div class="mb-1 mt-2">
+                                    <label for="og_type" class="form-label mb-0">OG Type</label>
+                                    <input type="text" name="og_type" id="og_type" value="{{ old('og_type',$customer->og_type) }}"
+                                        placeholder="e.g, website" class="form-control @error('og_type') is-invalid @enderror" maxlength="64">
+                                    <small class="text-muted">e.g. website, article</small>
+                                    <div class="invalid-feedback">
+                                        @error('og_type')
+                                            {{ $message }}
+                                        @enderror
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 col-12">
+                                <div class="mb-1">
+                                    <label for="og_url" class="form-label mb-0">OG URL</label>
+                                    <input type="url" name="og_url" id="og_url" value="{{ old('og_url',$customer->og_url) }}"
+                                        placeholder="e.g, https://www.example.com/customer-page" class="form-control @error('og_url') is-invalid @enderror" maxlength="2048">
+                                    <div class="invalid-feedback">
+                                        @error('og_url')
+                                            {{ $message }}
+                                        @enderror
+                                    </div>
+                                </div>
+                                <div class="mb-1 mt-2">
                                     <label for="og_description" class="form-label mb-0">OG Description</label>
-                                    <textarea name="og_description" id="og_description" rows="4" placeholder="e.g, OG Description"
+                                    <textarea name="og_description" id="og_description" rows="2" placeholder="e.g, OG Description"
                                         class="form-control @error('og_description') is-invalid @enderror">{{ old('og_description',$customer->og_description) }}</textarea>
                                     <div class="invalid-feedback">
                                         @error('og_description')
@@ -419,10 +429,31 @@
                                     </div>
                                 </div>
                             </div>
+                            <div class="col-md-4 col-12">
+                                <div class="mb-1">
+                                    <div class="d-flex align-items-end">
+                                        <div>
+                                            <label for="og_image" class="form-label mb-0">OG Image</label>
+                                            <input type="file" name="og_image" id="og_image" class="form-control @error('og_image') is-invalid @enderror" accept="image/*">
+                                        </div>
+                                        <div id="og_image_preview" class="mt-2 position-relative d-inline-block {{ $customer->og_image ? '' : 'd-none' }}">
+                                            <img id="og_image_preview_img" src="{{ $customer->og_image ?: '' }}" alt="OG image preview" class="img-thumbnail" style="max-height: 120px; max-width: 100%; object-fit: cover; display: block;" data-existing="{{ $customer->og_image ?: '' }}">
+                                            <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1 rounded-circle p-1 photo-remove-btn" id="og_image_remove" title="Remove" style="width: 24px; height: 24px; font-size: 12px; line-height: 1;"><i class="ri-close-line"></i></button>
+                                        </div>
+                                    </div>
+                                    <div class="invalid-feedback">
+                                        @error('og_image')
+                                            {{ $message }}
+                                        @enderror
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-
+                    </div>
+                    <!-- twitter seo section -->
+                    <div class="col-12 mt-3">
                         <div class="row">
-                            <div class="col-md-3 col-6">
+                            <div class="col-md-4 col-12">
                                 <div class="mb-1">
                                     <label for="twitter_title" class="form-label mb-0">Twitter Title</label>
                                     <input type="text" name="twitter_title" id="twitter_title" value="{{ old('twitter_title',$customer->twitter_title) }}"
@@ -433,21 +464,7 @@
                                         @enderror
                                     </div>
                                 </div>
-                            </div>
-                            <div class="col-md-3 col-6">
-                                <div class="mb-1">
-                                    <label for="twitter_image" class="form-label mb-0">Twitter Image URL</label>
-                                    <input type="url" name="twitter_image" id="twitter_image" value="{{ old('twitter_image',$customer->twitter_image) }}"
-                                        placeholder="e.g, https://example.com/twitter.jpg" class="form-control @error('twitter_image') is-invalid @enderror" maxlength="2048">
-                                    <div class="invalid-feedback">
-                                        @error('twitter_image')
-                                            {{ $message }}
-                                        @enderror
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-3 col-6">
-                                <div class="mb-1">
+                                <div class="mb-1 mt-2">
                                     <label for="twitter_card" class="form-label mb-0">Twitter Card Type</label>
                                     <input type="text" name="twitter_card" id="twitter_card" value="{{ old('twitter_card',$customer->twitter_card) }}"
                                         placeholder="e.g, summary_large_image" class="form-control @error('twitter_card') is-invalid @enderror" maxlength="64">
@@ -459,10 +476,10 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-md-3 col-6">
+                            <div class="col-md-4 col-12">
                                 <div class="mb-1">
                                     <label for="twitter_description" class="form-label mb-0">Twitter Description</label>
-                                    <textarea name="twitter_description" id="twitter_description" rows="2" placeholder="e.g, Twitter Description"
+                                    <textarea name="twitter_description" id="twitter_description" rows="4" placeholder="e.g, Twitter Description"
                                         class="form-control @error('twitter_description') is-invalid @enderror">{{ old('twitter_description',$customer->twitter_description) }}</textarea>
                                     <div class="invalid-feedback">
                                         @error('twitter_description')
@@ -471,82 +488,101 @@
                                     </div>
                                 </div>
                             </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-md-4 col-6">
+                            <div class="col-md-4 col-12">
                                 <div class="mb-1">
-                                    <label for="canonical_url" class="form-label mb-0">Canonical URL</label>
-                                    <input type="url" name="canonical_url" id="canonical_url" value="{{ old('canonical_url',$customer->canonical_url) }}"
-                                        class="form-control @error('canonical_url') is-invalid @enderror" placeholder="e.g, https://www.proppik.com/" maxlength="2048">
+                                    <div class="d-flex align-items-end">
+                                        <div>
+                                            <label for="twitter_image" class="form-label mb-0">Twitter Image</label>
+                                            <input type="file" name="twitter_image" id="twitter_image" class="form-control @error('twitter_image') is-invalid @enderror" accept="image/*">
+                                        </div>
+                                        <div id="twitter_image_preview" class="mt-2 position-relative d-inline-block {{ $customer->twitter_image ? '' : 'd-none' }}">
+                                            <img id="twitter_image_preview_img" src="{{ $customer->twitter_image ?: '' }}" alt="Twitter image preview" class="img-thumbnail" style="max-height: 120px; max-width: 100%; object-fit: cover; display: block;" data-existing="{{ $customer->twitter_image ?: '' }}">
+                                            <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1 rounded-circle p-1 photo-remove-btn" id="twitter_image_remove" title="Remove" style="width: 24px; height: 24px; font-size: 12px; line-height: 1;"><i class="ri-close-line"></i></button>
+                                        </div>
+                                    </div>
                                     <div class="invalid-feedback">
-                                        @error('canonical_url')
+                                        @error('twitter_image')
                                             {{ $message }}
                                         @enderror
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-md-4 col-6">
-                                <div class="mb-1">
-                                    <label for="meta_robots" class="form-label mb-0">Meta Robots</label>
-                                    <input type="text" name="meta_robots" id="meta_robots" value="{{ old('meta_robots',$customer->meta_robots) }}"
-                                        class="form-control @error('meta_robots') is-invalid @enderror" placeholder="e.g, index, follow" maxlength="255">
-                                    <div class="invalid-feedback">
-                                        @error('meta_robots')
-                                            {{ $message }}
-                                        @enderror
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-4 col-6">
-                                <div class="mb-1">
-                                    <label for="gtm_tag" class="form-label mb-0">GTM Tag</label>
-                                    <input type="text" name="gtm_tag" id="gtm_tag" value="{{ old('gtm_tag',$customer->gtm_tag) }}"
-                                        class="form-control @error('gtm_tag') is-invalid @enderror" placeholder="e.g, GTM-010129394102" maxlength="64">
-                                    <div class="invalid-feedback">
-                                        @error('gtm_tag')
-                                            {{ $message }}
-                                        @enderror
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-md-6 col-6">
-                                <div class="mb-1">
-                                    <label for="header_code" class="form-label mb-0">Header Code</label>
-                                    <textarea name="header_code" id="header_code" rows="3" placeholder="e.g, <meta name='custom' content='value'>"
-                                        class="form-control @error('header_code') is-invalid @enderror">{{ old('header_code',$customer->header_code) }}</textarea>
-                                    <div class="invalid-feedback">
-                                        @error('header_code')
-                                            {{ $message }}
-                                        @enderror
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-6 col-6">
-                                <div class="mb-1">
-                                    <label for="footer_code" class="form-label mb-0">Footer Code</label>
-                                    <textarea name="footer_code" id="footer_code" rows="3" placeholder="e.g, <script>console.log('Hello')</script>"
-                                        class="form-control @error('footer_code') is-invalid @enderror">{{ old('footer_code',$customer->footer_code) }}</textarea>
-                                    <div class="invalid-feedback">
-                                        @error('footer_code')
-                                            {{ $message }}
-                                        @enderror
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="d-flex gap-2">
-                            <button class="btn btn-primary" type="submit"><i class="ri-save-line me-1"></i> Update SEO</button>
-                            <a href="{{ route('admin.customer.index') }}" class="btn btn-soft-secondary"><i class="ri-close-line me-1"></i> Cancel</a>
                         </div>
                     </div>
-                </div> <!-- end seo card -->
+                    
+                <div class="row mt-3">
+                    <div class="col-md-4 col-6">
+                        <div class="mb-1">
+                            <label for="canonical_url" class="form-label mb-0">Canonical URL</label>
+                            <input type="url" name="canonical_url" id="canonical_url" value="{{ old('canonical_url',$customer->canonical_url) }}"
+                                class="form-control @error('canonical_url') is-invalid @enderror" placeholder="e.g, https://www.proppik.com/" maxlength="2048">
+                            <div class="invalid-feedback">
+                                @error('canonical_url')
+                                    {{ $message }}
+                                @enderror
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 col-6">
+                        <div class="mb-1">
+                            <label for="meta_robots" class="form-label mb-0">Meta Robots</label>
+                            <input type="text" name="meta_robots" id="meta_robots" value="{{ old('meta_robots',$customer->meta_robots) }}"
+                                class="form-control @error('meta_robots') is-invalid @enderror" placeholder="e.g, index, follow" maxlength="255">
+                            <div class="invalid-feedback">
+                                @error('meta_robots')
+                                    {{ $message }}
+                                @enderror
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 col-6">
+                        <div class="mb-1">
+                            <label for="gtm_tag" class="form-label mb-0">GTM Tag</label>
+                            <input type="text" name="gtm_tag" id="gtm_tag" value="{{ old('gtm_tag',$customer->gtm_tag) }}"
+                                class="form-control @error('gtm_tag') is-invalid @enderror" placeholder="e.g, GTM-010129394102" maxlength="64">
+                            <div class="invalid-feedback">
+                                @error('gtm_tag')
+                                    {{ $message }}
+                                @enderror
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 col-6">
+                        <div class="mb-1">
+                            <label for="header_code" class="form-label mb-0">Header Code</label>
+                            <textarea name="header_code" id="header_code" rows="3" placeholder="e.g, <meta name='custom' content='value'>"
+                                class="form-control @error('header_code') is-invalid @enderror">{{ old('header_code',$customer->header_code) }}</textarea>
+                            <div class="invalid-feedback">
+                                @error('header_code')
+                                    {{ $message }}
+                                @enderror
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-6">
+                        <div class="mb-1">
+                            <label for="footer_code" class="form-label mb-0">Footer Code</label>
+                            <textarea name="footer_code" id="footer_code" rows="3" placeholder="e.g, <script>console.log('Hello')</script>"
+                                class="form-control @error('footer_code') is-invalid @enderror">{{ old('footer_code',$customer->footer_code) }}</textarea>
+                            <div class="invalid-feedback">
+                                @error('footer_code')
+                                    {{ $message }}
+                                @enderror
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-primary" type="submit"><i class="ri-save-line me-1"></i> Update SEO</button>
+                        <a href="{{ route('admin.customer.index') }}" class="btn btn-soft-secondary"><i class="ri-close-line me-1"></i> Cancel</a>
+                    </div>
                 </form>
-    </div>
+            </div>
+        </div> <!-- end seo card -->
+    @include('admin.customers.partials.icon-lib-modal')
 </div>
 @endsection
 @section('script')

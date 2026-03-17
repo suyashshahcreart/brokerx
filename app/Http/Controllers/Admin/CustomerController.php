@@ -8,18 +8,22 @@ use App\Models\Country;
 use App\Models\Customer;
 use Hash;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Yajra\DataTables\Facades\DataTables;
 
-class CustomerController extends Controller{
-    public function __construct(){
+class CustomerController extends Controller
+{
+    public function __construct()
+    {
         $this->middleware('permission:customer_view')->only(['index', 'show']);
         $this->middleware('permission:customer_create')->only(['create', 'store']);
         $this->middleware('permission:customer_edit')->only(['edit', 'update']);
         $this->middleware('permission:customer_delete')->only(['destroy']);
     }
 
-    public function index(Request $request){
+    public function index(Request $request)
+    {
         if ($request->ajax()) {
             // Filter only users with 'customer' role and load bookings count
             $query = Customer::query()
@@ -77,7 +81,8 @@ class CustomerController extends Controller{
     Show function for a customer; displays all the booking and tour details of the customer.
     @param Customer $customer
     */
-    public function show(Request $request, Customer $customer){
+    public function show(Request $request, Customer $customer)
+    {
         if ($request->ajax()) {
             // DataTable AJAX for bookings
             $query = $customer->bookings()->with(['customer'])->latest();
@@ -125,7 +130,8 @@ class CustomerController extends Controller{
     /* 
     Display form to create a new customer.
     */
-    public function create(){
+    public function create()
+    {
         // Permission check is handled by middleware
         $countries = Country::where('is_active', true)->orderBy('name')->get();
         $defaultCountryId = old('country_id');
@@ -142,13 +148,12 @@ class CustomerController extends Controller{
     Store customer record in the database.
     @param  Request  $request
     */
-    public function store(Request $request){
-
-        
+    public function store(Request $request)
+    {    
         $rules = [
             'firstname' => ['required', 'string', 'max:255'],
             'lastname' => ['required', 'string', 'max:255'],
-            'base_mobile' => ['required', 'numeric', 'digits_between:6,15'],
+            'base_mobile' => ['required', 'numeric', 'digits_between:6,15,','unique:customers,base_mobile'],
             'country_id' => ['required', 'exists:countries,id'],
             'email' => ['required', 'email', 'max:255', 'unique:customers,email'],
             'password' => ['nullable', 'string', 'min:6'],
@@ -163,7 +168,7 @@ class CustomerController extends Controller{
             // social links as associative array key=>value
             'social_link' => ['nullable', 'array'],
             // allow any string value (not limited to URL)
-            'social_link.*' => ['nullable', 'string', 'max:255'],
+            'social_link.*' => ['nullable', 'array'],
             // SEO fields are optional but add basic rules here in case they're submitted
             'slug' => ['nullable', 'string', 'alpha_dash', 'unique:customers,slug'],
             'meta_title' => ['nullable', 'string', 'max:255'],
@@ -187,15 +192,6 @@ class CustomerController extends Controller{
             'country_id.required' => 'Country is required.',
         ]);
 
-        
-
-        // support legacy JSON payloads
-        if ($request->has('social_link') && is_string($request->input('social_link'))) {
-            $decoded = json_decode($request->input('social_link'), true);
-            if (json_last_error() === JSON_ERROR_NONE) {
-                $request->merge(['social_link' => $decoded]);
-            }
-        }
 
         $country = null;
         if ($validator->passes()) {
@@ -213,7 +209,6 @@ class CustomerController extends Controller{
 
         $validated = $validator->validate();
 
-        // dd($request->all(), $validator, $validated);
 
         // ensure social_link is always an array (empty when absent)
         $validated['social_link'] = $validated['social_link'] ?? [];
@@ -234,33 +229,38 @@ class CustomerController extends Controller{
             // 'password' => Hash::make($validated['password']),
             'created_by' => $request->user()->id,
             'updated_by' => $request->user()->id,
+            'social_link' => $request->input('social_link', []),
         ];
+
         // add optional profile info
-        foreach (['company_name','designation','company_website','tag_line','social_link'] as $fld) {
-            if (array_key_exists($fld, $validated)) {
-                $data[$fld] = $validated[$fld];
-            }
-        }
+        // foreach (['company_name', 'designation', 'company_website', 'tag_line', 'social_link'] as $fld) {
+        //     if (array_key_exists($fld, $validated)) {
+        //         $data[$fld] = $validated[$fld];
+        //     }
+        // }
 
         // include any supplied seo fields
-        foreach (['slug','meta_title','meta_description','meta_keywords','meta_image','canonical_url','meta_robots','og_title','og_description','og_image','og_type','og_url','twitter_title','twitter_description','twitter_image','twitter_card','header_code','footer_code','gtm_tag'] as $seoField) {
-            if (array_key_exists($seoField, $validated)) {
-                $data[$seoField] = $validated[$seoField];
-            }
-        }
+        // foreach (['slug', 'meta_title', 'meta_description', 'meta_keywords', 'meta_image', 'canonical_url', 'meta_robots', 'og_title', 'og_description', 'og_image', 'og_type', 'og_url', 'twitter_title', 'twitter_description', 'twitter_image', 'twitter_card', 'header_code', 'footer_code', 'gtm_tag'] as $seoField) {
+        //     if (array_key_exists($seoField, $validated)) {
+        //         $data[$seoField] = $validated[$seoField];
+        //     }
+        // }
 
         $customer = Customer::create($data);
+
+        /** @var \Illuminate\Filesystem\FilesystemAdapter $s3Disk */
+        $s3Disk = Storage::disk('s3');
 
         // handle file uploads after customer is created (needs id)
         if ($request->hasFile('profile_photo')) {
             $path = $request->file('profile_photo')
                 ->storeAs('settings/customer/' . $customer->id . '/Files', 'profile_' . time() . '.' . $request->file('profile_photo')->extension(), 's3');
-            $customer->update(['profile_photo' => $path]);
+            $customer->update(['profile_photo' => $s3Disk->url($path)]);
         }
         if ($request->hasFile('cover_photo')) {
             $path = $request->file('cover_photo')
                 ->storeAs('settings/customer/' . $customer->id . '/Files', 'cover_' . time() . '.' . $request->file('cover_photo')->extension(), 's3');
-            $customer->update(['cover_photo' => $path]);
+            $customer->update(['cover_photo' => $s3Disk->url($path)]);
         }
 
         activity('Customers')
@@ -285,7 +285,8 @@ class CustomerController extends Controller{
     Show form for editing customer details.
     @param Customer $customer
     */
-    public function edit(Customer $customer){
+    public function edit(Customer $customer)
+    {
         // Permission check is handled by middleware
         $countries = Country::where('is_active', true)->orderBy('name')->get();
         $defaultCountryId = old('country_id', $customer->country_id);
@@ -304,7 +305,7 @@ class CustomerController extends Controller{
     @param Customer $customer
      */
     public function update(Request $request, Customer $customer)
-    {   
+    {
         $rules = [
             'firstname'       => ['required', 'string', 'max:255'],
             'lastname'        => ['required', 'string', 'max:255'],
@@ -317,30 +318,12 @@ class CustomerController extends Controller{
             'company_name'    => ['nullable', 'string', 'max:255'],
             'designation'     => ['nullable', 'string', 'max:255'],
             'company_website' => ['nullable', 'url', 'max:255'],
-            'tag_line'        => ['nullable', 'string', 'max:255'],
-            'social_link'     => ['nullable', 'array'],
-            'social_link.*'   => ['nullable', 'string', 'max:255'],
-            // slug must remain unique except for this customer
-            'slug'                => ['nullable', 'string', 'alpha_dash', 'unique:customers,slug,' . $customer->id],
-            // SEO fields
-            'meta_title'          => ['nullable', 'string', 'max:255'],
-            'meta_description'    => ['nullable', 'string'],
-            'meta_keywords'       => ['nullable', 'string', 'max:255'],
-            'meta_image'          => ['nullable', 'string', 'max:2048'],
-            'canonical_url'       => ['nullable', 'url', 'max:2048'],
-            'meta_robots'         => ['nullable', 'string', 'max:255'],
-            'og_title'            => ['nullable', 'string', 'max:255'],
-            'og_description'      => ['nullable', 'string'],
-            'og_image'            => ['nullable', 'string', 'max:2048'],
-            'og_type'             => ['nullable', 'string', 'max:64'],
-            'og_url'              => ['nullable', 'url', 'max:2048'],
-            'twitter_title'       => ['nullable', 'string', 'max:255'],
-            'twitter_description' => ['nullable', 'string'],
-            'twitter_image'       => ['nullable', 'string', 'max:2048'],
-            'twitter_card'        => ['nullable', 'string', 'max:64'],
-            'header_code'         => ['nullable', 'string'],
-            'footer_code'         => ['nullable', 'string'],
-            'gtm_tag'             => ['nullable', 'string', 'max:64'],
+            'tag_line' => ['nullable', 'string', 'max:255'],
+            'social_link' => ['nullable', 'array'],
+            // any string accepted
+            'social_link.*' => ['nullable', 'array'],
+            // slug should remain unique except for this customer
+            'slug' => ['nullable', 'string', 'alpha_dash', 'unique:customers,slug,' . $customer->id],
         ];
 
         // support old json format for social_link (stringified associative or array)
@@ -350,7 +333,7 @@ class CustomerController extends Controller{
                 $request->merge(['social_link' => $decoded]);
             }
         }
-        
+
         $validator = Validator::make($request->all(), $rules, [
             'base_mobile.required' => 'Mobile number is required.',
             'base_mobile.digits_between' => 'Mobile number must be between 6 and 15 digits.',
@@ -381,9 +364,9 @@ class CustomerController extends Controller{
 
         $dialCode = ltrim($country->dial_code, '+');
         $fullMobile = $dialCode . $validated['base_mobile'];
-        
+
         // Capture before state
-        $before = [            
+        $before = [
             'name' => $customer->name,
             'firstname' => $customer->firstname,
             'lastname' => $customer->lastname,
@@ -404,39 +387,63 @@ class CustomerController extends Controller{
             'lastname' => $validated['lastname'],
             'mobile' => $fullMobile,
             'base_mobile' => $validated['base_mobile'],
-            'slug'=> $validated['slug'] ?? $customer->slug,
+            'slug' => $validated['slug'] ?? $customer->slug,
             'country_code' => strtoupper($country->country_code),
             'dial_code' => $country->dial_code,
             'country_id' => $country->id,
             'email' => $validated['email'],
             'updated_by' => $request->user()->id,
-            'socail_link' => json_encode($validated['social_link']),    
+            'socail_link' => $request->input('social_link', []),
         ];
 
         // include profile / contact fields
-        foreach (['company_name','designation','company_website','tag_line','social_link'] as $fld) {
+        foreach (['company_name', 'designation', 'company_website', 'tag_line', 'social_link'] as $fld) {
             if (array_key_exists($fld, $validated)) {
                 $data[$fld] = $validated[$fld];
             }
         }
 
-        // include SEO fields
-        foreach (['meta_title','meta_description','meta_keywords','meta_image','canonical_url','meta_robots','og_title','og_description','og_image','og_type','og_url','twitter_title','twitter_description','twitter_image','twitter_card','header_code','footer_code','gtm_tag'] as $seoField) {
-            if (array_key_exists($seoField, $validated)) {
-                $data[$seoField] = $validated[$seoField];
+        /** @var \Illuminate\Filesystem\FilesystemAdapter $s3Disk */
+        $s3Disk = Storage::disk('s3');
+
+        $extractS3Path = static function (?string $value): ?string {
+            if (empty($value)) {
+                return null;
             }
-        }
+
+            $path = filter_var($value, FILTER_VALIDATE_URL)
+                ? (parse_url($value, PHP_URL_PATH) ?: '')
+                : $value;
+
+            $path = ltrim($path, '/');
+            $bucket = trim((string) config('filesystems.disks.s3.bucket'), '/');
+            if ($bucket !== '' && str_starts_with($path, $bucket . '/')) {
+                $path = substr($path, strlen($bucket) + 1);
+            }
+
+            return $path !== '' ? $path : null;
+        };
 
         // handle file uploads
         if ($request->hasFile('profile_photo')) {
+            $oldProfilePath = $extractS3Path($customer->profile_photo);
+            if ($oldProfilePath && $s3Disk->exists($oldProfilePath)) {
+                $s3Disk->delete($oldProfilePath);
+            }
+
             $path = $request->file('profile_photo')
                 ->storeAs('settings/customer/' . $customer->id . '/Files', 'profile_' . time() . '.' . $request->file('profile_photo')->extension(), 's3');
-            $data['profile_photo'] = $path;
+            $data['profile_photo'] = $s3Disk->url($path);
         }
         if ($request->hasFile('cover_photo')) {
+            $oldCoverPath = $extractS3Path($customer->cover_photo);
+            if ($oldCoverPath && $s3Disk->exists($oldCoverPath)) {
+                $s3Disk->delete($oldCoverPath);
+            }
+
             $path = $request->file('cover_photo')
                 ->storeAs('settings/customer/' . $customer->id . '/Files', 'cover_' . time() . '.' . $request->file('cover_photo')->extension(), 's3');
-            $data['cover_photo'] = $path;
+            $data['cover_photo'] = $s3Disk->url($path);
         }
 
         if (!empty($validated['password'])) {
@@ -537,17 +544,17 @@ class CustomerController extends Controller{
             'meta_title' => ['nullable', 'string', 'max:255'],
             'meta_description' => ['nullable', 'string'],
             'meta_keywords' => ['nullable', 'string', 'max:255'],
-            'meta_image' => ['nullable', 'string', 'max:2048'],
+            'meta_image' => ['nullable', 'image', 'max:2048'],
             'canonical_url' => ['nullable', 'url', 'max:2048'],
             'meta_robots' => ['nullable', 'string', 'max:255'],
             'og_title' => ['nullable', 'string', 'max:255'],
             'og_description' => ['nullable', 'string'],
-            'og_image' => ['nullable', 'string', 'max:2048'],
+            'og_image' => ['nullable', 'image', 'max:2048'],
             'og_type' => ['nullable', 'string', 'max:64'],
             'og_url' => ['nullable', 'url', 'max:2048'],
             'twitter_title' => ['nullable', 'string', 'max:255'],
             'twitter_description' => ['nullable', 'string'],
-            'twitter_image' => ['nullable', 'string', 'max:2048'],
+            'twitter_image' => ['nullable', 'image', 'max:2048'],
             'twitter_card' => ['nullable', 'string', 'max:64'],
             'header_code' => ['nullable', 'string'],
             'footer_code' => ['nullable', 'string'],
@@ -556,6 +563,47 @@ class CustomerController extends Controller{
         ];
 
         $validated = $request->validate($rules);
+
+        /** @var \Illuminate\Filesystem\FilesystemAdapter $s3Disk */
+        $s3Disk = Storage::disk('s3');
+
+        $extractS3Path = static function (?string $value): ?string {
+            if (empty($value)) {
+                return null;
+            }
+
+            $path = filter_var($value, FILTER_VALIDATE_URL)
+                ? (parse_url($value, PHP_URL_PATH) ?: '')
+                : $value;
+
+            $path = ltrim($path, '/');
+            $bucket = trim((string) config('filesystems.disks.s3.bucket'), '/');
+            if ($bucket !== '' && str_starts_with($path, $bucket . '/')) {
+                $path = substr($path, strlen($bucket) + 1);
+            }
+
+            return $path !== '' ? $path : null;
+        };
+
+        foreach (['meta_image', 'og_image', 'twitter_image'] as $field) {
+            if (!$request->hasFile($field)) {
+                unset($validated[$field]);
+                continue;
+            }
+
+            $oldPath = $extractS3Path($customer->{$field});
+            if ($oldPath && $s3Disk->exists($oldPath)) {
+                $s3Disk->delete($oldPath);
+            }
+
+            $path = $request->file($field)->storeAs(
+                'settings/customer/' . $customer->id . '/Seo',
+                $field . '_' . time() . '.' . $request->file($field)->extension(),
+                's3'
+            );
+
+            $validated[$field] = $s3Disk->url($path);
+        }
 
         $customer->updateSeo($validated);
 
