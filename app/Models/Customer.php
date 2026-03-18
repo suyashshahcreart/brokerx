@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+
 use Laravel\Sanctum\HasApiTokens;
 
 class Customer extends Model
@@ -34,6 +35,7 @@ class Customer extends Model
         'tag_line',
         'designation',
         'social_link',
+        'tag_line',
         'is_active',
         'created_by',
         'updated_by',
