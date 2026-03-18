@@ -1443,6 +1443,7 @@ class TourController extends Controller
 
         $oldData = $tour->toArray();
         $final_json = $tour->toArray()['final_json'] ?? [];
+        $qrCode = $tour->booking_id ? QR::where('booking_id', $tour->booking_id)->value('code') : null;
 
         // Process attachment files
         $attachmentFiles = [];
@@ -1473,9 +1474,18 @@ class TourController extends Controller
                     $file = $request->file("attachment_file.{$index}.file");
                     if ($file->isValid()) {
                         $fileName = time() . '_' . $index . '_' . Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME)) . '.' . $file->getClientOriginalExtension();
-                        $path = $file->storeAs('attachments', $fileName, 'public');
+                        $attachmentPath = $qrCode
+                            ? 'tours/' . $qrCode . '/assets/attachments/' . $fileName
+                            : 'attachments/' . $fileName;
+                        $fileContent = file_get_contents($file->getRealPath());
 
-                        $attachmentData['documentUrl'] = 'storage/' . $path;
+                        if ($fileContent !== false) {
+                            Storage::disk('s3')->put($attachmentPath, $fileContent, [
+                                'ContentType' => $file->getMimeType() ?: 'application/octet-stream',
+                            ]);
+                            $attachmentData['documentUrl'] = Storage::disk('s3')->url($attachmentPath);
+                        }
+
                         $attachmentData['documentFileName'] = $fileName;
                     }
                 } else {
@@ -1593,6 +1603,7 @@ class TourController extends Controller
         $oldData = $tour->toArray();
         $finalJson = $this->normalizeFinalJsonPayload($tour);
         $userInfo = $finalJson['userInfo'] ?? [];
+        $qrCode = $tour->booking_id ? QR::where('booking_id', $tour->booking_id)->value('code') : null;
 
         $userInfo['userName'] = $validated['contact_user_name'] ?? null;
         $userInfo['showUserName'] = $validated['show_contact_user_name'];
@@ -1661,6 +1672,7 @@ class TourController extends Controller
         $oldData = $tour->toArray();
         $finalJson = $this->normalizeFinalJsonPayload($tour);
         $userInfo = $finalJson['userInfo'] ?? [];
+        $qrCode = $tour->booking_id ? QR::where('booking_id', $tour->booking_id)->value('code') : null;
 
         $attachmentFiles = [];
         if ($request->has('attachment_file')) {
@@ -1688,9 +1700,18 @@ class TourController extends Controller
                     $file = $request->file("attachment_file.{$index}.file");
                     if ($file->isValid()) {
                         $fileName = time() . '_' . $index . '_' . Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME)) . '.' . $file->getClientOriginalExtension();
-                        $path = $file->storeAs('attachments', $fileName, 'public');
+                        $attachmentPath = $qrCode
+                            ? 'tours/' . $qrCode . '/assets/attachments/' . $fileName
+                            : 'attachments/' . $fileName;
+                        $fileContent = file_get_contents($file->getRealPath());
 
-                        $attachmentData['documentUrl'] = 'storage/' . $path;
+                        if ($fileContent !== false) {
+                            Storage::disk('s3')->put($attachmentPath, $fileContent, [
+                                'ContentType' => $file->getMimeType() ?: 'application/octet-stream',
+                            ]);
+                            $attachmentData['documentUrl'] = Storage::disk('s3')->url($attachmentPath);
+                        }
+
                         $attachmentData['documentFileName'] = $fileName;
                     }
                 } else {
@@ -2058,7 +2079,7 @@ class TourController extends Controller
             $finalJson['sidebarConfig']['sidebarTag']['text'] = $validated['sidebar_tag_text'];
         }
         if (array_key_exists('sidebar_tag_color', $validated)) {
-            $finalJson['sidebarConfig']['sidebarTag']['color'] = $validated['sidebar_tag_color'];
+            $finalJson['sidebarConfig']['sidebarTag']['textColor'] = $validated['sidebar_tag_color'];
         }
         if (array_key_exists('sidebar_tag_bg_color', $validated)) {
             $finalJson['sidebarConfig']['sidebarTag']['backgroundColor'] = $validated['sidebar_tag_bg_color'];

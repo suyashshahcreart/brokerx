@@ -424,10 +424,6 @@
                                             <option value="gu"
                                                 {{ old('default_language', $tour->default_language) == 'gu' ? 'selected' : '' }}>
                                                 Gujarati</option>
-                                            <option value="es"
-                                                {{ old('default_language', $tour->default_language) == 'es' ? 'selected' : '' }}>
-                                                Spanish
-                                            </option>
                                         </select>
                                         @error('default_language')<div class="text-danger">{{ $message }}</div>@enderror
                                     </div>
