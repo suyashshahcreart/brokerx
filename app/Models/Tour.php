@@ -79,11 +79,19 @@ class Tour extends Model
         'is_hosted',
         'hosted_link',
         // Contact fields
+        'contact_user_name',
         'contact_google_location',
         'contact_website',
         'contact_email',
         'contact_phone_no',
         'contact_whatsapp_no',
+        // Contact show/hide toggles
+        'show_contact_user_name',
+        'show_contact_google_location',
+        'show_contact_email',
+        'show_contact_website',
+        'show_contact_phone_no',
+        'show_contact_whatsapp_no',
         // Language fields
         'enable_language',
         'default_language',
@@ -102,6 +110,10 @@ class Tour extends Model
         'bottommark_property_name',
         'bottommark_room_type',
         'bottommark_dimensions',
+        // Document authentication field
+        'document_auth_required',
+        'show_document_url',
+        'show_document_url2',
     ];
 
     /**
@@ -126,6 +138,15 @@ class Tour extends Model
             'is_credentials' => 'boolean',
             'is_mobile_validation' => 'boolean',
             'is_hosted' => 'boolean',
+            'show_contact_user_name' => 'boolean',
+            'show_contact_google_location' => 'boolean',
+            'show_contact_email' => 'boolean',
+            'show_contact_website' => 'boolean',
+            'show_contact_phone_no' => 'boolean',
+            'show_contact_whatsapp_no' => 'boolean',
+            'document_auth_required' => 'boolean',
+            'show_document_url' => 'boolean',
+            'show_document_url2' => 'boolean',
             'enable_language' => 'array',
             'loader_color' => 'array',
             'spinner_color' => 'array',

@@ -1443,6 +1443,7 @@ class TourController extends Controller
 
         $oldData = $tour->toArray();
         $final_json = $tour->toArray()['final_json'] ?? [];
+        $qrCode = $tour->booking_id ? QR::where('booking_id', $tour->booking_id)->value('code') : null;
 
         // Process attachment files
         $attachmentFiles = [];
@@ -1473,9 +1474,18 @@ class TourController extends Controller
                     $file = $request->file("attachment_file.{$index}.file");
                     if ($file->isValid()) {
                         $fileName = time() . '_' . $index . '_' . Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME)) . '.' . $file->getClientOriginalExtension();
-                        $path = $file->storeAs('attachments', $fileName, 'public');
+                        $attachmentPath = $qrCode
+                            ? 'tours/' . $qrCode . '/assets/attachments/' . $fileName
+                            : 'attachments/' . $fileName;
+                        $fileContent = file_get_contents($file->getRealPath());
 
-                        $attachmentData['documentUrl'] = 'storage/' . $path;
+                        if ($fileContent !== false) {
+                            Storage::disk('s3')->put($attachmentPath, $fileContent, [
+                                'ContentType' => $file->getMimeType() ?: 'application/octet-stream',
+                            ]);
+                            $attachmentData['documentUrl'] = Storage::disk('s3')->url($attachmentPath);
+                        }
+
                         $attachmentData['documentFileName'] = $fileName;
                     }
                 } else {
@@ -1571,28 +1581,47 @@ class TourController extends Controller
     public function updateTourContactInfoTab(Request $request, Tour $tour): JsonResponse|RedirectResponse
     {
         $validated = $request->validate([
+            'contact_user_name' => ['nullable', 'string', 'max:255'],
             'contact_google_location' => ['nullable', 'string', 'max:255'],
             'contact_website' => ['nullable', 'url', 'max:255'],
             'contact_email' => ['nullable', 'email', 'max:255'],
             'contact_phone_no' => ['nullable', 'string', 'max:20'],
             'contact_whatsapp_no' => ['nullable', 'string', 'max:20'],
+            'show_contact_user_name' => ['nullable', 'boolean'],
+            'show_contact_google_location' => ['nullable', 'boolean'],
+            'show_contact_email' => ['nullable', 'boolean'],
+            'show_contact_website' => ['nullable', 'boolean'],
+            'show_contact_phone_no' => ['nullable', 'boolean'],
+            'show_contact_whatsapp_no' => ['nullable', 'boolean'],
         ]);
+
+        // Normalise checkbox booleans (unchecked checkboxes are absent from POST)
+        foreach (['show_contact_user_name', 'show_contact_google_location', 'show_contact_email', 'show_contact_website', 'show_contact_phone_no', 'show_contact_whatsapp_no'] as $field) {
+            $validated[$field] = $request->boolean($field);
+        }
 
         $oldData = $tour->toArray();
         $finalJson = $this->normalizeFinalJsonPayload($tour);
         $userInfo = $finalJson['userInfo'] ?? [];
+        $qrCode = $tour->booking_id ? QR::where('booking_id', $tour->booking_id)->value('code') : null;
 
+        $userInfo['userName'] = $validated['contact_user_name'] ?? null;
+        $userInfo['showUserName'] = $validated['show_contact_user_name'];
         $userInfo['googleLocation'] = $validated['contact_google_location'] ?? null;
+        $userInfo['showGoogleLocation'] = $validated['show_contact_google_location'];
         $userInfo['website'] = $validated['contact_website'] ?? null;
+        $userInfo['showWebsite'] = $validated['show_contact_website'];
         $userInfo['email'] = $validated['contact_email'] ?? null;
+        $userInfo['showEmail'] = $validated['show_contact_email'];
         $userInfo['phoneNumber'] = $validated['contact_phone_no'] ?? null;
+        $userInfo['showPhoneNumber'] = $validated['show_contact_phone_no'];
         $userInfo['whatsAppNumber'] = $validated['contact_whatsapp_no'] ?? null;
+        $userInfo['showWhatsAppNumber'] = $validated['show_contact_whatsapp_no'];
 
         $finalJson['userInfo'] = $userInfo;
 
         $updateData = $validated;
         $updateData['final_json'] = $finalJson;
-
         $tour->update($updateData);
         $newData = $tour->fresh()->toArray();
 
@@ -1624,6 +1653,9 @@ class TourController extends Controller
     public function updateTourAttachmentsTab(Request $request, Tour $tour): JsonResponse|RedirectResponse
     {
         $validated = $request->validate([
+            'document_auth_required' => ['nullable', 'boolean'],
+            'show_document_url' => ['nullable', 'boolean'],
+            'show_document_url2' => ['nullable', 'boolean'],
             'attachment_file' => ['nullable', 'array'],
             'attachment_file.*.type' => ['nullable', 'string', 'in:image,video,document'],
             'attachment_file.*.tooltip' => ['nullable', 'string', 'max:255'],
@@ -1632,9 +1664,15 @@ class TourController extends Controller
             'attachment_file.*.action' => ['nullable', 'string', 'in:modal,download'],
         ]);
 
+        // Normalize checkbox value so unchecked state is stored as false.
+        $validated['document_auth_required'] = $request->boolean('document_auth_required');
+        $validated['show_document_url'] = $request->boolean('show_document_url');
+        $validated['show_document_url2'] = $request->boolean('show_document_url2');
+
         $oldData = $tour->toArray();
         $finalJson = $this->normalizeFinalJsonPayload($tour);
         $userInfo = $finalJson['userInfo'] ?? [];
+        $qrCode = $tour->booking_id ? QR::where('booking_id', $tour->booking_id)->value('code') : null;
 
         $attachmentFiles = [];
         if ($request->has('attachment_file')) {
@@ -1662,9 +1700,18 @@ class TourController extends Controller
                     $file = $request->file("attachment_file.{$index}.file");
                     if ($file->isValid()) {
                         $fileName = time() . '_' . $index . '_' . Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME)) . '.' . $file->getClientOriginalExtension();
-                        $path = $file->storeAs('attachments', $fileName, 'public');
+                        $attachmentPath = $qrCode
+                            ? 'tours/' . $qrCode . '/assets/attachments/' . $fileName
+                            : 'attachments/' . $fileName;
+                        $fileContent = file_get_contents($file->getRealPath());
 
-                        $attachmentData['documentUrl'] = 'storage/' . $path;
+                        if ($fileContent !== false) {
+                            Storage::disk('s3')->put($attachmentPath, $fileContent, [
+                                'ContentType' => $file->getMimeType() ?: 'application/octet-stream',
+                            ]);
+                            $attachmentData['documentUrl'] = Storage::disk('s3')->url($attachmentPath);
+                        }
+
                         $attachmentData['documentFileName'] = $fileName;
                     }
                 } else {
@@ -1698,9 +1745,15 @@ class TourController extends Controller
             }
         }
 
+        $userInfo['documentAuthRequired'] = $validated['document_auth_required'];
+        $userInfo['showDocumentUrl'] = $validated['show_document_url'];
+        $userInfo['showDocumentUrl2'] = $validated['show_document_url2'];
         $finalJson['userInfo'] = $userInfo;
 
         $updateData = [
+            'document_auth_required' => $validated['document_auth_required'],
+            'show_document_url' => $validated['show_document_url'],
+            'show_document_url2' => $validated['show_document_url2'],
             'attachment_file' => empty($attachmentFiles) ? null : $attachmentFiles,
             'final_json' => $finalJson,
         ];
@@ -2026,7 +2079,7 @@ class TourController extends Controller
             $finalJson['sidebarConfig']['sidebarTag']['text'] = $validated['sidebar_tag_text'];
         }
         if (array_key_exists('sidebar_tag_color', $validated)) {
-            $finalJson['sidebarConfig']['sidebarTag']['color'] = $validated['sidebar_tag_color'];
+            $finalJson['sidebarConfig']['sidebarTag']['textColor'] = $validated['sidebar_tag_color'];
         }
         if (array_key_exists('sidebar_tag_bg_color', $validated)) {
             $finalJson['sidebarConfig']['sidebarTag']['backgroundColor'] = $validated['sidebar_tag_bg_color'];
