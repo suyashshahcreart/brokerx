@@ -1642,6 +1642,9 @@ class TourController extends Controller
     public function updateTourAttachmentsTab(Request $request, Tour $tour): JsonResponse|RedirectResponse
     {
         $validated = $request->validate([
+            'document_auth_required' => ['nullable', 'boolean'],
+            'show_document_url' => ['nullable', 'boolean'],
+            'show_document_url2' => ['nullable', 'boolean'],
             'attachment_file' => ['nullable', 'array'],
             'attachment_file.*.type' => ['nullable', 'string', 'in:image,video,document'],
             'attachment_file.*.tooltip' => ['nullable', 'string', 'max:255'],
@@ -1649,6 +1652,11 @@ class TourController extends Controller
             'attachment_file.*.file' => ['nullable', 'file', 'max:10240'],
             'attachment_file.*.action' => ['nullable', 'string', 'in:modal,download'],
         ]);
+
+        // Normalize checkbox value so unchecked state is stored as false.
+        $validated['document_auth_required'] = $request->boolean('document_auth_required');
+        $validated['show_document_url'] = $request->boolean('show_document_url');
+        $validated['show_document_url2'] = $request->boolean('show_document_url2');
 
         $oldData = $tour->toArray();
         $finalJson = $this->normalizeFinalJsonPayload($tour);
@@ -1716,9 +1724,15 @@ class TourController extends Controller
             }
         }
 
+        $userInfo['documentAuthRequired'] = $validated['document_auth_required'];
+        $userInfo['showDocumentUrl'] = $validated['show_document_url'];
+        $userInfo['showDocumentUrl2'] = $validated['show_document_url2'];
         $finalJson['userInfo'] = $userInfo;
 
         $updateData = [
+            'document_auth_required' => $validated['document_auth_required'],
+            'show_document_url' => $validated['show_document_url'],
+            'show_document_url2' => $validated['show_document_url2'],
             'attachment_file' => empty($attachmentFiles) ? null : $attachmentFiles,
             'final_json' => $finalJson,
         ];

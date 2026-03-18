@@ -110,6 +110,10 @@ class Tour extends Model
         'bottommark_property_name',
         'bottommark_room_type',
         'bottommark_dimensions',
+        // Document authentication field
+        'document_auth_required',
+        'show_document_url',
+        'show_document_url2',
     ];
 
     /**
@@ -140,6 +144,9 @@ class Tour extends Model
             'show_contact_website' => 'boolean',
             'show_contact_phone_no' => 'boolean',
             'show_contact_whatsapp_no' => 'boolean',
+            'document_auth_required' => 'boolean',
+            'show_document_url' => 'boolean',
+            'show_document_url2' => 'boolean',
             'enable_language' => 'array',
             'loader_color' => 'array',
             'spinner_color' => 'array',

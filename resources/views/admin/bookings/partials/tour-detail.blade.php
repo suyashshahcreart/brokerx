@@ -484,13 +484,15 @@
                                                         placeholder="e.g, User Name"
                                                         value="{{ old('contact_user_name', $tour->contact_user_name ?? '') }}">
                                                     <small class="text-muted">Display name for the user</small>
-                                                    @error('contact_user_name')<div class="text-danger small">{{ $message }}</div>@enderror
+                                                    @error('contact_user_name')<div class="text-danger small">
+                                                    {{ $message }}</div>@enderror
                                                 </div>
 
                                                 {{-- Google Location --}}
                                                 <div class="col-lg-6">
                                                     <div class="d-flex justify-content-between align-items-center mb-1">
-                                                        <label class="form-label mb-0" for="tour_contact_google_location">
+                                                        <label class="form-label mb-0"
+                                                            for="tour_contact_google_location">
                                                             Google Location <span class="text-muted">(optional)</span>
                                                         </label>
                                                         <div class="d-flex align-items-center gap-2">
@@ -507,8 +509,10 @@
                                                         id="tour_contact_google_location" class="form-control"
                                                         placeholder="e.g, https://www.google.com/maps"
                                                         value="{{ old('contact_google_location', $tour->contact_google_location ?? '') }}">
-                                                    <small class="text-muted">Google Maps location URL or address</small>
-                                                    @error('contact_google_location')<div class="text-danger small">{{ $message }}</div>@enderror
+                                                    <small class="text-muted">Google Maps location URL or
+                                                        address</small>
+                                                    @error('contact_google_location')<div class="text-danger small">
+                                                    {{ $message }}</div>@enderror
                                                 </div>
 
                                                 {{-- Email --}}
@@ -521,8 +525,8 @@
                                                             <span class="text-muted small">Show</span>
                                                             <div class="form-check form-switch mb-0">
                                                                 <input class="form-check-input" type="checkbox"
-                                                                    name="show_contact_email"
-                                                                    id="show_contact_email" value="1"
+                                                                    name="show_contact_email" id="show_contact_email"
+                                                                    value="1"
                                                                     {{ old('show_contact_email', $tour->show_contact_email ?? true) ? 'checked' : '' }}>
                                                             </div>
                                                         </div>
@@ -531,7 +535,8 @@
                                                         class="form-control" placeholder="e.g, Email@gmail.com"
                                                         value="{{ old('contact_email', $tour->contact_email ?? '') }}">
                                                     <small class="text-muted">Contact email address</small>
-                                                    @error('contact_email')<div class="text-danger small">{{ $message }}</div>@enderror
+                                                    @error('contact_email')<div class="text-danger small">{{ $message }}
+                                                    </div>@enderror
                                                 </div>
 
                                                 {{-- Website --}}
@@ -551,10 +556,13 @@
                                                         </div>
                                                     </div>
                                                     <input type="text" name="contact_website" id="tour_contact_website"
-                                                        class="form-control" placeholder="e.g, https://www.google.com/maps"
+                                                        class="form-control"
+                                                        placeholder="e.g, https://www.google.com/maps"
                                                         value="{{ old('contact_website', $tour->contact_website ?? '') }}">
-                                                    <small class="text-muted">Website URL (http:// or https:// will be added automatically if missing)</small>
-                                                    @error('contact_website')<div class="text-danger small">{{ $message }}</div>@enderror
+                                                    <small class="text-muted">Website URL (http:// or https:// will be
+                                                        added automatically if missing)</small>
+                                                    @error('contact_website')<div class="text-danger small">
+                                                    {{ $message }}</div>@enderror
                                                 </div>
 
                                                 {{-- Phone Number --}}
@@ -578,7 +586,8 @@
                                                         placeholder="e.g, +91 9876543210"
                                                         value="{{ old('contact_phone_no', $tour->contact_phone_no ?? '') }}">
                                                     <small class="text-muted">Contact phone number</small>
-                                                    @error('contact_phone_no')<div class="text-danger small">{{ $message }}</div>@enderror
+                                                    @error('contact_phone_no')<div class="text-danger small">
+                                                    {{ $message }}</div>@enderror
                                                 </div>
 
                                                 {{-- WhatsApp Number --}}
@@ -601,8 +610,10 @@
                                                         id="tour_contact_whatsapp_no" class="form-control"
                                                         placeholder="e.g, +91 9876543210"
                                                         value="{{ old('contact_whatsapp_no', $tour->contact_whatsapp_no ?? '') }}">
-                                                    <small class="text-muted">WhatsApp contact number (with country code, e.g., +1234567890)</small>
-                                                    @error('contact_whatsapp_no')<div class="text-danger small">{{ $message }}</div>@enderror
+                                                    <small class="text-muted">WhatsApp contact number (with country
+                                                        code, e.g., +1234567890)</small>
+                                                    @error('contact_whatsapp_no')<div class="text-danger small">
+                                                    {{ $message }}</div>@enderror
                                                 </div>
 
                                             </div>
@@ -691,8 +702,8 @@
                                                     value="{{ $color }}"
                                                     oninput="this.previousElementSibling.querySelector('input').value = this.value">
                                                 <!-- <button type="button" class="btn btn-soft-danger remove-loader-color">
-                                                        <i class="ri-delete-bin-line"></i>
-                                                    </button> -->
+                                                            <i class="ri-delete-bin-line"></i>
+                                                        </button> -->
                                             </div>
                                         </div>
                                     @endforeach
@@ -727,8 +738,8 @@
                                                     value="{{ $color }}"
                                                     oninput="this.previousElementSibling.querySelector('input').value = this.value">
                                                 <!-- <button type="button" class="btn btn-soft-danger remove-spinner-color">
-                                                        <i class="ri-delete-bin-line"></i>
-                                                    </button> -->
+                                                            <i class="ri-delete-bin-line"></i>
+                                                        </button> -->
                                             </div>
                                         </div>
                                     @endforeach
@@ -900,6 +911,16 @@
                             @method('PUT')
                             <input type="hidden" name="booking_id" value="{{ $booking->id }}">
 
+                            <div class="mb-3 d-flex gap-2 align-items-center">
+                                <label class="form-label" for="document_auth_required">Downloard Auth Require</label>
+                                <div class="form-check form-switch form-switch-lg">
+                                    <input type="hidden" name="document_auth_required" value="0">
+                                    <input type="checkbox" class="form-check-input" id="document_auth_required" name="document_auth_required"
+                                        value="1" {{ old('document_auth_required', $tour->document_auth_required) ? 'checked' : '' }}>
+                                    <label class="form-check-label" for="document_auth_required">Active</label>
+                                </div>
+                            </div>
+
                             <ul class="nav nav-tabs mb-3" id="tourAttachmentsTabs" role="tablist">
                                 <li class="nav-item" role="presentation">
                                     <button class="nav-link active" id="tour-attachment-1-tab" data-bs-toggle="tab"
@@ -972,6 +993,19 @@
                                             class="form-control"
                                             placeholder="e.g, http://www.example.com/assets/image.jpeg"
                                             value="{{ old('attachment_file.0.link', $attachment1['documentUrl'] ?? '') }}">
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <label class="form-label mb-0" for="show_document_url">Show Attachment 1 URL</label>
+                                            <div class="form-check form-switch mb-0">
+                                                <input type="hidden" name="show_document_url" value="0">
+                                                <input class="form-check-input" type="checkbox" name="show_document_url"
+                                                    id="show_document_url" value="1"
+                                                    {{ old('show_document_url', $tour->show_document_url ?? true) ? 'checked' : '' }}>
+                                            </div>
+                                        </div>
+                                        <small class="text-muted">Controls visibility of attachment 1 URL in tour data.</small>
                                     </div>
 
                                     <div class="mb-3">
@@ -1059,6 +1093,19 @@
                                             class="form-control"
                                             placeholder="e.g, http://www.example.com/assets/image.jpeg"
                                             value="{{ old('attachment_file.1.link', $attachment2['documentUrl'] ?? '') }}">
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <label class="form-label mb-0" for="show_document_url2">Show Attachment 2 URL</label>
+                                            <div class="form-check form-switch mb-0">
+                                                <input type="hidden" name="show_document_url2" value="0">
+                                                <input class="form-check-input" type="checkbox" name="show_document_url2"
+                                                    id="show_document_url2" value="1"
+                                                    {{ old('show_document_url2', $tour->show_document_url2 ?? true) ? 'checked' : '' }}>
+                                            </div>
+                                        </div>
+                                        <small class="text-muted">Controls visibility of attachment 2 URL in tour data.</small>
                                     </div>
 
                                     <div class="mb-3">
