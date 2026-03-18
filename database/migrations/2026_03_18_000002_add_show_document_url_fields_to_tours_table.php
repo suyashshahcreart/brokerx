@@ -14,7 +14,7 @@ return new class extends Migration
             if (!Schema::hasColumn('tours', 'document_auth_required')) {
                 $table->boolean('document_auth_required')->default(true)->after('show_contact_whatsapp_no');
             }
-            
+
             if (!Schema::hasColumn('tours', 'show_document_url')) {
                 $table->boolean('show_document_url')->default(true)->after('document_auth_required');
             }
@@ -28,6 +28,10 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('tours', function (Blueprint $table) {
+            if (Schema::hasColumn('tours', 'document_auth_required')) {
+                $table->dropColumn('document_auth_required');
+            }
+            
             if (Schema::hasColumn('tours', 'show_document_url2')) {
                 $table->dropColumn('show_document_url2');
             }
