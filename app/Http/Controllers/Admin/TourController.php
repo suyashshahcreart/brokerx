@@ -2267,22 +2267,22 @@ class TourController extends Controller
         $finalJson['bottomMarker'] = $finalJson['bottomMarker'] ?? [];
 
         $resolvedPropertyName = array_filter([
-            'en' => $validated['bottommark_property_name_en'] ?? null,
-            'gu' => $validated['bottommark_property_name_gu'] ?? null,
-            'hi' => $validated['bottommark_property_name_hi'] ?? null,
-        ], static fn($value) => !is_null($value) && $value !== '');
+            'en' => $validated['bottommark_property_name_en'] ?? '',
+            'gu' => $validated['bottommark_property_name_gu'] ?? '',
+            'hi' => $validated['bottommark_property_name_hi'] ?? '',
+        ], static fn($value) => !is_null($value));
 
         $resolvedRoomType = array_filter([
-            'en' => $validated['bottommark_room_type_en'] ?? null,
-            'gu' => $validated['bottommark_room_type_gu'] ?? null,
-            'hi' => $validated['bottommark_room_type_hi'] ?? null,
-        ], static fn($value) => !is_null($value) && $value !== '');
+            'en' => $validated['bottommark_room_type_en'] ?? '',
+            'gu' => $validated['bottommark_room_type_gu'] ?? '',
+            'hi' => $validated['bottommark_room_type_hi'] ?? '',
+        ], static fn($value) => !is_null($value));
 
         $resolvedDimensions = array_filter([
-            'en' => $validated['bottommark_dimensions_en'] ?? null,
-            'gu' => $validated['bottommark_dimensions_gu'] ?? null,
-            'hi' => $validated['bottommark_dimensions_hi'] ?? null,
-        ], static fn($value) => !is_null($value) && $value !== '');
+            'en' => $validated['bottommark_dimensions_en'] ?? '',
+            'gu' => $validated['bottommark_dimensions_gu'] ?? '',
+            'hi' => $validated['bottommark_dimensions_hi'] ?? '',
+        ], static fn($value) => !is_null($value));
 
         if (!empty($resolvedPropertyName)) {
             $finalJson['bottomMarker']['propertyName'] = $resolvedPropertyName;
