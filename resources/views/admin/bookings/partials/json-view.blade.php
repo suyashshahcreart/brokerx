@@ -23,7 +23,7 @@
                 <i class="ri-refresh-line me-1"></i>Reset
             </button>
             <button type="submit" id="jsonUpdatebtn" class="btn btn-success">
-                <i class="ri-save-3-line me-1"></i>Save to Database
+                <i class="ri-save-3-line me-1"></i>Updaet JSON
             </button>
         </div>
     </div>
@@ -40,7 +40,7 @@
                 </h1>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body p-0">
                 <div id="jsoneditor" style="width: 100%; height: 550px;"></div>
             </div>
             <div class="modal-footer">
@@ -61,32 +61,30 @@
     <div class="modal-content">
       <div class="modal-header">
         <h1 class="modal-title fs-5" id="compareJsonModalLabel">
-          <i class="ri-git-diff-line me-2"></i>Review Changes
+          <i class="ri-git-diff-line me-2"></i> Review Changes
         </h1>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
-      <div class="modal-body" id="conpareJsonBody">
-        <!-- Diff content will be inserted here -->
+      <div class="modal-body">
+        <div id="conpareJsonBody" >
+            <!-- Diff content will be inserted here -->
+        </div>
+        <div>
+              <small class="text-muted">Review the differences between the original and edited JSON data before confirming your changes.
+                <br> This Changes Save Only in the Local Editor, You Need to Confirm & Save to Update the Booking JSON Data Permanently.
+              </small>
+        </div>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
         <button type="button" class="btn btn-danger" id="jsonDontSaveBtn">
           <i class="ri-close-line me-1"></i>Discard Changes
         </button>
-        <button type="button" class="btn btn-success" id="jsonSavebtn">
-          <i class="ri-save-line me-1"></i>Confirm & Save
+        <button type="button" class="btn btn-primary" id="jsonSavebtn">
+          <i class="ri-check-line me-1"></i>Confirm Changes
         </button>
       </div>
     </div>
   </div>
 </div>
-
-
-<!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/jsondiffpatch/0.3.11/jsondiffpatch.umd.js"
-    integrity="sha512-1/tJGdBwOGJ3QrvU2diNgmqBQBVcc7ioLKVwagMZNP4/LfvtQo3yTyxAxxuRWzSrpbEShaWG9bk/WUwr4KG07g=="
-    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<link rel="stylesheet"
-    href="https://cdnjs.cloudflare.com/ajax/libs/jsondiffpatch/0.3.11/formatters-styles/annotated.css"
-    integrity="sha512-g+Q5QP9G+qSkZ6YS9sYHxk0mUaf+nDOdr/UTqSSIvcYM8ETH93KWywztidF+e7o865rxh1VYl2beQxTbFxHGuA=="
-    crossorigin="anonymous" referrerpolicy="no-referrer" /> -->
 @vite('resources/js/pages/booking-edit-json-edit.js')
