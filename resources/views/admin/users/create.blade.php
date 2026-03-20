@@ -134,9 +134,14 @@
                     </div>
                     <div class="mb-3">
                         <label for="password" class="form-label">Password <span class="text-danger">*</span></label>
-                        <input type="password" name="password" id="password" 
-                            class="form-control @error('password') is-invalid @enderror" placeholder="e.g, Pass@123#"
-                            required minlength="6">
+                        <div class="input-group">
+                            <input type="password" name="password" id="password"
+                                class="form-control @error('password') is-invalid @enderror" placeholder="e.g, Pass@123#"
+                                required minlength="6">
+                            <button class="btn btn-outline-secondary" type="button" id="togglePassword" aria-label="Show password" aria-pressed="false">
+                                <i class="ri-eye-line" aria-hidden="true"></i>
+                            </button>
+                        </div>
                         <div class="invalid-feedback">
                             @error('password')
                                 {{ $message }}
@@ -200,6 +205,22 @@
         }, false);
     }
 })();
+document.addEventListener('DOMContentLoaded', function() {
+    const passwordInput = document.getElementById('password');
+    const togglePasswordButton = document.getElementById('togglePassword');
+
+    if (passwordInput && togglePasswordButton) {
+        togglePasswordButton.addEventListener('click', function() {
+            const isPasswordType = passwordInput.type === 'password';
+            passwordInput.type = isPasswordType ? 'text' : 'password';
+            this.setAttribute('aria-pressed', String(isPasswordType));
+            this.setAttribute('aria-label', isPasswordType ? 'Hide password' : 'Show password');
+            this.innerHTML = isPasswordType
+                ? '<i class="ri-eye-off-line" aria-hidden="true"></i>'
+                : '<i class="ri-eye-line" aria-hidden="true"></i>';
+        });
+    }
+});
 </script>
 @endsection
 
