@@ -481,7 +481,8 @@
                                                         value="{{ old('contact_user_name', $tour->contact_user_name ?? '') }}">
                                                     <small class="text-muted">Display name for the user</small>
                                                     @error('contact_user_name')<div class="text-danger small">
-                                                    {{ $message }}</div>@enderror
+                                                        {{ $message }}
+                                                    </div>@enderror
                                                 </div>
 
                                                 {{-- Google Location --}}
@@ -508,7 +509,8 @@
                                                     <small class="text-muted">Google Maps location URL or
                                                         address</small>
                                                     @error('contact_google_location')<div class="text-danger small">
-                                                    {{ $message }}</div>@enderror
+                                                        {{ $message }}
+                                                    </div>@enderror
                                                 </div>
 
                                                 {{-- Email --}}
@@ -558,7 +560,8 @@
                                                     <small class="text-muted">Website URL (http:// or https:// will be
                                                         added automatically if missing)</small>
                                                     @error('contact_website')<div class="text-danger small">
-                                                    {{ $message }}</div>@enderror
+                                                        {{ $message }}
+                                                    </div>@enderror
                                                 </div>
 
                                                 {{-- Phone Number --}}
@@ -583,7 +586,8 @@
                                                         value="{{ old('contact_phone_no', $tour->contact_phone_no ?? '') }}">
                                                     <small class="text-muted">Contact phone number</small>
                                                     @error('contact_phone_no')<div class="text-danger small">
-                                                    {{ $message }}</div>@enderror
+                                                        {{ $message }}
+                                                    </div>@enderror
                                                 </div>
 
                                                 {{-- WhatsApp Number --}}
@@ -609,7 +613,8 @@
                                                     <small class="text-muted">WhatsApp contact number (with country
                                                         code, e.g., +1234567890)</small>
                                                     @error('contact_whatsapp_no')<div class="text-danger small">
-                                                    {{ $message }}</div>@enderror
+                                                        {{ $message }}
+                                                    </div>@enderror
                                                 </div>
 
                                             </div>
@@ -698,8 +703,8 @@
                                                     value="{{ $color }}"
                                                     oninput="this.previousElementSibling.querySelector('input').value = this.value">
                                                 <!-- <button type="button" class="btn btn-soft-danger remove-loader-color">
-                                                            <i class="ri-delete-bin-line"></i>
-                                                        </button> -->
+                                                                    <i class="ri-delete-bin-line"></i>
+                                                                </button> -->
                                             </div>
                                         </div>
                                     @endforeach
@@ -734,8 +739,8 @@
                                                     value="{{ $color }}"
                                                     oninput="this.previousElementSibling.querySelector('input').value = this.value">
                                                 <!-- <button type="button" class="btn btn-soft-danger remove-spinner-color">
-                                                            <i class="ri-delete-bin-line"></i>
-                                                        </button> -->
+                                                                    <i class="ri-delete-bin-line"></i>
+                                                                </button> -->
                                             </div>
                                         </div>
                                     @endforeach
@@ -882,6 +887,21 @@
                                         @error('made_by_link')<div class="text-danger">{{ $message }}</div>@enderror
                                     </div>
                                 </div>
+                                <hr class="mb-3">
+                                <!-- sidebar link fields -->
+                                <div class="col-12">
+                                    <div class="mb-3">
+                                        <label for="sidebar_links" class="form-label fs-5">Sidebar Links</label>
+                                        <div class="container" id="sidebarLinksRow">
+                                            
+                                        </div>
+                                        <div>
+                                            <button type="button" id="addSideLinkBtn" class="btn btn-secondary">
+                                                Add Sidebar Link
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                             <div class="d-flex justify-content-end mt-3">
                                 <button type="submit" class="btn btn-primary">
@@ -892,6 +912,23 @@
                     </div>
                 </div>
             </div>
+            <!-- icon modal of the material icon -->
+            <!-- Modal -->
+            <div class="modal fade w-100" id="materialIconModal">
+                <div class="modal-dialog modal-xl">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5>Select Icon</h5>
+                            <button class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <input type="text" id="materialIconSearch" class="form-control mb-3"
+                                placeholder="Search...">
+                            <div id="iconContainer" class="icon-grid"></div>
+                        </div>
+                    </div>
+                </div>
+            </div> <!-- modal end -->
 
             <div class="tab-pane fade {{ ($firstActiveTab === 'vl-pills-attachments') ? 'active show' : '' }}"
                 id="vl-pills-attachments" role="tabpanel" aria-labelledby="vl-pills-attachments-tab">
@@ -911,8 +948,9 @@
                                 <label class="form-label" for="document_auth_required">Downloard Auth Require</label>
                                 <div class="form-check form-switch form-switch-lg">
                                     <input type="hidden" name="document_auth_required" value="0">
-                                    <input type="checkbox" class="form-check-input" id="document_auth_required" name="document_auth_required"
-                                        value="1" {{ old('document_auth_required', $tour->document_auth_required) ? 'checked' : '' }}>
+                                    <input type="checkbox" class="form-check-input" id="document_auth_required"
+                                        name="document_auth_required" value="1"
+                                        {{ old('document_auth_required', $tour->document_auth_required) ? 'checked' : '' }}>
                                     <label class="form-check-label" for="document_auth_required">Active</label>
                                 </div>
                             </div>
@@ -993,7 +1031,8 @@
 
                                     <div class="mb-3">
                                         <div class="d-flex justify-content-between align-items-center mb-1">
-                                            <label class="form-label mb-0" for="show_document_url">Show Attachment 1 URL</label>
+                                            <label class="form-label mb-0" for="show_document_url">Show Attachment 1
+                                                URL</label>
                                             <div class="form-check form-switch mb-0">
                                                 <input type="hidden" name="show_document_url" value="0">
                                                 <input class="form-check-input" type="checkbox" name="show_document_url"
@@ -1001,7 +1040,8 @@
                                                     {{ old('show_document_url', $tour->show_document_url ?? true) ? 'checked' : '' }}>
                                             </div>
                                         </div>
-                                        <small class="text-muted">Controls visibility of attachment 1 URL in tour data.</small>
+                                        <small class="text-muted">Controls visibility of attachment 1 URL in tour
+                                            data.</small>
                                     </div>
 
                                     <div class="mb-3">
@@ -1093,15 +1133,17 @@
 
                                     <div class="mb-3">
                                         <div class="d-flex justify-content-between align-items-center mb-1">
-                                            <label class="form-label mb-0" for="show_document_url2">Show Attachment 2 URL</label>
+                                            <label class="form-label mb-0" for="show_document_url2">Show Attachment 2
+                                                URL</label>
                                             <div class="form-check form-switch mb-0">
                                                 <input type="hidden" name="show_document_url2" value="0">
-                                                <input class="form-check-input" type="checkbox" name="show_document_url2"
-                                                    id="show_document_url2" value="1"
+                                                <input class="form-check-input" type="checkbox"
+                                                    name="show_document_url2" id="show_document_url2" value="1"
                                                     {{ old('show_document_url2', $tour->show_document_url2 ?? true) ? 'checked' : '' }}>
                                             </div>
                                         </div>
-                                        <small class="text-muted">Controls visibility of attachment 2 URL in tour data.</small>
+                                        <small class="text-muted">Controls visibility of attachment 2 URL in tour
+                                            data.</small>
                                     </div>
 
                                     <div class="mb-3">
@@ -1560,4 +1602,4 @@
     </div>
 </div>
 
-@vite(['resources/js/pages/booking-tour-detail-update-tab.js'])
+@vite(['resources/js/pages/booking-tour-detail-update-tab.js', 'resources/js/pages/booking_edit_sidebarLink.js'])
