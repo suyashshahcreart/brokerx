@@ -2128,6 +2128,76 @@ class TourController extends Controller
         return redirect()->back()->with(['success' => 'Sidebar section updated successfully.', 'active_tab' => 'vl-pills-sidebar-section']);
     }
 
+    public function updateSidebarLinks(Request $request, Tour $tour): JsonResponse|RedirectResponse
+    {
+        $validated = $request->validate([
+            'sidebar_links' => ['nullable', 'array'],
+            'sidebar_links.*.icon' => ['nullable', 'string', 'max:255'],
+            'sidebar_links.*.title' => ['nullable', 'array'],
+            'sidebar_links.*.type' => ['required', 'string', 'in:link,content'],
+            'sidebar_links.*.order' => ['required', 'integer', 'min:1'],
+            'sidebar_links.*.link' => ['nullable','required_if:sidebar_links.*.type,link', 'nullable', 'url', 'max:255'],
+            'sidebar_links.*.content' => ['nullable', 'array'],
+            'sidebar_links.*.content.en' => ['nullable','required_if:sidebar_links.*.type,content', 'string'],
+        ]);
+
+        $sidebarLinks = collect($validated['sidebar_links'] ?? [])->map(function ($item) {
+            $item['title'] = isset($item['title']) ? (array) $item['title'] : ['en' => ''];
+            $item['content'] = isset($item['content']) ? (array) $item['content'] : ['en' => ''];
+
+            return [
+                'icon' => !empty($item['icon']) ? trim($item['icon']) : null,
+                'title' => ['en' => trim($item['title']['en'] ?? '')],
+                'type' => $item['type'] ?? 'link',
+                'order' => (int) ($item['order'] ?? 0),
+                'link' => $item['type'] === 'link' ? trim($item['link'] ?? '') : null,
+                'content' => $item['type'] === 'content' ? ['en' => $item['content']['en'] ?? ''] : null,
+            ];
+        })->filter(function ($item) {
+            // Ensure title.en is not empty and type is valid
+            return !empty($item['title']['en']) && in_array($item['type'], ['link', 'content'], true);
+        })->sortBy('order')->values()->toArray();
+
+        $oldData = $tour->toArray();
+        $finalJson = $this->normalizeFinalJsonPayload($tour);
+        
+        // Ensure sidebarConfig structure exists
+        $finalJson['sidebarConfig'] = $finalJson['sidebarConfig'] ?? [];
+        $finalJson['sidebarLinks'] = $sidebarLinks;
+        
+        // Persist both DB column and final_json for consistency
+        $updateData = [
+            'final_json' => $finalJson,
+            'sidebar_links' => $sidebarLinks,
+        ];
+
+        $tour->update($updateData);
+        $newData = $tour->fresh()->toArray();
+
+        activity('tours')
+            ->performedOn($tour)
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'old' => $oldData,
+                'new' => $newData,
+            ])
+            ->log('Tour sidebar links updated');
+
+        // Update S3 JSON/JS files with new final_json
+        $this->updateTourJsonAndJsFilesInS3($tour, $finalJson);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Sidebar links updated successfully.',
+                'tour' => $tour->fresh(),
+            ]);
+        }
+
+        return redirect()->back()->with(['success' => 'Sidebar links updated successfully.', 'active_tab' => 'vl-pills-sidebar-section']);
+
+    }
+
     /**
      * Update only bottom top tab data.
      */
