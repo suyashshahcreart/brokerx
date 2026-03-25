@@ -223,7 +223,11 @@
                             <li class="breadcrumb-item active" aria-current="page">#{{ $booking->id }} </li>
                         </ol>
                     </nav>
-                    <h3 class="mb-0">Booking #{{ $booking->id }} ({{ $booking->tour_code }})</h3>
+                    <h3 class="mb-0">
+                        Booking #{{ $booking->id }}
+                        (<span class="dblclick-copy" role="button" tabindex="0" title="Double click to copy"
+                            data-copy-text="{{ $booking->tour_code }}">{{ $booking->tour_code }}</span>)
+                    </h3>
                 </div>
                 <div class="d-flex align-items-center gap-2">
                     <x-admin.back-button :fallback="route('admin.bookings.index')" :classes="['btn', 'btn-soft-primary']"
@@ -246,14 +250,14 @@
                     <div class="mb-3">
                         <div class="card border bg-light-subtle">
                             <div class="card-body p-3">
-                                <div class="d-flex align-items-center">
+                                <div class="d-flex align-items-center flex-wrap flex-sm-nowrap">
                                     <div class="flex-shrink-0">
                                         <div
                                             class="avatar-lg bg-primary-subtle rounded-circle d-flex align-items-center justify-content-center">
                                             <i class="ri-user-line fs-3 text-primary"></i>
                                         </div>
                                     </div>
-                                    <div class="flex-grow-1 ms-3">
+                                    <div class="flex-grow-1 ms-0 ms-sm-3 w-100 w-sm-auto">
                                         <h5 class="mb-1">{{ $booking->customer?->firstname }} {{ $booking->customer?->lastname }}
                                         </h5>
                                         <div class="d-flex gap-3">
@@ -269,7 +273,7 @@
                                         </div>
                                     </div>
                                     <!-- Metadata Integrated to Right Side -->
-                                    <div class="text-end">
+                                    <div class="text-start text-sm-end mt-2 mt-sm-0 ms-sm-auto flex-shrink-0">
                                         <div class="d-block mb-1">
                                             <small class="text-muted">
                                                 <i class="ri-user-add-line me-1"></i>
@@ -544,7 +548,10 @@
                                                             <div>
                                                                 <small class="text-muted d-block" style="font-size: 10px;">TOUR
                                                                     CODE</small>
-                                                                <code style="font-size: 12px;">{{ $booking->tour_code }}</code>
+                                                                <code class="dblclick-copy" role="button" tabindex="0"
+                                                                    title="Double click to copy"
+                                                                    data-copy-text="{{ $booking->tour_code }}"
+                                                                    style="font-size: 12px;">{{ $booking->tour_code }}</code>
                                                             </div>
                                                         @endif
                                                         @if($booking->tour_final_link)
@@ -1542,19 +1549,32 @@
                                     </div>
                                     <div class="col-12 mb-2">
                                         <small class="text-muted d-block" style="font-size: 10px;">QR LINK</small>
-                                        <a href="{{ getQrLinkBase() }}{{ $booking->qr->code }}" target="_blank" class="text-break small">
-                                            {{ getQrLinkBase() }}{{ $booking->qr->code }}
-                                            <i class="ri-external-link-line ms-1"></i>
-                                        </a>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <a href="{{ getQrLinkBase() }}{{ $booking->qr->code }}" target="_blank" rel="noopener"
+                                                class="text-truncate d-block small">
+                                                {{ getQrLinkBase() }}{{ $booking->qr->code }}
+                                            </a>
+                                            <button type="button" class="btn btn-link btn-sm p-0 copy-booking-link-btn"
+                                                data-copy-text="{{ getQrLinkBase() }}{{ $booking->qr->code }}"
+                                                title="Copy QR link" aria-label="Copy QR link">
+                                                <i class="ri-file-copy-line"></i>
+                                            </button>
+                                        </div>
                                     </div>
                                     @if($booking->qr->qr_link)
                                         <div class="col-12 mb-2">
                                             <small class="text-muted d-block" style="font-size: 10px;">LIVE LINK</small>
-                                            <a href="{{ $booking->getTourLiveUrl() }}" target="_blank" class="text-truncate d-block small"
-                                                style="max-width: 100%;">
-                                                <code>{{ Str::limit($booking->getTourLiveUrl(), 50) }}</code>
-                                                <i class="ri-external-link-line ms-1"></i>
-                                            </a>
+                                            <div class="d-flex align-items-center gap-2">
+                                                <a href="{{ $booking->getTourLiveUrl() }}" target="_blank" rel="noopener"
+                                                    class="text-truncate d-block small" style="max-width: 100%;">
+                                                    <code>{{ Str::limit($booking->getTourLiveUrl(), 50) }}</code>
+                                                </a>
+                                                <button type="button" class="btn btn-link btn-sm p-0 copy-booking-link-btn"
+                                                    data-copy-text="{{ $booking->getTourLiveUrl() }}"
+                                                    title="Copy live link" aria-label="Copy live link">
+                                                    <i class="ri-file-copy-line"></i>
+                                                </button>
+                                            </div>
                                         </div>
                                     @endif
                                 </div>
@@ -1768,6 +1788,65 @@
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
         const baseUrl = '{{ url("/") }}';
         const apiBaseUrl = '{{ url("/api") }}';
+
+        async function copyTextToClipboard(text) {
+            try {
+                // Prefer modern clipboard API when available.
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(text);
+                    return true;
+                }
+            } catch (e) {
+                // Continue to fallback method below.
+            }
+
+            try {
+                // Fallback for non-secure contexts / older browsers.
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                textarea.setAttribute('readonly', '');
+                textarea.style.position = 'fixed';
+                textarea.style.left = '-9999px';
+                document.body.appendChild(textarea);
+                textarea.select();
+                const ok = document.execCommand('copy');
+                document.body.removeChild(textarea);
+                return ok;
+            } catch (e) {
+                console.error('Clipboard copy failed:', e);
+                return false;
+            }
+        }
+
+        // Copy QR/LIVE links on icon click.
+        document.addEventListener('click', async function (e) {
+            const btn = e.target.closest('.copy-booking-link-btn');
+            if (!btn) return;
+
+            const linkText = btn.getAttribute('data-copy-text') || '';
+            if (!linkText) return;
+
+            const copied = await copyTextToClipboard(linkText);
+            if (copied) {
+                await Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'success',
+                    title: 'Copied',
+                    showConfirmButton: false,
+                    timer: 1200
+                });
+            } else {
+                await Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'error',
+                    title: 'Copy failed',
+                    showConfirmButton: false,
+                    timer: 1500
+                });
+            }
+        });
 
         // Update Payment Status
         async function updatePaymentStatus(status) {

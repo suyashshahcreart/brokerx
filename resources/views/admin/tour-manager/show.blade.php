@@ -52,7 +52,11 @@
                                 <li class="breadcrumb-item active" aria-current="page">{{ $booking->id }}</li>
                             </ol>
                         </nav>
-                        <h3 class="mb-0">Tour Management ({{$booking->tour_code}})</h3>
+                        <h3 class="mb-0">
+                            Tour Management
+                            (<span class="dblclick-copy" role="button" tabindex="0" title="Double click to copy"
+                                data-copy-text="{{ $booking->tour_code }}">{{ $booking->tour_code }}</span>)
+                        </h3>
                     </div>
                     <div>
                         <a href="{{ route('admin.tour-manager.index') }}" class="btn btn-soft-secondary" data-bs-toggle="tooltip" title="Back to Tour Management">
@@ -279,9 +283,18 @@
                                 <div class="col-6 mb-2">
                                     <label class="form-label fw-bold text-muted small">QR Link</label>
                                     <p class="mb-0">
-                                        <a href="{{ getQrLinkBase() }}{{ $booking->qr->code }}" target="_blank" class="text-break">
-                                            <code>{{ getQrLinkBase() }}{{ $booking->qr->code }}</code>
-                                        </a>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <a href="{{ getQrLinkBase() }}{{ $booking->qr->code }}" target="_blank" rel="noopener"
+                                                class="text-truncate d-block flex-grow-1" title="{{ getQrLinkBase() }}{{ $booking->qr->code }}">
+                                                <code>{{ getQrLinkBase() }}{{ $booking->qr->code }}</code>
+                                            </a>
+                                            <button type="button"
+                                                class="btn btn-link btn-sm p-0 copy-link-btn"
+                                                data-copy-text="{{ getQrLinkBase() }}{{ $booking->qr->code }}"
+                                                title="Copy QR link" aria-label="Copy QR link">
+                                                <i class="ri-file-copy-line"></i>
+                                            </button>
+                                        </div>
                                     </p>
                                 </div>
                                 <div class="col-6 mb-2" id="tour-live-link-box" data-booking-id="{{ $booking->id }}">
@@ -321,10 +334,18 @@
                                         @elseif($tourZipStatus === 'done')
                                             @if($hasLiveLink)
                                                 <p class="mb-0">
-                                                    <a href="{{ $tourLiveUrl }}" target="_blank" class="text-truncate d-block" style="max-width: 100%;">
-                                                        {{ Str::limit($tourLiveUrl, 40) }}
-                                                        <i class="ri-external-link-line ms-1"></i>
-                                                    </a>
+                                                    <div class="d-flex align-items-center gap-2">
+                                                        <a href="{{ $tourLiveUrl }}" target="_blank" rel="noopener"
+                                                            class="text-truncate d-block flex-grow-1" style="max-width: 100%;" title="{{ $tourLiveUrl }}">
+                                                            {{ Str::limit($tourLiveUrl, 40) }}
+                                                        </a>
+                                                        <button type="button"
+                                                            class="btn btn-link btn-sm p-0 copy-link-btn"
+                                                            data-copy-text="{{ $tourLiveUrl }}"
+                                                            title="Copy live link" aria-label="Copy live link">
+                                                            <i class="ri-file-copy-line"></i>
+                                                        </button>
+                                                    </div>
                                                 </p>
                                             @else
                                                 <p class="text-muted mb-0">Please upload a ZIP Again to generate the live link.</p>
@@ -587,6 +608,64 @@
     setTimeout(initCopyButtons, 200);
 })();
 
+// Copy QR/Tour links to clipboard
+(function() {
+    async function copyTextToClipboard(text) {
+        try {
+            if (navigator.clipboard && window.isSecureContext) {
+                await navigator.clipboard.writeText(text);
+                return true;
+            }
+        } catch (e) {
+            // ignore and fallback
+        }
+
+        try {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.setAttribute('readonly', '');
+            textarea.style.position = 'fixed';
+            textarea.style.left = '-9999px';
+            document.body.appendChild(textarea);
+            textarea.select();
+            const ok = document.execCommand('copy');
+            document.body.removeChild(textarea);
+            return ok;
+        } catch (e) {
+            return false;
+        }
+    }
+
+    document.addEventListener('click', async function(e) {
+        const btn = e.target.closest('.copy-link-btn');
+        if (!btn) return;
+
+        const text = btn.getAttribute('data-copy-text') || '';
+        if (!text) return;
+
+        if (!btn.dataset.originalHtml) {
+            btn.dataset.originalHtml = btn.innerHTML;
+        }
+
+        const copied = await copyTextToClipboard(text);
+        if (copied) {
+            btn.innerHTML = '<i class="ri-check-line"></i>';
+            const originalTitle = btn.getAttribute('title') || '';
+            btn.setAttribute('title', 'Copied');
+            setTimeout(function() {
+                btn.innerHTML = btn.dataset.originalHtml || '<i class="ri-file-copy-line"></i>';
+                btn.setAttribute('title', originalTitle || 'Copy link');
+            }, 2000);
+        } else {
+            btn.innerHTML = '<i class="ri-close-line"></i>';
+            setTimeout(function() {
+                btn.innerHTML = btn.dataset.originalHtml || '<i class="ri-file-copy-line"></i>';
+            }, 2000);
+            alert('Failed to copy. Please copy manually.');
+        }
+    });
+})();
+
 // Live ZIP processing status polling (Tour Live Link box)
 (function() {
     const box = document.getElementById('tour-live-link-box');
@@ -699,10 +778,18 @@
             if (hasLive && liveUrl && liveUrl !== '#') {
                 content.innerHTML = `
                     <p class="mb-0">
-                        <a href="${escapeHtml(liveUrl)}" target="_blank" class="text-truncate d-block" style="max-width: 100%;">
-                            ${escapeHtml(liveUrl.length > 40 ? liveUrl.slice(0, 40) + '…' : liveUrl)}
-                            <i class="ri-external-link-line ms-1"></i>
-                        </a>
+                        <div class="d-flex align-items-center gap-2">
+                            <a href="${escapeHtml(liveUrl)}" target="_blank" rel="noopener"
+                                class="text-truncate d-block flex-grow-1" style="max-width: 100%;">
+                                ${escapeHtml(liveUrl.length > 40 ? liveUrl.slice(0, 40) + '…' : liveUrl)}
+                            </a>
+                            <button type="button"
+                                class="btn btn-link btn-sm p-0 copy-link-btn"
+                                data-copy-text="${escapeHtml(liveUrl)}"
+                                title="Copy live link" aria-label="Copy live link">
+                                <i class="ri-file-copy-line"></i>
+                            </button>
+                        </div>
                     </p>
                 `;
             } else {

@@ -165,13 +165,14 @@ class TourManagerController extends Controller
 
                         // Fallback to plain code when we cannot build a URL
                         if (!$qrUrl) {
-                            return '<span class="text-muted">' . htmlspecialchars($booking->qr->code, ENT_QUOTES, 'UTF-8') . '</span>';
+                            $safeCode = htmlspecialchars($booking->qr->code, ENT_QUOTES, 'UTF-8');
+                            return '<span class="text-muted dblclick-copy" data-copy-text="' . $safeCode . '" title="Double click to copy">' . $safeCode . '</span>';
                         }
 
                         $safeUrl = htmlspecialchars($qrUrl, ENT_QUOTES, 'UTF-8');
                         $safeCode = htmlspecialchars($booking->qr->code, ENT_QUOTES, 'UTF-8');
 
-                        return '<a href="' . $safeUrl . '" target="_blank" rel="noopener" data-bs-toggle="tooltip" data-bs-placement="top" title="Open QR link">' . $safeCode . '</a>';
+                        return '<a href="' . $safeUrl . '" target="_blank" rel="noopener" data-bs-toggle="tooltip" data-bs-placement="top" title="Open QR link" class="dblclick-copy" data-copy-text="' . $safeCode . '">' . $safeCode . '</a>';
                     }
 
                     return '<span class="text-muted">N/A</span>';
