@@ -38,6 +38,7 @@ const elements = {
     jsonDataSaveBtn: $('#jsonDataSaveBtn'),
     compareJsonContainer: $('#conpareJsonBody'),
     jsonSaveBtn: $('#jsonSavebtn'),
+    diffJsonInput: $('#diffJsonInput'),
     jsonDontSaveBtn: $('#jsonDontSaveBtn'),
     jsonUpdateBtn: $('#jsonUpdatebtn')
 };
@@ -123,6 +124,9 @@ elements.jsonDataSaveBtn.on('click', function () {
             });
             return;
         }
+        
+        console.log('Delta:', delta); // Debug log for delta
+        elements.diffJsonInput.val(JSON.stringify(delta)); // Store diff for potential future use
 
         // Store modification flag
         jsonEditorState.isModified = true;

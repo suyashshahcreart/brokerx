@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Tour;
+use Arr;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
@@ -1091,6 +1092,7 @@ class TourController extends Controller
         if (!$request->has('final_json') && $request->has('final_josn')) {
             $request->merge(['final_json' => $request->input('final_josn')]);
         }
+        $diffJson = json_decode($request->diff_json ?? '{}', true);
 
         $validator = Validator::make($request->all(), [
             'final_json' => [
@@ -1142,7 +1144,179 @@ class TourController extends Controller
 
             DB::beginTransaction();
 
+            // Update final_json in DB - this is optional since S3 files are the source of truth, but we keep it for reference and backup
             $tour->update(['final_json' => $finalJson]);
+
+            /* sync the user Info tabs */
+            if (Arr::has($diffJson, 'userInfo')) {
+                // name sync
+                if (Arr::has($diffJson, 'userInfo.userName')) {
+                    $tour->contact_user_name = $finalJson['userInfo']['userName'];
+                }
+                // location sync
+                if (Arr::has($diffJson, 'userInfo.googleLocation')) {
+                    $tour->contact_google_location = $finalJson['userInfo']['googleLocation'];
+                }
+                // website sync
+                if (Arr::has($diffJson, 'userInfo.website')) {
+                    $tour->contact_website = $finalJson['userInfo']['website'];
+                }
+                // email sync
+                if (Arr::has($diffJson, 'userInfo.email')) {
+                    $tour->contact_email = $finalJson['userInfo']['email'];
+                }
+                // phone sync
+                if (Arr::has($diffJson, 'userInfo.phoneNumber')) {
+                    $tour->contact_phone_no = $finalJson['userInfo']['phoneNumber'];
+                }
+                // whatsapp sync
+                if (Arr::has($diffJson, 'userInfo.whatsAppNumber')) {
+                    $tour->contact_whatsapp_no = $finalJson['userInfo']['whatsAppNumber'];
+                }
+
+                /* show fields sync */
+                // show contact user name sync
+                if (Arr::has($diffJson, 'userInfo.showUserName')) {
+                    $tour->show_contact_user_name = $finalJson['userInfo']['showUserName'];
+                }
+                // show contact google location sync
+                if (Arr::has($diffJson, 'userInfo.showGoogleLocation')) {
+                    $tour->show_contact_google_location = $finalJson['userInfo']['showGoogleLocation'];
+                }
+                // show contact email sync
+                if (Arr::has($diffJson, 'userInfo.showEmail')) {
+                    $tour->show_contact_email = $finalJson['userInfo']['showEmail'];
+                }
+                //  show contact website sync
+                if (Arr::has($diffJson, 'userInfo.showWebsite')) {
+                    $tour->show_contact_website = $finalJson['userInfo']['showWebsite'];
+                }
+                // show contact phone sync
+                if (Arr::has($diffJson, 'userInfo.showPhoneNumber')) {
+                    $tour->show_contact_phone_no = $finalJson['userInfo']['showPhoneNumber'];
+                }
+                // show contact whatsapp sync
+                if (Arr::has($diffJson, 'userInfo.showWhatsAppNumber')) {
+                    $tour->show_contact_whatsapp_no = $finalJson['userInfo']['showWhatsAppNumber'];
+                }
+                // show document 1 sync
+                if (Arr::has($diffJson, 'userInfo.showDocumentUrl')) {
+                    $tour->show_document_url = $finalJson['userInfo']['showDocumentUrl'];
+                }
+                // show document 2 sync
+                if (Arr::has($diffJson, 'userInfo.showDocumentUr2')) {
+                    $tour->show_document_url2 = $finalJson['userInfo']['showDocumentUr2'];
+                }
+                // documentAuthRequired sync
+                if (Arr::has($diffJson, 'userInfo.documentAuthRequired')) {
+                    $tour->document_auth_required = $finalJson['userInfo']['documentAuthRequired'];
+                }
+            }
+
+            /* sync the localeConfig fields changes */
+            if (Arr::has($diffJson, 'localeConfig')) {
+                $localeConfig = $finalJson['localeConfig'] ?? [];
+                // default language sync
+                if (Arr::has($diffJson, 'localeConfig.defaultLanguage')) {
+                    $tour->default_language = $localeConfig['defaultLanguage'] ?? 'en';
+                }
+                // enable languages sync
+                if (Arr::has($diffJson, 'localeConfig.enabledLanguages')) {
+                    $tour->enable_language = $localeConfig['enabledLanguages'] ?? ['en', 'hi'];
+                }
+
+            }
+
+            /* loader config data sync */
+            if (Arr::has($diffJson, 'loaderConfig')) {
+                $loaderConfig = $finalJson['loaderConfig'] ?? [];
+                $tour->loader_text = $loaderConfig['loadingText'] ?? "It's Prop Pik, It's Real";
+                $tour->overlay_bg_color = $loaderConfig['overlayBackgroundColor'] ?? '#3949AB';
+
+                // text gradient colors sync
+                if (
+                    Arr::has($diffJson, 'loaderConfig.spinnerGradientColor1') ||
+                    Arr::has($diffJson, 'loaderConfig.spinnerGradientColor2') ||
+                    Arr::has($diffJson, 'loaderConfig.spinnerGradientColor3')
+                ) {
+                    $tour->spinner_color = [
+                        $finalJson['loaderConfig']['spinnerGradientColor1'] ?? '#FF5F5F',
+                        $finalJson['loaderConfig']['spinnerGradientColor2'] ?? '#FF5F5F',
+                        $finalJson['loaderConfig']['spinnerGradientColor3'] ?? '#FF5F5F',
+                    ];
+                }
+                // text gradient colors sync
+                if (
+                    Arr::has($diffJson, 'loaderConfig.textGradientColor1') ||
+                    Arr::has($diffJson, 'loaderConfig.textGradientColor2') ||
+                    Arr::has($diffJson, 'loaderConfig.textGradientColor3')
+                ) {
+                    $tour->loader_color = [
+                        $finalJson['loaderConfig']['textGradientColor1'] ?? '#FF5F5F',
+                        $finalJson['loaderConfig']['textGradientColor2'] ?? '#FF5F5F',
+                        $finalJson['loaderConfig']['textGradientColor3'] ?? '#FF5F5F',
+                    ];
+                }
+            }
+
+            /* sidebar Update sync */
+            if (Arr::has($diffJson, 'sidebarConfig')) {
+                // footer button 
+                if (Arr::has($diffJson, 'sidebarConfig.footerButton')) {
+                    $footerButton = $finalJson['sidebarConfig']['footerButton'] ?? [];
+                    $tour->sidebar_footer_text = $footerButton['text']['en'] ?? 'Designe By PROP PIK';
+                    $tour->sidebar_footer_link = $footerButton['link'];
+                }
+
+                // sidebar config sidebar tag sync
+                if (Arr::has($diffJson, 'sidebarConfig.sidebarTag')) {
+                    $sidebarTag = $finalJson['sidebarConfig']['sidebarTag'] ?? [];
+                    $tour->sidebar_tag_text = $sidebarTag['text'];
+                    $tour->sidebar_tag_color = $sidebarTag['color'];
+                    $tour->sidebar_tag_bg_color = $sidebarTag['backgroundColor'];
+                }
+            }
+
+            /* bottomMarker Update sync */
+            if (Arr::has($diffJson, 'bottomMarker')) {
+                $bottomMarker = $finalJson['bottomMarker'] ?? [];
+                // update toptitle
+                if (Arr::has($diffJson, 'bottomMarker.topTitle')) {
+                    $tour->footer_title = $bottomMarker['topTitle'] ?? null;
+                }
+                // update subtitle
+                if (Arr::has($diffJson, 'bottomMarker.subTitle')) {
+                    $tour->footer_subtitle = $bottomMarker['topSubTitle'] ?? null;
+                }
+                // update description
+                if (Arr::has($diffJson, 'bottomMarker.topDescription')) {
+                    $tour->footer_decription = $bottomMarker['topDescription'] ?? null;
+                }
+
+                // property name, room type and dimensions are stored in legacy DB columns for now since they are used in the old template and we want to
+                if (Arr::has($diffJson, 'bottomMarker.propertyName')) {
+                    $tour->bottommark_property_name = $bottomMarker['propertyName'] ?? null;
+                }
+                // room type
+                if (Arr::has($diffJson, 'bottomMarker.roomType')) {
+                    $tour->bottommark_room_type = $bottomMarker['roomType'] ?? null;
+                }
+                // dimensions
+                if (Arr::has($diffJson, 'bottomMarker.dimensions')) {
+                    $tour->bottommark_dimensions = $bottomMarker['dimensions'] ?? null;
+                }
+
+                /* contact info */
+                if (Arr::has($diffJson, 'bottomMarker.contactNumber')) {
+                    $tour->footer_mobile = $bottomMarker['contactNumber'] ?? null;
+                }
+                if (Arr::has($diffJson, 'bottomMarker.contactEmail')) {
+                    $tour->footer_email = $bottomMarker['contactEmail'] ?? null;
+                }
+            }
+
+            // save to the database
+            $tour->save();
 
             if (!$this->updateTourJsonAndJsFilesInS3($tour, $finalJson)) {
                 DB::rollBack();

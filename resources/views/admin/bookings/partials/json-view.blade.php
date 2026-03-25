@@ -18,6 +18,7 @@
             readonly style="font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace; font-size: 12px;">
         {!! is_array($tour->final_json) ? json_encode($tour->final_json, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) : $tour->final_json !!}
         </textarea>
+        <input type="text" readonly hidden name="diff_json" id="diffJsonInput">
         <div class="d-flex justify-content-end my-3 gap-2">
             <button type="reset" class="btn btn-outline-secondary">
                 <i class="ri-refresh-line me-1"></i>Reset
