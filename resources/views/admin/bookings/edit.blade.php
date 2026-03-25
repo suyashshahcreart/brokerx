@@ -299,7 +299,11 @@
                             <li class="breadcrumb-item active" aria-current="page">Edit #{{ $booking->id }}</li>
                         </ol>
                     </nav>
-                    <h3 class="mb-0">Edit Booking #{{ $booking->id }} ({{ $booking->tour_code }})</h3>
+                    <h3 class="mb-0">
+                        Edit Booking #{{ $booking->id }}
+                        (<span class="dblclick-copy" role="button" tabindex="0" title="Double click to copy"
+                            data-copy-text="{{ $booking->tour_code }}">{{ $booking->tour_code }}</span>)
+                    </h3>
                 </div>
                 <div class="d-flex align-items-center gap-2">
                     <x-admin.back-button :fallback="route('admin.bookings.index')" :classes="['btn', 'btn-soft-secondary']"
