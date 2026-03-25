@@ -2309,32 +2309,45 @@ class TourController extends Controller
     }
 
     public function updateSidebarLinks(Request $request, Tour $tour): JsonResponse|RedirectResponse
-    {
+    { 
         $validated = $request->validate([
             'sidebar_links' => ['nullable', 'array'],
             'sidebar_links.*.icon' => ['nullable', 'string', 'max:255'],
             'sidebar_links.*.title' => ['nullable', 'array'],
+            'sidebar_links.*.title.en' => ['nullable', 'string'],
+            'sidebar_links.*.title.gu' => ['nullable', 'string'],
+            'sidebar_links.*.title.hi' => ['nullable', 'string'],
             'sidebar_links.*.type' => ['required', 'string', 'in:link,content,infoModal'],
             'sidebar_links.*.order' => ['required', 'integer', 'min:1'],
-            'sidebar_links.*.link' => ['nullable', 'required_if:sidebar_links.*.type,link', 'nullable', 'url', 'max:255'],
+            'sidebar_links.*.link' => ['nullable', 'url', 'max:255'],
             'sidebar_links.*.content' => ['nullable', 'array'],
-            'sidebar_links.*.content.en' => ['nullable', 'required_if:sidebar_links.*.type,content,infoModal', 'string'],
+            'sidebar_links.*.content.en' => ['nullable', 'string'],
+            'sidebar_links.*.content.gu' => ['nullable', 'string'],
+            'sidebar_links.*.content.hi' => ['nullable', 'string'],
         ]);
 
         $sidebarLinks = collect($validated['sidebar_links'] ?? [])->map(function ($item) {
-            $item['title'] = isset($item['title']) ? (array) $item['title'] : ['en' => ''];
-            $item['content'] = isset($item['content']) ? (array) $item['content'] : ['en' => ''];
+            $title = isset($item['title']) ? (array) $item['title'] : [];
+            $content = isset($item['content']) ? (array) $item['content'] : [];
 
             return [
                 'icon' => !empty($item['icon']) ? trim($item['icon']) : null,
-                'title' => ['en' => trim($item['title']['en'] ?? '')],
+                'title' => [
+                    'en' => trim($title['en']),
+                    'gu' => trim($title['gu']),
+                    'hi' => trim($title['hi']),
+                ],
                 'type' => $item['type'] ?? 'link',
-                'order' => (int) ($item['order'] ?? 140 ),
+                'order' => (int) ($item['order'] ?? 140),
                 'link' => $item['type'] === 'link' ? trim($item['link'] ?? '') : null,
-                'content' => $item['content'],
+                'content' => [
+                    'en' => $content['en'],
+                    'gu' => $content['gu'],
+                    'hi' => $content['hi'],
+                ],
             ];
         })->filter(function ($item) {
-            // Ensure title.en is not empty and type is valid
+            // Ensure English title is not empty and type is valid
             return !empty($item['title']['en']) && in_array($item['type'], ['link', 'content', 'infoModal'], true);
         })->sortBy('order')->values()->toArray();
 
