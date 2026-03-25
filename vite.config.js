@@ -77,6 +77,7 @@ export default defineConfig({
                 'resources/js/pages/booking-edit-json-edit.js',
                 'resources/js/pages/customers-add.js',
                 'resources/js/icon-lib.js',
+                'resources/js/pages/booking_edit_sidebarLink.js',
 
                 //components
                 'resources/js/components/maps-google.js',
