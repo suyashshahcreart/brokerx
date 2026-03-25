@@ -30,7 +30,7 @@ function initSidebarLinks() {
     }
 }
 
-function initQuillForRow(rowIndex) {
+function initQuillForRow(rowIndex, initialContent = '') {
     const containerId = `contentQuillEditor_${rowIndex}`;
     const hiddenInput = document.getElementById(`contentHidden_${rowIndex}`);
 
@@ -53,7 +53,7 @@ function initQuillForRow(rowIndex) {
     });
 
     if (hiddenInput.value) {
-        quill.root.innerHTML = hiddenInput.value;
+        quill.root.innerHTML = initialContent;
     }
 
     quill.on('text-change', function () {
@@ -77,7 +77,6 @@ function addSidebarLinkRow(linkData = {}) {
     const order = linkData.order || (rowIndex + 1);
     const link = linkData.link || '';
     const contentEn = linkData.content?.en || '';
-
     const rowHTML = `
         <div class="sidebar-link-row row mb-3 align-items-end border p-3 rounded" data-row-index="${rowIndex}">
             <div class="col-md-2">
@@ -86,10 +85,16 @@ function addSidebarLinkRow(linkData = {}) {
                     <input type="text" name="sidebar_links[${rowIndex}][icon]" 
                         class="form-control icon-input" placeholder="Click to select" 
                         data-row-index="${rowIndex}" readonly value="${icon}">
-                    <div class="icon-preview" id="iconPreview_${rowIndex}"></div>
+                    <div class="icon-preview" id="iconPreview_${rowIndex}">
+                        ${icon ?? `
+                            <div class="icon-item text-center">
+                                <span class="material-icons-outlined">${icon}</span>
+                            </div>
+                            ` }
+                    </div>
                 </div>
             </div>
-            <div class="col-md-2">
+            <div class="col-md-2" id="titleContainer_${rowIndex}">
                 <label class="form-label">Title <span class="text-danger">*</span></label>
                 <input type="text" name="sidebar_links[${rowIndex}][title][en]" 
                     class="form-control" placeholder="e.g, Floor Plan" required value="${titleEn}">
@@ -99,6 +104,7 @@ function addSidebarLinkRow(linkData = {}) {
                 <select id="typeSelect_${rowIndex}" name="sidebar_links[${rowIndex}][type]" class="form-select" required>
                     <option value="">Select Type</option>
                     <option value="link" ${type === 'link' ? 'selected' : ''}>Link</option>
+                    <option value="infoModal" ${type === 'infoModal' ? 'selected' : ''}>infoModal</option>
                     <option value="content" ${type === 'content' ? 'selected' : ''}>Content</option>
                 </select>
             </div>
@@ -112,10 +118,12 @@ function addSidebarLinkRow(linkData = {}) {
                 <input type="url" name="sidebar_links[${rowIndex}][link]" 
                     class="form-control" placeholder="e.g, https://example.com" value="${link}" ${type === 'link' ? 'required' : ''}>
             </div>
-            <div class="col-md-12 mt-2" id="contentInputContainer_${rowIndex}" style="display: ${type === 'content' ? 'block' : 'none'};">
+            <div class="col-md-12 mt-2" id="contentInputContainer_${rowIndex}" style="display: ${type === 'content' || type === 'infoModal' ? 'block' : 'none'};">
                 <label class="form-label">Content <span class="text-danger">*</span></label>
                 <div id="contentQuillEditor_${rowIndex}" class="quill-editor" style="min-height: 150px; border: 1px solid #ced4da; border-radius: .25rem; background: #fff;"></div>
-                <input type="hidden" name="sidebar_links[${rowIndex}][content][en]" id="contentHidden_${rowIndex}" class="content-hidden-input" value="${contentEn}" ${type === 'content' ? 'required' : ''}>
+                <div class="d-none">
+                    <input type="hidden" name="sidebar_links[${rowIndex}][content][en]" id="contentHidden_${rowIndex}" class="content-hidden-input" value="${contentEn}">
+                </div>
             </div>
             <div class="col-md-12 d-flex justify-content-end align-items-end pb-2 mt-2">
                 <button type="button" class="btn btn-danger btn-sm remove-sidebar-link" title="Remove">
@@ -132,6 +140,8 @@ function addSidebarLinkRow(linkData = {}) {
     const contentContainer = document.getElementById(`contentInputContainer_${rowIndex}`);
     const linkInput = linkContainer.querySelector('input');
     const contentHidden = document.getElementById(`contentHidden_${rowIndex}`);
+    const titleContainer = document.getElementById(`titleContainer_${rowIndex}`);
+    const titleInput = titleContainer.querySelector('input');
 
     typeSelect.addEventListener('change', function () {
         const selectedType = this.value;
@@ -139,25 +149,39 @@ function addSidebarLinkRow(linkData = {}) {
         if (selectedType === 'link') {
             linkContainer.style.display = 'block';
             contentContainer.style.display = 'none';
+            titleContainer.style.display = 'block';
             linkInput.required = true;
             contentHidden.required = false;
+            titleInput.required = true;
         } else if (selectedType === 'content') {
             linkContainer.style.display = 'none';
             contentContainer.style.display = 'block';
+            titleContainer.style.display = 'block';
             linkInput.required = false;
             contentHidden.required = true;
+            titleInput.required = true;
+            initQuillForRow(rowIndex);
+        } else if (selectedType === 'infoModal') {
+            linkContainer.style.display = 'none';
+            contentContainer.style.display = 'block';
+            titleContainer.style.display = 'block';
+            linkInput.required = false;
+            contentHidden.required = true;
+            titleInput.required = true;
             initQuillForRow(rowIndex);
         } else {
             linkContainer.style.display = 'none';
             contentContainer.style.display = 'none';
+            titleContainer.style.display = 'block';
             linkInput.required = false;
             contentHidden.required = false;
+            titleInput.required = true;
         }
     });
 
     // Initialize Quill if content type is selected
-    if (type === 'content') {
-        initQuillForRow(rowIndex);
+    if (type === 'content' || type === 'infoModal') {
+        initQuillForRow(rowIndex, contentEn);
     }
 
     // Attach event listeners to the new row
@@ -180,7 +204,6 @@ function addSidebarLinkRow(linkData = {}) {
     const openIconBtn = newRow.querySelector('.open-icon-modal');
     if (openIconBtn) {
         openIconBtn.addEventListener('click', function () {
-            console.log('Open icon modal for row index:', rowIndex);
         });
     }
 
@@ -188,7 +211,6 @@ function addSidebarLinkRow(linkData = {}) {
     const iconInput = newRow.querySelector('.icon-input');
     if (iconInput) {
         iconInput.addEventListener('click', function () {
-            console.log('Icon input clicked for row index:', rowIndex);
             iconLib.open(this, $(`#iconPreview_${rowIndex}`));
         });
     }
