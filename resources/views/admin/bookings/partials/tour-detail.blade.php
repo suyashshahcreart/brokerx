@@ -98,6 +98,10 @@
                                                 class="text-danger">*</span></label>
                                         <input type="text" name="title" id="tour_title" class="form-control"
                                             value="{{ old('title', $tour->title) }}" required>
+                                        <small class="text-muted d-block mt-1">
+                                            SEO preview title:
+                                            <span class="fw-semibold js-seo-title-preview"></span>
+                                        </small>
                                         <div class="invalid-feedback">Please enter tour title.</div>
                                         @error('title')<div class="text-danger">{{ $message }}</div>@enderror
                                     </div>

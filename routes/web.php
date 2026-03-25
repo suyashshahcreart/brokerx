@@ -156,6 +156,7 @@ Route::group(['prefix' => 'ppadmlog', 'as' => 'admin.', 'middleware' => ['web', 
     // Booking custom routes (BEFORE resource to prevent route conflicts)
     Route::post('bookings/{booking}/update-ajax', [BookingController::class, 'updateAjax'])->name('bookings.update-ajax');
     Route::post('bookings/{booking}/reschedule', [BookingController::class, 'reschedule'])->name('bookings.reschedule');
+    Route::get('bookings/{booking}/ftp-index', [BookingController::class, 'getFtpIndexFile'])->name('bookings.ftp-index');
 
     // Booking Status Management Routes
     Route::prefix('bookings/{booking}')->name('bookings.status.')->group(function () {
