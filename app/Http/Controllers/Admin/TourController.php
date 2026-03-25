@@ -1277,6 +1277,12 @@ class TourController extends Controller
                 }
             }
 
+            /* sidebar Link sync data */
+            if (Arr::has($diffJson, 'sidebarLinks')) {
+                $sidebarLinks = $finalJson['sidebarLinks'] ?? [];
+                $tour->sidebar_links = $sidebarLinks;
+            }
+
             /* bottomMarker Update sync */
             if (Arr::has($diffJson, 'bottomMarker')) {
                 $bottomMarker = $finalJson['bottomMarker'] ?? [];
