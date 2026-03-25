@@ -1646,4 +1646,5 @@
 
 <script>
     window.sidebarLinksData = {!! json_encode(old('sidebar_links', $tour->sidebar_links )) !!};
+    window.enabledLanguages = {!! json_encode($tour->enable_language ?? ['en']) !!};
 </script>
