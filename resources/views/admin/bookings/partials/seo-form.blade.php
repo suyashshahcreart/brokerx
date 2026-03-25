@@ -14,6 +14,10 @@
                         <input type="text" name="meta_title" id="tour_meta_title" class="form-control"
                         placeholder="e.g, PROP PIK virtual Tour."
                             value="{{ $tour->meta_title }}">
+                        <small class="text-muted d-block mt-1">
+                            Preview title:
+                            <span class="fw-semibold js-seo-title-preview"></span>
+                        </small>
                     </div>
                 </div>
                 <div class="col-lg-6">

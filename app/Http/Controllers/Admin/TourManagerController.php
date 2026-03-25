@@ -397,9 +397,9 @@ class TourManagerController extends Controller
                 // Reload tour to get latest slug and location if they were updated
                 $tour->refresh();
                 
-                // Check file size - use background processing for files > 75MB
+                // Check file size - use background processing for files > 25MB
                 $fileSize = $file->getSize();
-                $useBackgroundProcessing = $fileSize > (75 * 1024 * 1024); // 75MB
+                $useBackgroundProcessing = $fileSize > (25 * 1024 * 1024); // 25MB
                 
                 if ($useBackgroundProcessing) {
                     // Save file temporarily and dispatch background job
@@ -953,6 +953,96 @@ class TourManagerController extends Controller
                     '"' . $gtmPhpEcho . '"',
                     $indexHtmlContent
                 );
+
+                // 7. Loader configuration replacements (overlay bg, loading text, gradients)
+                // - overlay background-color (viewer-loading overlay)
+                // - loader text (.viewer-loading-text)
+                // - outerGradient + innerGradient stop colors
+                $overlayBgPhp = '<?php echo (!empty($overlayBgColor) ? escAttr($overlayBgColor) : ';
+                $loaderTextPhp = '<?php echo (!empty($loaderText) ? escAttr($loaderText) : ';
+
+                // Replace loader text
+                $indexHtmlContent = preg_replace_callback(
+                    '/(<div[^>]*class=["\'][^"\']*viewer-loading-text[^"\']*["\'][^>]*>)(.*?)(<\/div>)/is',
+                    function ($m) use ($loaderTextPhp) {
+                        $fallback = var_export($m[2], true);
+                        return $m[1] . $loaderTextPhp . $fallback . '); ?>' . $m[3];
+                    },
+                    $indexHtmlContent,
+                    1
+                );
+
+                // Replace viewer-loading overlay background-color inside its style attribute
+                $indexHtmlContent = preg_replace_callback(
+                    '/(<div[^>]*\bid=["\']viewer-loading["\'][^>]*\bstyle=["\'])([^"\']*)(["\'][^>]*>)/is',
+                    function ($m) use ($overlayBgPhp) {
+                        $style = $m[2];
+                        $style = preg_replace_callback(
+                            '/(background-color\s*:\s*)([^;]+)(;?)/i',
+                            function ($sm) use ($overlayBgPhp) {
+                                $fallback = var_export(trim($sm[2]), true);
+                                return $sm[1] . $overlayBgPhp . $fallback . '); ?>' . ($sm[3] ?: ';');
+                            },
+                            $style,
+                            1,
+                            $count
+                        );
+                        // If background-color wasn't present, append it
+                        if (empty($count)) {
+                            $fallback = var_export('rgb(0, 0, 64)', true);
+                            $style = rtrim($style);
+                            if ($style !== '' && substr($style, -1) !== ';') $style .= ';';
+                            $style .= 'background-color:' . $overlayBgPhp . $fallback . '); ?>;';
+                        }
+                        return $m[1] . $style . $m[3];
+                    },
+                    $indexHtmlContent,
+                    1
+                );
+
+                // Helper: replace stop-color for a given gradient id using an array var ($loaderColors / $spinnerColors)
+                $replaceGradientStops = function (string $gradientId, string $phpArrayVar) use (&$indexHtmlContent) {
+                    $indexHtmlContent = preg_replace_callback(
+                        '/(<linearGradient[^>]*\bid=["\']' . preg_quote($gradientId, '/') . '["\'][^>]*>)(.*?)(<\/linearGradient>)/is',
+                        function ($m) use ($phpArrayVar) {
+                            $inner = $m[2];
+                            $inner = preg_replace_callback(
+                                '/(<stop[^>]*\boffset=["\']0%["\'][^>]*\bstyle=["\'][^"\']*stop-color\s*:\s*)([^;"\']+)([^"\']*["\'][^>]*>)/is',
+                                function ($sm) use ($phpArrayVar) {
+                                    $fallback = var_export(trim($sm[2]), true);
+                                    return $sm[1] . '<?php echo escAttr($' . $phpArrayVar . '[0] ?? ' . $fallback . '); ?>' . $sm[3];
+                                },
+                                $inner,
+                                1
+                            );
+                            $inner = preg_replace_callback(
+                                '/(<stop[^>]*\boffset=["\']50%["\'][^>]*\bstyle=["\'][^"\']*stop-color\s*:\s*)([^;"\']+)([^"\']*["\'][^>]*>)/is',
+                                function ($sm) use ($phpArrayVar) {
+                                    $fallback = var_export(trim($sm[2]), true);
+                                    return $sm[1] . '<?php echo escAttr($' . $phpArrayVar . '[1] ?? ' . $fallback . '); ?>' . $sm[3];
+                                },
+                                $inner,
+                                1
+                            );
+                            $inner = preg_replace_callback(
+                                '/(<stop[^>]*\boffset=["\']100%["\'][^>]*\bstyle=["\'][^"\']*stop-color\s*:\s*)([^;"\']+)([^"\']*["\'][^>]*>)/is',
+                                function ($sm) use ($phpArrayVar) {
+                                    $fallback = var_export(trim($sm[2]), true);
+                                    return $sm[1] . '<?php echo escAttr($' . $phpArrayVar . '[2] ?? ' . $fallback . '); ?>' . $sm[3];
+                                },
+                                $inner,
+                                1
+                            );
+                            return $m[1] . $inner . $m[3];
+                        },
+                        $indexHtmlContent,
+                        1
+                    );
+                };
+
+                // outerGradient uses loaderColors; innerGradient uses spinnerColors
+                $replaceGradientStops('outerGradient', 'loaderColors');
+                $replaceGradientStops('innerGradient', 'spinnerColors');
                 // Prepend flags and fetch script to the content
                 $phpScript = $this->generateDatabaseFetchScript($tour);
                 $flagsScript = "<?php \$replacedTags = " . var_export($replacedTags, true) . "; ?>";
@@ -1625,6 +1715,12 @@ class TourManagerController extends Controller
         \$twitterTitle = '';
         \$twitterDescription = '';
         \$twitterImage = '';
+        
+        // Loader configuration (overlay bg, text, gradients)
+        \$overlayBgColor = '';
+        \$loaderText = '';
+        \$loaderColors = [];
+        \$spinnerColors = [];
 
         // Fetch data from API
         \$ctx = stream_context_create(['http' => ['timeout' => 5]]);
@@ -1667,31 +1763,64 @@ class TourManagerController extends Controller
                 \$baseUrl = \$data['baseUrl'] ?? '';
                 
                 \$meta = \$data['meta'] ?? [];
-                \$metaTitle = \$meta['title'] ?? '';
+                \$metaTitleBase = \$meta['title'] ?? '';
                 \$metaDescription = \$meta['description'] ?? '';
                 \$metaKeywords = \$meta['keywords'] ?? '';
                 \$metaRobots = \$meta['robots'] ?? '';
                 \$canonicalUrl = \$meta['canonical'] ?? '';
-                \$ogTitle = \$meta['ogTitle'] ?? \$metaTitle;
+                
+                // Build page title: "tour title | meta title" (fallback to meta title)
+                \$tourTitle = '';
+                if (is_array(\$tourData)) {
+                    \$tourTitle = \$tourData['title'] ?? (\$tourData['tour_title'] ?? (\$tourData['tourTitle'] ?? ''));
+                }
+                \$tourTitle = is_string(\$tourTitle) ? trim(\$tourTitle) : '';
+                \$metaTitleBase = is_string(\$metaTitleBase) ? trim(\$metaTitleBase) : '';
+                
+                if (!empty(\$tourTitle) && !empty(\$metaTitleBase)) {
+                    \$pageTitle = \$tourTitle . ' | ' . \$metaTitleBase;
+                } elseif (!empty(\$tourTitle)) {
+                    \$pageTitle = \$tourTitle;
+                } else {
+                    \$pageTitle = \$metaTitleBase;
+                }
+                
+                // Use the computed title for <title>, og:title, twitter:title (unless HTML already replaced them)
+                \$metaTitle = \$pageTitle;
+                \$ogTitle = \$pageTitle;
                 \$ogDescription = \$meta['ogDesc'] ?? \$metaDescription;
                 \$ogImage = \$meta['ogImage'] ?? '';
                 
                 \$protocol = (!empty(\$_SERVER['HTTPS']) && \$_SERVER['HTTPS'] !== 'off' || (\$_SERVER['SERVER_PORT'] ?? '') == 443) ? "https://" : "http://";
                 \$ogUrl = \$protocol . (\$_SERVER['HTTP_HOST'] ?? '') . (\$_SERVER['REQUEST_URI'] ?? '');
                 
-                \$twitterTitle = \$meta['twitterTitle'] ?? \$ogTitle;
+                \$twitterTitle = \$pageTitle;
                 \$twitterDescription = \$meta['twitterDesc'] ?? \$ogDescription;
                 \$twitterImage = \$meta['twitterImage'] ?? \$ogImage;
                 \$gtmCode = \$meta['gtmCode'] ?? '';
                 \$headerCode = \$meta['headerCode'] ?? '';
                 \$footerCode = \$meta['footerCode'] ?? '';
+                
+                // Loader config
+                \$loaderCfg = \$data['loaderConfig'] ?? [];
+                \$overlayBgColor = \$loaderCfg['overlayBackgroundColor'] ?? '';
+                \$loaderText = \$loaderCfg['loadingText'] ?? '';
+                \$loaderColors = is_array(\$loaderCfg['loaderColors'] ?? null) ? \$loaderCfg['loaderColors'] : [];
+                \$spinnerColors = is_array(\$loaderCfg['spinnerColors'] ?? null) ? \$loaderCfg['spinnerColors'] : [];
+                
+                if (empty(\$loaderColors)) {
+                    \$loaderColors = ['#b47e37', '#d4a574', '#efd477'];
+                }
+                if (empty(\$spinnerColors)) {
+                    \$spinnerColors = \$loaderColors;
+                }
 
                 if (\$tourData) {
                     \$seoTags = [];
                     
                     // Basic Meta Tags (Only add if NOT already replaced in HTML)
-                    if (!empty(\$metaTitle) && !isset(\$replacedTags['title'])) {
-                        \$seoTags[] = '<title id="pageTitle">' . escAttr(\$metaTitle) . '</title>';
+                    if (!empty(\$pageTitle) && !isset(\$replacedTags['title'])) {
+                        \$seoTags[] = '<title id="pageTitle">' . escAttr(\$pageTitle) . '</title>';
                     }
                     if (!empty(\$metaDescription) && !isset(\$replacedTags['description'])) {
                         \$seoTags[] = '<meta name="description" id="metaDescription" content="' . escAttr(\$metaDescription) . '" />';

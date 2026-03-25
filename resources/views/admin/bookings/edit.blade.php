@@ -386,6 +386,12 @@
                                     <i class="ri-code-s-slash-line me-1"></i> JSON
                                 </button>
                             </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="ftp-tab" data-bs-toggle="tab" data-bs-target="#ftp-pane"
+                                    type="button" role="tab" aria-controls="ftp-pane" aria-selected="false">
+                                    <i class="ri-folder-transfer-line me-1"></i> FTP File
+                                </button>
+                            </li>
                         </ul>
                     </div>
                 </div>
@@ -466,6 +472,11 @@
                         <!-- JSON Tab -->
                         <div class="tab-pane fade" id="json-pane" role="tabpanel" aria-labelledby="json-tab" tabindex="0">
                             @include('admin.bookings.partials.json-view')
+                        </div>
+
+                        <!-- FTP File Tab (lazy loaded) -->
+                        <div class="tab-pane fade" id="ftp-pane" role="tabpanel" aria-labelledby="ftp-tab" tabindex="0">
+                            @include('admin.bookings.partials.ftp-file')
                         </div>
 
                         <!-- Tour Detail Tab's Tab -->
@@ -756,5 +767,169 @@
                 }
             });
         @endif
+
+        // Live SEO title preview: "tour title | meta title" (fallbacks)
+        document.addEventListener('DOMContentLoaded', function () {
+            function isVisible(el) {
+                if (!el) return false;
+                // Works well for Bootstrap tabs (hidden panes have display:none)
+                return !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length);
+            }
+
+            function getPreferredValue(selectors, preferredEl = null) {
+                // 1) If event target is provided, trust it first
+                if (preferredEl && selectors.some(sel => preferredEl.matches?.(sel))) {
+                    const val = (preferredEl.value ?? '').toString().trim();
+                    if (val) return val;
+                }
+
+                // 2) Prefer visible elements (active tab)
+                for (const selector of selectors) {
+                    const els = Array.from(document.querySelectorAll(selector));
+                    for (const el of els) {
+                        if (!isVisible(el)) continue;
+                        const val = (el.value ?? '').toString().trim();
+                        if (val) return val;
+                    }
+                }
+
+                // 3) Fallback to any non-empty
+                for (const selector of selectors) {
+                    const els = Array.from(document.querySelectorAll(selector));
+                    for (const el of els) {
+                        const val = (el.value ?? '').toString().trim();
+                        if (val) return val;
+                    }
+                }
+
+                return '';
+            }
+
+            function computeSeoTitle(tourTitle, metaTitle) {
+                const t = (tourTitle ?? '').toString().trim();
+                const m = (metaTitle ?? '').toString().trim();
+                if (t && m) return `${t} | ${m}`;
+                return t || m || '';
+            }
+
+            function updateSeoTitlePreview(preferredEl = null) {
+                const tourTitle = getPreferredValue(['#tour_title', 'input[name="title"]'], preferredEl);
+                const metaTitle = getPreferredValue(['#tour_meta_title', 'input[name="meta_title"]'], preferredEl);
+                const preview = computeSeoTitle(tourTitle, metaTitle);
+
+                document.querySelectorAll('.js-seo-title-preview').forEach(function (el) {
+                    el.textContent = preview || '-';
+                });
+            }
+
+            // Bind keyup/input events (works across tabs)
+            function bind(selector) {
+                document.querySelectorAll(selector).forEach(function (el) {
+                    const handler = function (e) { updateSeoTitlePreview(e?.target ?? null); };
+                    el.addEventListener('input', handler);
+                    el.addEventListener('keyup', handler);
+                    el.addEventListener('change', handler);
+                });
+            }
+
+            bind('#tour_title');
+            bind('input[name="title"]');
+            bind('#tour_meta_title');
+            bind('input[name="meta_title"]');
+
+            updateSeoTitlePreview();
+        });
+
+        // Lazy-load FTP index.php when FTP tab opens
+        document.addEventListener('DOMContentLoaded', function () {
+            const ftpTabBtn = document.getElementById('ftp-tab');
+            if (!ftpTabBtn) return;
+
+            const endpoint = @json(route('admin.bookings.ftp-index', $booking));
+            let loadedOnce = false;
+
+            const els = {
+                info: document.getElementById('ftpIndexInfo'),
+                error: document.getElementById('ftpIndexError'),
+                content: document.getElementById('ftpIndexContent'),
+                path: document.getElementById('ftpIndexPath'),
+                urlText: document.getElementById('ftpIndexUrlText'),
+                openUrlBtn: document.getElementById('ftpIndexOpenUrlBtn'),
+                reloadBtn: document.getElementById('ftpIndexReloadBtn'),
+            };
+
+            function setAlert(target, message, kind) {
+                if (!target) return;
+                target.classList.remove('d-none');
+                target.classList.toggle('alert-danger', kind === 'error');
+                target.classList.toggle('alert-info', kind === 'info');
+                target.textContent = message || '';
+            }
+
+            function clearAlerts() {
+                if (els.info) els.info.classList.add('d-none');
+                if (els.error) els.error.classList.add('d-none');
+            }
+
+            async function loadFtpIndex(force = false) {
+                if (loadedOnce && !force) return;
+                if (!els.content) return;
+                clearAlerts();
+                els.content.textContent = 'Loading from FTP...';
+
+                try {
+                    const res = await fetch(endpoint, {
+                        method: 'GET',
+                        headers: { 'Accept': 'application/json' },
+                    });
+                    const data = await res.json().catch(() => ({}));
+
+                    if (!res.ok || !data.success) {
+                        const msg = data.message || `Failed to fetch FTP file (HTTP ${res.status})`;
+                        setAlert(els.error, msg, 'error');
+                        els.content.textContent = '';
+                        if (data.ftp_path && els.path) els.path.textContent = data.ftp_path;
+                        if (data.ftp_url) {
+                            if (els.urlText) els.urlText.textContent = data.ftp_url;
+                            if (els.openUrlBtn) {
+                                els.openUrlBtn.href = data.ftp_url;
+                                els.openUrlBtn.classList.remove('d-none');
+                            }
+                        }
+                        loadedOnce = true; // avoid spamming FTP on repeated opens
+                        return;
+                    }
+
+                    if (els.path) els.path.textContent = data.ftp_path || '-';
+                    if (els.urlText) els.urlText.textContent = data.ftp_url || '-';
+                    if (els.openUrlBtn && data.ftp_url) {
+                        els.openUrlBtn.href = data.ftp_url;
+                        els.openUrlBtn.classList.remove('d-none');
+                    }
+
+                    if (data.truncated) {
+                        setAlert(els.info, 'File is large; showing first 250KB only.', 'info');
+                    }
+
+                    els.content.textContent = data.content || '';
+                    loadedOnce = true;
+                } catch (e) {
+                    setAlert(els.error, 'Failed to fetch FTP file. Please try again.', 'error');
+                    els.content.textContent = '';
+                    loadedOnce = true;
+                }
+            }
+
+            ftpTabBtn.addEventListener('shown.bs.tab', function () {
+                loadFtpIndex(false);
+            });
+
+            if (els.reloadBtn) {
+                els.reloadBtn.addEventListener('click', function () {
+                    loadedOnce = false;
+                    loadFtpIndex(true);
+                });
+            }
+        });
     </script>
 @endsection
