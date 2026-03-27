@@ -19,11 +19,15 @@ use Illuminate\Support\Facades\Storage;
 use Yajra\DataTables\Facades\DataTables;
 use ZipArchive;
 use Aws\S3\Exception\S3Exception;
+use App\Http\Controllers\Admin\TourController;
+use App\Services\TourService;
 
 class TourManagerController extends Controller
 {
-    public function __construct()
+    protected $tourService;
+    public function __construct(TourService $tourService)
     {
+        $this->tourService = $tourService;
         $this->middleware('auth');
         $this->middleware('permission:tour_manager_view')->only(['index', 'show']);
         $this->middleware('permission:tour_manager_edit')->only(['edit', 'update', 'uploadFile', 'scheduleTour']);
@@ -397,9 +401,12 @@ class TourManagerController extends Controller
                 // Reload tour to get latest slug and location if they were updated
                 $tour->refresh();
 
-                // Check file size - use background processing for files > 25MB
+                // Check file size - use background processing for files > 50MB
                 $fileSize = $file->getSize();
-                $useBackgroundProcessing = $fileSize > (25 * 1024 * 1024); // 25MB
+                $fileSizeMB = round($fileSize / (1024 * 1024), 2);
+                $useBackgroundProcessing = $fileSize > (50 * 1024 * 1024); // 50MB
+
+                \Log::info("File upload check: {$file->getClientOriginalName()} - Size: {$fileSize} bytes ({$fileSizeMB} MB) - Use background: " . ($useBackgroundProcessing ? 'YES' : 'NO'));
 
                 if ($useBackgroundProcessing) {
                     // Save file temporarily and dispatch background job
@@ -524,7 +531,9 @@ class TourManagerController extends Controller
                 'updated_at' => now()->toDateTimeString()
             ]
         );
-
+        
+        // Sync tour fields from final_json without overwriting existing tour fields that are not in final_json
+        $this->tourService->syncTourFieldsFromJson($tour, $tour->final_json, [], true);
 
         $tour->updated_by = auth()->id();
         $tour->save();

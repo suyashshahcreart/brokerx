@@ -48,7 +48,7 @@
         </div>
         <!-- DB Sync Option -->
         <div class="form-check mt-2">
-            <input class="form-check-input" type="checkbox" value="1" id="dbSync" name="db_sync">
+            <input class="form-check-input" type="checkbox" value="1" id="dbSync" name="DB_sync">
             <label class="form-check-label" for="dbSync">
                 Sync with Database
                 <small class="text-muted">If checked, the JSON data will be parsed and relevant fields will be updated
