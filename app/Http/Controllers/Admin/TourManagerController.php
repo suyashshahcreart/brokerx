@@ -142,7 +142,7 @@ class TourManagerController extends Controller
                 ->addColumn('customer', function (Booking $booking) {
                     $name = $booking->customer ? $booking->customer->firstname . ' ' . $booking->customer->lastname : '-';
                     return '<strong>' . e($name) . '</strong><br>' .
-                        '<small class="text-muted">' . e($booking->customer->base_mobile     ?? '') . '</small>';
+                        '<small class="text-muted">' . e($booking->customer->base_mobile ?? '') . '</small>';
                 })
                 ->addColumn('location', function (Booking $booking) {
                     $location = [];
@@ -274,7 +274,7 @@ class TourManagerController extends Controller
         return response()->json([
             'booking_id' => $booking->id,
             'tour_zip_status' => $booking->tour_zip_status ?? 'pending',
-            'tour_zip_progress' => (int)($booking->tour_zip_progress ?? 0),
+            'tour_zip_progress' => (int) ($booking->tour_zip_progress ?? 0),
             'tour_zip_message' => $booking->tour_zip_message,
             // Use ISO8601 so JS can parse timezone correctly
             'tour_zip_started_at' => optional($booking->tour_zip_started_at)->toIso8601String(),
@@ -319,10 +319,10 @@ class TourManagerController extends Controller
         // Increase execution time limit for large ZIP file processing (5 hours for files up to 1GB)
         set_time_limit(18000);
         ini_set('max_execution_time', '18000');
-        
+
         // Get valid location values from FTP configurations
         $validLocations = FtpConfiguration::active()->pluck('category_name')->toArray();
-        
+
         $validated = $request->validate([
             'slug' => 'required|string|max:255|regex:/^[a-zA-Z0-9\/\-_]+$/',
             'location' => ['required', 'string', Rule::in($validLocations)],
@@ -345,7 +345,7 @@ class TourManagerController extends Controller
             $tour->location = $validated['location'];
             $tourUpdated = true;
         }
-        
+
         // Save tour if slug or location changed
         if ($tourUpdated) {
             $tour->updated_by = auth()->id();
@@ -378,16 +378,16 @@ class TourManagerController extends Controller
         // Handle single ZIP file upload only
         if ($request->hasFile('files')) {
             $files = $request->file('files');
-            
+
             // Check if more than one file is uploaded
             if (count($files) > 1) {
                 return back()->withErrors(['files' => 'Only one ZIP file is allowed. Please upload a single ZIP file.']);
             }
-            
+
             $file = $files[0]; // Get the first (and only) file
-            
-                try {
-                    $extension = strtolower($file->getClientOriginalExtension());
+
+            try {
+                $extension = strtolower($file->getClientOriginalExtension());
 
                 // Only accept ZIP files
                 if ($extension !== 'zip') {
@@ -396,16 +396,16 @@ class TourManagerController extends Controller
 
                 // Reload tour to get latest slug and location if they were updated
                 $tour->refresh();
-                
+
                 // Check file size - use background processing for files > 25MB
                 $fileSize = $file->getSize();
                 $useBackgroundProcessing = $fileSize > (25 * 1024 * 1024); // 25MB
-                
+
                 if ($useBackgroundProcessing) {
                     // Save file temporarily and dispatch background job
                     $tempPath = $file->storeAs('temp_uploads', 'tour_' . $booking->id . '_' . time() . '.zip', 'local');
                     $fullTempPath = storage_path('app/' . $tempPath);
-                    
+
                     \Log::info("Large file detected ({$fileSize} bytes), using background processing. Booking ID: {$booking->id}");
 
                     // Track status for UI
@@ -415,7 +415,7 @@ class TourManagerController extends Controller
                     $booking->tour_zip_started_at = now();
                     $booking->tour_zip_finished_at = null;
                     $booking->save();
-                    
+
                     // Dispatch background job
                     // Use unique identifier to prevent duplicate jobs
                     $jobUniqueId = 'tour-processing-' . $booking->id . '-' . md5($file->getClientOriginalName() . $fullTempPath);
@@ -426,10 +426,10 @@ class TourManagerController extends Controller
                         $validated['slug'],
                         $validated['location']
                     )->onQueue('tour-processing');
-                    
+
                     // Log job dispatch with unique identifier for tracking
                     \Log::info("Large file processing queued. Booking ID: {$booking->id}, Job ID: {$jobUniqueId}");
-                    
+
                     if ($request->expectsJson()) {
                         return response()->json([
                             'success' => true,
@@ -442,7 +442,7 @@ class TourManagerController extends Controller
                             'redirect' => route('admin.tour-manager.show', $booking)
                         ]);
                     }
-                    
+
                     return redirect()->route('admin.tour-manager.show', $booking)
                         ->with('success', 'Large file uploaded! Processing will continue in the background.');
                 } else {
@@ -482,29 +482,29 @@ class TourManagerController extends Controller
                         throw new \Exception($result['message']);
                     }
                 }
-                } catch (\Exception $e) {
-                    \Log::error('File upload error: ' . $e->getMessage() . " in " . $e->getFile() . ":" . $e->getLine());
+            } catch (\Exception $e) {
+                \Log::error('File upload error: ' . $e->getMessage() . " in " . $e->getFile() . ":" . $e->getLine());
 
-                    // Track error for UI
-                    try {
-                        $booking->tour_zip_status = 'failed';
-                        $booking->tour_zip_progress = 0;
-                        $booking->tour_zip_message = 'Processing failed: ' . $e->getMessage();
-                        $booking->tour_zip_finished_at = now();
-                        $booking->save();
-                    } catch (\Exception $inner) {
-                        // avoid masking original error
-                    }
-
-                    if ($request->expectsJson()) {
-                        return response()->json([
-                            'success' => false,
-                            'message' => 'File processing error: ' . $e->getMessage()
-                        ], 422);
-                    }
-
-                    return back()->withErrors(['files' => 'File processing error: ' . $e->getMessage()]);
+                // Track error for UI
+                try {
+                    $booking->tour_zip_status = 'failed';
+                    $booking->tour_zip_progress = 0;
+                    $booking->tour_zip_message = 'Processing failed: ' . $e->getMessage();
+                    $booking->tour_zip_finished_at = now();
+                    $booking->save();
+                } catch (\Exception $inner) {
+                    // avoid masking original error
                 }
+
+                if ($request->expectsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'File processing error: ' . $e->getMessage()
+                    ], 422);
+                }
+
+                return back()->withErrors(['files' => 'File processing error: ' . $e->getMessage()]);
+            }
         } else {
             // No file uploaded
             return back()->withErrors(['files' => 'Please upload a ZIP file.']);
@@ -540,7 +540,7 @@ class TourManagerController extends Controller
 
         return redirect()->route('admin.tour-manager.show', $booking)
             ->with('success', 'Tour updated successfully!');
-    }  
+    }
 
 
     /**
@@ -553,10 +553,10 @@ class TourManagerController extends Controller
             set_time_limit(18000);
             ini_set('max_execution_time', '18000');
             ini_set('memory_limit', '2048M'); // Increase memory limit for large ZIP processing
-            
+
             // Start processing
             \Log::info("Starting ZIP processing for tour code: {$uniqueCode}");
-            
+
             // Load booking relationship to get customer_id
             $tour->load('booking');
             $zip = new ZipArchive();
@@ -617,35 +617,37 @@ class TourManagerController extends Controller
             }
 
             // HYBRID APPROACH: Analyze ZIP structure first, then extract and upload directly to S3
-            
+
             // STEP 2: Analyze ZIP structure (lightweight - no extraction yet)
             $zipStructure = [];
             $indexHtmlPath = null;
             $swJsPath = null;
             $jsonPath = null;
             $totalFiles = $zip->numFiles;
-            
+
             \Log::info("Analyzing ZIP structure for tour code: {$uniqueCode} ({$totalFiles} files)");
-            
+
             for ($i = 0; $i < $totalFiles; $i++) {
                 $filename = $zip->getNameIndex($i);
                 $fileInfo = $zip->statIndex($i);
-                
+
                 // Skip system files and directories
-                if (strpos($filename, '__MACOSX') !== false || 
+                if (
+                    strpos($filename, '__MACOSX') !== false ||
                     strpos($filename, '.DS_Store') !== false ||
                     empty(trim($filename)) ||
-                    substr($filename, -1) === '/') {
+                    substr($filename, -1) === '/'
+                ) {
                     continue;
                 }
-                
+
                 // Track structure
                 $zipStructure[] = [
                     'index' => $i,
                     'name' => $filename,
                     'size' => $fileInfo['size'] ?? 0
                 ];
-                
+
                 // Find index.html, sw.js, and JSON files
                 $lowerName = strtolower($filename);
                 if (basename($lowerName) === 'index.html') {
@@ -664,17 +666,17 @@ class TourManagerController extends Controller
                     }
                 }
             }
-            
+
             if (!$indexHtmlPath) {
                 \Log::warning("index.html not found in ZIP structure in " . __FILE__ . ":" . __LINE__);
             }
-            
+
             if ($swJsPath) {
                 \Log::info("sw.js file detected in ZIP: {$swJsPath}");
             } else {
                 \Log::info("sw.js file not found in ZIP structure");
             }
-            
+
             // STEP 3: Verify S3 configuration before processing
             if (!$this->verifyS3Configuration()) {
                 $zip->close();
@@ -684,35 +686,35 @@ class TourManagerController extends Controller
                     'message' => 'S3 configuration error. Please check AWS credentials in .env file.'
                 ];
             }
-            
+
             // STEP 4: Extract and upload directly to S3 (streaming approach)
             \Log::info("Starting direct extraction and S3 upload for tour code: {$uniqueCode}");
-            
+
             $uploadedFiles = [];
             $uploadErrors = [];
             $indexHtmlContent = null;
             $swJsContent = null;
             $jsonContent = null;
             $jsonFilename = null;
-            
+
             // Process each file in ZIP and upload directly to S3
             $batchSize = 50; // Process in batches for memory management
             $processedCount = 0;
-            
+
             foreach ($zipStructure as $fileInfo) {
                 $i = $fileInfo['index'];
                 $filename = $fileInfo['name'];
-                
+
                 // Extract file content directly from ZIP
                 $fileContent = $zip->getFromIndex($i);
                 if ($fileContent === false) {
                     continue;
                 }
-                
+
                 // Handle special files (index.html, sw.js, JSON) - upload to S3 first, then save in memory for processing
                 $lowerFilename = strtolower($filename);
                 $basenameLower = basename($lowerFilename);
-                
+
                 if ($filename === $indexHtmlPath || $basenameLower === 'index.html') {
                     // Upload original index.html to S3
                     $s3IndexPath = $s3TourPath . '/' . $filename;
@@ -733,13 +735,13 @@ class TourManagerController extends Controller
                     } catch (\Exception $e) {
                         \Log::error("Error uploading index.html to S3: " . $e->getMessage() . " in " . $e->getFile() . ":" . $e->getLine());
                     }
-                    
+
                     // Save in memory for local processing (will be converted to index.php)
                     $indexHtmlContent = $fileContent;
                     unset($fileContent);
                     continue; // Will process later for local index.php
                 }
-                
+
                 // Check if this is sw.js file (only process if sw.js exists in ZIP)
                 if ($swJsPath && ($filename === $swJsPath || $basenameLower === 'sw.js')) {
                     \Log::info("Processing sw.js file: {$filename} (detected path: {$swJsPath})");
@@ -763,14 +765,14 @@ class TourManagerController extends Controller
                     } catch (\Exception $e) {
                         \Log::error("Error uploading sw.js to S3: " . $e->getMessage() . " in " . $e->getFile() . ":" . $e->getLine());
                     }
-                    
+
                     // Save in memory for FTP upload (will be uploaded without changes)
                     $swJsContent = $fileContent;
                     \Log::info("Saved sw.js content in memory for FTP upload (size: " . strlen($swJsContent) . " bytes)");
                     unset($fileContent);
                     continue; // Will process later for FTP upload
                 }
-                
+
                 if ($filename === $jsonPath || (pathinfo($lowerFilename, PATHINFO_EXTENSION) === 'json' && stripos($filename, 'virtual-tour-nodes') !== false)) {
                     // Upload original JSON to S3
                     $s3JsonPath = $s3TourPath . '/' . $filename;
@@ -791,28 +793,28 @@ class TourManagerController extends Controller
                     } catch (\Exception $e) {
                         \Log::error("Error uploading JSON to S3: " . $e->getMessage() . " in " . $e->getFile() . ":" . $e->getLine());
                     }
-                    
+
                     // Save in memory for local processing
                     $jsonContent = $fileContent;
                     $jsonFilename = basename($filename);
                     unset($fileContent);
                     continue; // Will process later for local save
                 }
-                
+
                 // For all other files: Upload directly to S3
                 $s3FilePath = $s3TourPath . '/' . $filename;
-                
+
                 try {
                     // Determine MIME type
                     $mimeType = $this->getMimeType($filename);
-                    
+
                     // Upload directly to S3
                     $uploaded = Storage::disk('s3')->put(
                         $s3FilePath,
                         $fileContent,
                         ['ContentType' => $mimeType]
                     );
-                    
+
                     if ($uploaded) {
                         // Set visibility (silently fail if it doesn't work)
                         try {
@@ -820,7 +822,7 @@ class TourManagerController extends Controller
                         } catch (\Exception $e) {
                             // Visibility failure is not critical
                         }
-                        
+
                         // Track uploaded files
                         $uploadedFiles[] = $filename;
                         $processedCount++;
@@ -834,261 +836,264 @@ class TourManagerController extends Controller
                     $uploadErrors[] = $errorMsg;
                     \Log::error($errorMsg . " in " . $e->getFile() . ":" . $e->getLine());
                 }
-                
+
                 // Free memory
                 unset($fileContent);
-                
+
                 // Periodic memory cleanup
                 if ($processedCount % $batchSize === 0) {
                     gc_collect_cycles();
                 }
             }
-            
+
             $zip->close();
-            
+
             // Variables for processing
             $jsonData = null;
             $ftpUploadResult = null;
-            
+
             // STEP 5: Process index.html and save as index.php locally
             if ($indexHtmlContent) {
                 try {
 
-                // Prepare PHP echo snippet for GTM code replacement
-                $gtmPhpEcho = '<?php echo escAttr($gtmCode); ?>';
+                    // Prepare PHP echo snippet for GTM code replacement
+                    $gtmPhpEcho = '<?php echo escAttr($gtmCode); ?>';
 
-                // Tracker for replaced tags and improved transformation logic
-                $replacedTags = [];
-                
-                // Unified meta/link replacement helper with fallback to original content
-                $metaReplace = function($attrName, $attrValue, $key, $phpVarName) use (&$indexHtmlContent, &$replacedTags) {
-                    $found = false;
-                    $callback = function($matches) use ($phpVarName, &$found) {
-                        $found = true;
-                        $prefix = $matches[1] . $matches[2];
-                        $originalValue = $matches[3];
-                        $suffix = $matches[2] . $matches[4];
-                        $fallback = var_export($originalValue, true);
-                        return $prefix . '<?php echo (!empty($' . $phpVarName . ') ? escAttr($' . $phpVarName . ') : ' . $fallback . '); ?>' . $suffix;
-                    };
+                    // Tracker for replaced tags and improved transformation logic
+                    $replacedTags = [];
 
-                    // Match meta tag regardless of attribute order
-                    $pattern = '/(<meta[^>]*?' . $attrName . '\s*=\s*["\']' . preg_quote($attrValue, '/') . '["\'][^>]*?content\s*=\s*)(["\'])(.*?)\2([^>]*?>)/is';
-                    $patternAlt = '/(<meta[^>]*?content\s*=\s*)(["\'])(.*?)\2([^>]*?' . $attrName . '\s*=\s*["\']' . preg_quote($attrValue, '/') . '["\'][^>]*?>)/is';
+                    // Unified meta/link replacement helper with fallback to original content
+                    $metaReplace = function ($attrName, $attrValue, $key, $phpVarName) use (&$indexHtmlContent, &$replacedTags) {
+                        $found = false;
+                        $callback = function ($matches) use ($phpVarName, &$found) {
+                            $found = true;
+                            $prefix = $matches[1] . $matches[2];
+                            $originalValue = $matches[3];
+                            $suffix = $matches[2] . $matches[4];
+                            $fallback = var_export($originalValue, true);
+                            return $prefix . '<?php echo (!empty($' . $phpVarName . ') ? escAttr($' . $phpVarName . ') : ' . $fallback . '); ?>' . $suffix;
+                        };
 
-                    $indexHtmlContent = preg_replace_callback($pattern, $callback, $indexHtmlContent, 1, $count);
-                    if ($count === 0) {
-                        $indexHtmlContent = preg_replace_callback($patternAlt, $callback, $indexHtmlContent, 1, $count);
-                    }
-                    
-                    if ($found) $replacedTags[$key] = true;
-                    return $found;
-                };
+                        // Match meta tag regardless of attribute order
+                        $pattern = '/(<meta[^>]*?' . $attrName . '\s*=\s*["\']' . preg_quote($attrValue, '/') . '["\'][^>]*?content\s*=\s*)(["\'])(.*?)\2([^>]*?>)/is';
+                        $patternAlt = '/(<meta[^>]*?content\s*=\s*)(["\'])(.*?)\2([^>]*?' . $attrName . '\s*=\s*["\']' . preg_quote($attrValue, '/') . '["\'][^>]*?>)/is';
 
-                // Link tag replacement helper
-                $linkReplace = function($relValue, $key, $phpVarName) use (&$indexHtmlContent, &$replacedTags) {
-                    $found = false;
-                    $callback = function($matches) use ($phpVarName, &$found) {
-                        $found = true;
-                        $prefix = $matches[1] . $matches[2];
-                        $originalValue = $matches[3];
-                        $suffix = $matches[2] . $matches[4];
-                        $fallback = var_export($originalValue, true);
-                        return $prefix . '<?php echo (!empty($' . $phpVarName . ') ? escAttr($' . $phpVarName . ') : ' . $fallback . '); ?>' . $suffix;
-                    };
-
-                    $pattern = '/(<link[^>]*?rel\s*=\s*["\']' . preg_quote($relValue, '/') . '["\'][^>]*?href\s*=\s*)(["\'])(.*?)\2([^>]*?>)/is';
-                    $patternAlt = '/(<link[^>]*?href\s*=\s*)(["\'])(.*?)\2([^>]*?rel\s*=\s*["\']' . preg_quote($relValue, '/') . '["\'][^>]*?>)/is';
-
-                    $indexHtmlContent = preg_replace_callback($pattern, $callback, $indexHtmlContent, 1, $count);
-                    if ($count === 0) {
-                        $indexHtmlContent = preg_replace_callback($patternAlt, $callback, $indexHtmlContent, 1, $count);
-                    }
-                    
-                    if ($found) $replacedTags[$key] = true;
-                    return $found;
-                };
-
-                // 1. Title (preserves attributes like id)
-                $indexHtmlContent = preg_replace_callback('/(<title[^>]*>)(.*?)(<\/title>)/is', function($matches) use (&$replacedTags) {
-                    $replacedTags['title'] = true;
-                    $fallback = var_export($matches[2], true);
-                    return $matches[1] . '<?php echo (!empty($metaTitle) ? escAttr($metaTitle) : ' . $fallback . '); ?>' . $matches[3];
-                }, $indexHtmlContent, 1);
-
-                // 2. Canonical
-                $linkReplace('canonical', 'canonical', 'canonicalUrl');
-
-                // 3. SEO Meta Tags
-                $metaReplace('name', 'description', 'description', 'metaDescription');
-                $metaReplace('name', 'keywords', 'keywords', 'metaKeywords');
-                $metaReplace('name', 'robots', 'robots', 'metaRobots');
-
-                // 4. Open Graph Tags
-                $metaReplace('property', 'og:title', 'og:title', 'ogTitle');
-                $metaReplace('property', 'og:description', 'og:description', 'ogDescription');
-                $metaReplace('property', 'og:image', 'og:image', 'ogImage');
-                $metaReplace('property', 'og:image:secure_url', 'og:image:secure_url', 'ogImage');
-                $metaReplace('property', 'og:url', 'og:url', 'ogUrl');
-
-                // 5. Twitter Card Tags
-                $metaReplace('name', 'twitter:title', 'twitter:title', 'twitterTitle');
-                $metaReplace('name', 'twitter:description', 'twitter:description', 'twitterDescription');
-                $metaReplace('name', 'twitter:image', 'twitter:image', 'twitterImage');
-                $metaReplace('name', 'twitter:image:src', 'twitter:image:src', 'twitterImage');
-
-                // 6. Replace Google Tag Manager occurrences with dynamic GTM code (All occurrences)
-                $indexHtmlContent = preg_replace(
-                    '/https:\/\/www\.googletagmanager\.com\/gtm\.js\?id=[^"\'\s)]+/i',
-                    'https://www.googletagmanager.com/gtm.js?id=' . $gtmPhpEcho,
-                    $indexHtmlContent
-                );
-                $indexHtmlContent = preg_replace(
-                    '/https:\/\/www\.googletagmanager\.com\/ns\.html\?id=[^"\'\s)]+/i',
-                    'https://www.googletagmanager.com/ns.html?id=' . $gtmPhpEcho,
-                    $indexHtmlContent
-                );
-                $indexHtmlContent = preg_replace(
-                    '/["\']GTM-[A-Z0-9]+["\']/i',
-                    '"' . $gtmPhpEcho . '"',
-                    $indexHtmlContent
-                );
-
-                // 7. Loader configuration replacements (overlay bg, loading text, gradients)
-                // - overlay background-color (viewer-loading overlay)
-                // - loader text (.viewer-loading-text)
-                // - outerGradient + innerGradient stop colors
-                $overlayBgPhp = '<?php echo (!empty($overlayBgColor) ? escAttr($overlayBgColor) : ';
-                $loaderTextPhp = '<?php echo (!empty($loaderText) ? escAttr($loaderText) : ';
-
-                // Replace loader text
-                $indexHtmlContent = preg_replace_callback(
-                    '/(<div[^>]*class=["\'][^"\']*viewer-loading-text[^"\']*["\'][^>]*>)(.*?)(<\/div>)/is',
-                    function ($m) use ($loaderTextPhp) {
-                        $fallback = var_export($m[2], true);
-                        return $m[1] . $loaderTextPhp . $fallback . '); ?>' . $m[3];
-                    },
-                    $indexHtmlContent,
-                    1
-                );
-
-                // Replace viewer-loading overlay background-color inside its style attribute
-                $indexHtmlContent = preg_replace_callback(
-                    '/(<div[^>]*\bid=["\']viewer-loading["\'][^>]*\bstyle=["\'])([^"\']*)(["\'][^>]*>)/is',
-                    function ($m) use ($overlayBgPhp) {
-                        $style = $m[2];
-                        $style = preg_replace_callback(
-                            '/(background-color\s*:\s*)([^;]+)(;?)/i',
-                            function ($sm) use ($overlayBgPhp) {
-                                $fallback = var_export(trim($sm[2]), true);
-                                return $sm[1] . $overlayBgPhp . $fallback . '); ?>' . ($sm[3] ?: ';');
-                            },
-                            $style,
-                            1,
-                            $count
-                        );
-                        // If background-color wasn't present, append it
-                        if (empty($count)) {
-                            $fallback = var_export('rgb(0, 0, 64)', true);
-                            $style = rtrim($style);
-                            if ($style !== '' && substr($style, -1) !== ';') $style .= ';';
-                            $style .= 'background-color:' . $overlayBgPhp . $fallback . '); ?>;';
+                        $indexHtmlContent = preg_replace_callback($pattern, $callback, $indexHtmlContent, 1, $count);
+                        if ($count === 0) {
+                            $indexHtmlContent = preg_replace_callback($patternAlt, $callback, $indexHtmlContent, 1, $count);
                         }
-                        return $m[1] . $style . $m[3];
-                    },
-                    $indexHtmlContent,
-                    1
-                );
 
-                // Helper: replace stop-color for a given gradient id using an array var ($loaderColors / $spinnerColors)
-                $replaceGradientStops = function (string $gradientId, string $phpArrayVar) use (&$indexHtmlContent) {
+                        if ($found)
+                            $replacedTags[$key] = true;
+                        return $found;
+                    };
+
+                    // Link tag replacement helper
+                    $linkReplace = function ($relValue, $key, $phpVarName) use (&$indexHtmlContent, &$replacedTags) {
+                        $found = false;
+                        $callback = function ($matches) use ($phpVarName, &$found) {
+                            $found = true;
+                            $prefix = $matches[1] . $matches[2];
+                            $originalValue = $matches[3];
+                            $suffix = $matches[2] . $matches[4];
+                            $fallback = var_export($originalValue, true);
+                            return $prefix . '<?php echo (!empty($' . $phpVarName . ') ? escAttr($' . $phpVarName . ') : ' . $fallback . '); ?>' . $suffix;
+                        };
+
+                        $pattern = '/(<link[^>]*?rel\s*=\s*["\']' . preg_quote($relValue, '/') . '["\'][^>]*?href\s*=\s*)(["\'])(.*?)\2([^>]*?>)/is';
+                        $patternAlt = '/(<link[^>]*?href\s*=\s*)(["\'])(.*?)\2([^>]*?rel\s*=\s*["\']' . preg_quote($relValue, '/') . '["\'][^>]*?>)/is';
+
+                        $indexHtmlContent = preg_replace_callback($pattern, $callback, $indexHtmlContent, 1, $count);
+                        if ($count === 0) {
+                            $indexHtmlContent = preg_replace_callback($patternAlt, $callback, $indexHtmlContent, 1, $count);
+                        }
+
+                        if ($found)
+                            $replacedTags[$key] = true;
+                        return $found;
+                    };
+
+                    // 1. Title (preserves attributes like id)
+                    $indexHtmlContent = preg_replace_callback('/(<title[^>]*>)(.*?)(<\/title>)/is', function ($matches) use (&$replacedTags) {
+                        $replacedTags['title'] = true;
+                        $fallback = var_export($matches[2], true);
+                        return $matches[1] . '<?php echo (!empty($metaTitle) ? escAttr($metaTitle) : ' . $fallback . '); ?>' . $matches[3];
+                    }, $indexHtmlContent, 1);
+
+                    // 2. Canonical
+                    $linkReplace('canonical', 'canonical', 'canonicalUrl');
+
+                    // 3. SEO Meta Tags
+                    $metaReplace('name', 'description', 'description', 'metaDescription');
+                    $metaReplace('name', 'keywords', 'keywords', 'metaKeywords');
+                    $metaReplace('name', 'robots', 'robots', 'metaRobots');
+
+                    // 4. Open Graph Tags
+                    $metaReplace('property', 'og:title', 'og:title', 'ogTitle');
+                    $metaReplace('property', 'og:description', 'og:description', 'ogDescription');
+                    $metaReplace('property', 'og:image', 'og:image', 'ogImage');
+                    $metaReplace('property', 'og:image:secure_url', 'og:image:secure_url', 'ogImage');
+                    $metaReplace('property', 'og:url', 'og:url', 'ogUrl');
+
+                    // 5. Twitter Card Tags
+                    $metaReplace('name', 'twitter:title', 'twitter:title', 'twitterTitle');
+                    $metaReplace('name', 'twitter:description', 'twitter:description', 'twitterDescription');
+                    $metaReplace('name', 'twitter:image', 'twitter:image', 'twitterImage');
+                    $metaReplace('name', 'twitter:image:src', 'twitter:image:src', 'twitterImage');
+
+                    // 6. Replace Google Tag Manager occurrences with dynamic GTM code (All occurrences)
+                    $indexHtmlContent = preg_replace(
+                        '/https:\/\/www\.googletagmanager\.com\/gtm\.js\?id=[^"\'\s)]+/i',
+                        'https://www.googletagmanager.com/gtm.js?id=' . $gtmPhpEcho,
+                        $indexHtmlContent
+                    );
+                    $indexHtmlContent = preg_replace(
+                        '/https:\/\/www\.googletagmanager\.com\/ns\.html\?id=[^"\'\s)]+/i',
+                        'https://www.googletagmanager.com/ns.html?id=' . $gtmPhpEcho,
+                        $indexHtmlContent
+                    );
+                    $indexHtmlContent = preg_replace(
+                        '/["\']GTM-[A-Z0-9]+["\']/i',
+                        '"' . $gtmPhpEcho . '"',
+                        $indexHtmlContent
+                    );
+
+                    // 7. Loader configuration replacements (overlay bg, loading text, gradients)
+                    // - overlay background-color (viewer-loading overlay)
+                    // - loader text (.viewer-loading-text)
+                    // - outerGradient + innerGradient stop colors
+                    $overlayBgPhp = '<?php echo (!empty($overlayBgColor) ? escAttr($overlayBgColor) : ';
+                    $loaderTextPhp = '<?php echo (!empty($loaderText) ? escAttr($loaderText) : ';
+
+                    // Replace loader text
                     $indexHtmlContent = preg_replace_callback(
-                        '/(<linearGradient[^>]*\bid=["\']' . preg_quote($gradientId, '/') . '["\'][^>]*>)(.*?)(<\/linearGradient>)/is',
-                        function ($m) use ($phpArrayVar) {
-                            $inner = $m[2];
-                            $inner = preg_replace_callback(
-                                '/(<stop[^>]*\boffset=["\']0%["\'][^>]*\bstyle=["\'][^"\']*stop-color\s*:\s*)([^;"\']+)([^"\']*["\'][^>]*>)/is',
-                                function ($sm) use ($phpArrayVar) {
-                                    $fallback = var_export(trim($sm[2]), true);
-                                    return $sm[1] . '<?php echo escAttr($' . $phpArrayVar . '[0] ?? ' . $fallback . '); ?>' . $sm[3];
-                                },
-                                $inner,
-                                1
-                            );
-                            $inner = preg_replace_callback(
-                                '/(<stop[^>]*\boffset=["\']50%["\'][^>]*\bstyle=["\'][^"\']*stop-color\s*:\s*)([^;"\']+)([^"\']*["\'][^>]*>)/is',
-                                function ($sm) use ($phpArrayVar) {
-                                    $fallback = var_export(trim($sm[2]), true);
-                                    return $sm[1] . '<?php echo escAttr($' . $phpArrayVar . '[1] ?? ' . $fallback . '); ?>' . $sm[3];
-                                },
-                                $inner,
-                                1
-                            );
-                            $inner = preg_replace_callback(
-                                '/(<stop[^>]*\boffset=["\']100%["\'][^>]*\bstyle=["\'][^"\']*stop-color\s*:\s*)([^;"\']+)([^"\']*["\'][^>]*>)/is',
-                                function ($sm) use ($phpArrayVar) {
-                                    $fallback = var_export(trim($sm[2]), true);
-                                    return $sm[1] . '<?php echo escAttr($' . $phpArrayVar . '[2] ?? ' . $fallback . '); ?>' . $sm[3];
-                                },
-                                $inner,
-                                1
-                            );
-                            return $m[1] . $inner . $m[3];
+                        '/(<div[^>]*class=["\'][^"\']*viewer-loading-text[^"\']*["\'][^>]*>)(.*?)(<\/div>)/is',
+                        function ($m) use ($loaderTextPhp) {
+                            $fallback = var_export($m[2], true);
+                            return $m[1] . $loaderTextPhp . $fallback . '); ?>' . $m[3];
                         },
                         $indexHtmlContent,
                         1
                     );
-                };
 
-                // outerGradient uses loaderColors; innerGradient uses spinnerColors
-                $replaceGradientStops('outerGradient', 'loaderColors');
-                $replaceGradientStops('innerGradient', 'spinnerColors');
-                // Prepend flags and fetch script to the content
-                $phpScript = $this->generateDatabaseFetchScript($tour);
-                $flagsScript = "<?php \$replacedTags = " . var_export($replacedTags, true) . "; ?>";
-                $indexPhpContent = $flagsScript . "\n" . $phpScript . "\n" . $indexHtmlContent;
-
-                // Inject JavaScript, SEO meta tags, and header code before </head>
-                if (preg_match('/<\/head>/i', $indexPhpContent)) {
-                    $jsDataScript = $this->generateJavaScriptDataScript();
-                    $indexPhpContent = preg_replace(
-                        '/<\/head>/i',
-                        $jsDataScript . "\n</head>",
-                        $indexPhpContent,
+                    // Replace viewer-loading overlay background-color inside its style attribute
+                    $indexHtmlContent = preg_replace_callback(
+                        '/(<div[^>]*\bid=["\']viewer-loading["\'][^>]*\bstyle=["\'])([^"\']*)(["\'][^>]*>)/is',
+                        function ($m) use ($overlayBgPhp) {
+                            $style = $m[2];
+                            $style = preg_replace_callback(
+                                '/(background-color\s*:\s*)([^;]+)(;?)/i',
+                                function ($sm) use ($overlayBgPhp) {
+                                    $fallback = var_export(trim($sm[2]), true);
+                                    return $sm[1] . $overlayBgPhp . $fallback . '); ?>' . ($sm[3] ?: ';');
+                                },
+                                $style,
+                                1,
+                                $count
+                            );
+                            // If background-color wasn't present, append it
+                            if (empty($count)) {
+                                $fallback = var_export('rgb(0, 0, 64)', true);
+                                $style = rtrim($style);
+                                if ($style !== '' && substr($style, -1) !== ';')
+                                    $style .= ';';
+                                $style .= 'background-color:' . $overlayBgPhp . $fallback . '); ?>;';
+                            }
+                            return $m[1] . $style . $m[3];
+                        },
+                        $indexHtmlContent,
                         1
                     );
-                }
-                
-                // Inject footer code before </body>
-                if (preg_match('/<\/body>/i', $indexPhpContent)) {
-                    $footerScript = $this->generateFooterCodeScript();
-                    $indexPhpContent = preg_replace(
-                        '/<\/body>/i',
-                        $footerScript . "\n</body>",
-                        $indexPhpContent,
-                        1
-                    );
-                }
-                // Save index.php LOCALLY
-                // Ensure directory exists and is writable
-                if (!is_dir($rootTourDirectory)) {
-                    \File::makeDirectory($rootTourDirectory, 0775, true);
-                    @chmod($rootTourDirectory, 0775);
-                }
-                
-                $indexPhpPath = $rootTourDirectory . '/index.php';
-                if (file_put_contents($indexPhpPath, $indexPhpContent) === false) {
-                    throw new \Exception("Failed to write index.php to {$indexPhpPath}. Please check directory permissions.");
-                }
-                @chmod($indexPhpPath, 0664);
-                \Log::info("Successfully created index.php from index.html");
-                    
+
+                    // Helper: replace stop-color for a given gradient id using an array var ($loaderColors / $spinnerColors)
+                    $replaceGradientStops = function (string $gradientId, string $phpArrayVar) use (&$indexHtmlContent) {
+                        $indexHtmlContent = preg_replace_callback(
+                            '/(<linearGradient[^>]*\bid=["\']' . preg_quote($gradientId, '/') . '["\'][^>]*>)(.*?)(<\/linearGradient>)/is',
+                            function ($m) use ($phpArrayVar) {
+                                $inner = $m[2];
+                                $inner = preg_replace_callback(
+                                    '/(<stop[^>]*\boffset=["\']0%["\'][^>]*\bstyle=["\'][^"\']*stop-color\s*:\s*)([^;"\']+)([^"\']*["\'][^>]*>)/is',
+                                    function ($sm) use ($phpArrayVar) {
+                                        $fallback = var_export(trim($sm[2]), true);
+                                        return $sm[1] . '<?php echo escAttr($' . $phpArrayVar . '[0] ?? ' . $fallback . '); ?>' . $sm[3];
+                                    },
+                                    $inner,
+                                    1
+                                );
+                                $inner = preg_replace_callback(
+                                    '/(<stop[^>]*\boffset=["\']50%["\'][^>]*\bstyle=["\'][^"\']*stop-color\s*:\s*)([^;"\']+)([^"\']*["\'][^>]*>)/is',
+                                    function ($sm) use ($phpArrayVar) {
+                                        $fallback = var_export(trim($sm[2]), true);
+                                        return $sm[1] . '<?php echo escAttr($' . $phpArrayVar . '[1] ?? ' . $fallback . '); ?>' . $sm[3];
+                                    },
+                                    $inner,
+                                    1
+                                );
+                                $inner = preg_replace_callback(
+                                    '/(<stop[^>]*\boffset=["\']100%["\'][^>]*\bstyle=["\'][^"\']*stop-color\s*:\s*)([^;"\']+)([^"\']*["\'][^>]*>)/is',
+                                    function ($sm) use ($phpArrayVar) {
+                                        $fallback = var_export(trim($sm[2]), true);
+                                        return $sm[1] . '<?php echo escAttr($' . $phpArrayVar . '[2] ?? ' . $fallback . '); ?>' . $sm[3];
+                                    },
+                                    $inner,
+                                    1
+                                );
+                                return $m[1] . $inner . $m[3];
+                            },
+                            $indexHtmlContent,
+                            1
+                        );
+                    };
+
+                    // outerGradient uses loaderColors; innerGradient uses spinnerColors
+                    $replaceGradientStops('outerGradient', 'loaderColors');
+                    $replaceGradientStops('innerGradient', 'spinnerColors');
+                    // Prepend flags and fetch script to the content
+                    $phpScript = $this->generateDatabaseFetchScript($tour);
+                    $flagsScript = "<?php \$replacedTags = " . var_export($replacedTags, true) . "; ?>";
+                    $indexPhpContent = $flagsScript . "\n" . $phpScript . "\n" . $indexHtmlContent;
+
+                    // Inject JavaScript, SEO meta tags, and header code before </head>
+                    if (preg_match('/<\/head>/i', $indexPhpContent)) {
+                        $jsDataScript = $this->generateJavaScriptDataScript();
+                        $indexPhpContent = preg_replace(
+                            '/<\/head>/i',
+                            $jsDataScript . "\n</head>",
+                            $indexPhpContent,
+                            1
+                        );
+                    }
+
+                    // Inject footer code before </body>
+                    if (preg_match('/<\/body>/i', $indexPhpContent)) {
+                        $footerScript = $this->generateFooterCodeScript();
+                        $indexPhpContent = preg_replace(
+                            '/<\/body>/i',
+                            $footerScript . "\n</body>",
+                            $indexPhpContent,
+                            1
+                        );
+                    }
+                    // Save index.php LOCALLY
+                    // Ensure directory exists and is writable
+                    if (!is_dir($rootTourDirectory)) {
+                        \File::makeDirectory($rootTourDirectory, 0775, true);
+                        @chmod($rootTourDirectory, 0775);
+                    }
+
+                    $indexPhpPath = $rootTourDirectory . '/index.php';
+                    if (file_put_contents($indexPhpPath, $indexPhpContent) === false) {
+                        throw new \Exception("Failed to write index.php to {$indexPhpPath}. Please check directory permissions.");
+                    }
+                    @chmod($indexPhpPath, 0664);
+                    \Log::info("Successfully created index.php from index.html");
+
                     // Upload index.php to FTP server based on tour location
                     $ftpUploadResult = $this->uploadIndexPhpToFtp(
-                        $rootTourDirectory . '/index.php', 
+                        $rootTourDirectory . '/index.php',
                         $tour
                     );
-                    
+
                 } catch (\Exception $e) {
                     \Log::error("Error processing index.html: " . $e->getMessage() . " in " . $e->getFile() . ":" . $e->getLine());
                     $indexHtmlContent = null;
@@ -1096,7 +1101,7 @@ class TourManagerController extends Controller
             } else {
                 \Log::error("index.html file not found in ZIP in " . __FILE__ . ":" . __LINE__);
             }
-            
+
             // STEP 5.5: Upload sw.js to FTP if it exists (same path as index.php)
             // Do this outside index.html processing so it works even if index.html fails
             if ($swJsContent) {
@@ -1107,7 +1112,7 @@ class TourManagerController extends Controller
                         \File::makeDirectory($rootTourDirectory, 0775, true);
                         @chmod($rootTourDirectory, 0775);
                     }
-                    
+
                     // Save sw.js locally first
                     $swJsLocalPath = $rootTourDirectory . '/sw.js';
                     if (file_put_contents($swJsLocalPath, $swJsContent) === false) {
@@ -1115,7 +1120,7 @@ class TourManagerController extends Controller
                     }
                     @chmod($swJsLocalPath, 0664);
                     \Log::info("Successfully saved sw.js locally: {$swJsLocalPath}");
-                    
+
                     // Upload sw.js to FTP (same directory as index.php)
                     $swJsFtpResult = $this->uploadSwJsToFtp($swJsLocalPath, $tour);
                     if ($swJsFtpResult['success']) {
@@ -1135,13 +1140,13 @@ class TourManagerController extends Controller
             if ($jsonContent && $jsonFilename) {
                 try {
                     $jsonData = json_decode($jsonContent, true);
-                    
+
                     // Ensure directory exists
                     if (!is_dir($rootTourDirectory)) {
                         \File::makeDirectory($rootTourDirectory, 0775, true);
                         @chmod($rootTourDirectory, 0775);
                     }
-                    
+
                     $jsonLocalPath = $rootTourDirectory . '/' . $jsonFilename;
                     if (file_put_contents($jsonLocalPath, $jsonContent) === false) {
                         throw new \Exception("Failed to write JSON file to {$jsonLocalPath}. Please check directory permissions.");
@@ -1156,7 +1161,7 @@ class TourManagerController extends Controller
 
             // STEP 7: Final summary and cleanup
             $totalUploaded = count($uploadedFiles);
-            
+
             if ($totalUploaded === 0) {
                 \Log::error("No files were uploaded to S3 in " . __FILE__ . ":" . __LINE__);
                 if (!empty($uploadErrors)) {
@@ -1165,7 +1170,7 @@ class TourManagerController extends Controller
             } else if (!empty($uploadErrors)) {
                 \Log::warning("Some upload errors occurred: " . count($uploadErrors) . " error(s) in " . __FILE__ . ":" . __LINE__);
             }
-            
+
             // No temp directory cleanup needed - we never created one!
             // Files were uploaded directly from ZIP to S3
 
@@ -1184,11 +1189,11 @@ class TourManagerController extends Controller
             }
 
             // Generate base URL for S3 assets
-            $s3BaseUrl = config('filesystems.disks.s3.url') ?: 
-                        'https://' . config('filesystems.disks.s3.bucket') . '.s3.' . 
-                        config('filesystems.disks.s3.region') . '.amazonaws.com';
+            $s3BaseUrl = config('filesystems.disks.s3.url') ?:
+                'https://' . config('filesystems.disks.s3.bucket') . '.s3.' .
+                config('filesystems.disks.s3.region') . '.amazonaws.com';
             $s3Url = rtrim($s3BaseUrl, '/') . '/' . $s3TourPath;
-            
+
             // Update booking with S3 base URL for assets
             $booking = $tour->booking;
             if ($booking) {
@@ -1206,7 +1211,7 @@ class TourManagerController extends Controller
                 's3_url' => $s3Url,
                 'message' => 'Zip file processed successfully - index.php stored locally, assets uploaded to S3'
             ];
-            
+
             // Add FTP upload result if available
             if ($ftpUploadResult && isset($ftpUploadResult['success'])) {
                 if ($ftpUploadResult['success']) {
@@ -1217,7 +1222,7 @@ class TourManagerController extends Controller
                     \Log::warning("FTP upload failed: " . ($ftpUploadResult['message'] ?? 'Unknown error'));
                 }
             }
-            
+
             return $returnData;
 
         } catch (\Exception $e) {
@@ -1500,17 +1505,17 @@ class TourManagerController extends Controller
 
                     // Verification skipped - S3 eventual consistency means file might exist but not be immediately visible
                     // The upload likely succeeded if put() returned true
-                    
+
                     $totalSize += $fileData['size'];
                     $uploadedCount++;
-                    
-                    
+
+
                 } catch (\Exception $e) {
                     $failedCount++;
                     $errorMsg = "Failed to upload {$fileData['s3']}: " . $e->getMessage();
                     $errors[] = $errorMsg;
                     \Log::error($errorMsg . " | File: {$fileData['local']} in " . __FILE__ . ":" . __LINE__);
-                    
+
 
                     // If too many failures, stop and report
                     if ($failedCount > 10) {
@@ -1974,13 +1979,13 @@ PHP;
         $filename = $request->input('filename');
         $totalSize = $request->input('total_size');
         $bookingId = $request->input('booking_id');
-        
+
         // Generate unique upload ID
         $uploadId = md5($filename . $totalSize . $bookingId . time());
-        
+
         // Create temporary directory for chunks
         $chunkDir = storage_path('app/chunks/' . $uploadId);
-        
+
         // Ensure parent chunks directory exists and has correct permissions
         $chunksBaseDir = storage_path('app/chunks');
         if (!is_dir($chunksBaseDir)) {
@@ -1994,7 +1999,7 @@ PHP;
             // Set ownership if possible
             @chmod($chunksBaseDir, 0775);
         }
-        
+
         // Create upload-specific directory
         if (!is_dir($chunkDir)) {
             if (!mkdir($chunkDir, 0775, true)) {
@@ -2006,7 +2011,7 @@ PHP;
             }
             @chmod($chunkDir, 0775);
         }
-        
+
         // Store upload metadata
         $metadata = [
             'upload_id' => $uploadId,
@@ -2017,9 +2022,9 @@ PHP;
             'total_chunks' => ceil($totalSize / (10 * 1024 * 1024)), // 10MB chunks
             'created_at' => now()->toDateTimeString(),
         ];
-        
+
         file_put_contents($chunkDir . '/metadata.json', json_encode($metadata));
-        
+
         return response()->json([
             'success' => true,
             'upload_id' => $uploadId,
@@ -2042,16 +2047,16 @@ PHP;
         $uploadId = $request->input('upload_id');
         $chunkNumber = $request->input('chunk_number');
         $chunkFile = $request->file('chunk');
-        
+
         $chunkDir = storage_path('app/chunks/' . $uploadId);
-        
+
         if (!is_dir($chunkDir)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Upload session not found. Please restart the upload.'
             ], 404);
         }
-        
+
         // Load metadata
         $metadataPath = $chunkDir . '/metadata.json';
         if (!file_exists($metadataPath)) {
@@ -2060,17 +2065,17 @@ PHP;
                 'message' => 'Upload metadata not found.'
             ], 404);
         }
-        
+
         $metadata = json_decode(file_get_contents($metadataPath), true);
-        
+
         // Save chunk
         $chunkPath = $chunkDir . '/chunk_' . $chunkNumber;
         $chunkFile->move($chunkDir, 'chunk_' . $chunkNumber);
-        
+
         // Update metadata
         $metadata['chunks_uploaded'] = max($metadata['chunks_uploaded'], $chunkNumber + 1);
         file_put_contents($metadataPath, json_encode($metadata));
-        
+
         return response()->json([
             'success' => true,
             'chunk_number' => $chunkNumber,
@@ -2088,10 +2093,10 @@ PHP;
         // Increase execution time limit for large ZIP file processing
         set_time_limit(18000);
         ini_set('max_execution_time', '18000');
-        
+
         // Get valid location values from FTP configurations
         $validLocations = FtpConfiguration::active()->pluck('category_name')->toArray();
-        
+
         $request->validate([
             'upload_id' => 'required|string',
             'slug' => 'required|string|max:255|regex:/^[a-zA-Z0-9\/\-_]+$/',
@@ -2100,14 +2105,14 @@ PHP;
 
         $uploadId = $request->input('upload_id');
         $chunkDir = storage_path('app/chunks/' . $uploadId);
-        
+
         if (!is_dir($chunkDir)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Upload session not found.'
             ], 404);
         }
-        
+
         // Load metadata
         $metadataPath = $chunkDir . '/metadata.json';
         if (!file_exists($metadataPath)) {
@@ -2116,9 +2121,9 @@ PHP;
                 'message' => 'Upload metadata not found.'
             ], 404);
         }
-        
+
         $metadata = json_decode(file_get_contents($metadataPath), true);
-        
+
         // Verify all chunks are uploaded
         $expectedChunks = $metadata['total_chunks'];
         $uploadedChunks = 0;
@@ -2127,34 +2132,34 @@ PHP;
                 $uploadedChunks++;
             }
         }
-        
+
         if ($uploadedChunks < $expectedChunks) {
             return response()->json([
                 'success' => false,
                 'message' => "Not all chunks uploaded. Expected: {$expectedChunks}, Uploaded: {$uploadedChunks}"
             ], 400);
         }
-        
+
         // Combine chunks into single file
         $finalPath = $chunkDir . '/final.zip';
         $finalFile = fopen($finalPath, 'wb');
-        
+
         if (!$finalFile) {
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to create final file.'
             ], 500);
         }
-        
+
         for ($i = 0; $i < $expectedChunks; $i++) {
             $chunkPath = $chunkDir . '/chunk_' . $i;
             $chunkContent = file_get_contents($chunkPath);
             fwrite($finalFile, $chunkContent);
             unlink($chunkPath); // Clean up chunk
         }
-        
+
         fclose($finalFile);
-        
+
         try {
             $slug = $request->input('slug');
             $location = $request->input('location');
@@ -2166,7 +2171,7 @@ PHP;
             $booking->tour_zip_started_at = now();
             $booking->tour_zip_finished_at = null;
             $booking->save();
-            
+
             // Dispatch background job to process the ZIP file
             // Use unique identifier to prevent duplicate jobs
             $jobUniqueId = 'tour-processing-' . $booking->id . '-' . md5($metadata['filename'] . $finalPath);
@@ -2177,15 +2182,15 @@ PHP;
                 $slug,
                 $location
             )->onQueue('tour-processing');
-            
+
             // Log job dispatch with unique identifier for tracking
             \Log::info("ZIP file processing queued. Booking ID: {$booking->id}, Job ID: {$jobUniqueId}");
-            
+
             \Log::info("ZIP file processing queued for background processing. Booking ID: {$booking->id}");
-            
+
             // Clean up metadata files (keep final.zip for the job)
             unlink($metadataPath);
-            
+
             return response()->json([
                 'success' => true,
                 'message' => 'File uploaded successfully! Processing will continue in the background.',
@@ -2196,7 +2201,7 @@ PHP;
                 'tour_zip_message' => $booking->tour_zip_message,
                 'redirect' => route('admin.tour-manager.show', $booking)
             ]);
-            
+
         } catch (\Exception $e) {
             \Log::error('Chunked upload finalization error: ' . $e->getMessage() . " in " . $e->getFile() . ":" . $e->getLine());
 
@@ -2210,7 +2215,7 @@ PHP;
             } catch (\Exception $inner) {
                 // ignore status update failure
             }
-            
+
             // Clean up on error
             if (file_exists($finalPath)) {
                 @unlink($finalPath);
@@ -2222,7 +2227,7 @@ PHP;
                 @array_map('unlink', glob($chunkDir . '/*'));
                 @rmdir($chunkDir);
             }
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to queue processing: ' . $e->getMessage()
@@ -2514,9 +2519,9 @@ PHP;
         try {
             $location = $tour->location;
             $tourSlug = $tour->slug;
-            
+
             \Log::info("=== Starting sw.js FTP upload for tour: {$tourSlug} (Location: {$location}) ===");
-            
+
             // Validate location
             if (empty($location)) {
                 \Log::warning("Location is missing. Skipping sw.js FTP upload.");
@@ -2525,7 +2530,7 @@ PHP;
                     'message' => 'Tour location is required for FTP upload'
                 ];
             }
-            
+
             // Validate tour slug
             if (empty($tourSlug)) {
                 \Log::warning("Tour slug is missing. Skipping sw.js FTP upload.");
@@ -2534,13 +2539,13 @@ PHP;
                     'message' => 'Tour slug is required for FTP upload'
                 ];
             }
-            
+
             // Get customer_id from tour's booking
             $customerId = null;
             if ($tour->booking) {
                 $customerId = $tour->booking->customer_id;
             }
-            
+
             if (empty($customerId)) {
                 \Log::warning("Customer ID is missing. Skipping sw.js FTP upload.");
                 return [
@@ -2548,12 +2553,12 @@ PHP;
                     'message' => 'Customer ID is required for FTP upload. Tour must be associated with a booking.'
                 ];
             }
-            
+
             // Get FTP configuration from database
             $ftpConfig = FtpConfiguration::where('category_name', $location)
                 ->active()
                 ->first();
-                
+
             if (!$ftpConfig) {
                 \Log::error("FTP configuration not found for location: {$location}");
                 return [
@@ -2561,7 +2566,7 @@ PHP;
                     'message' => "FTP configuration not found for location: {$location}"
                 ];
             }
-            
+
             // Verify local file exists
             if (!file_exists($localSwJsPath)) {
                 \Log::error("Local sw.js file not found: {$localSwJsPath}");
@@ -2570,7 +2575,7 @@ PHP;
                     'message' => 'Local sw.js file not found'
                 ];
             }
-            
+
             // Get remote path (same directory as index.php, just sw.js instead)
             // Use the same pattern as index.php but replace index.php with sw.js
             $ftpRemotePath = $ftpConfig->getRemotePathForTour($tourSlug, $customerId);
@@ -2578,7 +2583,7 @@ PHP;
             $ftpRemotePath = str_replace('index.php', 'sw.js', $ftpRemotePath);
             $ftpUrl = $ftpConfig->getUrlForTour($tourSlug, $customerId);
             $ftpUrl = str_replace('index.php', 'sw.js', $ftpUrl);
-            
+
             \Log::info("sw.js FTP Upload Details:");
             \Log::info("  Category: {$ftpConfig->category_name}");
             \Log::info("  Display Name: {$ftpConfig->display_name}");
@@ -2590,22 +2595,22 @@ PHP;
             \Log::info("  Local file: {$localSwJsPath}");
             \Log::info("  Remote path: {$ftpRemotePath}");
             \Log::info("  Final URL: {$ftpUrl}");
-            
+
             // Create a temporary disk config for this FTP configuration
             $diskName = 'ftp_temp_' . $ftpConfig->id;
             config(["filesystems.disks.{$diskName}" => $ftpConfig->storage_config]);
-            
+
             // Use SFTP driver if configured
             if ($ftpConfig->driver === 'sftp') {
                 \Log::info("Using Storage SFTP driver for sw.js upload...");
-                
+
                 $ftpDisk = Storage::disk($diskName);
                 $fileContent = file_get_contents($localSwJsPath);
-                
+
                 if ($fileContent === false) {
                     throw new \Exception("Failed to read local sw.js file");
                 }
-                
+
                 // Ensure remote directory exists (same as index.php)
                 $remoteDir = trim(dirname($ftpRemotePath), '/');
                 if (!empty($remoteDir) && $remoteDir !== '.') {
@@ -2616,32 +2621,32 @@ PHP;
                         \Log::warning("Could not create remote directory '{$remoteDir}': " . $dirEx->getMessage());
                     }
                 }
-                
+
                 // Upload with explicit visibility
                 $uploaded = $ftpDisk->put($ftpRemotePath, $fileContent, ['visibility' => 'public']);
-                
+
                 if (!$uploaded) {
                     throw new \Exception("SFTP put() returned false for {$ftpRemotePath}");
                 }
-                
+
                 // Verify upload
                 if (!$ftpDisk->exists($ftpRemotePath)) {
                     throw new \Exception("SFTP upload verification failed; file not found at {$ftpRemotePath}");
                 }
-                
+
                 // Set permissions
                 try {
                     $ftpDisk->setVisibility($ftpRemotePath, 'public');
                 } catch (\Exception $visEx) {
                     \Log::warning("Could not set visibility: " . $visEx->getMessage());
                 }
-                
+
             } else {
                 // Use native PHP FTP functions for FTP
                 \Log::info("Using native PHP FTP functions for sw.js upload...");
                 try {
                     $host = preg_replace('#^ftps?://#', '', $ftpConfig->host);
-                    
+
                     // Prepend root if defined in FTP configuration for native call
                     // Note: root is relative to FTP user's home directory (chroot)
                     $root = trim($ftpConfig->root ?? '', '/');
@@ -2651,7 +2656,7 @@ PHP;
                     }
 
                     \Log::info("sw.js FTP upload path with root: {$remotePathWithRoot}");
-                    
+
                     $uploaded = $this->uploadToFtpNative(
                         $host,
                         $ftpConfig->port,
@@ -2663,18 +2668,18 @@ PHP;
                     );
                 } catch (\Exception $nativeException) {
                     \Log::error("Native FTP upload failed for sw.js: " . $nativeException->getMessage());
-                    
+
                     // Try Laravel Storage as fallback
                     \Log::info("Trying Laravel Storage FTP driver as fallback for sw.js...");
                     try {
                         $ftpDisk = Storage::disk($diskName);
-                        
+
                         // Read local file content
                         $fileContent = file_get_contents($localSwJsPath);
                         if ($fileContent === false) {
                             throw new \Exception("Failed to read local sw.js file");
                         }
-                        
+
                         // Ensure remote directory exists
                         $remoteDir = trim(dirname($ftpRemotePath), '/');
                         if (!empty($remoteDir) && $remoteDir !== '.') {
@@ -2684,7 +2689,7 @@ PHP;
                                 \Log::warning("Could not create remote directory: " . $dirEx->getMessage());
                             }
                         }
-                        
+
                         // Upload file to FTP using Storage facade
                         \Log::info("Uploading sw.js to FTP using Storage facade...");
                         $uploaded = $ftpDisk->put($ftpRemotePath, $fileContent);
@@ -2694,11 +2699,11 @@ PHP;
                     }
                 }
             }
-            
+
             if ($uploaded) {
                 \Log::info("✓ Successfully uploaded sw.js to FTP: {$ftpRemotePath}");
                 \Log::info("sw.js accessible at: {$ftpUrl}");
-                
+
                 return [
                     'success' => true,
                     'message' => 'sw.js uploaded to FTP successfully',
@@ -2715,7 +2720,7 @@ PHP;
                     'message' => 'FTP upload failed (returned false)'
                 ];
             }
-            
+
         } catch (\Exception $e) {
             \Log::error("sw.js FTP upload error: " . $e->getMessage());
             \Log::error("Stack trace: " . $e->getTraceAsString());
@@ -2814,7 +2819,7 @@ PHP;
                         }
                     }
                 }
-                
+
                 // Return to the directory where we need to upload the file
                 @ftp_chdir($connection, $directoryPath);
             }
