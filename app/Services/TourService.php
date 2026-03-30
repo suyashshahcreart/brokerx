@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\QR;
 use App\Models\Tour;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Storage;
@@ -113,7 +114,10 @@ class TourService
         $footerButton = $sidebarConfig['footerButton'] ?? [];
 
         if ($forceSync || Arr::has($diffJson, 'sidebarConfig.logo')) {
-            $tour->sidebar_logo = Storage::disk('s3')->url($sidebarConfig['logo']) ?? null;
+            $bookingCode = QR::where('booking_id', $tour->booking_id ?? null)->value('code');
+            $logo = $sidebarConfig['logo'] ?? null;
+            $path = $bookingCode && $logo ? "tours/$bookingCode/$logo" : null;
+            $tour->sidebar_logo = $path ? Storage::disk('s3')->url($path) : null;
         }
 
         if ($forceSync || Arr::has($diffJson, 'sidebarConfig.footerButton')) {
@@ -135,7 +139,10 @@ class TourService
         // bottom mark fields
         $bottomMarker = $finalJson['bottomMarker'] ?? [];
         if ($forceSync || Arr::has($diffJson, 'bottomMarker.topImage')) {
-            $tour->footer_logo = Storage::disk('s3')->url($bottomMarker['topImage']) ?? null;
+            $bookingCode = QR::where('booking_id', $tour->booking_id ?? null)->value('code');
+            $logo = $bottomMarker['topImage'] ?? null;
+            $path = $bookingCode && $logo ? "tours/$bookingCode/$logo" : null;
+            $tour->footer_logo = Storage::disk('s3')->url($path) ?? null;
         }
         if ($forceSync || Arr::has($diffJson, 'bottomMarker.topTitle')) {
             $tour->footer_title = $bottomMarker['topTitle'] ?? null;

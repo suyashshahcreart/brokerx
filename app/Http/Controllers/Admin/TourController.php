@@ -2145,7 +2145,7 @@ class TourController extends Controller
             $finalJson['sidebarConfig']['logo'] = 'assets/' . $sidebarFilename;
 
             if ($uploaded) {
-                $updateData['sidebar_logo'] = $sidebarPath;
+                $updateData['sidebar_logo'] = Storage::disk('s3')->url($sidebarPath);
             }
         }
 
@@ -2343,7 +2343,7 @@ class TourController extends Controller
             $finalJson['bottomMarker']['topImage'] = 'assets/' . $footerFilename;
 
             if ($uploaded) {
-                $updateData['footer_logo'] = $footerPath;
+                $updateData['footer_logo'] = Storage::disk('s3')->url($footerPath);
             }
         }
 

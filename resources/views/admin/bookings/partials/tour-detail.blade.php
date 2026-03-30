@@ -812,7 +812,7 @@
                                                 <div class="mt-2 items-start">
                                                     @if($tour->sidebar_logo)
                                                         <img id="sidebar_logo_preview"
-                                                            src="{{ Storage::disk('s3')->url($tour->sidebar_logo) }}"
+                                                            src="{{ $tour->sidebar_logo }}"
                                                             alt="Sidebar Logo"
                                                             style="max-width: 300px; max-height: auto; border:1px solid #ddd; background:#fff; padding:2px;">
                                                     @else
@@ -1252,8 +1252,8 @@
                                         <div class="mt-2">
                                             @if($tour->footer_logo)
                                                 <img id="footer_logo_preview"
-                                                    src="{{ Storage::disk('s3')->url($tour->footer_logo) }}"
-                                                    data-original-src="{{ Storage::disk('s3')->url($tour->footer_logo) }}"
+                                                    src="{{ $tour->footer_logo }}"
+                                                    data-original-src="{{ $tour->footer_logo }}"
                                                     alt="Footer Logo"
                                                     style="max-width: 150px; max-height: 80px; border:1px solid #ddd; background:#fff; padding:2px;">
                                             @else
