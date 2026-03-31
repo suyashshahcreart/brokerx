@@ -202,7 +202,7 @@ class CustomerProfileController extends Controller
             }
             $path = $request->file('profile_photo')
                 ->storeAs('settings/customer/' . $customer->id . '/Files', 'profile_' . time() . '.' . $request->file('profile_photo')->extension(), 's3');
-            $validated['profile_photo'] = $path;
+            $validated['profile_photo'] = Storage::disk('s3')->url($path);
         }
         if ($request->hasFile('cover_photo')) {
             if ($customer->cover_photo && Storage::disk('public')->exists($customer->cover_photo)) {
@@ -210,17 +210,10 @@ class CustomerProfileController extends Controller
             }
             $path = $request->file('cover_photo')
                 ->storeAs('settings/customer/' . $customer->id . '/Files', 'cover_' . time() . '.' . $request->file('cover_photo')->extension(), 's3');
-            $validated['cover_photo'] = $path;
+            $validated['cover_photo'] = Storage::disk('s3')->url($path);
         }
 
         $customer->update($validated);
-
-        $profilePhotoUrl = $customer->profile_photo
-            ? Storage::disk('s3')->url($customer->profile_photo)
-            : null;
-        $coverPhotoUrl = $customer->cover_photo
-            ? Storage::disk('s3')->url($customer->cover_photo)
-            : null;
 
         return response()->json([
             'success' => true,
@@ -230,8 +223,6 @@ class CustomerProfileController extends Controller
                     'id' => $customer->id,
                     'profile_photo' => $customer->profile_photo,
                     'cover_photo' => $customer->cover_photo,
-                    'profile_photo_url' => $profilePhotoUrl,
-                    'cover_photo_url' => $coverPhotoUrl,
                 ],
             ],
         ]);

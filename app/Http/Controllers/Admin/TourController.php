@@ -793,7 +793,7 @@ class TourController extends Controller
             $thumbnailMime = $tourThumbnailFile->getMimeType();
             $uploaded = Storage::disk('s3')->put($thumbnailPath, $thumbnailContent, ['ContentType' => $thumbnailMime]);
             if ($uploaded) {
-                $updateData['tour_thumbnail'] = $thumbnailPath;
+                $updateData['tour_thumbnail'] = Storage::disk('s3')->url($thumbnailPath);
             }
         }
 
