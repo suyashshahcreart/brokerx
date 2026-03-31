@@ -172,7 +172,7 @@
                                             @if($tour->tour_thumbnail)
                                                 <div>
                                                     <small class="text-muted d-block mb-2">Current thumbnail:</small>
-                                                    <img src="{{ Storage::disk('s3')->url($tour->tour_thumbnail) }}"
+                                                    <img src="{{ $tour->tour_thumbnail }}"
                                                         alt="Tour Thumbnail"
                                                         style="max-width: 200px; max-height: 200px; border:1px solid #ddd; padding:5px; border-radius: 4px;">
                                                 </div>

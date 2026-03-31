@@ -93,12 +93,6 @@ class TourManagerController extends Controller
 
         // Map tours to include full logo URLs
         $tours = $tours->map(function ($tour) use ($apiBaseUrl, $qrLinkBase, $s3LinkBase) {
-
-            $tour->footer_brand_logo = $tour->footer_brand_logo ? $s3LinkBase . $tour->footer_brand_logo : null;
-
-            $tour->footer_logo = $tour->footer_logo ? $tour->footer_logo : null;
-            $tour->sidebar_logo = $tour->sidebar_logo ? $s3LinkBase . $tour->sidebar_logo : null;
-
             // QR Code
             $tour->qr_code = $tour->booking ? $tour->booking->tour_code : null;
             $tour->tour_code = $tour->booking ? $tour->booking->tour_code : null;
@@ -120,9 +114,7 @@ class TourManagerController extends Controller
             $tour->makeHidden(['booking']);
             $tour->makeVisible(['qr_code']);
             $tourArr = $tour->toArray();
-            // Add full URLs for custom logos
-            $tourArr['custom_logo_sidebar_url'] = $tour->custom_logo_sidebar ? Storage::disk('s3')->url($tour->custom_logo_sidebar) : null;
-            $tourArr['custom_logo_footer_url'] = $tour->custom_logo_footer ? Storage::disk('s3')->url($tour->custom_logo_footer) : null;
+
             return $tourArr;
         });
         return response()->json([
@@ -164,8 +156,8 @@ class TourManagerController extends Controller
 
         // Format tour details (matching mapping logic in getToursByCustomer)
         $tour->footer_brand_logo = $tour->footer_brand_logo ? $s3LinkBase . $tour->footer_brand_logo : null;
-        $tour->footer_logo = $tour->footer_logo ? $s3LinkBase . $tour->footer_logo : null;
-        $tour->sidebar_logo = $tour->sidebar_logo ? $s3LinkBase . $tour->sidebar_logo : null;
+        $tour->footer_logo = $tour->footer_logo ? $tour->footer_logo : null;
+        $tour->sidebar_logo = $tour->sidebar_logo ? $tour->sidebar_logo : null;
 
         $tour->qr_code = $tour->booking ? $tour->booking->tour_code : null;
         $tour->qr_link = $tour->booking ? $tour->booking->tour_code ? $qrLinkBase . $tour->qr_code : null : null;
