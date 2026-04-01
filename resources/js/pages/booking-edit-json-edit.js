@@ -94,6 +94,7 @@ elements.editButton.on('click', function () {
         jsonEditorState.originalJson = JSON.parse(JSON.stringify(currentJson)); // Deep copy
         editor.set(currentJson);
         jsonEditorState.isModified = false;
+        modals.editor.show();
     } catch (error) {
         Swal.fire({
             icon: 'error',

@@ -72,14 +72,14 @@ function initQuillForRow(rowIndex, initialContent = {}) {
             }
         });
 
-        const value = initialContent[code] || hiddenInput.value || '';
+        const value = initialContent[code];
         if (value) {
-            quill.root.innerHTML = value;
+            quill.setText(value);
             hiddenInput.value = value;
         }
 
         quill.on('text-change', function () {
-            hiddenInput.value = quill.root.innerHTML;
+            hiddenInput.value = quill.getText();
         });
 
         quillEditors[rowIndex][code] = quill;
@@ -144,13 +144,17 @@ function addSidebarLinkRow(linkData = {}) {
                 <button class="nav-link ${isEnabled && index === 0 ? 'active' : ''} p-1" id="content-tab-${code}-${rowIndex}" data-bs-toggle="tab" data-bs-target="#content-pane-${code}-${rowIndex}" type="button" role="tab" aria-controls="content-pane-${code}-${rowIndex}" aria-selected="${isSelected}">${label}</button>
             </li>`;
 
+        //<label for="exampleFormControlTextarea1" class="form-label">Content <span class="text-danger">*${code}</span></label>
+        //<textarea name="sidebar_links[${rowIndex}][content][${code}]" class="form-control" id="exampleFormControlTextarea1" rows="6">${linkData.content?.[code] || ''}</textarea>
         contentPanesHTML += `
             <div class="tab-pane fade ${fadeClass}" id="content-pane-${code}-${rowIndex}" role="tabpanel" aria-labelledby="content-tab-${code}-${rowIndex}">
-                <div id="contentQuillEditor_${rowIndex}_${code}" class="quill-editor" style="min-height: 150px; border: 1px solid #ced4da; border-radius: .25rem; background: #fff;"></div>
+                    <div id="contentQuillEditor_${rowIndex}_${code}" class="quill-editor" style="min-height: 150px; border: 1px solid #ced4da; border-radius: .25rem; background: #fff;">
+                        ${linkData.content?.[code] || ''}
+                    </div>
                 <div class="d-none">
                     <input type="hidden" name="sidebar_links[${rowIndex}][content][${code}]" id="contentHidden_${rowIndex}_${code}" class="content-hidden-input" value="${linkData.content?.[code] || ''}">
-                </div>
-            </div>`;
+                </div>    
+                </div>`;
     });
 
     const rowHTML = `
@@ -204,8 +208,7 @@ function addSidebarLinkRow(linkData = {}) {
             </div>
 
             <div class="col-md-12 mt-2" id="contentInputContainer_${rowIndex}" style="display: ${type === 'content' || type === 'infoModal' ? 'block' : 'none'};">
-                <label class="form-label">Content <span class="text-danger">*</span></label>
-                <ul class="nav nav-tabs mb-2" id="contentLanguageTabs_${rowIndex}" role="tablist">
+                <ul class="nav nav-tabs mt-2" id="contentLanguageTabs_${rowIndex}" role="tablist">
                     ${contentTabsHTML}
                 </ul>
                 <div class="tab-content" id="contentTabContent_${rowIndex}">

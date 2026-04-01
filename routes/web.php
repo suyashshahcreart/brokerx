@@ -220,6 +220,7 @@ Route::group(['prefix' => 'ppadmlog', 'as' => 'admin.', 'middleware' => ['web', 
     Route::put('admin/tours/{tour}/update-tour-bottom-top-tab', [TourController::class, 'updateTourBottomTopTab'])->name('tours.updateTourBottomTopTab');
     Route::put('admin/tours/{tour}/update-tour-bottom-property-tab', [TourController::class, 'updateTourBottomPropertyTab'])->name('tours.updateTourBottomPropertyTab');
     Route::put('admin/tours/{tour}/updateTourJson', [TourController::class, 'updateTourJson'])->name('tours.updateTourJson');
+    Route::post('admin/tours/{tour}/upload-json-file', [TourController::class, 'uploadJsonFile'])->name('tours.uploadJsonFile');
     Route::put('admin/tours/{tour}/update-sidebar-links', [TourController::class, 'updateSidebarLinks'])->name('tours.updateSidebarLinks');
 
     // AJAX Tour routes
