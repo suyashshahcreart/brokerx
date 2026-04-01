@@ -22,7 +22,7 @@
             "property_type": "Residential",
             "property_sub_type": "Independent House",
             "thumbnail": "https://www.proppik.in/portfolio/the-north-park/gallery/Drawing_Room.webp",
-            "tour_live_link": "https://www.proppik.in/portfolio/the-north-park/",
+            "tour_live_link": "https://proppik.cloud/3/northpark/",
             "date": "2026-02-18"
         },
         {
@@ -96,8 +96,28 @@
             "date": "2026-02-18"
         },
         {
-            "id": "db-19",
+            "id": "item-1774355276264",
             "sr_no": 9,
+            "title": "Hermitage Liquors",
+            "property_type": "Commercial",
+            "property_sub_type": "Retail Shop",
+            "thumbnail": "https://cdn.proppikglobal.in/tours/dmyCLmy9/gallery/Vodka.webp",
+            "tour_live_link": "https://proppik.cloud/3/hermitage-liquors/",
+            "date": "2026-03-24"
+        },
+        {
+            "id": "item-1772710309315",
+            "sr_no": 10,
+            "title": "Liquor & Smoke House",
+            "property_type": "Commercial",
+            "property_sub_type": "Retail Shop",
+            "thumbnail": "https://cdn.proppikglobal.in/tours/F3eVCwif/gallery/Store-Entry.webp",
+            "tour_live_link": "https://proppik.cloud/3/liquorandsmokehouse/",
+            "date": "2026-03-05"
+        },
+        {
+            "id": "db-19",
+            "sr_no": 11,
             "title": "Nautanky",
             "property_type": "Commercial",
             "property_sub_type": "Showroom",
@@ -107,7 +127,7 @@
         },
         {
             "id": "db-13",
-            "sr_no": 10,
+            "sr_no": 12,
             "title": "IRA",
             "property_type": "Commercial",
             "property_sub_type": "Office",
@@ -117,7 +137,7 @@
         },
         {
             "id": "db-7",
-            "sr_no": 11,
+            "sr_no": 13,
             "title": "United Nails",
             "property_type": "Commercial",
             "property_sub_type": "Retail Shop",
@@ -127,7 +147,7 @@
         },
         {
             "id": "db-1",
-            "sr_no": 12,
+            "sr_no": 14,
             "title": "Amala Cafe",
             "property_type": "Commercial",
             "property_sub_type": "Cafe",
@@ -137,7 +157,7 @@
         },
         {
             "id": "db-21",
-            "sr_no": 13,
+            "sr_no": 15,
             "title": "Kisna Canteen",
             "property_type": "Commercial",
             "property_sub_type": "Restaurant",
@@ -147,7 +167,7 @@
         },
         {
             "id": "db-18",
-            "sr_no": 14,
+            "sr_no": 16,
             "title": "Mondeal Office",
             "property_type": "Commercial",
             "property_sub_type": "Office",
@@ -157,7 +177,7 @@
         },
         {
             "id": "db-17",
-            "sr_no": 15,
+            "sr_no": 17,
             "title": "mahadev temple",
             "property_type": "Other",
             "property_sub_type": "Religious",
@@ -167,7 +187,7 @@
         },
         {
             "id": "db-14",
-            "sr_no": 16,
+            "sr_no": 18,
             "title": "Jornang village temple",
             "property_type": "Other",
             "property_sub_type": "Religious",
@@ -177,7 +197,7 @@
         },
         {
             "id": "db-11",
-            "sr_no": 17,
+            "sr_no": 19,
             "title": "Dandi Kutir",
             "property_type": "Other",
             "property_sub_type": "Heritage",
@@ -187,7 +207,7 @@
         },
         {
             "id": "db-9",
-            "sr_no": 18,
+            "sr_no": 20,
             "title": "Viburnum-3",
             "property_type": "Residential",
             "property_sub_type": "Independent Floor",
@@ -197,7 +217,7 @@
         },
         {
             "id": "db-6",
-            "sr_no": 19,
+            "sr_no": 21,
             "title": "Dental Clinic",
             "property_type": "Health Care",
             "property_sub_type": "Others",
@@ -207,7 +227,7 @@
         },
         {
             "id": "db-25",
-            "sr_no": 20,
+            "sr_no": 22,
             "title": "DNT",
             "property_type": "Other",
             "property_sub_type": "Others",
@@ -217,7 +237,7 @@
         },
         {
             "id": "db-2",
-            "sr_no": 21,
+            "sr_no": 23,
             "title": "Sarhad Dairy",
             "property_type": "Industries",
             "property_sub_type": "Industries",
@@ -227,7 +247,7 @@
         },
         {
             "id": "db-3",
-            "sr_no": 22,
+            "sr_no": 24,
             "title": "Sarhad Dairy Cattle Feed Plant",
             "property_type": "Other",
             "property_sub_type": "Industries",
@@ -237,7 +257,7 @@
         },
         {
             "id": "db-4",
-            "sr_no": 23,
+            "sr_no": 25,
             "title": "Sarhad Dairy Solar Plant",
             "property_type": "Other",
             "property_sub_type": "Industries",
@@ -247,7 +267,7 @@
         },
         {
             "id": "item-1772709011553",
-            "sr_no": 24,
+            "sr_no": 26,
             "title": "Nirvana Arise",
             "property_type": "Residential",
             "property_sub_type": "",
@@ -257,7 +277,7 @@
         },
         {
             "id": "item-1772709207869",
-            "sr_no": 25,
+            "sr_no": 27,
             "title": "Dharma Path",
             "property_type": "Religious",
             "property_sub_type": "",
@@ -267,7 +287,7 @@
         },
         {
             "id": "item-1772709432411",
-            "sr_no": 26,
+            "sr_no": 28,
             "title": "Hanuman Garhi",
             "property_type": "Religious",
             "property_sub_type": "",
@@ -277,7 +297,7 @@
         },
         {
             "id": "item-1772709661343",
-            "sr_no": 27,
+            "sr_no": 29,
             "title": "Guptar Hari Temple",
             "property_type": "Religious",
             "property_sub_type": "",
@@ -287,12 +307,12 @@
         },
         {
             "id": "item-1772710309314",
-            "sr_no": 28,
+            "sr_no": 30,
             "title": "Laxmi Narayan Club",
             "property_type": "Hospitality",
             "property_sub_type": "",
-            "thumbnail": "https://memegangs.com/proppik/laxminarayanclub/gallery/laxminarayanclub.jpg",
-            "tour_live_link": "https://memegangs.com/proppik/laxminarayanclub/",
+            "thumbnail": "https://memegangs.com/proppik/lnc/gallery/Jharokha.webp",
+            "tour_live_link": "https://memegangs.com/proppik/lnc/",
             "date": "2026-03-05"
         }
     ]
