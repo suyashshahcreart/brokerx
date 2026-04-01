@@ -20,6 +20,9 @@ use App\Models\Tour;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
+use App\Models\FtpConfiguration;
+use Illuminate\Support\Facades\Storage;
 use Maatwebsite\Excel\Facades\Excel;
 use Spatie\Activitylog\Models\Activity;
 use Yajra\DataTables\DataTables;
@@ -151,13 +154,14 @@ class BookingController extends Controller
                         $qrUrl = $booking->qr->qr_link ?: ($qrBaseUrl ? $qrBaseUrl . '/' . $booking->qr->code : null);
 
                         if (!$qrUrl) {
-                            return '<span class="text-muted">' . htmlspecialchars($booking->qr->code, ENT_QUOTES, 'UTF-8') . '</span>';
+                            $safeCode = htmlspecialchars($booking->qr->code, ENT_QUOTES, 'UTF-8');
+                            return '<span class="text-muted dblclick-copy" data-copy-text="' . $safeCode . '" title="Double click to copy">' . $safeCode . '</span>';
                         }
 
                         $safeUrl = htmlspecialchars($qrUrl, ENT_QUOTES, 'UTF-8');
                         $safeCode = htmlspecialchars($booking->qr->code, ENT_QUOTES, 'UTF-8');
 
-                        return '<a href="' . $safeUrl . '" target="_blank" rel="noopener" data-bs-toggle="tooltip" data-bs-placement="top" title="Open QR link">' . $safeCode . '</a>';
+                        return '<a href="' . $safeUrl . '" target="_blank" rel="noopener" data-bs-toggle="tooltip" data-bs-placement="top" title="Open QR link" class="dblclick-copy" data-copy-text="' . $safeCode . '">' . $safeCode . '</a>';
                     }
 
                     return '<span class="text-muted">N/A</span>';
@@ -219,6 +223,99 @@ class BookingController extends Controller
         //dd($canCreate, $canEdit, $canDelete, $canSchedule, $states, $cities);
 
         return view('admin.bookings.index', compact('canCreate', 'canEdit', 'canDelete', 'canSchedule', 'states', 'cities'));
+    }
+
+    /**
+     * Lazy-load and return FTP index.php content for the latest tour of this booking.
+     * Used by the Booking Edit "FTP File" tab (AJAX) to avoid slowing initial page load.
+     */
+    public function getFtpIndexFile(Request $request, Booking $booking): JsonResponse
+    {
+        try {
+            $tour = $booking->tours()->latest()->first();
+            if (!$tour) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No tour found for this booking. Please upload/create the tour first.'
+                ], 404);
+            }
+
+            if (empty($tour->location)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Tour location is missing. Please set location and upload the tour before fetching FTP file.'
+                ], 422);
+            }
+
+            if (empty($tour->slug)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Tour slug is missing. Please set slug and upload the tour before fetching FTP file.'
+                ], 422);
+            }
+
+            $customerId = $booking->customer_id;
+            if (empty($customerId)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Customer ID is missing on booking. Cannot resolve FTP path.'
+                ], 422);
+            }
+
+            $ftpConfig = FtpConfiguration::where('category_name', $tour->location)
+                ->active()
+                ->first();
+
+            if (!$ftpConfig) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "FTP configuration not found for location: {$tour->location}"
+                ], 404);
+            }
+
+            $ftpRemotePath = $ftpConfig->getRemotePathForTour($tour->slug, $customerId);
+            $ftpUrl = $ftpConfig->getUrlForTour($tour->slug, $customerId);
+
+            $diskName = 'ftp_temp_view_' . $ftpConfig->id;
+            config(["filesystems.disks.{$diskName}" => $ftpConfig->storage_config]);
+            $disk = Storage::disk($diskName);
+
+            if (!$disk->exists($ftpRemotePath)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'FTP index.php not found. Please upload the tour first.',
+                    'ftp_path' => $ftpRemotePath,
+                    'ftp_url' => $ftpUrl,
+                ], 404);
+            }
+
+            $content = $disk->get($ftpRemotePath);
+            if (!is_string($content)) $content = (string) $content;
+
+            $maxBytes = 250_000; // keep response light
+            $truncated = false;
+            if (strlen($content) > $maxBytes) {
+                $content = substr($content, 0, $maxBytes);
+                $truncated = true;
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'FTP file fetched successfully.',
+                'tour_id' => $tour->id,
+                'tour_slug' => $tour->slug,
+                'location' => $tour->location,
+                'ftp_path' => $ftpRemotePath,
+                'ftp_url' => $ftpUrl,
+                'truncated' => $truncated,
+                'content' => $content,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch FTP file: ' . $e->getMessage()
+            ], 500);
+        }
     }
     /**
      * API: Return bookings with filters (for modal, returns JSON)

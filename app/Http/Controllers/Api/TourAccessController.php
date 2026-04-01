@@ -772,9 +772,20 @@ class TourAccessController extends Controller{
             'success'       => true,
             'bookingStatus' => $booking->status,
             'baseUrl'       => $booking->base_url,
+            'loaderConfig'  => [
+                'overlayBackgroundColor' => $tour->overlay_bg_color ?: 'rgb(0, 0, 64)',
+                'loadingText' => $tour->loader_text ?: "It's PROP PIK, It's Real...",
+                // Used for both outerGradient and innerGradient by default
+                'loaderColors' => !empty($tour->loader_color) ? array_values($tour->loader_color) : ['#b47e37', '#d4a574', '#efd477'],
+                // If spinner_color isn't set, fall back to loaderColors
+                'spinnerColors' => !empty($tour->spinner_color)
+                    ? array_values($tour->spinner_color)
+                    : (!empty($tour->loader_color) ? array_values($tour->loader_color) : ['#b47e37', '#d4a574', '#efd477']),
+            ],
             'tourData'      => [
                 'id' => $tour->id,
                 'slug' => $tour->slug,
+                'title' => $tour->title,
                 'is_active' => $tour->is_active,
                 'gtm_tag' => $tour->gtm_tag,
                 'structured_data' => $tour->structured_data,

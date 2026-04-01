@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Tour;
+use Arr;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
@@ -16,13 +17,17 @@ use Spatie\Activitylog\Models\Activity;
 use App\Models\QR;
 use Storage;
 use Yajra\DataTables\DataTables;
+use App\Services\TourService;
 
 require_once app_path('Helpers/JsObfuscator.php');
 
 class TourController extends Controller
 {
-    public function __construct()
+    protected $tourService;
+
+    public function __construct(TourService $tourService)
     {
+        $this->tourService = $tourService;
         $this->middleware('permission:tour_view')->only(['index', 'show']);
         $this->middleware('permission:tour_create')->only(['create', 'store']);
         $this->middleware('permission:tour_edit')->only(['edit', 'update']);
@@ -1091,6 +1096,7 @@ class TourController extends Controller
         if (!$request->has('final_json') && $request->has('final_josn')) {
             $request->merge(['final_json' => $request->input('final_josn')]);
         }
+        $diffJson = json_decode($request->diff_json ?? '{}', true);
 
         $validator = Validator::make($request->all(), [
             'final_json' => [
@@ -1142,7 +1148,14 @@ class TourController extends Controller
 
             DB::beginTransaction();
 
+            // save final_json for backup
             $tour->update(['final_json' => $finalJson]);
+
+            // sync fields from json to tour model based on diff paths
+            $this->tourService->syncTourFieldsFromJson($tour, $finalJson, $diffJson, true);
+
+            // save tour updates once after syncing fields
+            $tour->save();
 
             if (!$this->updateTourJsonAndJsFilesInS3($tour, $finalJson)) {
                 DB::rollBack();
@@ -1214,6 +1227,40 @@ class TourController extends Controller
         }
     }
 
+
+    /**
+     * Upload JSON file and update tour final_json
+     */
+    public function uploadJsonFile(Request $request, Tour $tour)
+    {
+        $request->validate([
+            'json_file' => 'required|file|mimetypes:application/json',
+            'DB_sync' => 'nullable|boolean'
+        ]);
+        $file = $request->file('json_file');
+        $content = file_get_contents($file->getRealPath());
+        $json = json_decode($content, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            return back()->withErrors(['json_file' => 'Invalid JSON file.']);
+        }
+
+        DB::beginTransaction();
+        // update json
+        $tour->final_json = $json;
+        // sync fields from json to tour model, force-sync all fields since it's a full file upload
+        if($request->input('DB_sync', false)) {
+            $this->tourService->syncTourFieldsFromJson($tour, $json, [], true);
+        }
+        // save tour updates once after syncing fields
+        $tour->save();
+        // commit DB changes before S3 upload, so if S3 fails we at least have the JSON in DB
+        DB::commit();
+
+        $this->updateTourJsonAndJsFilesInS3($tour, $json);
+
+        return back()->with('success', 'JSON uploaded and updated successfully.');
+    }
 
     /**
      * Update SEO fields for a tour from the SEO form.
@@ -2098,7 +2145,7 @@ class TourController extends Controller
             $finalJson['sidebarConfig']['logo'] = 'assets/' . $sidebarFilename;
 
             if ($uploaded) {
-                $updateData['sidebar_logo'] = $sidebarPath;
+                $updateData['sidebar_logo'] = Storage::disk('s3')->url($sidebarPath);
             }
         }
 
@@ -2126,6 +2173,87 @@ class TourController extends Controller
         }
 
         return redirect()->back()->with(['success' => 'Sidebar section updated successfully.', 'active_tab' => 'vl-pills-sidebar-section']);
+    }
+
+    public function updateSidebarLinks(Request $request, Tour $tour): JsonResponse|RedirectResponse
+    {
+        $validated = $request->validate([
+            'sidebar_links' => ['nullable', 'array'],
+            'sidebar_links.*.icon' => ['nullable', 'string', 'max:255'],
+            'sidebar_links.*.title' => ['nullable', 'array'],
+            'sidebar_links.*.title.en' => ['nullable', 'string'],
+            'sidebar_links.*.title.gu' => ['nullable', 'string'],
+            'sidebar_links.*.title.hi' => ['nullable', 'string'],
+            'sidebar_links.*.type' => ['required', 'string', 'in:link,content,infoModal'],
+            'sidebar_links.*.order' => ['required', 'integer', 'min:1'],
+            'sidebar_links.*.link' => ['nullable', 'url', 'max:255'],
+            'sidebar_links.*.content' => ['nullable', 'array'],
+            'sidebar_links.*.content.en' => ['nullable', 'string'],
+            'sidebar_links.*.content.gu' => ['nullable', 'string'],
+            'sidebar_links.*.content.hi' => ['nullable', 'string'],
+        ]);
+
+        $sidebarLinks = collect($validated['sidebar_links'] ?? [])->map(function ($item) {
+            $title = isset($item['title']) ? (array) $item['title'] : [];
+            $content = isset($item['content']) ? (array) $item['content'] : [];
+
+            return [
+                'icon' => !empty($item['icon']) ? trim($item['icon']) : null,
+                'title' => [
+                    'en' => trim($title['en']),
+                    'gu' => trim($title['gu']),
+                    'hi' => trim($title['hi']),
+                ],
+                'type' => $item['type'] ?? 'link',
+                'order' => (int) ($item['order'] ?? 140),
+                'link' => $item['type'] === 'link' ? trim($item['link'] ?? '') : null,
+                'content' => [
+                    'en' => $content['en'],
+                    'gu' => $content['gu'],
+                    'hi' => $content['hi'],
+                ],
+            ];
+        })->filter(function ($item) {
+            // Ensure English title is not empty and type is valid
+            return !empty($item['title']['en']) && in_array($item['type'], ['link', 'content', 'infoModal'], true);
+        })->sortBy('order')->values()->toArray();
+
+        $oldData = $tour->toArray();
+        $finalJson = $this->normalizeFinalJsonPayload($tour);
+
+        // Ensure sidebarConfig structure exists
+        $finalJson['sidebarLinks'] = $sidebarLinks;
+
+        // Persist both DB column and final_json for consistency
+        $updateData = [
+            'final_json' => $finalJson,
+            'sidebar_links' => $sidebarLinks,
+        ];
+
+        $tour->update($updateData);
+        $newData = $tour->fresh()->toArray();
+
+        // Update S3 JSON/JS files with new final_json
+        $this->updateTourJsonAndJsFilesInS3($tour, $finalJson);
+
+        activity('tours')
+            ->performedOn($tour)
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'old' => $oldData,
+                'new' => $newData,
+            ])
+            ->log('Tour sidebar links updated');
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Sidebar links updated successfully.',
+                'tour' => $tour->fresh(),
+            ]);
+        }
+
+        return redirect()->back()->with(['success' => 'Sidebar links updated successfully.', 'active_tab' => 'vl-pills-sidebar-section']);
     }
 
     /**
@@ -2215,7 +2343,7 @@ class TourController extends Controller
             $finalJson['bottomMarker']['topImage'] = 'assets/' . $footerFilename;
 
             if ($uploaded) {
-                $updateData['footer_logo'] = $footerPath;
+                $updateData['footer_logo'] = Storage::disk('s3')->url($footerPath);
             }
         }
 
@@ -2267,22 +2395,22 @@ class TourController extends Controller
         $finalJson['bottomMarker'] = $finalJson['bottomMarker'] ?? [];
 
         $resolvedPropertyName = array_filter([
-            'en' => $validated['bottommark_property_name_en'] ?? null,
-            'gu' => $validated['bottommark_property_name_gu'] ?? null,
-            'hi' => $validated['bottommark_property_name_hi'] ?? null,
-        ], static fn($value) => !is_null($value) && $value !== '');
+            'en' => $validated['bottommark_property_name_en'] ?? '',
+            'gu' => $validated['bottommark_property_name_gu'] ?? '',
+            'hi' => $validated['bottommark_property_name_hi'] ?? '',
+        ], static fn($value) => !is_null($value));
 
         $resolvedRoomType = array_filter([
-            'en' => $validated['bottommark_room_type_en'] ?? null,
-            'gu' => $validated['bottommark_room_type_gu'] ?? null,
-            'hi' => $validated['bottommark_room_type_hi'] ?? null,
-        ], static fn($value) => !is_null($value) && $value !== '');
+            'en' => $validated['bottommark_room_type_en'] ?? '',
+            'gu' => $validated['bottommark_room_type_gu'] ?? '',
+            'hi' => $validated['bottommark_room_type_hi'] ?? '',
+        ], static fn($value) => !is_null($value));
 
         $resolvedDimensions = array_filter([
-            'en' => $validated['bottommark_dimensions_en'] ?? null,
-            'gu' => $validated['bottommark_dimensions_gu'] ?? null,
-            'hi' => $validated['bottommark_dimensions_hi'] ?? null,
-        ], static fn($value) => !is_null($value) && $value !== '');
+            'en' => $validated['bottommark_dimensions_en'] ?? '',
+            'gu' => $validated['bottommark_dimensions_gu'] ?? '',
+            'hi' => $validated['bottommark_dimensions_hi'] ?? '',
+        ], static fn($value) => !is_null($value));
 
         if (!empty($resolvedPropertyName)) {
             $finalJson['bottomMarker']['propertyName'] = $resolvedPropertyName;

@@ -156,6 +156,7 @@ Route::group(['prefix' => 'ppadmlog', 'as' => 'admin.', 'middleware' => ['web', 
     // Booking custom routes (BEFORE resource to prevent route conflicts)
     Route::post('bookings/{booking}/update-ajax', [BookingController::class, 'updateAjax'])->name('bookings.update-ajax');
     Route::post('bookings/{booking}/reschedule', [BookingController::class, 'reschedule'])->name('bookings.reschedule');
+    Route::get('bookings/{booking}/ftp-index', [BookingController::class, 'getFtpIndexFile'])->name('bookings.ftp-index');
 
     // Booking Status Management Routes
     Route::prefix('bookings/{booking}')->name('bookings.status.')->group(function () {
@@ -219,6 +220,8 @@ Route::group(['prefix' => 'ppadmlog', 'as' => 'admin.', 'middleware' => ['web', 
     Route::put('admin/tours/{tour}/update-tour-bottom-top-tab', [TourController::class, 'updateTourBottomTopTab'])->name('tours.updateTourBottomTopTab');
     Route::put('admin/tours/{tour}/update-tour-bottom-property-tab', [TourController::class, 'updateTourBottomPropertyTab'])->name('tours.updateTourBottomPropertyTab');
     Route::put('admin/tours/{tour}/updateTourJson', [TourController::class, 'updateTourJson'])->name('tours.updateTourJson');
+    Route::post('admin/tours/{tour}/upload-json-file', [TourController::class, 'uploadJsonFile'])->name('tours.uploadJsonFile');
+    Route::put('admin/tours/{tour}/update-sidebar-links', [TourController::class, 'updateSidebarLinks'])->name('tours.updateSidebarLinks');
 
     // AJAX Tour routes
     Route::post('tours/{tour}/update-ajax', [TourController::class, 'updateAjax'])->name('admin.tours.update-ajax');

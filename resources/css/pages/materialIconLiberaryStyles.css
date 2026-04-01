@@ -1,0 +1,18 @@
+.icon-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+    gap: 10px;
+    max-height: 550px;
+    overflow-y: auto;
+}
+
+.icon-item {
+    padding: 10px;
+    text-align: center;
+    cursor: pointer;
+    border-radius: 8px;
+}
+
+.icon-item:hover {
+    background: #f1f1f1;
+}

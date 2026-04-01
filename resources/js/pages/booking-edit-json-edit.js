@@ -28,6 +28,9 @@ const jsonEditorState = {
     isModified: false
 };
 
+// main form
+const mainForm = $('#jsonUpdateForm');
+
 // DOM Elements
 const elements = {
     editButton: $('#editJsonBtn'),
@@ -35,6 +38,7 @@ const elements = {
     jsonDataSaveBtn: $('#jsonDataSaveBtn'),
     compareJsonContainer: $('#conpareJsonBody'),
     jsonSaveBtn: $('#jsonSavebtn'),
+    diffJsonInput: $('#diffJsonInput'),
     jsonDontSaveBtn: $('#jsonDontSaveBtn'),
     jsonUpdateBtn: $('#jsonUpdatebtn')
 };
@@ -90,6 +94,7 @@ elements.editButton.on('click', function () {
         jsonEditorState.originalJson = JSON.parse(JSON.stringify(currentJson)); // Deep copy
         editor.set(currentJson);
         jsonEditorState.isModified = false;
+        modals.editor.show();
     } catch (error) {
         Swal.fire({
             icon: 'error',
@@ -107,10 +112,10 @@ elements.editButton.on('click', function () {
 elements.jsonDataSaveBtn.on('click', function () {
     try {
         jsonEditorState.updatedJson = editor.get();
-        
+
         // Check if there are actual changes
         const delta = jsondiffpatch.diff(jsonEditorState.originalJson, jsonEditorState.updatedJson);
-        
+
         if (!delta) {
             Swal.fire({
                 icon: 'info',
@@ -120,6 +125,9 @@ elements.jsonDataSaveBtn.on('click', function () {
             });
             return;
         }
+        
+        console.log('Delta:', delta); // Debug log for delta
+        elements.diffJsonInput.val(JSON.stringify(delta)); // Store diff for potential future use
 
         // Store modification flag
         jsonEditorState.isModified = true;
@@ -130,7 +138,7 @@ elements.jsonDataSaveBtn.on('click', function () {
 
         // Transition: Hide editor modal, show comparison modal
         modals.editor.hide();
-        
+
         // Use modal event to ensure proper state transition
         const editorModalElement = document.getElementById('jsonEditorModal');
         editorModalElement.addEventListener('hidden.bs.modal', () => {
@@ -166,12 +174,10 @@ elements.jsonSaveBtn.on('click', function () {
 
         // Show success notification
         Swal.fire({
-            icon: 'success',
-            title: 'JSON Updated',
-            text: 'Changes have been loaded. Click "Update json" button to save to database.',
+            icon: 'info',
+            title: 'Local JSON Updated',
+            html: 'Changes have been loaded. Click "<b>Update JSON</b>" button to save to database.',
             confirmButtonColor: '#28a745',
-            timer: 3000,
-            timerProgressBar: true
         });
 
         // Reset state
