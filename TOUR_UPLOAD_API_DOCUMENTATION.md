@@ -187,7 +187,7 @@ Authorization: Bearer {your_access_token}
 | `tour_code` | string | Yes | Unique tour code identifier | Must exist in bookings table |
 | `slug` | string | Yes | URL-friendly tour slug | Max 255 chars, regex: `^[a-zA-Z0-9\/\-_]+$` |
 | `location` | string | Yes | Tour location category name | Must be a valid location from locations API |
-| `file` | file | Yes | ZIP file containing tour assets | Max 1GB, ZIP files only |
+| `file` | file | Yes | ZIP file containing tour assets | Max 1.5GB, ZIP files only |
 
 ### Request Example (Form Data)
 ```

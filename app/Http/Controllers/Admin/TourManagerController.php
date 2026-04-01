@@ -330,7 +330,7 @@ class TourManagerController extends Controller
         $validated = $request->validate([
             'slug' => 'required|string|max:255|regex:/^[a-zA-Z0-9\/\-_]+$/',
             'location' => ['required', 'string', Rule::in($validLocations)],
-            'files.*' => 'nullable|file|max:1024000', // 1GB for zip files - single file only
+            'files.*' => 'nullable|file|max:1572864', // 1.5GB for zip files - single file only (max is in KB)
         ]);
 
         // Get the tour for this booking
