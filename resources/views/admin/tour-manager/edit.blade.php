@@ -183,7 +183,7 @@
                                     <i class="ri-upload-cloud-2-line fs-1 text-muted"></i>
                                     <h4>Drop tour ZIP file here or click to select</h4>
                                     <span class="text-muted">Upload a single ZIP file containing tour assets (images, assets, gallery, tiles, index.html, data.json)</span>
-                                    <span class="text-muted d-block mt-1"><small>Max 1GB | Single file only | Required: index.html + JSON file + folders (images, assets, gallery, tiles) | Files 75MB+ use chunked upload & background processing automatically</small></span>
+                                    <span class="text-muted d-block mt-1"><small>Max 1.5GB | Single file only | Required: index.html + JSON file + folders (images, assets, gallery, tiles) | Files 75MB+ use chunked upload & background processing automatically</small></span>
                                 </div>
                             </div>
                             <div id="file-count-display" class="mt-2 text-muted" style="display: none;">

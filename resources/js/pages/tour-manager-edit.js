@@ -85,7 +85,7 @@ if (document.getElementById('tour-dropzone') && !document.getElementById('tour-d
         const myDropzone = new Dropzone("#tour-dropzone", {
             url: "#", // Dummy URL since we'll submit via form
             paramName: "files",
-            maxFilesize: 1024, // MB (increased to 1GB for large zip files)
+            maxFilesize: 1536, // MB (1.5GB max ZIP)
             maxFiles: 1, // Only single file allowed
             acceptedFiles: ".zip,application/zip,application/x-zip-compressed,application/x-zip", // Only ZIP files
             addRemoveLinks: true,
