@@ -338,7 +338,7 @@ class TourManagerController extends Controller
             'tour_code' => 'required|string|exists:bookings,tour_code',
             'slug' => 'required|string|max:255|regex:/^[a-zA-Z0-9\/\-_]+$/',
             'location' => ['required', 'string', Rule::in($validLocations)],
-            'file' => 'required|file|max:1024000|mimes:zip', // 1GB max, ZIP files only
+            'file' => 'required|file|max:1572864|mimes:zip', // 1.5GB max, ZIP files only (max is in KB)
         ]);
 
         try {
