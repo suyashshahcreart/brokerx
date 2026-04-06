@@ -18,6 +18,13 @@
                 <i class="ri-contacts-line me-2"></i>
                 <span>Tour Contact Information</span>
             </a>
+            <a class="nav-link {{ ($firstActiveTab === 'vl-pills-userdetails') ? 'active show' : '' }}"
+                id="vl-pills-userdetails-tab" data-bs-toggle="pill" href="#vl-pills-userdetails" role="tab"
+                aria-controls="vl-pills-userdetails"
+                aria-selected="{{ ($firstActiveTab === 'vl-pills-userdetails') ? 'true' : 'false' }}">
+                <i class="ri-file-user-line me-2"></i>
+                <span>User Details</span>
+            </a>
             <a class="nav-link {{ ($firstActiveTab === 'vl-pills-attachments') ? 'active show' : '' }}"
                 id="vl-pills-attachments-tab" data-bs-toggle="pill" href="#vl-pills-attachments" role="tab"
                 aria-controls="vl-pills-attachments"
@@ -369,6 +376,66 @@
                     </div>
                 </div>
             </div>
+            <!-- language Update Tab -->
+            <div class="tab-pane fade {{ ($firstActiveTab === 'vl-pills-userdetails') ? 'active show' : '' }}"
+                id="vl-pills-userdetails" role="tabpanel" aria-labelledby="vl-pills-userdetails-tab">
+                <!-- User Details settings -->
+                <div class="card border-1 shadow-sm">
+                    <div class="card-header">
+                        <h4 class="card-title mb-0">User Details</h4>
+                    </div>
+                    <div class="card-body">
+                        <form id="userDetailsTabUpdateForm" method="POST"
+                            action="" class="needs-validation"
+                            novalidate>
+                            @csrf
+                            @method('PUT')
+                            <input type="hidden" name="booking_id" value="{{ $booking->id }}">
+                            <div class="row">
+                                <div class="col-md-2">
+                                    <div class="mb-3">
+                                        <label class="form-label">Show User Details Button</label>
+                                        <div class="form-check form-switch mb-0">
+                                            <input class="form-check-input" type="checkbox"
+                                                name="show_user_details_button" id="show_contact_user_name" value="1"
+                                                {{ old('show_user_details_button', $tour->show_user_details_button ?? true) ? 'checked' : '' }}>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label class="form-label" for="user_details_tooltip">User Details
+                                            ToolTip</label>
+                                        <input type="text" name="user_details_tooltip" class="form-control"
+                                            value="{{ old('user_details_tooltip', $tour->user_details_tooltip ?? '') }}"
+                                            placeholder="e.g, View User Details">
+                                        @error('default_language')<div class="text-danger">{{ $message }}</div>@enderror
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="">User Details Button Icon</label>
+                                        <div class="input-group mt-1">
+                                            <input type="text" name="" class="form-control w-50" id="userDetailsButtonIcon"
+                                                placeholder="Click and Pick Your Icon" readonly value="">
+                                            <div class="icon-preview" style="max-height:20px" id="iconPreview_userDetailsButtonIcon">
+                                                <div class="icon-item text-center">
+                                                    <span class="material-icons-outlined"></span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="d-flex justify-content-end mt-3">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="ri-save-line me-1"></i> Update Language Settings
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
 
             <!-- language Update Tab -->
             <div class="tab-pane fade {{ ($firstActiveTab === 'vl-pills-language') ? 'active show' : '' }}"
@@ -707,8 +774,8 @@
                                                     value="{{ $color }}"
                                                     oninput="this.previousElementSibling.querySelector('input').value = this.value">
                                                 <!-- <button type="button" class="btn btn-soft-danger remove-loader-color">
-                                                                                                <i class="ri-delete-bin-line"></i>
-                                                                                            </button> -->
+                                                                                                                            <i class="ri-delete-bin-line"></i>
+                                                                                                                        </button> -->
                                             </div>
                                         </div>
                                     @endforeach
@@ -743,8 +810,8 @@
                                                     value="{{ $color }}"
                                                     oninput="this.previousElementSibling.querySelector('input').value = this.value">
                                                 <!-- <button type="button" class="btn btn-soft-danger remove-spinner-color">
-                                                                                                <i class="ri-delete-bin-line"></i>
-                                                                                            </button> -->
+                                                                                                                            <i class="ri-delete-bin-line"></i>
+                                                                                                                        </button> -->
                                             </div>
                                         </div>
                                     @endforeach
@@ -811,8 +878,7 @@
                                             <div class="mb-3">
                                                 <div class="mt-2 items-start">
                                                     @if($tour->sidebar_logo)
-                                                        <img id="sidebar_logo_preview"
-                                                            src="{{ $tour->sidebar_logo }}"
+                                                        <img id="sidebar_logo_preview" src="{{ $tour->sidebar_logo }}"
                                                             alt="Sidebar Logo"
                                                             style="max-width: 300px; max-height: auto; border:1px solid #ddd; background:#fff; padding:2px;">
                                                     @else
@@ -925,7 +991,8 @@
                             </div><!-- first tab end -->
                             <div class="tab-pane fade show" id="sidebar-tab-2-pane" role="tabpanel"
                                 aria-labelledby="sidebar-tab-2-tab" tabindex="0">
-                                <form action="{{ route('admin.tours.updateSidebarLinks', $tour) }}" method="POST" id="sidebarLinksForm" class="needs-validation" novalidate>
+                                <form action="{{ route('admin.tours.updateSidebarLinks', $tour) }}" method="POST"
+                                    id="sidebarLinksForm" class="needs-validation" novalidate>
                                     @csrf
                                     @method('PUT')
                                     <input type="hidden" name="booking_id" value="{{ $booking->id }}">
@@ -1251,10 +1318,8 @@
                                     <div class="mb-3">
                                         <div class="mt-2">
                                             @if($tour->footer_logo)
-                                                <img id="footer_logo_preview"
-                                                    src="{{ $tour->footer_logo }}"
-                                                    data-original-src="{{ $tour->footer_logo }}"
-                                                    alt="Footer Logo"
+                                                <img id="footer_logo_preview" src="{{ $tour->footer_logo }}"
+                                                    data-original-src="{{ $tour->footer_logo }}" alt="Footer Logo"
                                                     style="max-width: 150px; max-height: 80px; border:1px solid #ddd; background:#fff; padding:2px;">
                                             @else
                                                 <img id="footer_logo_preview" src="" data-original-src="" alt="Footer Logo"
@@ -1646,9 +1711,9 @@
     </div>
 </div>
 
-@vite(['resources/js/pages/booking-tour-detail-update-tab.js', 'resources/js/pages/booking_edit_sidebarLink.js'])
+@vite(['resources/js/pages/booking-tour-detail-update-tab.js', 'resources/js/pages/booking_edit_sidebarLink.js', 'resources/js/pages/booking_userDetails_edit.js'])
 
 <script>
-    window.sidebarLinksData = {!! json_encode(old('sidebar_links', $tour->sidebar_links )) !!};
+    window.sidebarLinksData = {!! json_encode(old('sidebar_links', $tour->sidebar_links)) !!};
     window.enabledLanguages = {!! json_encode($tour->enable_language ?? ['en']) !!};
 </script>
