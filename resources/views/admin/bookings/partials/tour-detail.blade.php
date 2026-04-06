@@ -386,7 +386,7 @@
                     </div>
                     <div class="card-body">
                         <form id="userDetailsTabUpdateForm" method="POST"
-                            action="" class="needs-validation"
+                            action="{{ route('admin.tours.updateUserDetails', $tour) }}" class="needs-validation"
                             novalidate>
                             @csrf
                             @method('PUT')
@@ -406,9 +406,9 @@
                                     <div class="mb-3">
                                         <label class="form-label" for="user_details_tooltip">User Details
                                             ToolTip</label>
-                                        <input type="text" name="user_details_tooltip" class="form-control"
-                                            value="{{ old('user_details_tooltip', $tour->user_details_tooltip ?? '') }}"
-                                            placeholder="e.g, View User Details">
+                                        <input type="text" name="user_details_button_tooltip" class="form-control"
+                                            value="{{ old('user_details_button_tooltip', $tour->user_details_button_tooltip ?? '') }}"
+                                            placeholder="e.g, View User Details" required>
                                         @error('default_language')<div class="text-danger">{{ $message }}</div>@enderror
                                     </div>
                                 </div>
@@ -416,20 +416,40 @@
                                     <div class="mb-3">
                                         <label for="">User Details Button Icon</label>
                                         <div class="input-group mt-1">
-                                            <input type="text" name="" class="form-control w-50" id="userDetailsButtonIcon"
-                                                placeholder="Click and Pick Your Icon" readonly value="">
-                                            <div class="icon-preview" style="max-height:20px" id="iconPreview_userDetailsButtonIcon">
+                                            <input type="text" name="user_details_button_icon" class="form-control w-50"
+                                                id="userDetailsButtonIcon" placeholder="Click and Pick Your Icon"
+                                                readonly
+                                                value="{{ old('user_details_button_icon', $tour->user_details_button_icon ?? '') }}"
+                                                required>
+                                            <div class="icon-preview" style="max-height:20px"
+                                                id="iconPreview_userDetailsButtonIcon">
                                                 <div class="icon-item text-center">
-                                                    <span class="material-icons-outlined"></span>
+                                                    <span
+                                                        class="material-icons-outlined">{{ old('user_details_button_icon', $tour->user_details_button_icon ?? '') }}</span>
                                                 </div>
                                             </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-12">
+                                    <div class="mb-3">
+                                        <label for="form-label">User Details Modal</label>
+                                        <div class="mt-3" id="userDetailsContainer"
+                                            data-userdetails-data='@json(old('user_details', $tour->user_details ?? []))'>
+                                            <!-- Filled by js -->
+                                        </div>
+                                        <div class="">
+                                            <button type="button" class="btn btn-sm btn-success mt-2"
+                                                id="addUserDetailsBtn">
+                                                <i class="ri-add-line"></i> Add User Detail
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                             <div class="d-flex justify-content-end mt-3">
                                 <button type="submit" class="btn btn-primary">
-                                    <i class="ri-save-line me-1"></i> Update Language Settings
+                                    <i class="ri-save-line me-1"></i> Save User Details
                                 </button>
                             </div>
                         </form>
@@ -774,8 +794,8 @@
                                                     value="{{ $color }}"
                                                     oninput="this.previousElementSibling.querySelector('input').value = this.value">
                                                 <!-- <button type="button" class="btn btn-soft-danger remove-loader-color">
-                                                                                                                            <i class="ri-delete-bin-line"></i>
-                                                                                                                        </button> -->
+                                                                                                                                    <i class="ri-delete-bin-line"></i>
+                                                                                                                                </button> -->
                                             </div>
                                         </div>
                                     @endforeach
@@ -810,8 +830,8 @@
                                                     value="{{ $color }}"
                                                     oninput="this.previousElementSibling.querySelector('input').value = this.value">
                                                 <!-- <button type="button" class="btn btn-soft-danger remove-spinner-color">
-                                                                                                                            <i class="ri-delete-bin-line"></i>
-                                                                                                                        </button> -->
+                                                                                                                                    <i class="ri-delete-bin-line"></i>
+                                                                                                                                </button> -->
                                             </div>
                                         </div>
                                     @endforeach

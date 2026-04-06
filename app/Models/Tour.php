@@ -115,6 +115,11 @@ class Tour extends Model
         'document_auth_required',
         'show_document_url',
         'show_document_url2',
+        // User details fields
+        'show_user_details_button',
+        'user_details_button_icon',
+        'user_details_button_tooltip',
+        'user_details',
     ];
 
     /**
@@ -159,6 +164,8 @@ class Tour extends Model
             'bottommark_property_name' => 'array',
             'bottommark_room_type' => 'array',
             'bottommark_dimensions' => 'array',
+            'show_user_details_button' => 'boolean',
+            'user_details' => 'array',
         ];
     }
 
