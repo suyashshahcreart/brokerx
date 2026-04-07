@@ -431,7 +431,8 @@ class TourManagerController extends Controller
                         $fullTempPath,
                         $file->getClientOriginalName(),
                         $validated['slug'],
-                        $validated['location']
+                        $validated['location'],
+                        $tourService = $this->tourService
                     )->onQueue('tour-processing');
 
                     // Log job dispatch with unique identifier for tracking
