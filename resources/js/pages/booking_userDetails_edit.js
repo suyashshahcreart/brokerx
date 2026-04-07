@@ -82,7 +82,6 @@ function initQuillForRow(rowIndex, initialHtml = '') {
     if (!hiddenInput || quillEditors[rowIndex]) {
         return;
     }
-
     const quill = new Quill(`#${editorId}`, {
         theme: 'snow',
         modules: {
@@ -98,12 +97,12 @@ function initQuillForRow(rowIndex, initialHtml = '') {
     });
 
     if (initialHtml) {
-        quill.clipboard.dangerouslyPasteHTML(initialHtml);
+        quill.setText(initialHtml);
         hiddenInput.value = initialHtml;
     }
 
     quill.on('text-change', function () {
-        hiddenInput.value = quill.root.innerHTML;
+        hiddenInput.value = quill.getText();
     });
 
     quillEditors[rowIndex] = quill;
@@ -124,7 +123,7 @@ function addUserDetailsRow(detail = {}) {
     const icon = escapeHtml(detail.icon ?? '');
     const title = escapeHtml(detail.title ?? '');
     const summery = escapeHtml(detail.summery ?? '');
-    const descraption = detail.descraption ?? '';
+    const descraption = detail.description ?? '';
     const descraptionHiddenValue = escapeHtml(descraption);
 
     const rowHTML = `
