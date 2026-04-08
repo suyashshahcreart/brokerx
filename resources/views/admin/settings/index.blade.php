@@ -1338,6 +1338,12 @@
                                         <div class="modal-body">
                                             <div class="alert alert-danger d-none" id="cityErrors"></div>
                                             <div class="mb-3">
+                                                <label for="cityCountry" class="form-label">Country <span class="text-danger">*</span></label>
+                                                <select class="form-select" id="cityCountry" required>
+                                                    <option value="">-- Select Country --</option>
+                                                </select>
+                                            </div>
+                                            <div class="mb-3">
                                                 <label for="cityState" class="form-label">State <span class="text-danger">*</span></label>
                                                 <select class="form-select" id="cityState" name="state_id" required></select>
                                             </div>
@@ -1589,6 +1595,8 @@
 
     // State and City routes for JavaScript
     window.stateCityRoutes = {
+        generalCountries: '{{ route('api.countries') }}',
+        generalStates: '{{ route('api.states') }}',
         countriesList: '{{ route('admin.api.countries.index') }}',
         countriesOptions: '{{ route('admin.api.countries.options') }}',
         countriesStore: '{{ route('admin.api.countries.store') }}',
