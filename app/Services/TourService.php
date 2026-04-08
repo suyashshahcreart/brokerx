@@ -11,6 +11,7 @@ class TourService
 {
     public function syncTourFieldsFromJson(Tour $tour, array $finalJson, array $diffJson = [], bool $forceSync = false): void
     {
+        \Log::info("Tour Details sync started for tour_id={$tour->id}, force_sync={$forceSync}");
         $userInfo = $finalJson['userInfo'] ?? [];
         // user related fields
         if ($forceSync || Arr::has($diffJson, 'userInfo.userName')) {
