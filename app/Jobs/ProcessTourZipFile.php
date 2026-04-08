@@ -35,6 +35,7 @@ class ProcessTourZipFile implements ShouldQueue
      */
     public function __construct($bookingId, $zipFilePath, $originalFilename, $slug, $location)
     {
+        $this->tourService = app(TourService::class);
         $this->bookingId = $bookingId;
         $this->zipFilePath = $zipFilePath;
         $this->originalFilename = $originalFilename;
@@ -52,10 +53,6 @@ class ProcessTourZipFile implements ShouldQueue
             set_time_limit(18000);
             ini_set('max_execution_time', '18000');
             ini_set('memory_limit', '2048M');
-
-            if (!$this->tourService) {
-                $this->tourService = app(TourService::class);
-            }
 
             $this->updateBookingStatus('processing', 5, 'Job started');
             $this->workerLog('RUNNING', 5, 'Starting background ZIP processing');
