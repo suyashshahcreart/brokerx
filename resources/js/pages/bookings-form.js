@@ -156,7 +156,7 @@ function clearAllPropertySelections(options = {}) {
 }
 
 function resetAddressFields() {
-    ['house_no', 'building', 'society_name', 'address_area', 'landmark', 'pin_code', 'full_address', 'city_id', 'state_id', 'country_id'].forEach(id => {
+    ['house_no', 'building', 'society_name', 'address_area', 'landmark', 'pin_code', 'full_address', 'country_id', 'state_id', 'city_id'].forEach(id => {
         const input = el(id);
         if (input) {
             input.value = '';
@@ -645,6 +645,48 @@ function validateForm() {
         markFieldValid('full_address');
     }
     
+    // Validate Country
+    const countryId = el('country_id')?.value?.trim();
+    if (!countryId) {
+        const field = el('country_id');
+        if (field) {
+            field.classList.add('is-invalid');
+            field.classList.remove('is-valid');
+        }
+        errors.push('Country is required');
+        isValid = false;
+    } else {
+        markFieldValid('country_id');
+    }
+    
+    // Validate State
+    const stateId = el('state_id')?.value?.trim();
+    if (!stateId) {
+        const field = el('state_id');
+        if (field) {
+            field.classList.add('is-invalid');
+            field.classList.remove('is-valid');
+        }
+        errors.push('State is required');
+        isValid = false;
+    } else {
+        markFieldValid('state_id');
+    }
+    
+    // Validate City
+    const cityId = el('city_id')?.value?.trim();
+    if (!cityId) {
+        const field = el('city_id');
+        if (field) {
+            field.classList.add('is-invalid');
+            field.classList.remove('is-valid');
+        }
+        errors.push('City is required');
+        isValid = false;
+    } else {
+        markFieldValid('city_id');
+    }
+    
     // Validate Billing Details if checkbox is checked
     const billingCheckbox = el('differentBillingName');
     if (billingCheckbox && billingCheckbox.checked) {
@@ -699,6 +741,85 @@ function validateForm() {
     }
     
     return isValid;
+}
+
+// ========================
+// CASCADING DROPDOWN FUNCTIONS
+// ========================
+async function loadStates(countryId) {
+    const stateSelect = el('state_id');
+    const citySelect = el('city_id');
+    
+    if (!stateSelect) return;
+    
+    try {
+        // Clear current states and cities
+        stateSelect.innerHTML = '<option value="">Select state</option>';
+        citySelect.innerHTML = '<option value="">Select city</option>';
+        
+        if (!countryId) return;
+        
+        const response = await fetch(`${window.API.getStates}?country_id=${countryId}`, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.status && data.data) {
+            data.data.forEach(state => {
+                const option = document.createElement('option');
+                option.value = state.id;
+                option.text = state.name;
+                stateSelect.appendChild(option);
+            });
+        } else {
+            console.error('Failed to load states:', data.message);
+        }
+    } catch (error) {
+        console.error('Error loading states:', error);
+    }
+}
+
+async function loadCities(stateId) {
+    const citySelect = el('city_id');
+    
+    if (!citySelect) return;
+    
+    try {
+        // Clear current cities
+        citySelect.innerHTML = '<option value="">Select city</option>';
+        
+        if (!stateId) return;
+        
+        const response = await fetch(`${window.API.getCities}?state_id=${stateId}`, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.status && data.data) {
+            data.data.forEach(city => {
+                const option = document.createElement('option');
+                option.value = city.id;
+                option.text = city.name;
+                citySelect.appendChild(option);
+            });
+        } else {
+            console.error('Failed to load cities:', data.message);
+        }
+    } catch (error) {
+        console.error('Error loading cities:', error);
+    }
 }
 
 // ========================
@@ -782,7 +903,8 @@ document.addEventListener('DOMContentLoaded', function () {
     if (pinCodeInput) {
         pinCodeInput.addEventListener('input', function() {
             const value = this.value.trim();
-            if (value && /^[0-9]{6}$/.test(value)) {
+            // && /^[0-9,A-Z,a-z]{6}$/.test(value)
+            if (value) {
                 this.classList.remove('is-invalid');
                 this.classList.add('is-valid');
             } else if (value && value.length === 6) {
@@ -795,6 +917,39 @@ document.addEventListener('DOMContentLoaded', function () {
     const fullAddressInput = el('full_address');
     if (fullAddressInput) {
         fullAddressInput.addEventListener('input', function() {
+            if (this.value.trim()) {
+                this.classList.remove('is-invalid');
+                this.classList.add('is-valid');
+            }
+        });
+    }
+
+    // ========================
+    // ADDRESS DROPDOWN VALIDATION
+    // ========================
+    const countryInput = el('country_id');
+    if (countryInput) {
+        countryInput.addEventListener('change', function() {
+            if (this.value.trim()) {
+                this.classList.remove('is-invalid');
+                this.classList.add('is-valid');
+            }
+        });
+    }
+
+    const stateInput = el('state_id');
+    if (stateInput) {
+        stateInput.addEventListener('change', function() {
+            if (this.value.trim()) {
+                this.classList.remove('is-invalid');
+                this.classList.add('is-valid');
+            }
+        });
+    }
+
+    const cityInput = el('city_id');
+    if (cityInput) {
+        cityInput.addEventListener('change', function() {
             if (this.value.trim()) {
                 this.classList.remove('is-invalid');
                 this.classList.add('is-valid');
@@ -934,56 +1089,47 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // ========================
-    // STATE/CITY RELATIONSHIP
+    // CASCADING DROPDOWNS: COUNTRY -> STATE -> CITY
     // ========================
+    const countrySelect = el('country_id');
     const stateSelect = el('state_id');
     const citySelect = el('city_id');
 
-    if (stateSelect && citySelect) {
-        const allCities = Array.from(citySelect.options).map(option => ({
-            value: option.value,
-            text: option.text,
-            stateId: option.getAttribute('data-state-id')
-        }));
-
-        stateSelect.addEventListener('change', function () {
-            const selectedStateId = this.value;
-            citySelect.innerHTML = '<option value="">Select city</option>';
-
-            if (!selectedStateId) {
-                allCities.forEach(city => {
-                    if (city.value) {
-                        const option = document.createElement('option');
-                        option.value = city.value;
-                        option.text = city.text;
-                        option.setAttribute('data-state-id', city.stateId);
-                        citySelect.appendChild(option);
-                    }
-                });
-            } else {
-                const filteredCities = allCities.filter(
-                    city => city.stateId === selectedStateId && city.value
-                );
-
-                filteredCities.forEach(city => {
-                    const option = document.createElement('option');
-                    option.value = city.value;
-                    option.text = city.text;
-                    option.setAttribute('data-state-id', city.stateId);
-                    citySelect.appendChild(option);
-                });
-
-                if (filteredCities.length === 0) {
-                    const option = document.createElement('option');
-                    option.value = '';
-                    option.text = 'No cities available for this state';
-                    option.disabled = true;
-                    citySelect.appendChild(option);
-                }
-            }
-
-            citySelect.value = '';
+    if (countrySelect) {
+        countrySelect.addEventListener('change', function() {
+            const countryId = this.value;
+            loadStates(countryId);
         });
+    }
+
+    if (stateSelect) {
+        stateSelect.addEventListener('change', function() {
+            const stateId = this.value;
+            loadCities(stateId);
+        });
+    }
+
+    // Initialize cascading dropdowns with old values
+    if (countrySelect && window.bookingOldValues) {
+        const oldCountryId = window.bookingOldValues.country_id;
+        const oldStateId = window.bookingOldValues.state_id;
+        const oldCityId = window.bookingOldValues.city_id;
+
+        if (oldCountryId) {
+            countrySelect.value = oldCountryId;
+            // Load states for the selected country
+            loadStates(oldCountryId).then(() => {
+                if (oldStateId) {
+                    stateSelect.value = oldStateId;
+                    // Load cities for the selected state
+                    loadCities(oldStateId).then(() => {
+                        if (oldCityId) {
+                            citySelect.value = oldCityId;
+                        }
+                    });
+                }
+            });
+        }
     }
 
     // Initialize - hide all tabs initially
