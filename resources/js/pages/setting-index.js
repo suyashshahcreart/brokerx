@@ -1878,6 +1878,7 @@ import '../../css/pages/setting-index.css';
             order: [[0, 'asc']],
             columns: [
                 { data: 'name', name: 'name', className: 'fw-semibold' },
+                { data: 'country_name', name: 'country', className: 'fw-semibold', orderable: false },
                 { data: 'cities_count', name: 'cities_count', defaultContent: 0, className: 'text-center' },
                 { data: 'updated_at', name: 'updated_at' },
                 {

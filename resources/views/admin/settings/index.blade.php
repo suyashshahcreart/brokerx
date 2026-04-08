@@ -948,7 +948,6 @@
                                     </div>
                                     @endif
 
-                                    @if($canFtpConfiguration)
                                     <div class="tab-pane fade {{ ($firstActiveTab === 'vl-pills-regions-management') ? 'active show' : '' }}" id="vl-pills-regions-management" role="tabpanel" aria-labelledby="vl-pills-regions-management-tab">
                                         <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
                                             <div>
@@ -1013,6 +1012,7 @@
                                                         <thead class="table-light">
                                                             <tr>
                                                                 <th>Name</th>
+                                                                <th>Country</th>
                                                                 <th>Cities Count</th>
                                                                 <th>Updated At</th>
                                                                 <th class="text-end">Actions</th>
@@ -1040,7 +1040,6 @@
                                             </div>
                                         </div>
                                     </div>
-                                    @endif
                                     <!-- tour configration Model -->
                                     @if($canBookingSchedule)
                                     <div class="tab-pane fade {{ ($firstActiveTab === 'vl-pills-tour') ? 'active show' : '' }}" id="vl-pills-tour" role="tabpanel" aria-labelledby="vl-pills-tour-tab">
@@ -1301,6 +1300,19 @@
                                             <div class="mb-3">
                                                 <label for="stateName" class="form-label">State Name <span class="text-danger">*</span></label>
                                                 <input type="text" class="form-control" id="stateName" name="name" placeholder="e.g., Maharashtra" required maxlength="255">
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="stateCode" class="form-label">Code<span class="text-danger">*</span></label>
+                                                <input type="text" class="form-control" id="stateName" name="code" placeholder="e.g., Maharashtra -> MH" required maxlength="255">
+                                            </div>
+                                            <div class="m">
+                                                <label class="form-label" for="Country">Country <span class="text-sm muted">*</span> </label>
+                                                <select name="country_id" class="form-select" id="selectCountryId" required>
+                                                    <option>Select Country</option>
+                                                     @foreach($countryList as $country)
+                                                        <option value="{{ $country->id }}">{{ $country->name }}</option>
+                                                     @endforeach
+                                                </select>
                                             </div>
                                         </div>
                                         <div class="modal-footer">
