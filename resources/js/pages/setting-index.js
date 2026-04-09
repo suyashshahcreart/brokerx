@@ -1527,7 +1527,6 @@ import '../../css/pages/setting-index.css';
                     return response.json();
                 })
                 .then(data => {
-                    console.log('FTP Configurations loaded:', data);
                     if (data.success && data.data) {
                         renderFtpConfigurationsTable(data.data);
                     } else {
