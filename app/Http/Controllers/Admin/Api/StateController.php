@@ -16,8 +16,12 @@ class StateController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $states = State::query()->withCount('cities')->with('country')->orderBy('created_at', 'desc');
-            
+            $states = State::query()->withCount('cities')
+                ->whereHas('country', function ($query) {
+                    $query->where('is_active', 1);
+                })
+                ->with('country')->orderBy('created_at', 'desc');
+
             return DataTables::of($states)
                 ->addColumn('cities_count', function ($state) {
                     return $state->cities_count ?? 0;
@@ -67,7 +71,7 @@ class StateController extends Controller
         try {
             $state = State::create([
                 'name' => $request->name,
-                'country_id' => $request->country_id,  
+                'country_id' => $request->country_id,
                 'code' => $request->code,
             ]);
 
