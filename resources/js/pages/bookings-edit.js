@@ -52,7 +52,6 @@ function hideAllPropertyTabs() {
 }
 
 function switchMainTab(tabId, propertyTypeName) {
-    console.log('Switching to tab:', tabId, 'with property type name:', propertyTypeName);
     if (!tabId) {
         hideAllPropertyTabs();
         return;
