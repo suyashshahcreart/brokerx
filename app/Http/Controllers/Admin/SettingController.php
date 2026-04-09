@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Country;
 use App\Models\Setting;
 use App\Models\FtpConfiguration;
+use App\Models\State;
 use App\Services\Sms\SmsGatewayManager;
 use Illuminate\Http\Request;
 use Yajra\DataTables\Facades\DataTables;
@@ -42,7 +44,8 @@ class SettingController extends Controller
      * Display a listing of the resource.
      */
     public function index(Request $request)
-    {   $canCreate = $request->user()->can('setting_create');
+    {  
+        $canCreate = $request->user()->can('setting_create');
         $canEdit = $request->user()->can('setting_edit');
         $canDelete = $request->user()->can('setting_delete');
 
@@ -115,8 +118,13 @@ class SettingController extends Controller
         $canPortfolioApi = $request->user()->can('setting_edit'); // Use setting_edit permission for portfolio API
         $canCloudflareCache = $request->user()->can('setting_edit'); // Use setting_edit permission for Cloudflare Cache
         
+        $countryList = Country::select('id', 'name')->where('is_active',true)->orderBy('name')->get(); // Preload countries for state management in FTP configuration tab
+        $stateList = State::select('id', 'name', 'country_id')->orderBy('name')->get(); // Preload states for state management in FTP configuration tab
+
         return view('admin.settings.index', compact(
             'settings', 
+            'countryList',
+            'stateList',
             'canCreate', 
             'canEdit', 
             'canDelete', 

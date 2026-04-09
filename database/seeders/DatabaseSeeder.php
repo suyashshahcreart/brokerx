@@ -30,6 +30,7 @@ class DatabaseSeeder extends Seeder
         $this->call(CountrySeeder::class);
         $this->call(StateSeeder::class);
         $this->call(CitySeeder::class);
+        $this->call(UsaStateCitySeeder::class);
 
 
         // Seed bookings

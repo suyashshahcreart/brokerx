@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\State;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 use Yajra\DataTables\Facades\DataTables;
 
 class StateController extends Controller
@@ -16,11 +17,18 @@ class StateController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $states = State::query()->withCount('cities');
-            
+            $states = State::query()->withCount('cities')
+                ->whereHas('country', function ($query) {
+                    $query->where('is_active', 1);
+                })
+                ->with('country')->orderBy('created_at', 'desc');
+
             return DataTables::of($states)
                 ->addColumn('cities_count', function ($state) {
                     return $state->cities_count ?? 0;
+                })
+                ->addColumn('country_name', function ($state) {
+                    return $state->country ? $state->country->name : '-';
                 })
                 ->editColumn('updated_at', function ($state) {
                     return $state->updated_at ? $state->updated_at->format('d M Y, h:i A') : '-';
@@ -47,9 +55,17 @@ class StateController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255|unique:states,name',
+            'country_id' => 'required|exists:countries,id',
+            'code' => [
+                'required',
+                'string',
+                'max:10',
+                Rule::unique('states', 'code')->where(fn ($q) => $q->where('country_id', $request->country_id)),
+            ],
         ], [
             'name.required' => 'State name is required.',
             'name.unique' => 'This state already exists.',
+            'code.unique' => 'This state code already exists for the selected country.',
         ]);
 
         if ($validator->fails()) {
@@ -62,6 +78,8 @@ class StateController extends Controller
         try {
             $state = State::create([
                 'name' => $request->name,
+                'country_id' => $request->country_id,
+                'code' => $request->code,
             ]);
 
             return response()->json([

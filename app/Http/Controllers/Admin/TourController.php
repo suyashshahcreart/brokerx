@@ -1065,7 +1065,6 @@ class TourController extends Controller
 
             $obfuscatedJs = obfuscateJs($jsFileContent);
             Storage::disk('s3')->put($tourDataJsPath, $obfuscatedJs, ['ContentType' => 'application/javascript']);
-
             \Log::info('Tour JSON and JS files updated successfully in S3', [
                 'tour_id' => $tour->id,
                 'qr_code' => $qrCode,
@@ -1249,9 +1248,7 @@ class TourController extends Controller
         // update json
         $tour->final_json = $json;
         // sync fields from json to tour model, force-sync all fields since it's a full file upload
-        if($request->input('DB_sync', false)) {
-            $this->tourService->syncTourFieldsFromJson($tour, $json, [], true);
-        }
+        $this->tourService->syncTourFieldsFromJson($tour, $json, [], true);
         // save tour updates once after syncing fields
         $tour->save();
         // commit DB changes before S3 upload, so if S3 fails we at least have the JSON in DB
@@ -2603,6 +2600,49 @@ class TourController extends Controller
         }
 
         return redirect()->back()->with(['success' => 'Tour basic information updated successfully.', 'active_tab' => 'basic-info']);
+    }
+
+    public function updateUserDetails(Request $request, Tour $tour): JsonResponse|RedirectResponse
+    {
+        $validated = $request->validate([
+            'show_user_details_button' => ['boolean'],
+            'user_details_button_icon' => ['nullable', 'string'],
+            'user_details_button_tooltip' => ['nullable', 'string'],
+            'user_details' => ['nullable', 'array'],
+        ]);
+
+        // Update DB columns for simple fields
+        $tour->update([
+            'show_user_details_button' => $request->has('show_user_details_button'),
+            'user_details_button_icon' => $validated['user_details_button_icon'] ?? null,
+            'user_details_button_tooltip' => $validated['user_details_button_tooltip'] ?? null,
+            'user_details' => $validated['user_details'] ?? null,
+        ]);
+
+        // Get current final_json
+        $finalJson = $tour->final_json ?? [];
+
+        // Update user details array in final_json
+        $finalJson['userInfo']['userDetails'] = $validated['user_details'] ?? [];
+        $finalJson['userInfo']['showUserDetailsButton'] = $request->has('show_user_details_button');
+        $finalJson['userInfo']['userDetailsButtonIcon'] = $validated['user_details_button_icon'] ?? '';
+        $finalJson['userInfo']['userDetailsButtonTooltip'] = $validated['user_details_button_tooltip'] ?? '';
+
+        // Update the tour with final_json
+        $tour->update(['final_json' => $finalJson]);
+
+        // Sync to S3
+        $this->updateTourJsonAndJsFilesInS3($tour, $finalJson);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'User details updated successfully.',
+                'tour' => $tour->fresh(),
+            ]);
+        }
+
+        return redirect()->back()->with(['success' => 'User details updated successfully.']);
     }
 
 }

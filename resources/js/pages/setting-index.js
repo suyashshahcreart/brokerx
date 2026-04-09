@@ -1527,7 +1527,6 @@ import '../../css/pages/setting-index.css';
                     return response.json();
                 })
                 .then(data => {
-                    console.log('FTP Configurations loaded:', data);
                     if (data.success && data.data) {
                         renderFtpConfigurationsTable(data.data);
                     } else {
@@ -1782,6 +1781,10 @@ import '../../css/pages/setting-index.css';
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
 
         const routes = {
+            general: {
+                countries: window.stateCityRoutes.generalCountries,
+                states: window.stateCityRoutes.generalStates
+            },
             countries: {
                 list: window.stateCityRoutes.countriesList,
                 options: window.stateCityRoutes.countriesOptions,
@@ -1878,6 +1881,7 @@ import '../../css/pages/setting-index.css';
             order: [[0, 'asc']],
             columns: [
                 { data: 'name', name: 'name', className: 'fw-semibold' },
+                { data: 'country_name', name: 'country', className: 'fw-semibold', orderable: false },
                 { data: 'cities_count', name: 'cities_count', defaultContent: 0, className: 'text-center' },
                 { data: 'updated_at', name: 'updated_at' },
                 {
@@ -1988,23 +1992,102 @@ import '../../css/pages/setting-index.css';
             $('#cityName').val(data ? data.name : '');
             $('#cityModalLabel').text(data ? 'Edit City' : 'Add City');
             $('#saveCityBtn').text(data ? 'Update' : 'Save');
-            loadStateOptions(data ? data.state_id : null);
+            loadCountryOptions(data, data ? data.state_id : null);
         }
 
-        function loadStateOptions(selectedId = null) {
-            $.get(routes.states.options)
+        function normalizeOptionResponse(res) {
+            if (Array.isArray(res)) return res;
+            if (res && Array.isArray(res.data)) return res.data;
+            return [];
+        }
+
+        function loadCountryOptions(cityData = null, selectedStateId = null) {
+            $.get(routes.general.countries)
                 .done(res => {
-                    const select = $('#cityState');
-                    select.empty().append('<option value="">-- Select State --</option>');
-                    if (res && res.length) {
-                        res.forEach(state => {
+                    const countrySelect = $('#cityCountry');
+                    countrySelect.empty().append('<option value="">-- Select Country --</option>');
+
+                    const countries = normalizeOptionResponse(res);
+
+                    if (countries.length) {
+                        countries.forEach(country => {
+                            countrySelect.append(`<option value="${country.id}">${country.name}</option>`);
+                        });
+                    }
+
+                    if (cityData && cityData.country_id) {
+                        countrySelect.val(String(cityData.country_id));
+                        loadStateOptions(cityData.country_id, selectedStateId);
+                        return;
+                    }
+
+                    if (selectedStateId) {
+                        resolveCountryForState(selectedStateId);
+                        return;
+                    }
+
+                    loadStateOptions(null, null);
+                })
+                .fail(() => notify('error', 'Unable to load countries.'));
+        }
+
+        function resolveCountryForState(stateId) {
+            // For edit fallback: try to resolve state by scanning countries via General Data API.
+            $.get(routes.general.countries)
+                .done(res => {
+                    const countries = normalizeOptionResponse(res);
+                    if (!countries.length) {
+                        loadStateOptions(null, stateId);
+                        return;
+                    }
+
+                    let found = false;
+                    const requests = countries.map(country => (
+                        $.get(routes.general.states, { country_id: country.id })
+                            .done(stateRes => {
+                                if (found) return;
+                                const states = normalizeOptionResponse(stateRes);
+                                const match = states.find(item => Number(item.id) === Number(stateId));
+                                if (match) {
+                                    found = true;
+                                    $('#cityCountry').val(String(country.id));
+                                    loadStateOptions(country.id, stateId);
+                                }
+                            })
+                    ));
+
+                    $.when.apply($, requests).always(() => {
+                        if (!found) loadStateOptions(null, stateId);
+                    });
+                })
+                .fail(() => {
+                    loadStateOptions(null, stateId);
+                });
+        }
+
+        function loadStateOptions(countryId = null, selectedId = null) {
+            const stateSelect = $('#cityState');
+            stateSelect.empty().append('<option value="">-- Select State --</option>');
+
+            if (!countryId) {
+                stateSelect.prop('disabled', true);
+                return;
+            }
+
+            stateSelect.prop('disabled', false);
+
+            $.get(routes.general.states, { country_id: countryId })
+                .done(res => {
+                    const states = normalizeOptionResponse(res);
+                    if (states.length) {
+                        states.forEach(state => {
                             const option = $('<option></option>')
                                 .attr('value', state.id)
                                 .text(state.name);
-                            if (selectedId && state.id == selectedId) {
+                            if (selectedId && Number(state.id) === Number(selectedId)) {
                                 option.attr('selected', 'selected');
                             }
-                            select.append(option);
+                            stateSelect.append(option);
                         });
                     }
                 })
@@ -2015,6 +2098,11 @@ import '../../css/pages/setting-index.css';
         $('#openCountryModal').on('click', () => { resetCountryForm(); if (countryModal) countryModal.show(); });
         $('#openStateModal').on('click', () => { resetStateForm(); if (stateModal) stateModal.show(); });
         $('#openCityModal').on('click', () => { resetCityForm(); if (cityModal) cityModal.show(); });
+
+        $('#cityCountry').on('change', function () {
+            const countryId = $(this).val();
+            loadStateOptions(countryId || null, null);
+        });
 
         if (countryStatusFilter) {
             countryStatusFilter.addEventListener('change', function () {
@@ -2045,7 +2133,6 @@ import '../../css/pages/setting-index.css';
             const data = getRowData(cityTable, this);
             if (!data) return;
             resetCityForm(data);
-            $('#cityState').val(data.state_id);
             cityModal.show();
         });
 
@@ -2170,6 +2257,13 @@ import '../../css/pages/setting-index.css';
         $('#cityForm').on('submit', function (event) {
             event.preventDefault();
             showErrors('#cityErrors', null);
+
+            const selectedCountryId = $('#cityCountry').val();
+            if (!selectedCountryId) {
+                showErrors('#cityErrors', { country_id: ['Country is required.'] });
+                return;
+            }
+
             const id = $('#cityId').val();
             const url = id ? routes.cities.update(id) : routes.cities.store;
             const method = id ? 'PUT' : 'POST';

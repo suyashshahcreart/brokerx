@@ -11,8 +11,9 @@ class TourService
 {
     public function syncTourFieldsFromJson(Tour $tour, array $finalJson, array $diffJson = [], bool $forceSync = false): void
     {
+        \Log::info("Tour Details sync started for tour_id={$tour->id}, force_sync={$forceSync}");
         $userInfo = $finalJson['userInfo'] ?? [];
-
+        // user related fields
         if ($forceSync || Arr::has($diffJson, 'userInfo.userName')) {
             $tour->contact_user_name = $userInfo['userName'] ?? null;
         }
@@ -33,22 +34,22 @@ class TourService
         }
 
         if ($forceSync || Arr::has($diffJson, 'userInfo.showUserName')) {
-            $tour->show_contact_user_name = $userInfo['showUserName'] ?? null;
+            $tour->show_contact_user_name = $userInfo['showUserName'] ?? false;
         }
         if ($forceSync || Arr::has($diffJson, 'userInfo.showGoogleLocation')) {
-            $tour->show_contact_google_location = $userInfo['showGoogleLocation'] ?? null;
+            $tour->show_contact_google_location = $userInfo['showGoogleLocation'] ?? false;
         }
         if ($forceSync || Arr::has($diffJson, 'userInfo.showEmail')) {
-            $tour->show_contact_email = $userInfo['showEmail'] ?? null;
+            $tour->show_contact_email = $userInfo['showEmail'] ?? false;
         }
         if ($forceSync || Arr::has($diffJson, 'userInfo.showWebsite')) {
-            $tour->show_contact_website = $userInfo['showWebsite'] ?? null;
+            $tour->show_contact_website = $userInfo['showWebsite'] ?? false;
         }
         if ($forceSync || Arr::has($diffJson, 'userInfo.showPhoneNumber')) {
-            $tour->show_contact_phone_no = $userInfo['showPhoneNumber'] ?? null;
+            $tour->show_contact_phone_no = $userInfo['showPhoneNumber'] ?? false;
         }
         if ($forceSync || Arr::has($diffJson, 'userInfo.showWhatsAppNumber')) {
-            $tour->show_contact_whatsapp_no = $userInfo['showWhatsAppNumber'] ?? null;
+            $tour->show_contact_whatsapp_no = $userInfo['showWhatsAppNumber'] ?? false;
         }
 
         // document show and auth fields
@@ -59,8 +60,23 @@ class TourService
             $tour->show_document_url2 = $userInfo['showDocumentUrl2'] ?? false;
         }
         if ($forceSync || Arr::has($diffJson, 'userInfo.documentAuthRequired')) {
-            $tour->document_auth_required = $userInfo['documentAuthRequired'] ?? null;
+            $tour->document_auth_required = $userInfo['documentAuthRequired'] ?? false;
         }
+        
+        //  user info -> user details 
+        if ($forceSync || Arr::has($diffJson, 'userInfo.showUserDetailsButton')) {
+            $tour->show_user_details_button = $userInfo['showUserDetailsButton'] ?? false;
+        }
+        if ($forceSync || Arr::has($diffJson, 'userInfo.userDetailsButtonIcon')) {
+            $tour->user_details_button_icon = $userInfo['userDetailsButtonIcon'] ?? null;
+        }
+        if ($forceSync || Arr::has($diffJson, 'userInfo.userDetailsButtonTooltip')) {
+            $tour->user_details_button_tooltip = $userInfo['userDetailsButtonTooltip'] ?? null;
+        }
+        if ($forceSync || Arr::has($diffJson, 'userInfo.userDetails')) {
+            $tour->user_details = $userInfo['userDetails'] ?? null;
+        }
+        
 
         /* Attchment file sync */
         if ($forceSync || Arr::has($diffJson, 'userInfo.documentAuthType')) {
@@ -79,6 +95,7 @@ class TourService
                 ]
             ] ?? null;
         }
+
 
         $localeConfig = $finalJson['localeConfig'] ?? [];
         if ($forceSync || Arr::has($diffJson, 'localeConfig.defaultLanguage')) {

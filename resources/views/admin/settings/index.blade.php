@@ -948,7 +948,6 @@
                                     </div>
                                     @endif
 
-                                    @if($canFtpConfiguration)
                                     <div class="tab-pane fade {{ ($firstActiveTab === 'vl-pills-regions-management') ? 'active show' : '' }}" id="vl-pills-regions-management" role="tabpanel" aria-labelledby="vl-pills-regions-management-tab">
                                         <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
                                             <div>
@@ -1013,6 +1012,7 @@
                                                         <thead class="table-light">
                                                             <tr>
                                                                 <th>Name</th>
+                                                                <th>Country</th>
                                                                 <th>Cities Count</th>
                                                                 <th>Updated At</th>
                                                                 <th class="text-end">Actions</th>
@@ -1040,7 +1040,6 @@
                                             </div>
                                         </div>
                                     </div>
-                                    @endif
                                     <!-- tour configration Model -->
                                     @if($canBookingSchedule)
                                     <div class="tab-pane fade {{ ($firstActiveTab === 'vl-pills-tour') ? 'active show' : '' }}" id="vl-pills-tour" role="tabpanel" aria-labelledby="vl-pills-tour-tab">
@@ -1302,6 +1301,19 @@
                                                 <label for="stateName" class="form-label">State Name <span class="text-danger">*</span></label>
                                                 <input type="text" class="form-control" id="stateName" name="name" placeholder="e.g., Maharashtra" required maxlength="255">
                                             </div>
+                                            <div class="mb-3">
+                                                <label for="stateCode" class="form-label">Code<span class="text-danger">*</span></label>
+                                                <input type="text" class="form-control" id="stateName" name="code" placeholder="e.g., Maharashtra -> MH" required maxlength="255">
+                                            </div>
+                                            <div class="m">
+                                                <label class="form-label" for="Country">Country <span class="text-sm muted">*</span> </label>
+                                                <select name="country_id" class="form-select" id="selectCountryId" required>
+                                                    <option>Select Country</option>
+                                                     @foreach($countryList as $country)
+                                                        <option value="{{ $country->id }}">{{ $country->name }}</option>
+                                                     @endforeach
+                                                </select>
+                                            </div>
                                         </div>
                                         <div class="modal-footer">
                                             <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -1325,6 +1337,12 @@
                                         <input type="hidden" name="city_id" id="cityId">
                                         <div class="modal-body">
                                             <div class="alert alert-danger d-none" id="cityErrors"></div>
+                                            <div class="mb-3">
+                                                <label for="cityCountry" class="form-label">Country <span class="text-danger">*</span></label>
+                                                <select class="form-select" id="cityCountry" required>
+                                                    <option value="">-- Select Country --</option>
+                                                </select>
+                                            </div>
                                             <div class="mb-3">
                                                 <label for="cityState" class="form-label">State <span class="text-danger">*</span></label>
                                                 <select class="form-select" id="cityState" name="state_id" required></select>
@@ -1577,6 +1595,8 @@
 
     // State and City routes for JavaScript
     window.stateCityRoutes = {
+        generalCountries: '{{ route('api.countries') }}',
+        generalStates: '{{ route('api.states') }}',
         countriesList: '{{ route('admin.api.countries.index') }}',
         countriesOptions: '{{ route('admin.api.countries.options') }}',
         countriesStore: '{{ route('admin.api.countries.store') }}',

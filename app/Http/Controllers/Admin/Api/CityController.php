@@ -18,7 +18,11 @@ class CityController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $cities = City::with('state:id,name');
+            $cities = City::with('state:id,name')
+                ->whereHas('state.country', function ($query) {
+                    $query->where('is_active', 1);
+                })
+                ->orderBy('created_at', 'desc');
             
             return DataTables::of($cities)
                 ->addColumn('state_name', function ($city) {
