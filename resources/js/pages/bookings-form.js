@@ -620,7 +620,7 @@ function validateForm() {
         }
         errors.push('PIN Code is required');
         isValid = false;
-    } else if (!/^[0-9]{6}$/.test(pinCode)) {
+    } else if (!/^[0-9,A-Z,a-z]{5}$/.test(pinCode)) {
         const field = el('pin_code');
         if (field) {
             field.classList.add('is-invalid');
@@ -903,8 +903,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (pinCodeInput) {
         pinCodeInput.addEventListener('input', function() {
             const value = this.value.trim();
-            // && /^[0-9,A-Z,a-z]{6}$/.test(value)
-            if (value) {
+            if (value && /^[0-9,A-Z,a-z]{5}$/.test(value) ) {
                 this.classList.remove('is-invalid');
                 this.classList.add('is-valid');
             } else if (value && value.length === 6) {
