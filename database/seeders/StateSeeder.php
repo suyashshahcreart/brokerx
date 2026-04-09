@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
+use App\Models\Country;
 use App\Models\State;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class StateSeeder extends Seeder
@@ -13,6 +13,13 @@ class StateSeeder extends Seeder
      */
     public function run(): void
     {
+        $indiaId = Country::query()->where('name', 'India')->value('id');
+        if (! $indiaId) {
+            $this->command?->warn('India not found in countries. Run CountrySeeder first.');
+
+            return;
+        }
+
         $states = [
             ['name' => 'Gujarat', 'code' => 'GJ'],
             ['name' => 'Andhra Pradesh', 'code' => 'AP'],
@@ -53,9 +60,14 @@ class StateSeeder extends Seeder
         ];
 
         foreach ($states as $state) {
-            State::firstOrCreate(
-                ['code' => $state['code']],
-                ['name' => $state['name']]
+            State::query()->firstOrCreate(
+                [
+                    'code' => $state['code'],
+                    'country_id' => $indiaId,
+                ],
+                [
+                    'name' => $state['name'],
+                ]
             );
         }
     }

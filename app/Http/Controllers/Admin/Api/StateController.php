@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\State;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 use Yajra\DataTables\Facades\DataTables;
 
 class StateController extends Controller
@@ -55,10 +56,16 @@ class StateController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255|unique:states,name',
             'country_id' => 'required|exists:countries,id',
-            'code' => 'nullable|string|max:10',
+            'code' => [
+                'required',
+                'string',
+                'max:10',
+                Rule::unique('states', 'code')->where(fn ($q) => $q->where('country_id', $request->country_id)),
+            ],
         ], [
             'name.required' => 'State name is required.',
             'name.unique' => 'This state already exists.',
+            'code.unique' => 'This state code already exists for the selected country.',
         ]);
 
         if ($validator->fails()) {
