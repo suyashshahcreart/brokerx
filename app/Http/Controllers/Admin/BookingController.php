@@ -413,8 +413,6 @@ class BookingController extends Controller
             ->get()
             ->groupBy('property_type_id');
         $bhks = BHK::orderBy('name')->get();
-        $cities = City::orderBy('name')->get();
-        $states = State::orderBy('name')->get();
         $countries = Country::where('is_active', true)->orderBy('name')->get();
         $defaultCountryId = old('country_id');
         if (!$defaultCountryId) {
@@ -432,8 +430,6 @@ class BookingController extends Controller
             'propertyTypes',
             'propertySubTypes',
             'bhks',
-            'cities',
-            'states',
             'countries',
             'defaultCountryId',
             'paymentStatuses',

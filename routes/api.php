@@ -118,6 +118,11 @@ Route::middleware(['web', 'auth'])->group(function () {
     // Public Settings API routes (no auth required for frontend setup page)
     Route::get('/settings/{name}', [SettingController::class, 'apiGet'])->name('api.settings.get.public');
     
+    // General Data API routes
+    Route::get('/countries', [GeneralDataController::class, 'getCountries'])->name('api.countries');
+    Route::get('/states', [GeneralDataController::class, 'getStates'])->name('api.states');
+    Route::get('/cities', [GeneralDataController::class, 'getCities'])->name('api.cities');
+    
     // Holidays API
     Route::get('/holidays', [HolidayController::class, 'indexAPI']);
 

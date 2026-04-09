@@ -593,7 +593,7 @@
                                                         <select name="country_id" id="country_id" class="form-select @error('country_id') is-invalid @enderror" required>
                                                             <option value="">Select country</option>
                                                             @foreach($countries as $country)
-                                                                <option value="{{ $country->id }}" @selected(($defaultCountryId)==$country->id)>{{ $country->name }}</option>
+                                                                <option value="{{ $country->id }}">{{ $country->name }}</option>
                                                             @endforeach
                                                         </select>
                                                         <div class="invalid-feedback">@error('country_id'){{ $message }}@else Please select a country.@enderror</div>
@@ -603,40 +603,24 @@
                                                     <!-- State -->
                                                     <div class="mb-1">
                                                         @php
-                                                            // Determine default State and City when no old values are present
+                                                            // Determine default State when no old values are present
                                                             $defaultStateId = old('state_id');
-                                                            $defaultCityId = old('city_id');
-                                                            if (!$defaultStateId) {
-                                                                $gujarat = collect($states ?? [])->first(function($st){
-                                                                    return strcasecmp($st->name, 'Gujarat') === 0 || strcasecmp($st->name, 'Gujrat') === 0;
-                                                                });
-                                                                $defaultStateId = $gujarat->id ?? null;
-                                                            }
-                                                            if (!$defaultCityId) {
-                                                                $defaultCityId = optional(collect($cities ?? [])->first(function($city){
-                                                                    return strcasecmp($city->name, 'Ahmedabad') === 0;
-                                                                }))->id;
-                                                            }
                                                         @endphp
                                                         <label class="form-label fw-semibold mb-0" for="state_id">State <span class="text-danger">*</span></label>
-                                                        <select name="state_id" id="state_id" class="form-select">
+                                                        <select name="state_id" id="state_id" class="form-select @error('state_id') is-invalid @enderror" required>
                                                             <option value="">Select state</option>
-                                                            @foreach($states as $s)
-                                                                <option value="{{ $s->id }}" @selected(($defaultStateId)==$s->id)>{{ $s->name }}</option>
-                                                            @endforeach
                                                         </select>
+                                                        <div class="invalid-feedback">@error('state_id'){{ $message }}@else Please select a state.@enderror</div>
                                                     </div>
                                                 </div>
                                                 <div class="col-12">
                                                     <!-- City -->
                                                     <div class="mb-1">
                                                         <label class="form-label fw-semibold mb-0" for="city_id">City <span class="text-danger">*</span></label>
-                                                        <select name="city_id" id="city_id" class="form-select">
+                                                        <select name="city_id" id="city_id" class="form-select @error('city_id') is-invalid @enderror" required>
                                                             <option value="">Select city</option>
-                                                            @foreach($cities as $c)
-                                                                <option value="{{ $c->id }}" data-state-id="{{ $c->state_id }}" @selected(($defaultCityId)==$c->id)>{{ $c->name }}</option>
-                                                            @endforeach
                                                         </select>
+                                                        <div class="invalid-feedback">@error('city_id'){{ $message }}@else Please select a city.@enderror</div>
                                                     </div>
                                                 </div>
                                             </div>   
@@ -681,6 +665,11 @@
     @vite(['resources/js/pages/bookings-form.js'])
     
     <script>
+        window.API = {
+            getCountries: '{{ route('api.countries') }}',
+            getStates: '{{ route('api.states') }}',
+            getCities: '{{ route('api.cities') }}'
+        }
         // Store old values for restoration after main JS loads
         window.bookingOldValues = {
             owner_type: '{{ old("owner_type") }}',
@@ -688,9 +677,9 @@
             property_sub_type_id: '{{ old("property_sub_type_id") }}',
             furniture_type: '{{ old("furniture_type") }}',
             bhk_id: '{{ old("bhk_id") }}',
-            country_id: '{{ $defaultCountryId ?? '' }}',
-            state_id: '{{ $defaultStateId ?? '' }}',
-            city_id: '{{ $defaultCityId ?? '' }}',
+            country_id: '{{ old("country_id", $defaultCountryId) }}',
+            state_id: '{{ old("state_id") }}',
+            city_id: '{{ old("city_id") }}',
             different_billing_name: '{{ old("different_billing_name") }}',
             has_old_data: {{ old('owner_type') || old('main_property_type') ? 'true' : 'false' }}
         };
