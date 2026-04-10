@@ -545,7 +545,7 @@
                     </div>
                     <div class="card-body">
                         <form id="tourBookmarkTabUpdateForm" method="POST"
-                            action="{{ route('admin.tours.updateBookmarkFields', $tour) }}" class="needs-validation"
+                            action="{{ route('admin.tours.updateBookmarkFields', $tour) }}" enctype="multipart/form-data" class="needs-validation"
                             novalidate>
                             @csrf
                             @method('PUT')

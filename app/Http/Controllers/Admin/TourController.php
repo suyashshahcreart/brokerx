@@ -2647,7 +2647,6 @@ class TourController extends Controller
 
     public function updateBookmarkFields(Request $request, Tour $tour): JsonResponse|RedirectResponse
     {
-        dd($request->all());
         $validated = $request->validate([
             'bookmark_title' => ['nullable', 'string', 'max:255'],
             'bookmark_ribbon_background_color' => ['nullable', 'string', 'max:100'],
@@ -2674,10 +2673,68 @@ class TourController extends Controller
             'bookmark_document_url' => ['nullable', 'string', 'max:500'],
             'bookmark_video_url' => ['nullable', 'string', 'max:500'],
             'bookmark_image_url' => ['nullable', 'string', 'max:500'],
+            'bookmark_document_file' => ['nullable', 'file', 'max:10240', 'mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,txt'],
+            'bookmark_video_file' => ['nullable', 'file', 'max:102400', 'mimetypes:video/mp4,video/quicktime,video/x-msvideo,video/x-matroska,video/webm'],
+            'bookmark_image_file' => ['nullable', 'file', 'image', 'max:10240'],
         ]);
 
         $oldData = $tour->toArray();
         $finalJson = $this->normalizeFinalJsonPayload($tour);
+
+        $qrCode = $tour->booking_id ? QR::where('booking_id', $tour->booking_id)->value('code') : null;
+
+        $bookmarkDocumentUrl = $validated['bookmark_document_url'] ?? null;
+        $bookmarkVideoUrl = $validated['bookmark_video_url'] ?? null;
+        $bookmarkImageUrl = $validated['bookmark_image_url'] ?? null;
+
+        $uploadConfigs = [
+            'bookmark_document_file' => [
+                'prefix' => 'bookmark_document',
+                'field' => 'bookmarkDocumentUrl',
+            ],
+            'bookmark_video_file' => [
+                'prefix' => 'bookmark_video',
+                'field' => 'bookmarkVideoUrl',
+            ],
+            'bookmark_image_file' => [
+                'prefix' => 'bookmark_image',
+                'field' => 'bookmarkImageUrl',
+            ],
+        ];
+
+        foreach ($uploadConfigs as $inputName => $config) {
+            if (!$request->hasFile($inputName)) {
+                continue;
+            }
+
+            $file = $request->file($inputName);
+            if (!$file || !$file->isValid()) {
+                continue;
+            }
+
+            $fileName = $config['prefix'] . '_' . time() . '_' . Str::random(8) . '.' . $file->getClientOriginalExtension();
+            $filePath = $qrCode
+                ? 'tours/' . $qrCode . '/info/' . $fileName
+                : 'info/' . $fileName;
+            $fileContent = file_get_contents($file->getRealPath());
+
+            if ($fileContent === false) {
+                continue;
+            }
+
+            Storage::disk('s3')->put($filePath, $fileContent, [
+                'ContentType' => $file->getMimeType() ?: 'application/octet-stream',
+            ]);
+
+            $uploadedUrl = Storage::disk('s3')->url($filePath);
+            if ($config['field'] === 'bookmarkDocumentUrl') {
+                $bookmarkDocumentUrl = $uploadedUrl;
+            } elseif ($config['field'] === 'bookmarkVideoUrl') {
+                $bookmarkVideoUrl = $uploadedUrl;
+            } elseif ($config['field'] === 'bookmarkImageUrl') {
+                $bookmarkImageUrl = $uploadedUrl;
+            }
+        }
 
         $updateData = [
             'bookmark_title' => $validated['bookmark_title'] ?? null,
@@ -2692,9 +2749,9 @@ class TourController extends Controller
             'bookmark_info_modal_footer_button_link' => $validated['bookmark_info_modal_footer_button_link'] ?? null,
             'bookmark_info_modal_footer_text' => $validated['bookmark_info_modal_footer_text'] ?? null,
             'bookmark_open_link_url' => $validated['bookmark_open_link_url'] ?? null,
-            'bookmark_document_url' => $validated['bookmark_document_url'] ?? null,
-            'bookmark_video_url' => $validated['bookmark_video_url'] ?? null,
-            'bookmark_image_url' => $validated['bookmark_image_url'] ?? null,
+            'bookmark_document_url' => $bookmarkDocumentUrl,
+            'bookmark_video_url' => $bookmarkVideoUrl,
+            'bookmark_image_url' => $bookmarkImageUrl,
         ];
 
         // Keep DB fields snake_case, but persist tour JSON inside bookmark object in camelCase.
