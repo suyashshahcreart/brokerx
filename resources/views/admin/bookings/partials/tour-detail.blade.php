@@ -742,114 +742,116 @@
                                 </div>
                             </div>
 
-                            @php
-                                $bookmarkLangLabels = ['en' => 'English', 'gu' => 'Gujarati', 'hi' => 'Hindi'];
-                                $bookmarkEnabledLanguages = is_array($tour->enable_language) && !empty($tour->enable_language)
-                                    ? array_values(array_intersect(['en', 'gu', 'hi'], $tour->enable_language))
-                                    : ['en'];
-                                if (empty($bookmarkEnabledLanguages)) {
-                                    $bookmarkEnabledLanguages = ['en'];
-                                }
-                                $bookmarkFirstLang = $bookmarkEnabledLanguages[0];
-                            @endphp
+                            <div id="bookmark_action_openInfoModal" class="bookmark-action-section d-none">
+                                @php
+                                    $bookmarkLangLabels = ['en' => 'English', 'gu' => 'Gujarati', 'hi' => 'Hindi'];
+                                    $bookmarkEnabledLanguages = is_array($tour->enable_language) && !empty($tour->enable_language)
+                                        ? array_values(array_intersect(['en', 'gu', 'hi'], $tour->enable_language))
+                                        : ['en'];
+                                    if (empty($bookmarkEnabledLanguages)) {
+                                        $bookmarkEnabledLanguages = ['en'];
+                                    }
+                                    $bookmarkFirstLang = $bookmarkEnabledLanguages[0];
+                                @endphp
 
-                            <ul class="nav nav-tabs mb-3" id="bookmarkLanguageTabs" role="tablist">
-                                @foreach($bookmarkEnabledLanguages as $lang)
-                                    <li class="nav-item" role="presentation">
-                                        <button class="nav-link {{ $lang === $bookmarkFirstLang ? 'active' : '' }}"
-                                            id="bookmark-lang-{{ $lang }}-tab" data-language="{{ $lang }}"
-                                            data-bs-toggle="tab" data-bs-target="#bookmark-lang-{{ $lang }}-pane"
-                                            type="button" role="tab" aria-controls="bookmark-lang-{{ $lang }}-pane"
-                                            aria-selected="{{ $lang === $bookmarkFirstLang ? 'true' : 'false' }}">
-                                            {{ $bookmarkLangLabels[$lang] ?? strtoupper($lang) }}
-                                        </button>
-                                    </li>
-                                @endforeach
-                            </ul>
+                                <ul class="nav nav-tabs mb-3" id="bookmarkLanguageTabs" role="tablist">
+                                    @foreach($bookmarkEnabledLanguages as $lang)
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link {{ $lang === $bookmarkFirstLang ? 'active' : '' }}"
+                                                id="bookmark-lang-{{ $lang }}-tab" data-language="{{ $lang }}"
+                                                data-bs-toggle="tab" data-bs-target="#bookmark-lang-{{ $lang }}-pane"
+                                                type="button" role="tab" aria-controls="bookmark-lang-{{ $lang }}-pane"
+                                                aria-selected="{{ $lang === $bookmarkFirstLang ? 'true' : 'false' }}">
+                                                {{ $bookmarkLangLabels[$lang] ?? strtoupper($lang) }}
+                                            </button>
+                                        </li>
+                                    @endforeach
+                                </ul>
 
-                            <div class="tab-content" id="bookmarkLanguageTabsContent">
-                                @foreach($bookmarkEnabledLanguages as $lang)
-                                    <div class="tab-pane fade {{ $lang === $bookmarkFirstLang ? 'show active' : '' }}"
-                                        id="bookmark-lang-{{ $lang }}-pane" data-language="{{ $lang }}"
-                                        role="tabpanel" aria-labelledby="bookmark-lang-{{ $lang }}-tab" tabindex="0">
-                                        <div class="row">
-                                            <div class="col-md-6">
-                                                <div class="mb-3">
-                                                    <label class="form-label" for="bookmark_modal_title_{{ $lang }}">
-                                                        Modal Title ({{ $bookmarkLangLabels[$lang] ?? strtoupper($lang) }})
-                                                    </label>
-                                                    <input type="text" name="bookmark_modal_title[{{ $lang }}]"
-                                                        id="bookmark_modal_title_{{ $lang }}" class="form-control"
-                                                        value="{{ old('bookmark_modal_title.' . $lang, data_get($tour, 'bookmark_modal_title.' . $lang, '')) }}"
-                                                        placeholder="e.g., About us">
-                                                    @error('bookmark_modal_title.' . $lang)
-                                                        <div class="text-danger">{{ $message }}</div>
-                                                    @enderror
+                                <div class="tab-content" id="bookmarkLanguageTabsContent">
+                                    @foreach($bookmarkEnabledLanguages as $lang)
+                                        <div class="tab-pane fade {{ $lang === $bookmarkFirstLang ? 'show active' : '' }}"
+                                            id="bookmark-lang-{{ $lang }}-pane" data-language="{{ $lang }}"
+                                            role="tabpanel" aria-labelledby="bookmark-lang-{{ $lang }}-tab" tabindex="0">
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <div class="mb-3">
+                                                        <label class="form-label" for="bookmark_modal_title_{{ $lang }}">
+                                                            Modal Title ({{ $bookmarkLangLabels[$lang] ?? strtoupper($lang) }})
+                                                        </label>
+                                                        <input type="text" name="bookmark_modal_title[{{ $lang }}]"
+                                                            id="bookmark_modal_title_{{ $lang }}" class="form-control"
+                                                            value="{{ old('bookmark_modal_title.' . $lang, data_get($tour, 'bookmark_modal_title.' . $lang, '')) }}"
+                                                            placeholder="e.g., About us">
+                                                        @error('bookmark_modal_title.' . $lang)
+                                                            <div class="text-danger">{{ $message }}</div>
+                                                        @enderror
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-12">
+                                                    <div class="mb-3">
+                                                        <label class="form-label" for="bookmark_modal_description_{{ $lang }}">
+                                                            Modal Description ({{ $bookmarkLangLabels[$lang] ?? strtoupper($lang) }})
+                                                        </label>
+                                                        <textarea name="bookmark_modal_description[{{ $lang }}]"
+                                                            id="bookmark_modal_description_{{ $lang }}" class="form-control" rows="3"
+                                                            placeholder="Enter modal description">{{ old('bookmark_modal_description.' . $lang, data_get($tour, 'bookmark_modal_description.' . $lang, '')) }}</textarea>
+                                                        @error('bookmark_modal_description.' . $lang)
+                                                            <div class="text-danger">{{ $message }}</div>
+                                                        @enderror
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-12">
+                                                    <div class="mb-3">
+                                                        <label class="form-label" for="bookmark_info_modal_footer_text_{{ $lang }}">
+                                                            Modal Footer Text ({{ $bookmarkLangLabels[$lang] ?? strtoupper($lang) }})
+                                                        </label>
+                                                        <textarea name="bookmark_info_modal_footer_text[{{ $lang }}]"
+                                                            id="bookmark_info_modal_footer_text_{{ $lang }}" class="form-control" rows="3"
+                                                            placeholder="e.g., <p>This is the Footer of the Modal</p>">{{ old('bookmark_info_modal_footer_text.' . $lang, data_get($tour, 'bookmark_info_modal_footer_text.' . $lang, '')) }}</textarea>
+                                                        @error('bookmark_info_modal_footer_text.' . $lang)
+                                                            <div class="text-danger">{{ $message }}</div>
+                                                        @enderror
+                                                    </div>
                                                 </div>
                                             </div>
-                                            <div class="col-md-12">
-                                                <div class="mb-3">
-                                                    <label class="form-label" for="bookmark_modal_description_{{ $lang }}">
-                                                        Modal Description ({{ $bookmarkLangLabels[$lang] ?? strtoupper($lang) }})
-                                                    </label>
-                                                    <textarea name="bookmark_modal_description[{{ $lang }}]"
-                                                        id="bookmark_modal_description_{{ $lang }}" class="form-control" rows="3"
-                                                        placeholder="Enter modal description">{{ old('bookmark_modal_description.' . $lang, data_get($tour, 'bookmark_modal_description.' . $lang, '')) }}</textarea>
-                                                    @error('bookmark_modal_description.' . $lang)
-                                                        <div class="text-danger">{{ $message }}</div>
-                                                    @enderror
+                                            <div class="row mt-2">
+                                                <div class="col-md-6">
+                                                    <div class="mb-3">
+                                                        <label class="form-label" for="bookmark_info_modal_footer_button_title_{{ $lang }}">
+                                                            Footer Button Title ({{ $bookmarkLangLabels[$lang] ?? strtoupper($lang) }})
+                                                        </label>
+                                                        <input type="text" name="bookmark_info_modal_footer_button_title[{{ $lang }}]"
+                                                            id="bookmark_info_modal_footer_button_title_{{ $lang }}" class="form-control"
+                                                            value="{{ old('bookmark_info_modal_footer_button_title.' . $lang, data_get($tour, 'bookmark_info_modal_footer_button_title.' . $lang, '')) }}"
+                                                            placeholder="e.g., Footer Button">
+                                                        @error('bookmark_info_modal_footer_button_title.' . $lang)
+                                                            <div class="text-danger">{{ $message }}</div>
+                                                        @enderror
+                                                    </div>
                                                 </div>
-                                            </div>
-                                            <div class="col-md-12">
-                                                <div class="mb-3">
-                                                    <label class="form-label" for="bookmark_info_modal_footer_text_{{ $lang }}">
-                                                        Modal Footer Text ({{ $bookmarkLangLabels[$lang] ?? strtoupper($lang) }})
-                                                    </label>
-                                                    <textarea name="bookmark_info_modal_footer_text[{{ $lang }}]"
-                                                        id="bookmark_info_modal_footer_text_{{ $lang }}" class="form-control" rows="3"
-                                                        placeholder="e.g., <p>This is the Footer of the Modal</p>">{{ old('bookmark_info_modal_footer_text.' . $lang, data_get($tour, 'bookmark_info_modal_footer_text.' . $lang, '')) }}</textarea>
-                                                    @error('bookmark_info_modal_footer_text.' . $lang)
-                                                        <div class="text-danger">{{ $message }}</div>
-                                                    @enderror
+                                                <div class="col-md-6">
+                                                    <div class="mb-3">
+                                                        <label class="form-label" for="bookmark_info_modal_footer_button_link">Footer Button Link</label>
+                                                        <input type="url" name="bookmark_info_modal_footer_button_link"
+                                                            id="bookmark_info_modal_footer_button_link" class="form-control"
+                                                            placeholder="e.g., https://example.com"
+                                                            value="{{ old('bookmark_info_modal_footer_button_link', $tour->bookmark_info_modal_footer_button_link ?? '') }}">
+                                                        @error('bookmark_info_modal_footer_button_link')
+                                                            <div class="text-danger">{{ $message }}</div>
+                                                        @enderror
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
-                                        <div class="row mt-2">
-                                            <div class="col-md-6">
-                                                <div class="mb-3">
-                                                    <label class="form-label" for="bookmark_info_modal_footer_button_title_{{ $lang }}">
-                                                        Footer Button Title ({{ $bookmarkLangLabels[$lang] ?? strtoupper($lang) }})
-                                                    </label>
-                                                    <input type="text" name="bookmark_info_modal_footer_button_title[{{ $lang }}]"
-                                                        id="bookmark_info_modal_footer_button_title_{{ $lang }}" class="form-control"
-                                                        value="{{ old('bookmark_info_modal_footer_button_title.' . $lang, data_get($tour, 'bookmark_info_modal_footer_button_title.' . $lang, '')) }}"
-                                                        placeholder="e.g., Footer Button">
-                                                    @error('bookmark_info_modal_footer_button_title.' . $lang)
-                                                        <div class="text-danger">{{ $message }}</div>
-                                                    @enderror
-                                                </div>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <div class="mb-3">
-                                                    <label class="form-label" for="bookmark_info_modal_footer_button_link">Footer Button Link</label>
-                                                    <input type="url" name="bookmark_info_modal_footer_button_link"
-                                                        id="bookmark_info_modal_footer_button_link" class="form-control"
-                                                        placeholder="e.g., https://example.com"
-                                                        value="{{ old('bookmark_info_modal_footer_button_link', $tour->bookmark_info_modal_footer_button_link ?? '') }}">
-                                                    @error('bookmark_info_modal_footer_button_link')
-                                                        <div class="text-danger">{{ $message }}</div>
-                                                    @enderror
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                @endforeach
-
-                                <div class="d-flex justify-content-end mt-3">
-                                    <button type="submit" class="btn btn-primary">
-                                        <i class="ri-save-line me-1"></i> Update Tour Bookmark
-                                    </button>
+                                    @endforeach
                                 </div>
+                            </div>
+
+                            <div class="d-flex justify-content-end mt-3">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="ri-save-line me-1"></i> Update Tour Bookmark
+                                </button>
                             </div>
                         </form>
                     </div>
@@ -2057,46 +2059,9 @@
     </div>
 </div>
 
-@vite(['resources/js/pages/booking-tour-detail-update-tab.js', 'resources/js/pages/booking_edit_sidebarLink.js', 'resources/js/pages/booking_userDetails_edit.js'])
+@vite(['resources/js/pages/booking-tour-detail-update-tab.js', 'resources/js/pages/booking_edit_sidebarLink.js', 'resources/js/pages/booking_userDetails_edit.js', 'resources/js/pages/booking_tour_bookmark_action.js'])
 
 <script>
     window.sidebarLinksData = {!! json_encode(old('sidebar_links', $tour->sidebar_links)) !!};
     window.enabledLanguages = {!! json_encode($tour->enable_language ?? ['en']) !!};
-</script>
-
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const actionSelect = document.getElementById('bookmark_action');
-        if (!actionSelect) {
-            return;
-        }
-
-        const sectionMap = {
-            openLink: 'bookmark_action_openLink',
-            openDocument: 'bookmark_action_openDocument',
-            openVideo: 'bookmark_action_openVideo',
-            openImage: 'bookmark_action_openImage'
-        };
-
-        const allSections = document.querySelectorAll('.bookmark-action-section');
-
-        const toggleBookmarkActionSections = () => {
-            allSections.forEach((section) => {
-                section.classList.add('d-none');
-            });
-
-            const selectedAction = actionSelect.value;
-            const selectedSectionId = sectionMap[selectedAction] || null;
-
-            if (selectedSectionId) {
-                const selectedSection = document.getElementById(selectedSectionId);
-                if (selectedSection) {
-                    selectedSection.classList.remove('d-none');
-                }
-            }
-        };
-
-        actionSelect.addEventListener('change', toggleBookmarkActionSections);
-        toggleBookmarkActionSections();
-    });
 </script>
