@@ -2645,6 +2645,103 @@ class TourController extends Controller
         return redirect()->back()->with(['success' => 'User details updated successfully.']);
     }
 
+    public function updateBookmarkFields(Request $request, Tour $tour): JsonResponse|RedirectResponse
+    {
+        dd($request->all());
+        $validated = $request->validate([
+            'bookmark_title' => ['nullable', 'string', 'max:255'],
+            'bookmark_ribbon_background_color' => ['nullable', 'string', 'max:100'],
+            'bookmark_ribbon_text_color' => ['nullable', 'string', 'max:100'],
+            'bookmark_show_on_tour_load' => ['nullable', 'boolean'],
+            'bookmark_show_on_tour_load_delay_ms' => ['nullable', 'integer', 'min:0'],
+            'bookmark_action' => ['nullable', 'string', 'max:255'],
+            'bookmark_modal_title' => ['nullable', 'array'],
+            'bookmark_modal_title.en' => ['nullable', 'string'],
+            'bookmark_modal_title.gu' => ['nullable', 'string'],
+            'bookmark_modal_title.hi' => ['nullable', 'string'],
+            'bookmark_modal_description' => ['nullable', 'array'],
+            'bookmark_modal_description.en' => ['nullable', 'string'],
+            'bookmark_modal_description.gu' => ['nullable', 'string'],
+            'bookmark_modal_description.hi' => ['nullable', 'string'],
+            'bookmark_info_modal_footer_button_title' => ['nullable', 'array'],
+            'bookmark_info_modal_footer_button_title.en' => ['nullable', 'string'],
+            'bookmark_info_modal_footer_button_title.gu' => ['nullable', 'string'],
+            'bookmark_info_modal_footer_button_link' => ['nullable', 'string', 'max:500'],
+            'bookmark_info_modal_footer_text' => ['nullable', 'array'],
+            'bookmark_info_modal_footer_text.en' => ['nullable', 'string'],
+            'bookmark_info_modal_footer_text.gu' => ['nullable', 'string'],
+            'bookmark_open_link_url' => ['nullable', 'string', 'max:500'],
+            'bookmark_document_url' => ['nullable', 'string', 'max:500'],
+            'bookmark_video_url' => ['nullable', 'string', 'max:500'],
+            'bookmark_image_url' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $oldData = $tour->toArray();
+        $finalJson = $this->normalizeFinalJsonPayload($tour);
+
+        $updateData = [
+            'bookmark_title' => $validated['bookmark_title'] ?? null,
+            'bookmark_ribbon_background_color' => $validated['bookmark_ribbon_background_color'] ?? null,
+            'bookmark_ribbon_text_color' => $validated['bookmark_ribbon_text_color'] ?? null,
+            'bookmark_show_on_tour_load' => $request->boolean('bookmark_show_on_tour_load'),
+            'bookmark_show_on_tour_load_delay_ms' => $validated['bookmark_show_on_tour_load_delay_ms'] ?? 0,
+            'bookmark_action' => $validated['bookmark_action'] ?? null,
+            'bookmark_modal_title' => $validated['bookmark_modal_title'] ?? null,
+            'bookmark_modal_description' => $validated['bookmark_modal_description'] ?? null,
+            'bookmark_info_modal_footer_button_title' => $validated['bookmark_info_modal_footer_button_title'] ?? null,
+            'bookmark_info_modal_footer_button_link' => $validated['bookmark_info_modal_footer_button_link'] ?? null,
+            'bookmark_info_modal_footer_text' => $validated['bookmark_info_modal_footer_text'] ?? null,
+            'bookmark_open_link_url' => $validated['bookmark_open_link_url'] ?? null,
+            'bookmark_document_url' => $validated['bookmark_document_url'] ?? null,
+            'bookmark_video_url' => $validated['bookmark_video_url'] ?? null,
+            'bookmark_image_url' => $validated['bookmark_image_url'] ?? null,
+        ];
+
+        // Keep DB fields snake_case, but persist tour JSON inside bookmark object in camelCase.
+        $finalJson['bookmark'] = $finalJson['bookmark'] ?? [];
+        $finalJson['bookmark']['bookmarkTitle'] = $updateData['bookmark_title'];
+        $finalJson['bookmark']['ribbonBackgroundColor'] = $updateData['bookmark_ribbon_background_color'];
+        $finalJson['bookmark']['ribbonTextColor'] = $updateData['bookmark_ribbon_text_color'];
+        $finalJson['bookmark']['showOnTourLoad'] = $updateData['bookmark_show_on_tour_load'];
+        $finalJson['bookmark']['showOnTourLoadDelayMs'] = $updateData['bookmark_show_on_tour_load_delay_ms'];
+        $finalJson['bookmark']['action'] = $updateData['bookmark_action'];
+        $finalJson['bookmark']['modalTitle'] = $updateData['bookmark_modal_title'];
+        $finalJson['bookmark']['modalDescription'] = $updateData['bookmark_modal_description'];
+        $finalJson['bookmark']['infoModalFooterButtonTitle'] = $updateData['bookmark_info_modal_footer_button_title'];
+        $finalJson['bookmark']['infoModalFooterButtonLink'] = $updateData['bookmark_info_modal_footer_button_link'];
+        $finalJson['bookmark']['infoModalFooterText'] = $updateData['bookmark_info_modal_footer_text'];
+        $finalJson['bookmark']['openLinkUrl'] = $updateData['bookmark_open_link_url'];
+        $finalJson['bookmark']['documentUrl'] = $updateData['bookmark_document_url'];
+        $finalJson['bookmark']['videoUrl'] = $updateData['bookmark_video_url'];
+        $finalJson['bookmark']['imageUrl'] = $updateData['bookmark_image_url'];
+
+        $updateData['final_json'] = $finalJson;
+
+        $tour->update($updateData);
+        $newData = $tour->fresh()->toArray();
+
+        activity('tours')
+            ->performedOn($tour)
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'old' => $oldData,
+                'new' => $newData,
+            ])
+            ->log('Tour bookmark fields updated');
+
+        $this->updateTourJsonAndJsFilesInS3($tour, $finalJson);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Bookmark fields updated successfully.',
+                'tour' => $tour->fresh(),
+            ]);
+        }
+
+        return redirect()->back()->with(['success' => 'Bookmark fields updated successfully.']);
+    }
+
 }
 
 
