@@ -2645,6 +2645,71 @@ class TourController extends Controller
         return redirect()->back()->with(['success' => 'User details updated successfully.']);
     }
 
+    public function updateUserStar(Request $request, Tour $tour): JsonResponse|RedirectResponse
+    {
+        $validated = $request->validate([
+            'user_star_show_ribbon' => ['nullable', 'boolean'],
+            'user_star_show_modal' => ['nullable', 'boolean'],
+            'user_star_show_cta_button' => ['nullable', 'boolean'],
+            'user_star_cta_button_text' => ['nullable', 'string'],
+            'user_star_cta_button_link' => ['nullable', 'string'],
+            'user_star_cta_label_size' => ['nullable', 'string'],
+            'user_star_cta_label_color' => ['nullable', 'string'],
+            'stars' => ['nullable', 'array'],
+            'stars.*.label' => ['nullable', 'string'],
+            'stars.*.count' => ['nullable', 'numeric', 'min:0'],
+            'stars.*.url' => ['nullable', 'string'],
+        ]);
+
+        $stars = collect($validated['stars'] ?? [])
+            ->map(function ($star) {
+                return [
+                    'label' => $star['label'] ?? '',
+                    'count' => isset($star['count']) && $star['count'] !== '' ? (float) $star['count'] : 0,
+                    'url' => $star['url'] ?? '',
+                ];
+            })
+            ->filter(function ($star) {
+                return $star['label'] !== '' || $star['url'] !== '' || (float) $star['count'] > 0;
+            })
+            ->values()
+            ->all();
+
+        $userStar = [
+            'stars' => $stars,
+            'showRibbon' => $request->has('user_star_show_ribbon'),
+            'showModalOnLoad' => $request->has('user_star_show_modal'),
+            'showCtaButton' => $request->has('user_star_show_cta_button'),
+            'ctaLabel' => $validated['user_star_cta_button_text'] ?? 'Learn More',
+            'ctaColor' => $validated['user_star_cta_label_color'] ?? '#da8f67',
+            'ctaSize' => $validated['user_star_cta_label_size'] ?? 'medium',
+            'ctaLink' => $validated['user_star_cta_button_link'] ?? null,
+        ];
+
+        $finalJson = $this->normalizeFinalJsonPayload($tour);
+        $finalJson['bottomMarker']['userStars'] = $userStar;
+
+        $tour->update([
+            'user_star' => $userStar,
+            'final_json' => $finalJson,
+        ]);
+
+        $this->updateTourJsonAndJsFilesInS3($tour, $finalJson);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'User star updated successfully.',
+                'tour' => $tour->fresh(),
+            ]);
+        }
+
+        return redirect()->back()->with([
+            'success' => 'User star updated successfully.',
+            'active_tab' => 'vl-pills-userStar',
+        ]);
+    }
+
 }
 
 

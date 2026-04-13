@@ -25,6 +25,13 @@
                 <i class="ri-file-user-line me-2"></i>
                 <span>User Details</span>
             </a>
+            <a class="nav-link {{ ($firstActiveTab === 'vl-pills-userStar') ? 'active show' : '' }}"
+                id="vl-pills-userStar-tab" data-bs-toggle="pill" href="#vl-pills-userStar" role="tab"
+                aria-controls="vl-pills-userStar"
+                aria-selected="{{ ($firstActiveTab === 'vl-pills-userStar') ? 'true' : 'false' }}">
+                <i class="ri-star-line me-2"></i>
+                <span>User Stars</span>
+            </a>
             <a class="nav-link {{ ($firstActiveTab === 'vl-pills-attachments') ? 'active show' : '' }}"
                 id="vl-pills-attachments-tab" data-bs-toggle="pill" href="#vl-pills-attachments" role="tab"
                 aria-controls="vl-pills-attachments"
@@ -376,7 +383,7 @@
                     </div>
                 </div>
             </div>
-            <!-- language Update Tab -->
+            <!-- User details  Tab -->
             <div class="tab-pane fade {{ ($firstActiveTab === 'vl-pills-userdetails') ? 'active show' : '' }}"
                 id="vl-pills-userdetails" role="tabpanel" aria-labelledby="vl-pills-userdetails-tab">
                 <!-- User Details settings -->
@@ -451,6 +458,130 @@
                                 <button type="submit" class="btn btn-primary">
                                     <i class="ri-save-line me-1"></i> Save User Details
                                 </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- user stars tabl -->
+            <div class="tab-pane fade {{ ($firstActiveTab === 'vl-pills-userStar') ? 'active show' : '' }}"
+                id="vl-pills-userStar" role="tabpanel" aria-labelledby="vl-pills-userStar-tab">
+                <div class="card border-1 shadow-sm">
+                    <div class="card-header">
+                        <h4 class="card-title mb-0">User Stars</h4>
+                    </div>
+                    <div class="card-body">
+                        <form id="userStarsTabUpdateForm" method="POST"
+                            action="{{ route('admin.tours.updateUserStar', $tour) }}" class="needs-validation"
+                            novalidate>
+                            @csrf
+                            @method('PUT')
+                            <input type="hidden" name="booking_id" value="{{ $booking->id }}">
+                            <div class="row">
+                                <div class="col-md-2">
+                                    <div class="mb-3">
+                                        <label class="form-label">Show Ribbon</label>
+                                        <div class="form-check form-switch mb-0">
+                                            <input class="form-check-input" type="checkbox" name="user_star_show_ribbon"
+                                                id="show_user_star_ribbon" value="1"
+                                                {{ old('user_star_show_ribbon', data_get($tour->user_star, 'showRibbon', true)) ? 'checked' : '' }}>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="mb-3">
+                                        <label class="form-label">Show Modal on Load</label>
+                                        <div class="form-check form-switch mb-0">
+                                            <input class="form-check-input" type="checkbox" name="user_star_show_modal"
+                                                id="show_user_star_modal" value="1"
+                                                {{ old('user_star_show_modal', data_get($tour->user_star, 'showModalOnLoad', true)) ? 'checked' : '' }}>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="mb-3">
+                                        <label class="form-label">Show CTA Button</label>
+                                        <div class="form-check form-switch mb-0">
+                                            <input class="form-check-input" type="checkbox"
+                                                name="user_star_show_cta_button" id="user_star_show_cta_button"
+                                                value="1"
+                                                {{ old('user_star_show_cta_button', data_get($tour->user_star, 'showCtaButton', true)) ? 'checked' : '' }}>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- CTA Button text -->
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label class="form-label" for="user_star_cta_button_text">CTA Label
+                                            Text</label>
+                                        <input type="text" name="user_star_cta_button_text" class="form-control"
+                                            value="{{ old('user_star_cta_button_text', data_get($tour->user_star, 'ctaLabel', '')) }}"
+                                            placeholder="e.g, Book Now">
+                                        @error('user_star_cta_button_text')<div class="text-danger">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label class="form-label" for="">CTA labrl colors</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text p-0">
+                                                <input type="color" class="form-control form-control-color"
+                                                    value="{{ old('user_star_cta_label_color', data_get($tour->user_star, 'ctaColor', '#da8f67')) }}"
+                                                    onchange="this.parentElement.nextElementSibling.value = this.value">
+                                            </span>
+                                            <input type="text" name="user_star_cta_label_color" class="form-control"
+                                                placeholder="#000000"
+                                                value="{{ old('user_star_cta_label_color', data_get($tour->user_star, 'ctaColor', '#da8f67')) }}"
+                                                oninput="this.previousElementSibling.querySelector('input').value = this.value">
+                                        </div>
+                                    </div>
+                                    @error('user_star_cta_label_color')<div class="text-danger">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label class="form-label" for="user_star_cta_button_text">CTA Link</label>
+                                        <input type="url" name="user_star_cta_button_link" class="form-control"
+                                            value="{{ old('user_star_cta_button_link', data_get($tour->user_star, 'ctaLink', '')) }}"
+                                            placeholder="e.g, https://example.com/booking ">
+                                        @error('user_star_cta_button_link')<div class="text-danger">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="" class="form-label">CTA Label Size</label>
+                                        <select name="user_star_cta_label_size" class="form-select">
+                                            <option value="">select Size</option>
+                                            <option value="small"
+                                                {{ old('user_star_cta_label_size', data_get($tour->user_star, 'ctaSize', 'medium')) == 'small' ? 'selected' : '' }}>
+                                                Small</option>
+                                            <option value="medium"
+                                                {{ old('user_star_cta_label_size', data_get($tour->user_star, 'ctaSize', 'medium')) == 'medium' ? 'selected' : '' }}>
+                                                Medium</option>
+                                            <option value="large"
+                                                {{ old('user_star_cta_label_size', data_get($tour->user_star, 'ctaSize', 'medium')) == 'large' ? 'selected' : '' }}>
+                                                Large</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-12">
+                                    <hr class="my-2">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <label class="form-label mb-0">Stars</label>
+                                        <button type="button" class="btn btn-sm btn-success" id="addUserStarBtn">
+                                            <i class="ri-add-line"></i> Add Star
+                                        </button>
+                                    </div>
+                                    <div id="userStarsContainer" data-user-stars='@json(old('stars',$tour->user_star['stars'] ?? []))'>
+                                        <!-- Filled by js  -->
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="d-flex justify-content-end mt-3">
+                                <button type="submit" class="btn btn-primary">Update User Stars</button>
                             </div>
                         </form>
                     </div>
@@ -793,9 +924,6 @@
                                                     class="form-control loader-color-input" placeholder="#000000"
                                                     value="{{ $color }}"
                                                     oninput="this.previousElementSibling.querySelector('input').value = this.value">
-                                                <!-- <button type="button" class="btn btn-soft-danger remove-loader-color">
-                                                                                                                                    <i class="ri-delete-bin-line"></i>
-                                                                                                                                </button> -->
                                             </div>
                                         </div>
                                     @endforeach
@@ -830,8 +958,8 @@
                                                     value="{{ $color }}"
                                                     oninput="this.previousElementSibling.querySelector('input').value = this.value">
                                                 <!-- <button type="button" class="btn btn-soft-danger remove-spinner-color">
-                                                                                                                                    <i class="ri-delete-bin-line"></i>
-                                                                                                                                </button> -->
+                                                                                                                                                                            <i class="ri-delete-bin-line"></i>
+                                                                                                                                                                        </button> -->
                                             </div>
                                         </div>
                                     @endforeach
@@ -1043,6 +1171,7 @@
                     </div>
                 </div>
             </div>
+
             <!-- icon modal of the material icon -->
             <!-- Modal -->
             <div class="modal fade w-100" id="materialIconModal">
@@ -1061,6 +1190,7 @@
                 </div>
             </div> <!-- modal end -->
 
+            <!-- attchment file -->
             <div class="tab-pane fade {{ ($firstActiveTab === 'vl-pills-attachments') ? 'active show' : '' }}"
                 id="vl-pills-attachments" role="tabpanel" aria-labelledby="vl-pills-attachments-tab">
                 <div class="card border-1 shadow-sm">
@@ -1731,7 +1861,7 @@
     </div>
 </div>
 
-@vite(['resources/js/pages/booking-tour-detail-update-tab.js', 'resources/js/pages/booking_edit_sidebarLink.js', 'resources/js/pages/booking_userDetails_edit.js'])
+@vite(['resources/js/pages/booking-tour-detail-update-tab.js', 'resources/js/pages/booking_edit_sidebarLink.js', 'resources/js/pages/booking_userDetails_edit.js', 'resources/js/pages/booking_user_stars_edit.js'])
 
 <script>
     window.sidebarLinksData = {!! json_encode(old('sidebar_links', $tour->sidebar_links)) !!};

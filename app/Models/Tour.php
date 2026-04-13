@@ -120,6 +120,7 @@ class Tour extends Model
         'user_details_button_icon',
         'user_details_button_tooltip',
         'user_details',
+        'user_star',
     ];
 
     /**
@@ -166,6 +167,7 @@ class Tour extends Model
             'bottommark_dimensions' => 'array',
             'show_user_details_button' => 'boolean',
             'user_details' => 'array',
+            'user_star' => 'array',
         ];
     }
 
