@@ -74,7 +74,7 @@ function addStarRow(star = {}) {
     }
 
     const index = getNextStarIndex(container);
-    if(index > 2) return alert('Maximum 4 stars allowed');
+    if(index > 2) return alert('Maximum 3 stars allowed');
     container.insertAdjacentHTML('beforeend', buildStarRow(index, star));
 
     const newRow = container.querySelector('.user-star-row:last-child');
