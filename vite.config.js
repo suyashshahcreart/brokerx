@@ -79,6 +79,7 @@ export default defineConfig({
                 'resources/js/icon-lib.js',
                 'resources/js/pages/booking_edit_sidebarLink.js',
                 'resources/js/pages/booking_userDetails_edit.js',
+                'resources/js/pages/booking_tour_bookmark_action.js',
 
                 //components
                 'resources/js/components/maps-google.js',
