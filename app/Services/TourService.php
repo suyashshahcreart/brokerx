@@ -185,5 +185,8 @@ class TourService
         if ($forceSync || Arr::has($diffJson, 'bottomMarker.contactEmail')) {
             $tour->footer_email = $bottomMarker['contactEmail'] ?? null;
         }
+        if($forceSync || Arr::has($diffJson, 'bottomMarker.userStars')) {
+            $tour->user_star = $bottomMarker['userStars'] ?? null;
+        }
     }
 }
