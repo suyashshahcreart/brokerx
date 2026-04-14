@@ -1531,7 +1531,7 @@
                     <div class="modal-content">
                         <div class="modal-header">
                             <h5>Select Icon</h5>
-                            <button class="btn-close" data-bs-dismiss="modal"></button>
+                            <button class="btn-close" id="materialIconModalClose" data-bs-dismiss="modal"></button>
                         </div>
                         <div class="modal-body">
                             <input type="text" id="materialIconSearch" class="form-control mb-3"

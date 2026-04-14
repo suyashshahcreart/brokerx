@@ -30,7 +30,7 @@ function getEnabledLanguages() {
 
 $(document).ready(function () {
     // setup the icon library modal and search input
-    iconLib.init('materialIconModal', 'materialIconSearch');
+    iconLib.init('materialIconModal', 'materialIconSearch', 'materialIconModalClose'); // Pass the close button element
     // Initialize sidebar links functionality
     initSidebarLinks();
     // Render existing sidebar links

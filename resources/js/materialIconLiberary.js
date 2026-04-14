@@ -9,12 +9,18 @@ export class IconLibrary {
         this.modal = null;
     }
 
-    init(iconModalId, searchInputId) {
+    init(iconModalId, searchInputId, closeModalButtonId) {
         this.initCDNLinks()
         this.modal = new bootstrap.Modal(document.getElementById(iconModalId));
         this.searchInput = $(`#${searchInputId}`);
         this.searchInput.on('input', (e) => {
             this.search(e.target.value);
+        });
+        this.closeModalButton = $(`#${closeModalButtonId}`);
+        this.closeModalButton.on('click', () => {
+            this.searchInput.val('');
+            this.filteredIcons = this.icons;
+            this.modal.hide();
         });
     }
 
