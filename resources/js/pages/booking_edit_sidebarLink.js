@@ -167,7 +167,7 @@ function addSidebarLinkRow(linkData = {}) {
                     <input type="text" name="sidebar_links[${rowIndex}][icon]"
                         class="form-control icon-input" placeholder="Click to select"
                         data-row-index="${rowIndex}" readonly value="${icon}">
-                    <div class="icon-preview" id="iconPreview_${rowIndex}">
+                    <div class="icon-preview" id="sidebarIconPreview_${rowIndex}">
                         ${icon ? `
                             <div class="icon-item text-center">
                                 <span class="material-icons-outlined">${icon}</span>
@@ -302,7 +302,7 @@ function addSidebarLinkRow(linkData = {}) {
     if (iconInput) {
         iconInput.addEventListener('click', function () {
             const preview = $(this).closest('.input-group').find('.icon-preview');
-            iconLib.open(this, preview);
+            iconLib.open(this, $(`#sidebarIconPreview_${rowIndex}`));
         });
     }
 

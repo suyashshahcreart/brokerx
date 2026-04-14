@@ -26,7 +26,7 @@ export class IconLibrary {
 
     open(inputSelector, previewIcon) {
         this.targetInput = inputSelector;
-        this.previewIcon = previewIcon ? $(previewIcon) : $(inputSelector).closest('.input-group').find('.icon-preview');
+        this.previewIcon = previewIcon ;
         this.renderIcons();
         this.modal.show();
     }
@@ -47,7 +47,6 @@ export class IconLibrary {
     renderIcons() {
         const container = $('#iconContainer');
         container.empty();
-        console.log('Rendering icons:', this.filteredIcons);
         this.filteredIcons.forEach(icon => {
             const el = $(`
                 <div class="icon-item text-center">
@@ -64,7 +63,6 @@ export class IconLibrary {
         $(this.targetInput).val(icon.value);
         this.searchInput.val('');
         if (this.previewIcon && this.previewIcon.length) {
-            console.log('Selected icon:', icon);
             this.previewIcon.html(`
                 <div class="icon-item text-center">
                     <span class="material-icons-outlined">${icon.value}</span>
