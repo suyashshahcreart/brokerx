@@ -90,8 +90,10 @@ function addSidebarLinkRow(linkData = {}) {
     const container = document.getElementById('sidebarLinksRow');
     if (!container) return;
 
-    const rowCount = container.querySelectorAll('.sidebar-link-row').length;
-    const rowIndex = rowCount;
+    const existingRows = Array.from(container.querySelectorAll('.sidebar-link-row'));
+    const rowIndex = existingRows.length
+        ? Math.max(...existingRows.map(row => Number(row.dataset.rowIndex) || 0)) + 1
+        : 0;
 
     // Extract data from linkData
     const icon = linkData.icon || '';
@@ -299,7 +301,8 @@ function addSidebarLinkRow(linkData = {}) {
     const iconInput = newRow.querySelector('.icon-input');
     if (iconInput) {
         iconInput.addEventListener('click', function () {
-            iconLib.open(this, $(`#iconPreview_${rowIndex}`));
+            const preview = $(this).closest('.input-group').find('.icon-preview');
+            iconLib.open(this, preview);
         });
     }
 
