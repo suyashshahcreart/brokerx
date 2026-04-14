@@ -31,55 +31,55 @@
                 aria-selected="{{ ($firstActiveTab === 'vl-pills-tour-bookmark') ? 'true' : 'false' }}">
                 <i class="ri-bookmark-3-line me-2"></i>
                 <span>Tour Bookmark</span>
-            <a class="nav-link {{ ($firstActiveTab === 'vl-pills-userStar') ? 'active show' : '' }}"
-                id="vl-pills-userStar-tab" data-bs-toggle="pill" href="#vl-pills-userStar" role="tab"
-                aria-controls="vl-pills-userStar"
-                aria-selected="{{ ($firstActiveTab === 'vl-pills-userStar') ? 'true' : 'false' }}">
-                <i class="ri-star-line me-2"></i>
-                <span>User Stars</span>
-            </a>
-            <a class="nav-link {{ ($firstActiveTab === 'vl-pills-attachments') ? 'active show' : '' }}"
-                id="vl-pills-attachments-tab" data-bs-toggle="pill" href="#vl-pills-attachments" role="tab"
-                aria-controls="vl-pills-attachments"
-                aria-selected="{{ ($firstActiveTab === 'vl-pills-attachments') ? 'true' : 'false' }}">
-                <i class="ri-attachment-line me-2"></i>
-                <span>Attachments</span>
-            </a>
-            <a class="nav-link {{ ($firstActiveTab === 'vl-pills-language') ? 'active show' : '' }}"
-                id="vl-pills-language-tab" data-bs-toggle="pill" href="#vl-pills-language" role="tab"
-                aria-controls="vl-pills-language"
-                aria-selected="{{ ($firstActiveTab === 'vl-pills-language') ? 'true' : 'false' }}">
-                <i class="ri-translate-2 me-2"></i>
-                <span>Language Section</span>
-            </a>
-            <a class="nav-link {{ ($firstActiveTab === 'vl-pills-loader-config') ? 'active show' : '' }}"
-                id="vl-pills-loader-config-tab" data-bs-toggle="pill" href="#vl-pills-loader-config" role="tab"
-                aria-controls="vl-pills-loader-config"
-                aria-selected="{{ ($firstActiveTab === 'vl-pills-loader-config') ? 'true' : 'false' }}">
-                <i class="ri-timer-flash-line me-2"></i>
-                <span>Loader Configuration Section</span>
-            </a>
-            <a class="nav-link {{ ($firstActiveTab === 'vl-pills-sidebar-section') ? 'active show' : '' }}"
-                id="vl-pills-sidebar-section-tab" data-bs-toggle="pill" href="#vl-pills-sidebar-section" role="tab"
-                aria-controls="vl-pills-sidebar-section"
-                aria-selected="{{ ($firstActiveTab === 'vl-pills-sidebar-section') ? 'true' : 'false' }}">
-                <i class="ri-layout-left-line me-2"></i>
-                <span>Sidebar Section</span>
-            </a>
-            <a class="nav-link {{ ($firstActiveTab === 'vl-pills-bottom-mark-top') ? 'active show' : '' }}"
-                id="vl-pills-bottom-mark-top-tab" data-bs-toggle="pill" href="#vl-pills-bottom-mark-top" role="tab"
-                aria-controls="vl-pills-bottom-mark-top"
-                aria-selected="{{ ($firstActiveTab === 'vl-pills-bottom-mark-top') ? 'true' : 'false' }}">
-                <i class="ri-layout-row-line me-2"></i>
-                <span>Bottom Mark: Top Section</span>
-            </a>
-            <a class="nav-link {{ ($firstActiveTab === 'vl-pills-bottom-mark-property') ? 'active show' : '' }}"
-                id="vl-pills-bottom-mark-property-tab" data-bs-toggle="pill" href="#vl-pills-bottom-mark-property"
-                role="tab" aria-controls="vl-pills-bottom-mark-property"
-                aria-selected="{{ ($firstActiveTab === 'vl-pills-bottom-mark-property') ? 'true' : 'false' }}">
-                <i class="ri-cash-line me-2"></i>
-                <span>Bottom Mark: Mark Property</span>
-            </a>
+                <a class="nav-link {{ ($firstActiveTab === 'vl-pills-userStar') ? 'active show' : '' }}"
+                    id="vl-pills-userStar-tab" data-bs-toggle="pill" href="#vl-pills-userStar" role="tab"
+                    aria-controls="vl-pills-userStar"
+                    aria-selected="{{ ($firstActiveTab === 'vl-pills-userStar') ? 'true' : 'false' }}">
+                    <i class="ri-star-line me-2"></i>
+                    <span>User Stars</span>
+                </a>
+                <a class="nav-link {{ ($firstActiveTab === 'vl-pills-attachments') ? 'active show' : '' }}"
+                    id="vl-pills-attachments-tab" data-bs-toggle="pill" href="#vl-pills-attachments" role="tab"
+                    aria-controls="vl-pills-attachments"
+                    aria-selected="{{ ($firstActiveTab === 'vl-pills-attachments') ? 'true' : 'false' }}">
+                    <i class="ri-attachment-line me-2"></i>
+                    <span>Attachments</span>
+                </a>
+                <a class="nav-link {{ ($firstActiveTab === 'vl-pills-language') ? 'active show' : '' }}"
+                    id="vl-pills-language-tab" data-bs-toggle="pill" href="#vl-pills-language" role="tab"
+                    aria-controls="vl-pills-language"
+                    aria-selected="{{ ($firstActiveTab === 'vl-pills-language') ? 'true' : 'false' }}">
+                    <i class="ri-translate-2 me-2"></i>
+                    <span>Language Section</span>
+                </a>
+                <a class="nav-link {{ ($firstActiveTab === 'vl-pills-loader-config') ? 'active show' : '' }}"
+                    id="vl-pills-loader-config-tab" data-bs-toggle="pill" href="#vl-pills-loader-config" role="tab"
+                    aria-controls="vl-pills-loader-config"
+                    aria-selected="{{ ($firstActiveTab === 'vl-pills-loader-config') ? 'true' : 'false' }}">
+                    <i class="ri-timer-flash-line me-2"></i>
+                    <span>Loader Configuration Section</span>
+                </a>
+                <a class="nav-link {{ ($firstActiveTab === 'vl-pills-sidebar-section') ? 'active show' : '' }}"
+                    id="vl-pills-sidebar-section-tab" data-bs-toggle="pill" href="#vl-pills-sidebar-section" role="tab"
+                    aria-controls="vl-pills-sidebar-section"
+                    aria-selected="{{ ($firstActiveTab === 'vl-pills-sidebar-section') ? 'true' : 'false' }}">
+                    <i class="ri-layout-left-line me-2"></i>
+                    <span>Sidebar Section</span>
+                </a>
+                <a class="nav-link {{ ($firstActiveTab === 'vl-pills-bottom-mark-top') ? 'active show' : '' }}"
+                    id="vl-pills-bottom-mark-top-tab" data-bs-toggle="pill" href="#vl-pills-bottom-mark-top" role="tab"
+                    aria-controls="vl-pills-bottom-mark-top"
+                    aria-selected="{{ ($firstActiveTab === 'vl-pills-bottom-mark-top') ? 'true' : 'false' }}">
+                    <i class="ri-layout-row-line me-2"></i>
+                    <span>Bottom Mark: Top Section</span>
+                </a>
+                <a class="nav-link {{ ($firstActiveTab === 'vl-pills-bottom-mark-property') ? 'active show' : '' }}"
+                    id="vl-pills-bottom-mark-property-tab" data-bs-toggle="pill" href="#vl-pills-bottom-mark-property"
+                    role="tab" aria-controls="vl-pills-bottom-mark-property"
+                    aria-selected="{{ ($firstActiveTab === 'vl-pills-bottom-mark-property') ? 'true' : 'false' }}">
+                    <i class="ri-cash-line me-2"></i>
+                    <span>Bottom Mark: Mark Property</span>
+                </a>
         </div>
     </div>
     <div class="col-md-9">
@@ -581,7 +581,8 @@
                                             <i class="ri-add-line"></i> Add Star
                                         </button>
                                     </div>
-                                    <div id="userStarsContainer" data-user-stars='@json(old('stars',$tour->user_star['stars'] ?? []))'>
+                                    <div id="userStarsContainer"
+                                        data-user-stars='@json(old('stars', $tour->user_star['stars'] ?? []))'>
                                         <!-- Filled by js  -->
                                     </div>
                                 </div>
@@ -675,8 +676,8 @@
                     </div>
                     <div class="card-body">
                         <form id="tourBookmarkTabUpdateForm" method="POST"
-                            action="{{ route('admin.tours.updateBookmarkFields', $tour) }}" enctype="multipart/form-data" class="needs-validation"
-                            novalidate>
+                            action="{{ route('admin.tours.updateBookmarkFields', $tour) }}"
+                            enctype="multipart/form-data" class="needs-validation" novalidate>
                             @csrf
                             @method('PUT')
                             <input type="hidden" name="booking_id" value="{{ $booking->id }}">
@@ -710,7 +711,8 @@
                                                 oninput="document.getElementById('bookmark_ribbon_background_color_picker').value = this.value">
                                         </div>
                                         @error('bookmark_ribbon_background_color')<div class="text-danger">
-                                            {{ $message }}</div>
+                                                {{ $message }}
+                                            </div>
                                         @enderror
                                     </div>
                                 </div>
@@ -765,7 +767,8 @@
                                             step="1" placeholder="e.g., 0"
                                             value="{{ old('bookmark_show_on_tour_load_delay_ms', $tour->bookmark_show_on_tour_load_delay_ms ?? 0) }}">
                                         @error('bookmark_show_on_tour_load_delay_ms')<div class="text-danger">
-                                            {{ $message }}</div>
+                                                {{ $message }}
+                                            </div>
                                         @enderror
                                     </div>
                                 </div>
@@ -796,10 +799,12 @@
                                         <div class="col-md-12">
                                             <div class="mb-3">
                                                 <label class="form-label" for="bookmark_open_link_url">Link URL</label>
-                                                <input type="url" name="bookmark_open_link_url" id="bookmark_open_link_url"
-                                                    class="form-control" placeholder="e.g., https://example.com"
+                                                <input type="url" name="bookmark_open_link_url"
+                                                    id="bookmark_open_link_url" class="form-control"
+                                                    placeholder="e.g., https://example.com"
                                                     value="{{ old('bookmark_open_link_url', $tour->bookmark_open_link_url ?? '') }}">
-                                                @error('bookmark_open_link_url')<div class="text-danger">{{ $message }}</div>@enderror
+                                                @error('bookmark_open_link_url')<div class="text-danger">{{ $message }}
+                                                </div>@enderror
                                             </div>
                                         </div>
                                     </div>
@@ -809,19 +814,25 @@
                                     <div class="row">
                                         <div class="col-md-6">
                                             <div class="mb-3">
-                                                <label class="form-label" for="bookmark_document_file">Upload Document</label>
-                                                <input type="file" name="bookmark_document_file" id="bookmark_document_file"
-                                                    class="form-control" accept=".pdf,.doc,.docx,.xls,.xlsx">
-                                                @error('bookmark_document_file')<div class="text-danger">{{ $message }}</div>@enderror
+                                                <label class="form-label" for="bookmark_document_file">Upload
+                                                    Document</label>
+                                                <input type="file" name="bookmark_document_file"
+                                                    id="bookmark_document_file" class="form-control"
+                                                    accept=".pdf,.doc,.docx,.xls,.xlsx">
+                                                @error('bookmark_document_file')<div class="text-danger">{{ $message }}
+                                                </div>@enderror
                                             </div>
                                         </div>
                                         <div class="col-md-6">
                                             <div class="mb-3">
-                                                <label class="form-label" for="bookmark_document_url">Document URL</label>
-                                                <input type="url" name="bookmark_document_url" id="bookmark_document_url"
-                                                    class="form-control" placeholder="e.g., https://example.com/file.pdf"
+                                                <label class="form-label" for="bookmark_document_url">Document
+                                                    URL</label>
+                                                <input type="url" name="bookmark_document_url"
+                                                    id="bookmark_document_url" class="form-control"
+                                                    placeholder="e.g., https://example.com/file.pdf"
                                                     value="{{ old('bookmark_document_url', $tour->bookmark_document_url ?? '') }}">
-                                                @error('bookmark_document_url')<div class="text-danger">{{ $message }}</div>@enderror
+                                                @error('bookmark_document_url')<div class="text-danger">{{ $message }}
+                                                </div>@enderror
                                             </div>
                                         </div>
                                     </div>
@@ -834,16 +845,19 @@
                                                 <label class="form-label" for="bookmark_video_file">Upload Video</label>
                                                 <input type="file" name="bookmark_video_file" id="bookmark_video_file"
                                                     class="form-control" accept="video/*">
-                                                @error('bookmark_video_file')<div class="text-danger">{{ $message }}</div>@enderror
+                                                @error('bookmark_video_file')<div class="text-danger">{{ $message }}
+                                                </div>@enderror
                                             </div>
                                         </div>
                                         <div class="col-md-6">
                                             <div class="mb-3">
                                                 <label class="form-label" for="bookmark_video_url">Video URL</label>
                                                 <input type="url" name="bookmark_video_url" id="bookmark_video_url"
-                                                    class="form-control" placeholder="e.g., https://youtube.com/watch?v=..."
+                                                    class="form-control"
+                                                    placeholder="e.g., https://youtube.com/watch?v=..."
                                                     value="{{ old('bookmark_video_url', $tour->bookmark_video_url ?? '') }}">
-                                                @error('bookmark_video_url')<div class="text-danger">{{ $message }}</div>@enderror
+                                                @error('bookmark_video_url')<div class="text-danger">{{ $message }}
+                                                </div>@enderror
                                             </div>
                                         </div>
                                     </div>
@@ -856,16 +870,19 @@
                                                 <label class="form-label" for="bookmark_image_file">Upload Image</label>
                                                 <input type="file" name="bookmark_image_file" id="bookmark_image_file"
                                                     class="form-control" accept="image/*">
-                                                @error('bookmark_image_file')<div class="text-danger">{{ $message }}</div>@enderror
+                                                @error('bookmark_image_file')<div class="text-danger">{{ $message }}
+                                                </div>@enderror
                                             </div>
                                         </div>
                                         <div class="col-md-6">
                                             <div class="mb-3">
                                                 <label class="form-label" for="bookmark_image_url">Image URL</label>
                                                 <input type="url" name="bookmark_image_url" id="bookmark_image_url"
-                                                    class="form-control" placeholder="e.g., https://example.com/image.jpg"
+                                                    class="form-control"
+                                                    placeholder="e.g., https://example.com/image.jpg"
                                                     value="{{ old('bookmark_image_url', $tour->bookmark_image_url ?? '') }}">
-                                                @error('bookmark_image_url')<div class="text-danger">{{ $message }}</div>@enderror
+                                                @error('bookmark_image_url')<div class="text-danger">{{ $message }}
+                                                </div>@enderror
                                             </div>
                                         </div>
                                     </div>
@@ -901,13 +918,14 @@
                                 <div class="tab-content" id="bookmarkLanguageTabsContent">
                                     @foreach($bookmarkEnabledLanguages as $lang)
                                         <div class="tab-pane fade {{ $lang === $bookmarkFirstLang ? 'show active' : '' }}"
-                                            id="bookmark-lang-{{ $lang }}-pane" data-language="{{ $lang }}"
-                                            role="tabpanel" aria-labelledby="bookmark-lang-{{ $lang }}-tab" tabindex="0">
+                                            id="bookmark-lang-{{ $lang }}-pane" data-language="{{ $lang }}" role="tabpanel"
+                                            aria-labelledby="bookmark-lang-{{ $lang }}-tab" tabindex="0">
                                             <div class="row">
                                                 <div class="col-md-6">
                                                     <div class="mb-3">
                                                         <label class="form-label" for="bookmark_modal_title_{{ $lang }}">
-                                                            Modal Title ({{ $bookmarkLangLabels[$lang] ?? strtoupper($lang) }})
+                                                            Modal Title
+                                                            ({{ $bookmarkLangLabels[$lang] ?? strtoupper($lang) }})
                                                         </label>
                                                         <input type="text" name="bookmark_modal_title[{{ $lang }}]"
                                                             id="bookmark_modal_title_{{ $lang }}" class="form-control"
@@ -920,11 +938,14 @@
                                                 </div>
                                                 <div class="col-md-12">
                                                     <div class="mb-3">
-                                                        <label class="form-label" for="bookmark_modal_description_{{ $lang }}">
-                                                            Modal Description ({{ $bookmarkLangLabels[$lang] ?? strtoupper($lang) }})
+                                                        <label class="form-label"
+                                                            for="bookmark_modal_description_{{ $lang }}">
+                                                            Modal Description
+                                                            ({{ $bookmarkLangLabels[$lang] ?? strtoupper($lang) }})
                                                         </label>
                                                         <textarea name="bookmark_modal_description[{{ $lang }}]"
-                                                            id="bookmark_modal_description_{{ $lang }}" class="form-control" rows="3"
+                                                            id="bookmark_modal_description_{{ $lang }}" class="form-control"
+                                                            rows="3"
                                                             placeholder="Enter modal description">{{ old('bookmark_modal_description.' . $lang, data_get($tour, 'bookmark_modal_description.' . $lang, '')) }}</textarea>
                                                         @error('bookmark_modal_description.' . $lang)
                                                             <div class="text-danger">{{ $message }}</div>
@@ -933,11 +954,14 @@
                                                 </div>
                                                 <div class="col-md-12">
                                                     <div class="mb-3">
-                                                        <label class="form-label" for="bookmark_info_modal_footer_text_{{ $lang }}">
-                                                            Modal Footer Text ({{ $bookmarkLangLabels[$lang] ?? strtoupper($lang) }})
+                                                        <label class="form-label"
+                                                            for="bookmark_info_modal_footer_text_{{ $lang }}">
+                                                            Modal Footer Text
+                                                            ({{ $bookmarkLangLabels[$lang] ?? strtoupper($lang) }})
                                                         </label>
                                                         <textarea name="bookmark_info_modal_footer_text[{{ $lang }}]"
-                                                            id="bookmark_info_modal_footer_text_{{ $lang }}" class="form-control" rows="3"
+                                                            id="bookmark_info_modal_footer_text_{{ $lang }}"
+                                                            class="form-control" rows="3"
                                                             placeholder="e.g., <p>This is the Footer of the Modal</p>">{{ old('bookmark_info_modal_footer_text.' . $lang, data_get($tour, 'bookmark_info_modal_footer_text.' . $lang, '')) }}</textarea>
                                                         @error('bookmark_info_modal_footer_text.' . $lang)
                                                             <div class="text-danger">{{ $message }}</div>
@@ -948,11 +972,15 @@
                                             <div class="row mt-2">
                                                 <div class="col-md-6">
                                                     <div class="mb-3">
-                                                        <label class="form-label" for="bookmark_info_modal_footer_button_title_{{ $lang }}">
-                                                            Footer Button Title ({{ $bookmarkLangLabels[$lang] ?? strtoupper($lang) }})
+                                                        <label class="form-label"
+                                                            for="bookmark_info_modal_footer_button_title_{{ $lang }}">
+                                                            Footer Button Title
+                                                            ({{ $bookmarkLangLabels[$lang] ?? strtoupper($lang) }})
                                                         </label>
-                                                        <input type="text" name="bookmark_info_modal_footer_button_title[{{ $lang }}]"
-                                                            id="bookmark_info_modal_footer_button_title_{{ $lang }}" class="form-control"
+                                                        <input type="text"
+                                                            name="bookmark_info_modal_footer_button_title[{{ $lang }}]"
+                                                            id="bookmark_info_modal_footer_button_title_{{ $lang }}"
+                                                            class="form-control"
                                                             value="{{ old('bookmark_info_modal_footer_button_title.' . $lang, data_get($tour, 'bookmark_info_modal_footer_button_title.' . $lang, '')) }}"
                                                             placeholder="e.g., Footer Button">
                                                         @error('bookmark_info_modal_footer_button_title.' . $lang)
@@ -962,7 +990,9 @@
                                                 </div>
                                                 <div class="col-md-6">
                                                     <div class="mb-3">
-                                                        <label class="form-label" for="bookmark_info_modal_footer_button_link">Footer Button Link</label>
+                                                        <label class="form-label"
+                                                            for="bookmark_info_modal_footer_button_link">Footer Button
+                                                            Link</label>
                                                         <input type="url" name="bookmark_info_modal_footer_button_link"
                                                             id="bookmark_info_modal_footer_button_link" class="form-control"
                                                             placeholder="e.g., https://example.com"
@@ -1280,14 +1310,15 @@
                                                 <input type="text" name="spinner_color[]"
                                                     class="form-control spinner-color-input" placeholder="#000000"
                                                     value="{{ $color }}"
-                                                    oninput="this.previousElementSibling.querySelector('input').value = this.value">                                                                                                                  </button> -->
+                                                    oninput="this.previousElementSibling.querySelector('input').value = this.value">
+                                                </button>
                                             </div>
                                         </div>
                                     @endforeach
                                 </div>
                                 <!-- <button type="button" class="btn btn-soft-primary btn-sm mt-2" id="addSpinnerColor">
-                                <i class="ri-add-line"></i> Add Color
-                            </button> -->
+                                    <i class="ri-add-line"></i> Add Color
+                                </button> -->
                                 @error('spinner_color')<div class="text-danger">{{ $message }}</div>@enderror
                             </div>
 
