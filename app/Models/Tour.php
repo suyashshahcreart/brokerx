@@ -136,6 +136,7 @@ class Tour extends Model
         'bookmark_document_url',
         'bookmark_video_url',
         'bookmark_image_url',
+        'user_star',
     ];
 
     /**
@@ -188,6 +189,7 @@ class Tour extends Model
             'bookmark_modal_description' => 'array',
             'bookmark_info_modal_footer_button_title' => 'array',
             'bookmark_info_modal_footer_text' => 'array',
+            'user_star' => 'array',
         ];
     }
 

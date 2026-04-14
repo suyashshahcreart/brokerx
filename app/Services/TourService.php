@@ -204,5 +204,9 @@ class TourService
             $tour->bookmark_video_url = $bookmark['videoUrl'] ?? null;
             $tour->bookmark_image_url = $bookmark['imageUrls'] ?? null;
         }
+        /* User Star Rating sync function */
+        if($forceSync || Arr::has($diffJson, 'bottomMarker.userStars')) {
+            $tour->user_star = $bottomMarker['userStars'] ?? null;
+        }
     }
 }
