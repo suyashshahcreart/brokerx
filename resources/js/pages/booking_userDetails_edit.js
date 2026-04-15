@@ -123,14 +123,14 @@ function addUserDetailsRow(detail = {}) {
     const icon = escapeHtml(detail.icon ?? '');
     const title = escapeHtml(detail.title ?? '');
     const summery = escapeHtml(detail.summery ?? '');
-    const descraption = detail.description ?? '';
+    const descraption = detail.descraption ?? '';
     const descraptionHiddenValue = escapeHtml(descraption);
 
     const rowHTML = `
         <div class="user-detail-row row mb-3 border p-3 rounded" data-row-index="${rowIndex}">
             <div class="col-md-2">
                 <label class="form-label">ID</label>
-                <input type="text" name="user_details[${rowIndex}][id]" class="form-control" value="${idValue}" placeholder="Unique ID">
+                <input type="text" name="user_details[${rowIndex}][id]" class="form-control" value="${idValue}" placeholder="e.g, 28b25553-XXXXX-9c8e-XXXXXXXX" readonly>
             </div>
 
             <div class="col-md-2">
@@ -145,12 +145,12 @@ function addUserDetailsRow(detail = {}) {
 
             <div class="col-md-4">
                 <label class="form-label">Title</label>
-                <input type="text" name="user_details[${rowIndex}][title]" class="form-control" value="${title}" placeholder="Title">
+                <input type="text" name="user_details[${rowIndex}][title]" class="form-control" value="${title}" placeholder="e.g, Title">
             </div>
 
             <div class="col-md-4">
                 <label class="form-label">Summary</label>
-                <textarea name="user_details[${rowIndex}][summery]" class="form-control" rows="2" placeholder="Summary">${summery}</textarea>
+                <textarea name="user_details[${rowIndex}][summery]" class="form-control" rows="2" placeholder="e.g, Summary">${summery}</textarea>
             </div>
 
             <div class="col-md-12 mt-3">
