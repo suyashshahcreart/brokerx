@@ -988,23 +988,25 @@
                                                         @enderror
                                                     </div>
                                                 </div>
-                                                <div class="col-md-6">
-                                                    <div class="mb-3">
-                                                        <label class="form-label"
-                                                            for="bookmark_info_modal_footer_button_link">Footer Button
-                                                            Link</label>
-                                                        <input type="url" name="bookmark_info_modal_footer_button_link"
-                                                            id="bookmark_info_modal_footer_button_link" class="form-control"
-                                                            placeholder="e.g., https://example.com"
-                                                            value="{{ old('bookmark_info_modal_footer_button_link', $tour->bookmark_info_modal_footer_button_link ?? '') }}">
-                                                        @error('bookmark_info_modal_footer_button_link')
-                                                            <div class="text-danger">{{ $message }}</div>
-                                                        @enderror
-                                                    </div>
-                                                </div>
                                             </div>
                                         </div>
                                     @endforeach
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label class="form-label"
+                                                    for="bookmark_info_modal_footer_button_link">Footer Button
+                                                    Link</label>
+                                                <input type="url" name="bookmark_info_modal_footer_button_link"
+                                                    id="bookmark_info_modal_footer_button_link" class="form-control"
+                                                    placeholder="e.g., https://example.com"
+                                                    value="{{ old('bookmark_info_modal_footer_button_link', $tour->bookmark_info_modal_footer_button_link ?? '') }}">
+                                                @error('bookmark_info_modal_footer_button_link')
+                                                    <div class="text-danger">{{ $message }}</div>
+                                                @enderror
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
