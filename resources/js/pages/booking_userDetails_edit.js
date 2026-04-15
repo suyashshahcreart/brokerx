@@ -6,7 +6,7 @@ import Quill from 'quill';
 import 'quill/dist/quill.core.css';
 import 'quill/dist/quill.snow.css';
 import { v4 as uuidv4 } from 'uuid';
-
+import reinitalizeEditors from '../tinyEditor';
 
 // Only Quill editors for description fields, so we can manage them in a single object
 const quillEditors = {};
@@ -155,9 +155,8 @@ function addUserDetailsRow(detail = {}) {
             <div class="col-md-12 mt-3">
                 <label class="form-label">Description</label>
                 <div class="mb-3">
-                    <div id="descraptionQuillEditor_${rowIndex}" class="quill-editor" style="min-height: 220px; border: 1px solid #ced4da; border-radius: .25rem; background: #fff; margin-bottom: 1rem;">${descraption}</div>
+                    <textarea name="user_details[${rowIndex}][descraption]" class="editor">${descraption}</textarea>
                 </div>
-                <input type="hidden" name="user_details[${rowIndex}][descraption]" id="descraptionHidden_${rowIndex}" value="${descraptionHiddenValue}">
             </div>
 
             <div class="col-md-12 d-flex justify-content-end">
@@ -169,7 +168,7 @@ function addUserDetailsRow(detail = {}) {
     `;
 
     container.insertAdjacentHTML('beforeend', rowHTML);
-
+    reinitalizeEditors();
     const newRow = container.querySelector('.user-detail-row:last-child');
 
     const removeBtn = newRow.querySelector('.remove-user-detail');
