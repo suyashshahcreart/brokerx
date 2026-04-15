@@ -7,6 +7,7 @@ import iconLib from './booking_tour_iconLib';
 import Quill from 'quill';
 import "quill/dist/quill.core.css";
 import "quill/dist/quill.snow.css";
+import reinitalizeEditors from '../tinyEditor';
 
 const quillEditors = {}; // map rowIndex -> { en: Quill, gu: Quill, hi: Quill }
 
@@ -148,13 +149,8 @@ function addSidebarLinkRow(linkData = {}) {
         //<textarea name="sidebar_links[${rowIndex}][content][${code}]" class="form-control" id="exampleFormControlTextarea1" rows="6">${linkData.content?.[code] || ''}</textarea>
         contentPanesHTML += `
             <div class="tab-pane fade ${fadeClass}" id="content-pane-${code}-${rowIndex}" role="tabpanel" aria-labelledby="content-tab-${code}-${rowIndex}">
-                    <div id="contentQuillEditor_${rowIndex}_${code}" class="quill-editor" style="min-height: 150px; border: 1px solid #ced4da; border-radius: .25rem; background: #fff;">
-                        ${linkData.content?.[code] || ''}
-                    </div>
-                <div class="d-none">
-                    <input type="hidden" name="sidebar_links[${rowIndex}][content][${code}]" id="contentHidden_${rowIndex}_${code}" class="content-hidden-input" value="${linkData.content?.[code] || ''}">
-                </div>    
-                </div>`;
+                <textarea name="sidebar_links[${rowIndex}][content][${code}]" class="editor">${linkData.content?.[code] || ''}</textarea>
+            </div>`;
     });
 
     const rowHTML = `
@@ -225,6 +221,7 @@ function addSidebarLinkRow(linkData = {}) {
     `;
 
     container.insertAdjacentHTML('beforeend', rowHTML);
+    reinitalizeEditors();
 
     const typeSelect = document.getElementById(`typeSelect_${rowIndex}`);
     const linkContainer = document.getElementById(`linkInputContainer_${rowIndex}`);
