@@ -1,15 +1,14 @@
 import $ from 'jquery';
 window.$ = window.jQuery = $;
 import '../../css/pages/materialIconLiberaryStyles.css';
-import { IconLibrary } from '../materialIconLiberary';
-import { materialIconList } from '../data/materialIconsList';
+import iconLib from './booking_tour_iconLib';
 import Quill from 'quill';
 import 'quill/dist/quill.core.css';
 import 'quill/dist/quill.snow.css';
 import { v4 as uuidv4 } from 'uuid';
 
 
-const iconLib = new IconLibrary({ materialIconList });
+// Only Quill editors for description fields, so we can manage them in a single object
 const quillEditors = {};
 
 const languageMap = {
@@ -54,7 +53,7 @@ function parseUserDetailsData() {
 }
 
 $(document).ready(function () {
-    iconLib.init('materialIconModal', 'materialIconSearch');
+    iconLib.init('materialIconModal', 'materialIconSearch', 'materialIconModalClose');
 
     $('#userDetailsButtonIcon').on('click', function () {
         iconLib.open(this, $('#iconPreview_userDetailsButtonIcon'));

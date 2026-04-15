@@ -2,14 +2,12 @@ import $ from 'jquery';
 window.$ = window.jQuery = $;
 import '../../css/pages/materialIconLiberaryStyles.css';
 /* My Liberary Imports */
-import { IconLibrary } from '../materialIconLiberary';
-import { materialIconList } from '../data/materialIconsList';
+import iconLib from './booking_tour_iconLib';
 /* Quill Imports */
 import Quill from 'quill';
 import "quill/dist/quill.core.css";
 import "quill/dist/quill.snow.css";
 
-const iconLib = new IconLibrary({ materialIconList });
 const quillEditors = {}; // map rowIndex -> { en: Quill, gu: Quill, hi: Quill }
 
 // Language configuration
