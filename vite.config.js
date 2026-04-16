@@ -10,6 +10,7 @@ export default defineConfig({
             input: [
                 // css
                 'resources/scss/app.scss',
+                'resources/css/style.css',
                 'resources/scss/icons.scss',
                 'node_modules/swiper/swiper-bundle.min.css',
                 'node_modules/nouislider/dist/nouislider.min.css',
