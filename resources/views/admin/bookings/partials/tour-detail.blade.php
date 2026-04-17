@@ -944,7 +944,7 @@
                                                             ({{ $bookmarkLangLabels[$lang] ?? strtoupper($lang) }})
                                                         </label>
                                                         <textarea name="bookmark_modal_description[{{ $lang }}]"
-                                                            id="bookmark_modal_description_{{ $lang }}" class="form-control"
+                                                            id="bookmark_modal_description_{{ $lang }}" class="form-control editor"
                                                             rows="3"
                                                             placeholder="Enter modal description">{{ old('bookmark_modal_description.' . $lang, data_get($tour, 'bookmark_modal_description.' . $lang, '')) }}</textarea>
                                                         @error('bookmark_modal_description.' . $lang)
@@ -961,7 +961,7 @@
                                                         </label>
                                                         <textarea name="bookmark_info_modal_footer_text[{{ $lang }}]"
                                                             id="bookmark_info_modal_footer_text_{{ $lang }}"
-                                                            class="form-control" rows="3"
+                                                            class="form-control editor" rows="3"
                                                             placeholder="e.g., <p>This is the Footer of the Modal</p>">{{ old('bookmark_info_modal_footer_text.' . $lang, data_get($tour, 'bookmark_info_modal_footer_text.' . $lang, '')) }}</textarea>
                                                         @error('bookmark_info_modal_footer_text.' . $lang)
                                                             <div class="text-danger">{{ $message }}</div>
