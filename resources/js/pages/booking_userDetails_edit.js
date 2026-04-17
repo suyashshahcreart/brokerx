@@ -122,8 +122,8 @@ function addUserDetailsRow(detail = {}) {
     const icon = escapeHtml(detail.icon ?? '');
     const title = escapeHtml(detail.title ?? '');
     const summery = escapeHtml(detail.summery ?? '');
-    const descraption = detail.descraption ?? '';
-    const descraptionHiddenValue = escapeHtml(descraption);
+    const description = detail.description ?? '';
+    const descraptionHiddenValue = escapeHtml(description);
 
     const rowHTML = `
         <div class="user-detail-row row mb-3 border p-3 rounded" data-row-index="${rowIndex}">
@@ -155,7 +155,7 @@ function addUserDetailsRow(detail = {}) {
             <div class="col-md-12 mt-3">
                 <label class="form-label">Description</label>
                 <div class="mb-3">
-                    <textarea name="user_details[${rowIndex}][descraption]" class="editor">${descraption}</textarea>
+                    <textarea name="user_details[${rowIndex}][description]" class="editor">${description}</textarea>
                 </div>
             </div>
 
