@@ -15,7 +15,7 @@ class TourService
         $userInfo = $finalJson['userInfo'] ?? [];
         //  sidebar nodes
         if ($forceSync || Arr::has($diffJson, 'nodes')) {
-            $tour->sidebar_nodes = $finalJson['nodes'] ?? [];
+            $tour->sidebar_node = $finalJson['nodes'] ?? [];
         }
         // user related fields
         if ($forceSync || Arr::has($diffJson, 'userInfo.userName')) {
