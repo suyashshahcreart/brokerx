@@ -3,10 +3,6 @@ window.$ = window.jQuery = $;
 import '../../css/pages/materialIconLiberaryStyles.css';
 /* My Liberary Imports */
 import iconLib from './booking_tour_iconLib';
-/* Quill Imports */
-import Quill from 'quill';
-import "quill/dist/quill.core.css";
-import "quill/dist/quill.snow.css";
 import reinitalizeEditors from '../tinyEditor';
 
 const quillEditors = {}; // map rowIndex -> { en: Quill, gu: Quill, hi: Quill }
@@ -41,48 +37,6 @@ function initSidebarLinks() {
     if (addBtn) {
         addBtn.addEventListener('click', addSidebarLinkRow);
     }
-}
-
-function initQuillForRow(rowIndex, initialContent = {}) {
-    if (!quillEditors[rowIndex]) {
-        quillEditors[rowIndex] = {};
-    }
-
-    const allLanguages = ['en', 'gu', 'hi'];
-    allLanguages.forEach(code => {
-        const containerId = `contentQuillEditor_${rowIndex}_${code}`;
-        const hiddenInput = document.getElementById(`contentHidden_${rowIndex}_${code}`);
-
-        if (!hiddenInput || quillEditors[rowIndex][code]) {
-            return;
-        }
-
-        const quill = new Quill(`#${containerId}`, {
-            theme: 'snow',
-            modules: {
-                toolbar: [
-                    ['bold', 'italic', 'underline', 'strike'],
-                    [{ 'header': [1, 2, 3, false] }],
-                    ['blockquote', 'code-block'],
-                    [{ 'list': 'ordered' }, { 'list': 'bullet' }],
-                    [{ 'color': [] }, { 'background': [] }],
-                    ['link', 'clean']
-                ]
-            }
-        });
-
-        const value = initialContent[code];
-        if (value) {
-            quill.setText(value);
-            hiddenInput.value = value;
-        }
-
-        quill.on('text-change', function () {
-            hiddenInput.value = quill.getText();
-        });
-
-        quillEditors[rowIndex][code] = quill;
-    });
 }
 
 function addSidebarLinkRow(linkData = {}) {

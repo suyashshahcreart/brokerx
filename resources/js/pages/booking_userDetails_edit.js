@@ -2,9 +2,6 @@ import $ from 'jquery';
 window.$ = window.jQuery = $;
 import '../../css/pages/materialIconLiberaryStyles.css';
 import iconLib from './booking_tour_iconLib';
-import Quill from 'quill';
-import 'quill/dist/quill.core.css';
-import 'quill/dist/quill.snow.css';
 import { v4 as uuidv4 } from 'uuid';
 import reinitalizeEditors from '../tinyEditor';
 
