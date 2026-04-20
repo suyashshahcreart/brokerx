@@ -2261,7 +2261,12 @@ class TourController extends Controller
         ]);
 
         $sidebarNodes = collect($validated['sidebar_node'] ?? [])
-            ->filter(fn ($node) => is_array($node))
+            ->filter(function ($node) {
+                return is_array($node)
+                    && array_key_exists('sideMenuOrder', $node)
+                    && $node['sideMenuOrder'] !== null
+                    && $node['sideMenuOrder'] !== '';
+            })
             ->values()
             ->map(function (array $node, int $index) {
                 $node['sideMenuOrder'] = $index;

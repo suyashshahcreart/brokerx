@@ -1058,6 +1058,19 @@
                                         $sidebarNodeValue = [];
                                     }
 
+                                    $sidebarNodeValue = collect($sidebarNodeValue)
+                                        ->filter(function ($node) {
+                                            return is_array($node)
+                                                && array_key_exists('sideMenuOrder', $node)
+                                                && $node['sideMenuOrder'] !== null
+                                                && $node['sideMenuOrder'] !== '';
+                                        })
+                                        ->sortBy(function ($node) {
+                                            return (int) ($node['sideMenuOrder'] ?? 0);
+                                        })
+                                        ->values()
+                                        ->toArray();
+
                                     $sidebarNodeCount = count($sidebarNodeValue);
                                 @endphp
                                 <form action="{{ route('admin.tours.updateSidebarNodes', $tour) }}" method="POST"
@@ -1065,7 +1078,6 @@
                                     @csrf
                                     @method('PUT')
                                     <div id="sidebar_node_fields" class="d-none"></div>
-
                                     <div class="row">
                                         <div class="col-12">
                                             <div class="border rounded-3 overflow-hidden">
@@ -1104,7 +1116,7 @@
                                                                 <span>{{ $nodeTitle }}</span>
                                                             </div>
                                                             <input type="hidden" class="node-json"
-                                                                value="{{ e($nodeDataJson) }}">
+                                                                value="{{ $nodeDataJson }}">
                                                         </li>
                                                     @empty
                                                         <li class="list-group-item text-muted" id="sidebarNodesEmpty">No sidebar nodes available.</li>

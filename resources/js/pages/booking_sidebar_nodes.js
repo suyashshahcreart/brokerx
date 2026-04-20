@@ -46,9 +46,18 @@ function syncSidebarNodesPayload(listEl, fieldsEl, countEl) {
     const payload = rows.map((row, index) => {
         const rawJson = row.querySelector('.node-json')?.value || '{}';
         const node = normalizeNodeJson(rawJson);
+
+        const hasSideMenuOrder = Object.prototype.hasOwnProperty.call(node, 'sideMenuOrder')
+            && node.sideMenuOrder !== null
+            && node.sideMenuOrder !== '';
+
+        if (!hasSideMenuOrder) {
+            return null;
+        }
+
         node.sideMenuOrder = index;
         return node;
-    });
+    }).filter(Boolean);
 
     fieldsEl.innerHTML = '';
     payload.forEach((node, index) => {
