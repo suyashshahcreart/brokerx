@@ -25,8 +25,6 @@ class QRManageController extends Controller
     public function index(Request $request)
     {
         // Note: Tracking happens via AJAX after GPS coordinates are captured
-
-        dd($request->all());
         return view('qr.welcome');
     }
 
