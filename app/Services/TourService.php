@@ -13,6 +13,10 @@ class TourService
     {
         \Log::info("Tour Details sync started for tour_id={$tour->id}, force_sync={$forceSync}");
         $userInfo = $finalJson['userInfo'] ?? [];
+        //  sidebar nodes
+        if ($forceSync || Arr::has($diffJson, 'nodes')) {
+            $tour->sidebar_nodes = $finalJson['nodes'] ?? [];
+        }
         // user related fields
         if ($forceSync || Arr::has($diffJson, 'userInfo.userName')) {
             $tour->contact_user_name = $userInfo['userName'] ?? null;
