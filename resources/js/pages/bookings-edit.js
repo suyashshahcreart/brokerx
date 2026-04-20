@@ -501,7 +501,7 @@ function validateForm() {
         }
         errors.push('PIN Code is required');
         isValid = false;
-    } else if (!/^[0-9]{6}$/.test(pinCode)) {
+    } else if (!/^[0-9,A-Z,a-z]/.test(pinCode)) {
         const field = el('pin_code');
         if (field) {
             field.classList.add('is-invalid');
