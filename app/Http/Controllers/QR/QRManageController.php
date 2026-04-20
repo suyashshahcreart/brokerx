@@ -91,7 +91,7 @@ class QRManageController extends Controller
                     }
 
                     // Preserve all query string params from the QR link (e.g. ?m=109) on the tour URL
-                    $finalRedirectUrl = (string) Uri::of($redirectUrl)->withQuery($request->query()->all());
+                    $finalRedirectUrl = (string) Uri::of($redirectUrl)->withQuery($request->query());
 
                     return redirect()->away($finalRedirectUrl);
                 }
