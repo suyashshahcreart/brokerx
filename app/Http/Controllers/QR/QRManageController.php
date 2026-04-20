@@ -4,6 +4,7 @@ namespace App\Http\Controllers\QR;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Uri;
 use App\Models\QR;
 use App\Models\Booking;
 use App\Models\Tour;
@@ -24,6 +25,8 @@ class QRManageController extends Controller
     public function index(Request $request)
     {
         // Note: Tracking happens via AJAX after GPS coordinates are captured
+
+        dd($request->all());
         return view('qr.welcome');
     }
 
@@ -86,8 +89,11 @@ class QRManageController extends Controller
                     } catch (\Exception $e) {
                         \Log::error('QR redirect tracking error: ' . $e->getMessage());
                     }
-                    
-                    return redirect()->away($redirectUrl);
+
+                    // Preserve all query string params from the QR link (e.g. ?m=109) on the tour URL
+                    $finalRedirectUrl = (string) Uri::of($redirectUrl)->withQuery($request->query()->all());
+
+                    return redirect()->away($finalRedirectUrl);
                 }
                 
                 // Tour live but no valid redirect URL - show tour found page
