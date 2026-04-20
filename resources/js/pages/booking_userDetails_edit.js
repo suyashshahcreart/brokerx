@@ -75,38 +75,6 @@ function initializeUserDetails() {
     });
 }
 
-function initQuillForRow(rowIndex, initialHtml = '') {
-    const editorId = `descraptionQuillEditor_${rowIndex}`;
-    const hiddenInput = document.getElementById(`descraptionHidden_${rowIndex}`);
-    if (!hiddenInput || quillEditors[rowIndex]) {
-        return;
-    }
-    const quill = new Quill(`#${editorId}`, {
-        theme: 'snow',
-        modules: {
-            toolbar: [
-                ['bold', 'italic', 'underline', 'strike'],
-                [{ header: [1, 2, 3, false] }],
-                ['blockquote', 'code-block'],
-                [{ list: 'ordered' }, { list: 'bullet' }],
-                [{ color: [] }, { background: [] }],
-                ['link', 'clean']
-            ]
-        }
-    });
-
-    if (initialHtml) {
-        quill.setText(initialHtml);
-        hiddenInput.value = initialHtml;
-    }
-
-    quill.on('text-change', function () {
-        hiddenInput.value = quill.getText();
-    });
-
-    quillEditors[rowIndex] = quill;
-}
-
 function addUserDetailsRow(detail = {}) {
     const container = document.getElementById('userDetailsContainer');
     if (!container) {
@@ -188,5 +156,4 @@ function addUserDetailsRow(detail = {}) {
         });
     }
 
-    initQuillForRow(rowIndex, descraption);
 }
