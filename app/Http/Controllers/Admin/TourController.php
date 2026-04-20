@@ -948,15 +948,13 @@ class TourController extends Controller
     /**
      * Update tour JSON and JS files in S3 storage
      *
-     * Updates 3 files in order:
-     * 1. virtual-tour-nodes.json - other data from $finalJson, nodes preserved from S3
-     * 2. tour-data.json - other data from $finalJson, nodes preserved from S3
+    * Updates 3 files in order:
+    * 1. virtual-tour-nodes.json - other data from $finalJson, nodes from $finalJson when provided
+    * 2. tour-data.json - other data from $finalJson, nodes from $finalJson when provided
      * 3. tour-data.js - same content as tour-data.json, wrapped in JS and obfuscated
      *
-     * Nodes are NEVER overwritten with $finalJson['nodes']. Only nodes from existing S3 files are used.
-     *
      * @param Tour $tour The tour model
-     * @param array $finalJson The final JSON data to save (userInfo, bottomMarker, etc.)
+    * @param array $finalJson The final JSON data to save (userInfo, bottomMarker, nodes, etc.)
      * @return bool True if successful, false otherwise
      */
     private function updateTourJsonAndJsFilesInS3(Tour $tour, array $finalJson): bool
@@ -987,7 +985,7 @@ class TourController extends Controller
             $tourDataJsonPath = 'tours/' . $qrCode . '/assets/js/tour-data.json';
             $tourDataJsPath = 'tours/' . $qrCode . '/assets/js/tour-data.js';
 
-            // Fetch existing nodes from S3 - NEVER use $finalJson['nodes'], only S3
+            // Fetch existing nodes from S3 for backwards compatibility when the payload does not include nodes
             $existingVirtualTourNodes = [];
             $existingTourDataJsonNodes = [];
 
@@ -1007,12 +1005,16 @@ class TourController extends Controller
                 }
             }
 
-            // Merge: our updates (userInfo, etc.) + nodes from S3 only (never $finalJson['nodes'])
+            $finalNodes = array_key_exists('nodes', $finalJson) && is_array($finalJson['nodes'])
+                ? array_values($finalJson['nodes'])
+                : null;
+
+            // Merge: our updates (userInfo, etc.) + nodes from the payload when present, otherwise keep S3 nodes
             $virtualTourNodesContent = $finalJson;
-            $virtualTourNodesContent['nodes'] = $existingVirtualTourNodes;
+            $virtualTourNodesContent['nodes'] = $finalNodes ?? $existingVirtualTourNodes;
 
             $tourDataJsonContent = $finalJson;
-            $tourDataJsonContent['nodes'] = $existingTourDataJsonNodes;
+            $tourDataJsonContent['nodes'] = $finalNodes ?? $existingTourDataJsonNodes;
 
             // Upload 1: virtual-tour-nodes.json (first)
             $virtualTourNodesString = json_encode(
@@ -2256,11 +2258,13 @@ class TourController extends Controller
     public function updateTourSidebarNodes(Request $request, Tour $tour): JsonResponse|RedirectResponse
     {
         $validated = $request->validate([
+            'nodes' => ['nullable', 'array'],
+            'nodes.*' => ['nullable', 'array'],
             'sidebar_node' => ['nullable', 'array'],
             'sidebar_node.*' => ['nullable', 'array'],
         ]);
 
-        $sidebarNodes = collect($validated['sidebar_node'] ?? [])
+        $sidebarNodes = collect($validated['nodes'] ?? $validated['sidebar_node'] ?? [])
             ->filter(function ($node) {
                 return is_array($node)
                     && array_key_exists('sideMenuOrder', $node)
@@ -2276,8 +2280,12 @@ class TourController extends Controller
             ->toArray();
 
         $oldData = $tour->toArray();
+        $finalJson = $this->normalizeFinalJsonPayload($tour);
+        $finalJson['nodes'] = $sidebarNodes;
+
         $tour->update([
             'sidebar_node' => $sidebarNodes,
+            'final_json' => $finalJson,
         ]);
         $newData = $tour->fresh()->toArray();
 
@@ -2289,6 +2297,8 @@ class TourController extends Controller
                 'new' => $newData,
             ])
             ->log('Tour sidebar nodes updated');
+
+        $this->updateTourJsonAndJsFilesInS3($tour, $finalJson);
 
         if ($request->expectsJson()) {
             return response()->json([
