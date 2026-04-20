@@ -794,8 +794,8 @@
                                                     value="{{ $color }}"
                                                     oninput="this.previousElementSibling.querySelector('input').value = this.value">
                                                 <!-- <button type="button" class="btn btn-soft-danger remove-loader-color">
-                                                                                                                                    <i class="ri-delete-bin-line"></i>
-                                                                                                                                </button> -->
+                                                                                                                                            <i class="ri-delete-bin-line"></i>
+                                                                                                                                        </button> -->
                                             </div>
                                         </div>
                                     @endforeach
@@ -830,8 +830,8 @@
                                                     value="{{ $color }}"
                                                     oninput="this.previousElementSibling.querySelector('input').value = this.value">
                                                 <!-- <button type="button" class="btn btn-soft-danger remove-spinner-color">
-                                                                                                                                    <i class="ri-delete-bin-line"></i>
-                                                                                                                                </button> -->
+                                                                                                                                            <i class="ri-delete-bin-line"></i>
+                                                                                                                                        </button> -->
                                             </div>
                                         </div>
                                     @endforeach
@@ -880,6 +880,11 @@
                                 <button class="nav-link" id="sidebar-2-tab" data-bs-toggle="tab"
                                     data-bs-target="#sidebar-tab-2-pane" type="button" role="tab"
                                     aria-controls="tour-attachment-2-pane" aria-selected="false">Sidebar Links</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="sidebar-3-tab" data-bs-toggle="tab"
+                                    data-bs-target="#sidebar-tab-3-pane" type="button" role="tab"
+                                    aria-controls="tour-attachment-3-pane" aria-selected="false">Sidebar Nodes</button>
                             </li>
                         </ul>
 
@@ -1038,6 +1043,83 @@
                                         </div>
                                     </div><!-- Row end -->
                                 </form><!-- Form end -->
+                            </div>
+                            <div class="tab-pane fade show" id="sidebar-tab-3-pane" role="tabpanel"
+                                aria-labelledby="sidebar-tab-3-tab" tabindex="0">
+                                @php
+                                    $sidebarNodeValue = old('sidebar_node', $tour->sidebar_node ?? []);
+
+                                    if (is_string($sidebarNodeValue)) {
+                                        $decodedSidebarNodes = json_decode($sidebarNodeValue, true);
+                                        $sidebarNodeValue = is_array($decodedSidebarNodes) ? $decodedSidebarNodes : [];
+                                    }
+
+                                    if (!is_array($sidebarNodeValue)) {
+                                        $sidebarNodeValue = [];
+                                    }
+
+                                    $sidebarNodeCount = count($sidebarNodeValue);
+                                @endphp
+                                <form action="{{ route('admin.tours.updateSidebarNodes', $tour) }}" method="POST"
+                                    id="sidebarNodesForm" class="needs-validation" novalidate>
+                                    @csrf
+                                    @method('PUT')
+                                    <div id="sidebar_node_fields" class="d-none"></div>
+
+                                    <div class="row">
+                                        <div class="col-12">
+                                            <div class="border rounded-3 overflow-hidden">
+                                                <div class="d-flex justify-content-between align-items-center px-3 py-2 bg-light border-bottom">
+                                                    <div>
+                                                        <h5 class="mb-0">Side Menu Items (<span id="sidebarNodeCount">{{ $sidebarNodeCount }}</span>)</h5>
+                                                    </div>
+                                                </div>
+
+                                                <div class="p-3 border-bottom">
+                                                    <div class="input-group">
+                                                        <span class="input-group-text"><i class="ri-search-line"></i></span>
+                                                        <input type="text" id="sidebarNodeSearch" class="form-control"
+                                                            placeholder="Search items...">
+                                                    </div>
+                                                </div>
+
+                                                <div class="px-3 py-2 border-bottom small text-muted d-flex align-items-center gap-3">
+                                                    <span><i class="ri-draggable me-1"></i> Drag</span>
+                                                    <span><i class="ri-menu-line me-1"></i> Item</span>
+                                                </div>
+
+                                                <ul class="list-group list-group-flush" id="sidebarNodes">
+                                                    @forelse ($sidebarNodeValue as $node)
+                                                        @php
+                                                            $nodeTitle = data_get($node, 'sideMenuTitle.en', data_get($node, 'name', 'Untitled Node'));
+                                                            $nodeIcon = data_get($node, 'sideMenuIcon', 'ri-image-line');
+                                                            $nodeId = data_get($node, 'id', '');
+                                                            $nodeDataJson = json_encode($node, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+                                                        @endphp
+                                                        <li class="list-group-item d-flex align-items-center justify-content-between sidebar-node-item"
+                                                            data-id="{{ $nodeId }}" data-title="{{ strtolower((string) $nodeTitle) }}">
+                                                            <div class="d-flex align-items-center gap-2">
+                                                                <span class="drag-handle text-muted" style="cursor: grab;"><i class="ri-draggable"></i></span>
+                                                                <i class="{{ $nodeIcon }}"></i>
+                                                                <span>{{ $nodeTitle }}</span>
+                                                            </div>
+                                                            <input type="hidden" class="node-json"
+                                                                value="{{ e($nodeDataJson) }}">
+                                                        </li>
+                                                    @empty
+                                                        <li class="list-group-item text-muted" id="sidebarNodesEmpty">No sidebar nodes available.</li>
+                                                    @endforelse
+                                                </ul>
+                                            </div>
+                                            <small class="text-muted d-block mt-2">Only the sideMenuOrder value is
+                                                normalized when this form is saved.</small>
+                                            @error('sidebar_node')<div class="text-danger">{{ $message }}</div>@enderror
+                                        </div>
+                                        <div class="d-flex justify-content-end mt-3">
+                                            <button class="btn btn-primary">Update Sidebar Nodes</button>
+                                        </div>
+                                    </div>
+                                </form>
                             </div>
                         </div>
                     </div>
@@ -1731,9 +1813,9 @@
     </div>
 </div>
 
-@vite(['resources/js/pages/booking-tour-detail-update-tab.js', 'resources/js/pages/booking_edit_sidebarLink.js', 'resources/js/pages/booking_userDetails_edit.js'])
-
+@vite(['resources/js/pages/booking-tour-detail-update-tab.js', 'resources/js/pages/booking_edit_sidebarLink.js', 'resources/js/pages/booking_sidebar_nodes.js', 'resources/js/pages/booking_userDetails_edit.js'])
 <script>
     window.sidebarLinksData = {!! json_encode(old('sidebar_links', $tour->sidebar_links)) !!};
     window.enabledLanguages = {!! json_encode($tour->enable_language ?? ['en']) !!};
+
 </script>

@@ -2253,6 +2253,49 @@ class TourController extends Controller
         return redirect()->back()->with(['success' => 'Sidebar links updated successfully.', 'active_tab' => 'vl-pills-sidebar-section']);
     }
 
+    public function updateTourSidebarNodes(Request $request, Tour $tour): JsonResponse|RedirectResponse
+    {
+        $validated = $request->validate([
+            'sidebar_node' => ['nullable', 'array'],
+            'sidebar_node.*' => ['nullable', 'array'],
+        ]);
+
+        $sidebarNodes = collect($validated['sidebar_node'] ?? [])
+            ->filter(fn ($node) => is_array($node))
+            ->values()
+            ->map(function (array $node, int $index) {
+                $node['sideMenuOrder'] = $index;
+
+                return $node;
+            })
+            ->toArray();
+
+        $oldData = $tour->toArray();
+        $tour->update([
+            'sidebar_node' => $sidebarNodes,
+        ]);
+        $newData = $tour->fresh()->toArray();
+
+        activity('tours')
+            ->performedOn($tour)
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'old' => $oldData,
+                'new' => $newData,
+            ])
+            ->log('Tour sidebar nodes updated');
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Sidebar nodes updated successfully.',
+                'tour' => $tour->fresh(),
+            ]);
+        }
+
+        return redirect()->back()->with(['success' => 'Sidebar nodes updated successfully.', 'active_tab' => 'vl-pills-sidebar-section']);
+    }
+
     /**
      * Update only bottom top tab data.
      */

@@ -53,6 +53,7 @@
     "rater-js": "^1.0.1",
     "select2": "^4.1.0-rc.0",
     "simplebar": "^5.3.9",
+    "sortablejs": "^1.15.7",
     "sweetalert2": "^11.5.1",
     "swiper": "^11.1.9",
     "toastify-js": "^1.12.0",

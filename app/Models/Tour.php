@@ -57,6 +57,7 @@ class Tour extends Model
         'footer_code',
         // New fields added by migration
         'sidebar_logo',
+        'sidebar_node',
         'footer_logo',
         'footer_title',
         'footer_email',
@@ -136,6 +137,7 @@ class Tour extends Model
             'structured_data' => 'array',
             'final_json' => 'array',
             'sidebar_links' => 'array',
+            'sidebar_node' => 'array',
             'working_json' => 'array',
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
