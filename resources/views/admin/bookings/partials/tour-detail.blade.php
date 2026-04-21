@@ -1087,14 +1087,6 @@
                                                     </div>
                                                 </div>
 
-                                                <div class="p-3 border-bottom">
-                                                    <div class="input-group">
-                                                        <span class="input-group-text"><i class="ri-search-line"></i></span>
-                                                        <input type="text" id="sidebarNodeSearch" class="form-control"
-                                                            placeholder="Search items...">
-                                                    </div>
-                                                </div>
-
                                                 <div class="px-3 py-2 border-bottom small text-muted d-flex align-items-center gap-3">
                                                     <span><i class="ri-draggable me-1"></i> Drag</span>
                                                     <span><i class="ri-menu-line me-1"></i> Item</span>
