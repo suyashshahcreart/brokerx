@@ -1095,7 +1095,8 @@
                                                 <ul class="list-group list-group-flush" id="sidebarNodes">
                                                     @forelse ($sidebarNodeValue as $node)
                                                         @php
-                                                            $nodeTitle = data_get($node, 'sideMenuTitle.en', data_get($node, 'name', 'Untitled Node'));
+                                                            $preferredLanguage = $tour->default_language ?? 'en';
+                                                            $nodeTitle = data_get($node, 'sideMenuTitle.' . $preferredLanguage, data_get($node, 'sideMenuTitle.en', data_get($node, 'sideMenuTitle.hi', data_get($node, 'sideMenuTitle.gu', data_get($node, 'name', 'Untitled Node')))));
                                                             $nodeIcon = data_get($node, 'sideMenuIcon', 'ri-image-line');
                                                             $nodeId = data_get($node, 'id', '');
                                                             $nodeDataJson = json_encode($node, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
@@ -1105,10 +1106,16 @@
                                                             <div class="d-flex align-items-center gap-2">
                                                                 <span class="drag-handle text-muted" style="cursor: grab;"><i class="ri-draggable"></i></span>
                                                                 <i class="{{ $nodeIcon }}"></i>
-                                                                <span>{{ $nodeTitle }}</span>
+                                                                <span class="sidebar-node-title">{{ $nodeTitle }}</span>
                                                             </div>
-                                                            <input type="hidden" class="node-json"
-                                                                value="{{ $nodeDataJson }}">
+                                                            <div class="d-flex align-items-center gap-2">
+                                                                <button type="button" class="btn btn-sm btn-outline-secondary"
+                                                                    data-action="edit-sidebar-node">
+                                                                    <i class="ri-pencil-line me-1"></i>Edit
+                                                                </button>
+                                                                <input type="hidden" class="node-json"
+                                                                    value="{{ $nodeDataJson }}">
+                                                            </div>
                                                         </li>
                                                     @empty
                                                         <li class="list-group-item text-muted" id="sidebarNodesEmpty">No sidebar nodes available.</li>
@@ -1124,6 +1131,28 @@
                                         </div>
                                     </div>
                                 </form>
+
+                                <div class="modal fade" id="sidebarNodeTitleModal" tabindex="-1"
+                                    aria-labelledby="sidebarNodeTitleModalLabel" aria-hidden="true">
+                                    <div class="modal-dialog modal-lg modal-dialog-centered">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <div>
+                                                    <h5 class="modal-title" id="sidebarNodeTitleModalLabel">Edit Sidebar Node Title</h5>
+                                                    <small class="text-muted d-block" id="sidebarNodeTitleModalNodeName"></small>
+                                                </div>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <div id="sidebarNodeTitleFields"></div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                                                <button type="button" class="btn btn-primary" id="saveSidebarNodeTitleButton">Save changes</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1821,5 +1850,6 @@
 <script>
     window.sidebarLinksData = {!! json_encode(old('sidebar_links', $tour->sidebar_links)) !!};
     window.enabledLanguages = {!! json_encode($tour->enable_language ?? ['en']) !!};
+    window.defaultLanguage = {!! json_encode($tour->default_language ?? 'en') !!};
 
 </script>
