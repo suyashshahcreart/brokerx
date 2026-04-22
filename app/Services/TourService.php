@@ -195,8 +195,8 @@ class TourService
             $tour->bookmark_title = $bookmark['bookmarkTitle'] ?? false;
             $tour->bookmark_ribbon_background_color = $bookmark['ribbonBackgroundColor'] ?? null;
             $tour->bookmark_ribbon_text_color = $bookmark['ribbonTextColor'] ?? null;
-            $tour->bookmark_show_on_tour_load = $bookmark['showOnTourLoad'] ?? null;
-            $tour->bookmark_show_on_tour_load_delay_ms = $bookmark['showOnTourLoadDelayMs'] ?? null;
+            $tour->bookmark_show_on_tour_load = $bookmark['showOnTourLoad'] ?? 0;
+            $tour->bookmark_show_on_tour_load_delay_ms = $bookmark['showOnTourLoadDelayMs'] ?? 0;
             $tour->bookmark_action = $bookmark['action'] ?? null;
             $tour->bookmark_modal_title = $bookmark['modalTitle'] ?? null;
             $tour->bookmark_modal_description = $bookmark['modalDescription'] ?? null;
