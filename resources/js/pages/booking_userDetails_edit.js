@@ -1,15 +1,11 @@
 import $ from 'jquery';
 window.$ = window.jQuery = $;
 import '../../css/pages/materialIconLiberaryStyles.css';
-import { IconLibrary } from '../materialIconLiberary';
-import { materialIconList } from '../data/materialIconsList';
-import Quill from 'quill';
-import 'quill/dist/quill.core.css';
-import 'quill/dist/quill.snow.css';
+import iconLib from './booking_tour_iconLib';
 import { v4 as uuidv4 } from 'uuid';
+import reinitalizeEditors from '../tinyEditor';
 
-
-const iconLib = new IconLibrary({ materialIconList });
+// Only Quill editors for description fields, so we can manage them in a single object
 const quillEditors = {};
 
 const languageMap = {
@@ -54,7 +50,7 @@ function parseUserDetailsData() {
 }
 
 $(document).ready(function () {
-    iconLib.init('materialIconModal', 'materialIconSearch');
+    iconLib.init('materialIconModal', 'materialIconSearch', 'materialIconModalClose');
 
     $('#userDetailsButtonIcon').on('click', function () {
         iconLib.open(this, $('#iconPreview_userDetailsButtonIcon'));
@@ -76,38 +72,6 @@ function initializeUserDetails() {
     });
 }
 
-function initQuillForRow(rowIndex, initialHtml = '') {
-    const editorId = `descraptionQuillEditor_${rowIndex}`;
-    const hiddenInput = document.getElementById(`descraptionHidden_${rowIndex}`);
-    if (!hiddenInput || quillEditors[rowIndex]) {
-        return;
-    }
-    const quill = new Quill(`#${editorId}`, {
-        theme: 'snow',
-        modules: {
-            toolbar: [
-                ['bold', 'italic', 'underline', 'strike'],
-                [{ header: [1, 2, 3, false] }],
-                ['blockquote', 'code-block'],
-                [{ list: 'ordered' }, { list: 'bullet' }],
-                [{ color: [] }, { background: [] }],
-                ['link', 'clean']
-            ]
-        }
-    });
-
-    if (initialHtml) {
-        quill.setText(initialHtml);
-        hiddenInput.value = initialHtml;
-    }
-
-    quill.on('text-change', function () {
-        hiddenInput.value = quill.getText();
-    });
-
-    quillEditors[rowIndex] = quill;
-}
-
 function addUserDetailsRow(detail = {}) {
     const container = document.getElementById('userDetailsContainer');
     if (!container) {
@@ -123,14 +87,14 @@ function addUserDetailsRow(detail = {}) {
     const icon = escapeHtml(detail.icon ?? '');
     const title = escapeHtml(detail.title ?? '');
     const summery = escapeHtml(detail.summery ?? '');
-    const descraption = detail.description ?? '';
-    const descraptionHiddenValue = escapeHtml(descraption);
+    const description = detail.description ?? '';
+    const descraptionHiddenValue = escapeHtml(description);
 
     const rowHTML = `
         <div class="user-detail-row row mb-3 border p-3 rounded" data-row-index="${rowIndex}">
             <div class="col-md-2">
                 <label class="form-label">ID</label>
-                <input type="text" name="user_details[${rowIndex}][id]" class="form-control" value="${idValue}" placeholder="Unique ID">
+                <input type="text" name="user_details[${rowIndex}][id]" class="form-control" value="${idValue}" placeholder="e.g, 28b25553-XXXXX-9c8e-XXXXXXXX" readonly>
             </div>
 
             <div class="col-md-2">
@@ -145,20 +109,19 @@ function addUserDetailsRow(detail = {}) {
 
             <div class="col-md-4">
                 <label class="form-label">Title</label>
-                <input type="text" name="user_details[${rowIndex}][title]" class="form-control" value="${title}" placeholder="Title">
+                <input type="text" name="user_details[${rowIndex}][title]" class="form-control" value="${title}" placeholder="e.g, Title">
             </div>
 
             <div class="col-md-4">
                 <label class="form-label">Summary</label>
-                <textarea name="user_details[${rowIndex}][summery]" class="form-control" rows="2" placeholder="Summary">${summery}</textarea>
+                <textarea name="user_details[${rowIndex}][summary]" class="form-control" rows="2" placeholder="e.g, Summary">${summery}</textarea>
             </div>
 
             <div class="col-md-12 mt-3">
                 <label class="form-label">Description</label>
                 <div class="mb-3">
-                    <div id="descraptionQuillEditor_${rowIndex}" class="quill-editor" style="min-height: 220px; border: 1px solid #ced4da; border-radius: .25rem; background: #fff; margin-bottom: 1rem;">${descraption}</div>
+                    <textarea name="user_details[${rowIndex}][description]" class="editor">${description}</textarea>
                 </div>
-                <input type="hidden" name="user_details[${rowIndex}][descraption]" id="descraptionHidden_${rowIndex}" value="${descraptionHiddenValue}">
             </div>
 
             <div class="col-md-12 d-flex justify-content-end">
@@ -170,7 +133,7 @@ function addUserDetailsRow(detail = {}) {
     `;
 
     container.insertAdjacentHTML('beforeend', rowHTML);
-
+    reinitalizeEditors();
     const newRow = container.querySelector('.user-detail-row:last-child');
 
     const removeBtn = newRow.querySelector('.remove-user-detail');
@@ -190,5 +153,4 @@ function addUserDetailsRow(detail = {}) {
         });
     }
 
-    initQuillForRow(rowIndex, descraption);
 }

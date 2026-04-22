@@ -62,7 +62,7 @@ class TourService
         if ($forceSync || Arr::has($diffJson, 'userInfo.documentAuthRequired')) {
             $tour->document_auth_required = $userInfo['documentAuthRequired'] ?? false;
         }
-        
+
         //  user info -> user details 
         if ($forceSync || Arr::has($diffJson, 'userInfo.showUserDetailsButton')) {
             $tour->show_user_details_button = $userInfo['showUserDetailsButton'] ?? false;
@@ -76,7 +76,7 @@ class TourService
         if ($forceSync || Arr::has($diffJson, 'userInfo.userDetails')) {
             $tour->user_details = $userInfo['userDetails'] ?? null;
         }
-        
+
 
         /* Attchment file sync */
         if ($forceSync || Arr::has($diffJson, 'userInfo.documentAuthType')) {
@@ -184,6 +184,29 @@ class TourService
         }
         if ($forceSync || Arr::has($diffJson, 'bottomMarker.contactEmail')) {
             $tour->footer_email = $bottomMarker['contactEmail'] ?? null;
+        }
+        // Bookmark fields add
+        $bookmark = $finalJson['bookmark'] ?? [];
+        if ($forceSync || Arr::has($diffJson, 'bookmark.showBookmarkButton')) {
+            $tour->bookmark_title = $bookmark['bookmarkTitle'] ?? false;
+            $tour->bookmark_ribbon_background_color = $bookmark['ribbonBackgroundColor'] ?? null;
+            $tour->bookmark_ribbon_text_color = $bookmark['ribbonTextColor'] ?? null;
+            $tour->bookmark_show_on_tour_load = $bookmark['showOnTourLoad'] ?? null;
+            $tour->bookmark_show_on_tour_load_delay_ms = $bookmark['showOnTourLoadDelayMs'] ?? null;
+            $tour->bookmark_action = $bookmark['action'] ?? null;
+            $tour->bookmark_modal_title = $bookmark['modalTitle'] ?? null;
+            $tour->bookmark_modal_description = $bookmark['modalDescription'] ?? null;
+            $tour->bookmark_info_modal_footer_button_title = $bookmark['infoModalFooterButtonTitle'] ?? null;
+            $tour->bookmark_info_modal_footer_button_link = $bookmark['infoModalFooterButtonLink'] ?? null;
+            $tour->bookmark_info_modal_footer_text = $bookmark['infoModalFooterText'] ?? null;
+            $tour->bookmark_open_link_url = $bookmark['openLinkUrl'] ?? null;
+            $tour->bookmark_document_url = $bookmark['documentUrl'] ?? null;
+            $tour->bookmark_video_url = $bookmark['videoUrl'] ?? null;
+            $tour->bookmark_image_url = $bookmark['imageUrls'] ?? null;
+        }
+        /* User Star Rating sync function */
+        if($forceSync || Arr::has($diffJson, 'bottomMarker.userStars')) {
+            $tour->user_star = $bottomMarker['userStars'] ?? null;
         }
     }
 }

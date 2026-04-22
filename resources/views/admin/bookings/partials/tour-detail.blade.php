@@ -25,48 +25,61 @@
                 <i class="ri-file-user-line me-2"></i>
                 <span>User Details</span>
             </a>
-            <a class="nav-link {{ ($firstActiveTab === 'vl-pills-attachments') ? 'active show' : '' }}"
-                id="vl-pills-attachments-tab" data-bs-toggle="pill" href="#vl-pills-attachments" role="tab"
-                aria-controls="vl-pills-attachments"
-                aria-selected="{{ ($firstActiveTab === 'vl-pills-attachments') ? 'true' : 'false' }}">
-                <i class="ri-attachment-line me-2"></i>
-                <span>Attachments</span>
-            </a>
-            <a class="nav-link {{ ($firstActiveTab === 'vl-pills-language') ? 'active show' : '' }}"
-                id="vl-pills-language-tab" data-bs-toggle="pill" href="#vl-pills-language" role="tab"
-                aria-controls="vl-pills-language"
-                aria-selected="{{ ($firstActiveTab === 'vl-pills-language') ? 'true' : 'false' }}">
-                <i class="ri-translate-2 me-2"></i>
-                <span>Language Section</span>
-            </a>
-            <a class="nav-link {{ ($firstActiveTab === 'vl-pills-loader-config') ? 'active show' : '' }}"
-                id="vl-pills-loader-config-tab" data-bs-toggle="pill" href="#vl-pills-loader-config" role="tab"
-                aria-controls="vl-pills-loader-config"
-                aria-selected="{{ ($firstActiveTab === 'vl-pills-loader-config') ? 'true' : 'false' }}">
-                <i class="ri-timer-flash-line me-2"></i>
-                <span>Loader Configuration Section</span>
-            </a>
-            <a class="nav-link {{ ($firstActiveTab === 'vl-pills-sidebar-section') ? 'active show' : '' }}"
-                id="vl-pills-sidebar-section-tab" data-bs-toggle="pill" href="#vl-pills-sidebar-section" role="tab"
-                aria-controls="vl-pills-sidebar-section"
-                aria-selected="{{ ($firstActiveTab === 'vl-pills-sidebar-section') ? 'true' : 'false' }}">
-                <i class="ri-layout-left-line me-2"></i>
-                <span>Sidebar Section</span>
-            </a>
-            <a class="nav-link {{ ($firstActiveTab === 'vl-pills-bottom-mark-top') ? 'active show' : '' }}"
-                id="vl-pills-bottom-mark-top-tab" data-bs-toggle="pill" href="#vl-pills-bottom-mark-top" role="tab"
-                aria-controls="vl-pills-bottom-mark-top"
-                aria-selected="{{ ($firstActiveTab === 'vl-pills-bottom-mark-top') ? 'true' : 'false' }}">
-                <i class="ri-layout-row-line me-2"></i>
-                <span>Bottom Mark: Top Section</span>
-            </a>
-            <a class="nav-link {{ ($firstActiveTab === 'vl-pills-bottom-mark-property') ? 'active show' : '' }}"
-                id="vl-pills-bottom-mark-property-tab" data-bs-toggle="pill" href="#vl-pills-bottom-mark-property"
-                role="tab" aria-controls="vl-pills-bottom-mark-property"
-                aria-selected="{{ ($firstActiveTab === 'vl-pills-bottom-mark-property') ? 'true' : 'false' }}">
-                <i class="ri-cash-line me-2"></i>
-                <span>Bottom Mark: Mark Property</span>
-            </a>
+            <a class="nav-link {{ ($firstActiveTab === 'vl-pills-tour-bookmark') ? 'active show' : '' }}"
+                id="vl-pills-tour-bookmark-tab" data-bs-toggle="pill" href="#vl-pills-tour-bookmark" role="tab"
+                aria-controls="vl-pills-tour-bookmark"
+                aria-selected="{{ ($firstActiveTab === 'vl-pills-tour-bookmark') ? 'true' : 'false' }}">
+                <i class="ri-bookmark-3-line me-2"></i>
+                <span>Tour Bookmark</span>
+                <a class="nav-link {{ ($firstActiveTab === 'vl-pills-userStar') ? 'active show' : '' }}"
+                    id="vl-pills-userStar-tab" data-bs-toggle="pill" href="#vl-pills-userStar" role="tab"
+                    aria-controls="vl-pills-userStar"
+                    aria-selected="{{ ($firstActiveTab === 'vl-pills-userStar') ? 'true' : 'false' }}">
+                    <i class="ri-star-line me-2"></i>
+                    <span>User Stars</span>
+                </a>
+                <a class="nav-link {{ ($firstActiveTab === 'vl-pills-attachments') ? 'active show' : '' }}"
+                    id="vl-pills-attachments-tab" data-bs-toggle="pill" href="#vl-pills-attachments" role="tab"
+                    aria-controls="vl-pills-attachments"
+                    aria-selected="{{ ($firstActiveTab === 'vl-pills-attachments') ? 'true' : 'false' }}">
+                    <i class="ri-attachment-line me-2"></i>
+                    <span>Attachments</span>
+                </a>
+                <a class="nav-link {{ ($firstActiveTab === 'vl-pills-language') ? 'active show' : '' }}"
+                    id="vl-pills-language-tab" data-bs-toggle="pill" href="#vl-pills-language" role="tab"
+                    aria-controls="vl-pills-language"
+                    aria-selected="{{ ($firstActiveTab === 'vl-pills-language') ? 'true' : 'false' }}">
+                    <i class="ri-translate-2 me-2"></i>
+                    <span>Language Section</span>
+                </a>
+                <a class="nav-link {{ ($firstActiveTab === 'vl-pills-loader-config') ? 'active show' : '' }}"
+                    id="vl-pills-loader-config-tab" data-bs-toggle="pill" href="#vl-pills-loader-config" role="tab"
+                    aria-controls="vl-pills-loader-config"
+                    aria-selected="{{ ($firstActiveTab === 'vl-pills-loader-config') ? 'true' : 'false' }}">
+                    <i class="ri-timer-flash-line me-2"></i>
+                    <span>Loader Configuration Section</span>
+                </a>
+                <a class="nav-link {{ ($firstActiveTab === 'vl-pills-sidebar-section') ? 'active show' : '' }}"
+                    id="vl-pills-sidebar-section-tab" data-bs-toggle="pill" href="#vl-pills-sidebar-section" role="tab"
+                    aria-controls="vl-pills-sidebar-section"
+                    aria-selected="{{ ($firstActiveTab === 'vl-pills-sidebar-section') ? 'true' : 'false' }}">
+                    <i class="ri-layout-left-line me-2"></i>
+                    <span>Sidebar Section</span>
+                </a>
+                <a class="nav-link {{ ($firstActiveTab === 'vl-pills-bottom-mark-top') ? 'active show' : '' }}"
+                    id="vl-pills-bottom-mark-top-tab" data-bs-toggle="pill" href="#vl-pills-bottom-mark-top" role="tab"
+                    aria-controls="vl-pills-bottom-mark-top"
+                    aria-selected="{{ ($firstActiveTab === 'vl-pills-bottom-mark-top') ? 'true' : 'false' }}">
+                    <i class="ri-layout-row-line me-2"></i>
+                    <span>Bottom Mark: Top Section</span>
+                </a>
+                <a class="nav-link {{ ($firstActiveTab === 'vl-pills-bottom-mark-property') ? 'active show' : '' }}"
+                    id="vl-pills-bottom-mark-property-tab" data-bs-toggle="pill" href="#vl-pills-bottom-mark-property"
+                    role="tab" aria-controls="vl-pills-bottom-mark-property"
+                    aria-selected="{{ ($firstActiveTab === 'vl-pills-bottom-mark-property') ? 'true' : 'false' }}">
+                    <i class="ri-cash-line me-2"></i>
+                    <span>Bottom Mark: Mark Property</span>
+                </a>
         </div>
     </div>
     <div class="col-md-9">
@@ -376,7 +389,7 @@
                     </div>
                 </div>
             </div>
-            <!-- language Update Tab -->
+            <!-- User details  Tab -->
             <div class="tab-pane fade {{ ($firstActiveTab === 'vl-pills-userdetails') ? 'active show' : '' }}"
                 id="vl-pills-userdetails" role="tabpanel" aria-labelledby="vl-pills-userdetails-tab">
                 <!-- User Details settings -->
@@ -457,6 +470,131 @@
                 </div>
             </div>
 
+            <!-- user stars tabl -->
+            <div class="tab-pane fade {{ ($firstActiveTab === 'vl-pills-userStar') ? 'active show' : '' }}"
+                id="vl-pills-userStar" role="tabpanel" aria-labelledby="vl-pills-userStar-tab">
+                <div class="card border-1 shadow-sm">
+                    <div class="card-header">
+                        <h4 class="card-title mb-0">User Stars</h4>
+                    </div>
+                    <div class="card-body">
+                        <form id="userStarsTabUpdateForm" method="POST"
+                            action="{{ route('admin.tours.updateUserStar', $tour) }}" class="needs-validation"
+                            novalidate>
+                            @csrf
+                            @method('PUT')
+                            <input type="hidden" name="booking_id" value="{{ $booking->id }}">
+                            <div class="row">
+                                <div class="col-md-2">
+                                    <div class="mb-3">
+                                        <label class="form-label">Show Ribbon</label>
+                                        <div class="form-check form-switch mb-0">
+                                            <input class="form-check-input" type="checkbox" name="user_star_show_ribbon"
+                                                id="show_user_star_ribbon" value="1"
+                                                {{ old('user_star_show_ribbon', data_get($tour->user_star, 'showRibbon', true)) ? 'checked' : '' }}>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="mb-3">
+                                        <label class="form-label">Show Modal on Load</label>
+                                        <div class="form-check form-switch mb-0">
+                                            <input class="form-check-input" type="checkbox" name="user_star_show_modal"
+                                                id="show_user_star_modal" value="1"
+                                                {{ old('user_star_show_modal', data_get($tour->user_star, 'showModalOnLoad', true)) ? 'checked' : '' }}>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="mb-3">
+                                        <label class="form-label">Show CTA Button</label>
+                                        <div class="form-check form-switch mb-0">
+                                            <input class="form-check-input" type="checkbox"
+                                                name="user_star_show_cta_button" id="user_star_show_cta_button"
+                                                value="1"
+                                                {{ old('user_star_show_cta_button', data_get($tour->user_star, 'showCtaButton', true)) ? 'checked' : '' }}>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- CTA Button text -->
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label class="form-label" for="user_star_cta_button_text">CTA Label
+                                            Text</label>
+                                        <input type="text" name="user_star_cta_button_text" class="form-control"
+                                            value="{{ old('user_star_cta_button_text', data_get($tour->user_star, 'ctaLabel', '')) }}"
+                                            placeholder="e.g, Book Now">
+                                        @error('user_star_cta_button_text')<div class="text-danger">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label class="form-label" for="">CTA labrl colors</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text p-0">
+                                                <input type="color" class="form-control form-control-color"
+                                                    value="{{ old('user_star_cta_label_color', data_get($tour->user_star, 'ctaColor', '#da8f67')) }}"
+                                                    onchange="this.parentElement.nextElementSibling.value = this.value">
+                                            </span>
+                                            <input type="text" name="user_star_cta_label_color" class="form-control"
+                                                placeholder="#000000"
+                                                value="{{ old('user_star_cta_label_color', data_get($tour->user_star, 'ctaColor', '#da8f67')) }}"
+                                                oninput="this.previousElementSibling.querySelector('input').value = this.value">
+                                        </div>
+                                    </div>
+                                    @error('user_star_cta_label_color')<div class="text-danger">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label class="form-label" for="user_star_cta_button_text">CTA Link</label>
+                                        <input type="url" name="user_star_cta_button_link" class="form-control"
+                                            value="{{ old('user_star_cta_button_link', data_get($tour->user_star, 'ctaLink', '')) }}"
+                                            placeholder="e.g, https://example.com/booking ">
+                                        @error('user_star_cta_button_link')<div class="text-danger">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="" class="form-label">CTA Label Size</label>
+                                        <select name="user_star_cta_label_size" class="form-select">
+                                            <option value="">select Size</option>
+                                            <option value="small"
+                                                {{ old('user_star_cta_label_size', data_get($tour->user_star, 'ctaSize', 'medium')) == 'small' ? 'selected' : '' }}>
+                                                Small</option>
+                                            <option value="medium"
+                                                {{ old('user_star_cta_label_size', data_get($tour->user_star, 'ctaSize', 'medium')) == 'medium' ? 'selected' : '' }}>
+                                                Medium</option>
+                                            <option value="large"
+                                                {{ old('user_star_cta_label_size', data_get($tour->user_star, 'ctaSize', 'medium')) == 'large' ? 'selected' : '' }}>
+                                                Large</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-12">
+                                    <hr class="my-2">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <label class="form-label mb-0">Stars</label>
+                                        <button type="button" class="btn btn-sm btn-success" id="addUserStarBtn">
+                                            <i class="ri-add-line"></i> Add Star
+                                        </button>
+                                    </div>
+                                    <div id="userStarsContainer"
+                                        data-user-stars='@json(old('stars', $tour->user_star['stars'] ?? []))'>
+                                        <!-- Filled by js  -->
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="d-flex justify-content-end mt-3">
+                                <button type="submit" class="btn btn-primary">Update User Stars</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
             <!-- language Update Tab -->
             <div class="tab-pane fade {{ ($firstActiveTab === 'vl-pills-language') ? 'active show' : '' }}"
                 id="vl-pills-language" role="tabpanel" aria-labelledby="vl-pills-language-tab">
@@ -523,6 +661,358 @@
                             <div class="d-flex justify-content-end mt-3">
                                 <button type="submit" class="btn btn-primary">
                                     <i class="ri-save-line me-1"></i> Update Language Settings
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-pane fade {{ ($firstActiveTab === 'vl-pills-tour-bookmark') ? 'active show' : '' }}"
+                id="vl-pills-tour-bookmark" role="tabpanel" aria-labelledby="vl-pills-tour-bookmark-tab">
+                <div class="card border-1 shadow-sm">
+                    <div class="card-header">
+                        <h4 class="card-title mb-0">Tour Bookmark</h4>
+                    </div>
+                    <div class="card-body">
+                        <form id="tourBookmarkTabUpdateForm" method="POST"
+                            action="{{ route('admin.tours.updateBookmarkFields', $tour) }}"
+                            enctype="multipart/form-data" class="needs-validation" novalidate>
+                            @csrf
+                            @method('PUT')
+                            <input type="hidden" name="booking_id" value="{{ $booking->id }}">
+
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label class="form-label" for="bookmark_title">Bookmark Title</label>
+                                        <input type="text" name="bookmark_title" id="bookmark_title"
+                                            class="form-control" placeholder="e.g., About us"
+                                            value="{{ old('bookmark_title', $tour->bookmark_title ?? '') }}">
+                                        @error('bookmark_title')<div class="text-danger">{{ $message }}</div>@enderror
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label class="form-label" for="bookmark_ribbon_background_color">Ribbon
+                                            Background
+                                            Color</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text p-1">
+                                                <input type="color" id="bookmark_ribbon_background_color_picker"
+                                                    class="form-control form-control-color"
+                                                    value="{{ old('bookmark_ribbon_background_color', $tour->bookmark_ribbon_background_color ?? '#000000') }}"
+                                                    onchange="document.getElementById('bookmark_ribbon_background_color').value = this.value">
+                                            </span>
+                                            <input type="text" name="bookmark_ribbon_background_color"
+                                                id="bookmark_ribbon_background_color" class="form-control"
+                                                placeholder="#000000"
+                                                value="{{ old('bookmark_ribbon_background_color', $tour->bookmark_ribbon_background_color ?? '') }}"
+                                                oninput="document.getElementById('bookmark_ribbon_background_color_picker').value = this.value">
+                                        </div>
+                                        @error('bookmark_ribbon_background_color')<div class="text-danger">
+                                                {{ $message }}
+                                            </div>
+                                        @enderror
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label class="form-label" for="bookmark_ribbon_text_color">Ribbon Text
+                                            Color</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text p-1">
+                                                <input type="color" id="bookmark_ribbon_text_color_picker"
+                                                    class="form-control form-control-color"
+                                                    value="{{ old('bookmark_ribbon_text_color', $tour->bookmark_ribbon_text_color ?? '#ffffff') }}"
+                                                    onchange="document.getElementById('bookmark_ribbon_text_color').value = this.value">
+                                            </span>
+                                            <input type="text" name="bookmark_ribbon_text_color"
+                                                id="bookmark_ribbon_text_color" class="form-control"
+                                                placeholder="#ffffff"
+                                                value="{{ old('bookmark_ribbon_text_color', $tour->bookmark_ribbon_text_color ?? '') }}"
+                                                oninput="document.getElementById('bookmark_ribbon_text_color_picker').value = this.value">
+                                        </div>
+                                        @error('bookmark_ribbon_text_color')<div class="text-danger">{{ $message }}
+                                        </div>@enderror
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label class="form-label" for="bookmark_show_on_tour_load">Show On Tour
+                                            Load</label>
+                                        <div class="form-check form-switch form-switch-lg" dir="ltr">
+                                            <input type="hidden" name="bookmark_show_on_tour_load" value="0">
+                                            <input type="checkbox" class="form-check-input"
+                                                id="bookmark_show_on_tour_load" name="bookmark_show_on_tour_load"
+                                                value="1"
+                                                {{ old('bookmark_show_on_tour_load', $tour->bookmark_show_on_tour_load ?? false) ? 'checked' : '' }}>
+                                            <label class="form-check-label"
+                                                for="bookmark_show_on_tour_load">Enabled</label>
+                                        </div>
+                                        @error('bookmark_show_on_tour_load')<div class="text-danger">{{ $message }}
+                                        </div>@enderror
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label class="form-label" for="bookmark_show_on_tour_load_delay_ms">Show On Tour
+                                            Load Delay
+                                            (ms)</label>
+                                        <input type="number" name="bookmark_show_on_tour_load_delay_ms"
+                                            id="bookmark_show_on_tour_load_delay_ms" class="form-control" min="0"
+                                            step="1" placeholder="e.g., 0"
+                                            value="{{ old('bookmark_show_on_tour_load_delay_ms', $tour->bookmark_show_on_tour_load_delay_ms ?? 0) }}">
+                                        @error('bookmark_show_on_tour_load_delay_ms')<div class="text-danger">
+                                                {{ $message }}
+                                            </div>
+                                        @enderror
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label class="form-label" for="bookmark_action">Action</label>
+                                        <select name="bookmark_action" class="form-control" id="bookmark_action">
+                                            <option value="">Select Option</option>
+                                            <option value="openInfoModal" @selected(old('bookmark_action', $tour->bookmark_action) == 'openInfoModal')>Open info
+                                                Modal</option>
+                                            <option value="openImage" @selected(old('bookmark_action', $tour->bookmark_action) == 'openImage')>Open Image
+                                            </option>
+                                            <option value="openVideo" @selected(old('bookmark_action', $tour->bookmark_action) == 'openVideo')>Open Video
+                                            </option>
+                                            <option value="openDocument" @selected(old('bookmark_action', $tour->bookmark_action) == 'openDocument')>Open
+                                                Document</option>
+                                            <option value="openLink" @selected(old('bookmark_action', $tour->bookmark_action) == 'openLink')>Open Link
+                                            </option>
+                                        </select>
+                                        @error('bookmark_action')<div class="text-danger">{{ $message }}</div>@enderror
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="bookmark_action_sections">
+                                <div id="bookmark_action_openLink" class="bookmark-action-section d-none">
+                                    <div class="row">
+                                        <div class="col-md-12">
+                                            <div class="mb-3">
+                                                <label class="form-label" for="bookmark_open_link_url">Link URL</label>
+                                                <input type="url" name="bookmark_open_link_url"
+                                                    id="bookmark_open_link_url" class="form-control"
+                                                    placeholder="e.g., https://example.com"
+                                                    value="{{ old('bookmark_open_link_url', $tour->bookmark_open_link_url ?? '') }}">
+                                                @error('bookmark_open_link_url')<div class="text-danger">{{ $message }}
+                                                </div>@enderror
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div id="bookmark_action_openDocument" class="bookmark-action-section d-none">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label class="form-label" for="bookmark_document_file">Upload
+                                                    Document</label>
+                                                <input type="file" name="bookmark_document_file"
+                                                    id="bookmark_document_file" class="form-control"
+                                                    accept=".pdf,.doc,.docx,.xls,.xlsx">
+                                                @error('bookmark_document_file')<div class="text-danger">{{ $message }}
+                                                </div>@enderror
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label class="form-label" for="bookmark_document_url">Document
+                                                    URL</label>
+                                                <input type="url" name="bookmark_document_url"
+                                                    id="bookmark_document_url" class="form-control"
+                                                    placeholder="e.g., https://example.com/file.pdf"
+                                                    value="{{ old('bookmark_document_url', $tour->bookmark_document_url ?? '') }}">
+                                                @error('bookmark_document_url')<div class="text-danger">{{ $message }}
+                                                </div>@enderror
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div id="bookmark_action_openVideo" class="bookmark-action-section d-none">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label class="form-label" for="bookmark_video_file">Upload Video</label>
+                                                <input type="file" name="bookmark_video_file" id="bookmark_video_file"
+                                                    class="form-control" accept="video/*">
+                                                @error('bookmark_video_file')<div class="text-danger">{{ $message }}
+                                                </div>@enderror
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label class="form-label" for="bookmark_video_url">Video URL</label>
+                                                <input type="url" name="bookmark_video_url" id="bookmark_video_url"
+                                                    class="form-control"
+                                                    placeholder="e.g., https://youtube.com/watch?v=..."
+                                                    value="{{ old('bookmark_video_url', $tour->bookmark_video_url ?? '') }}">
+                                                @error('bookmark_video_url')<div class="text-danger">{{ $message }}
+                                                </div>@enderror
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div id="bookmark_action_openImage" class="bookmark-action-section d-none">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label class="form-label" for="bookmark_image_file">Upload Image</label>
+                                                <input type="file" name="bookmark_image_file" id="bookmark_image_file"
+                                                    class="form-control" accept="image/*">
+                                                @error('bookmark_image_file')<div class="text-danger">{{ $message }}
+                                                </div>@enderror
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label class="form-label" for="bookmark_image_url">Image URL</label>
+                                                <input type="url" name="bookmark_image_url" id="bookmark_image_url"
+                                                    class="form-control"
+                                                    placeholder="e.g., https://example.com/image.jpg"
+                                                    value="{{ old('bookmark_image_url', $tour->bookmark_image_url ?? '') }}">
+                                                @error('bookmark_image_url')<div class="text-danger">{{ $message }}
+                                                </div>@enderror
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="bookmark_action_openInfoModal" class="bookmark-action-section d-none">
+                                @php
+                                    $bookmarkLangLabels = ['en' => 'English', 'gu' => 'Gujarati', 'hi' => 'Hindi'];
+                                    $bookmarkEnabledLanguages = is_array($tour->enable_language) && !empty($tour->enable_language)
+                                        ? array_values(array_intersect(['en', 'gu', 'hi'], $tour->enable_language))
+                                        : ['en'];
+                                    if (empty($bookmarkEnabledLanguages)) {
+                                        $bookmarkEnabledLanguages = ['en'];
+                                    }
+                                    $bookmarkFirstLang = $bookmarkEnabledLanguages[0];
+                                @endphp
+
+                                <ul class="nav nav-tabs mb-3" id="bookmarkLanguageTabs" role="tablist">
+                                    @foreach($bookmarkEnabledLanguages as $lang)
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link {{ $lang === $bookmarkFirstLang ? 'active' : '' }}"
+                                                id="bookmark-lang-{{ $lang }}-tab" data-language="{{ $lang }}"
+                                                data-bs-toggle="tab" data-bs-target="#bookmark-lang-{{ $lang }}-pane"
+                                                type="button" role="tab" aria-controls="bookmark-lang-{{ $lang }}-pane"
+                                                aria-selected="{{ $lang === $bookmarkFirstLang ? 'true' : 'false' }}">
+                                                {{ $bookmarkLangLabels[$lang] ?? strtoupper($lang) }}
+                                            </button>
+                                        </li>
+                                    @endforeach
+                                </ul>
+
+                                <div class="tab-content" id="bookmarkLanguageTabsContent">
+                                    @foreach($bookmarkEnabledLanguages as $lang)
+                                        <div class="tab-pane fade {{ $lang === $bookmarkFirstLang ? 'show active' : '' }}"
+                                            id="bookmark-lang-{{ $lang }}-pane" data-language="{{ $lang }}" role="tabpanel"
+                                            aria-labelledby="bookmark-lang-{{ $lang }}-tab" tabindex="0">
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <div class="mb-3">
+                                                        <label class="form-label" for="bookmark_modal_title_{{ $lang }}">
+                                                            Modal Title
+                                                            ({{ $bookmarkLangLabels[$lang] ?? strtoupper($lang) }})
+                                                        </label>
+                                                        <input type="text" name="bookmark_modal_title[{{ $lang }}]"
+                                                            id="bookmark_modal_title_{{ $lang }}" class="form-control"
+                                                            value="{{ old('bookmark_modal_title.' . $lang, data_get($tour, 'bookmark_modal_title.' . $lang, '')) }}"
+                                                            placeholder="e.g., About us">
+                                                        @error('bookmark_modal_title.' . $lang)
+                                                            <div class="text-danger">{{ $message }}</div>
+                                                        @enderror
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-12">
+                                                    <div class="mb-3">
+                                                        <label class="form-label"
+                                                            for="bookmark_modal_description_{{ $lang }}">
+                                                            Modal Description
+                                                            ({{ $bookmarkLangLabels[$lang] ?? strtoupper($lang) }})
+                                                        </label>
+                                                        <textarea name="bookmark_modal_description[{{ $lang }}]"
+                                                            id="bookmark_modal_description_{{ $lang }}" class="form-control editor"
+                                                            rows="3"
+                                                            placeholder="Enter modal description">{{ old('bookmark_modal_description.' . $lang, data_get($tour, 'bookmark_modal_description.' . $lang, '')) }}</textarea>
+                                                        @error('bookmark_modal_description.' . $lang)
+                                                            <div class="text-danger">{{ $message }}</div>
+                                                        @enderror
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-12">
+                                                    <div class="mb-3">
+                                                        <label class="form-label"
+                                                            for="bookmark_info_modal_footer_text_{{ $lang }}">
+                                                            Modal Footer Text
+                                                            ({{ $bookmarkLangLabels[$lang] ?? strtoupper($lang) }})
+                                                        </label>
+                                                        <textarea name="bookmark_info_modal_footer_text[{{ $lang }}]"
+                                                            id="bookmark_info_modal_footer_text_{{ $lang }}"
+                                                            class="form-control editor" rows="3"
+                                                            placeholder="e.g., <p>This is the Footer of the Modal</p>">{{ old('bookmark_info_modal_footer_text.' . $lang, data_get($tour, 'bookmark_info_modal_footer_text.' . $lang, '')) }}</textarea>
+                                                        @error('bookmark_info_modal_footer_text.' . $lang)
+                                                            <div class="text-danger">{{ $message }}</div>
+                                                        @enderror
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="row mt-2">
+                                                <div class="col-md-6">
+                                                    <div class="mb-3">
+                                                        <label class="form-label"
+                                                            for="bookmark_info_modal_footer_button_title_{{ $lang }}">
+                                                            Footer Button Title
+                                                            ({{ $bookmarkLangLabels[$lang] ?? strtoupper($lang) }})
+                                                        </label>
+                                                        <input type="text"
+                                                            name="bookmark_info_modal_footer_button_title[{{ $lang }}]"
+                                                            id="bookmark_info_modal_footer_button_title_{{ $lang }}"
+                                                            class="form-control"
+                                                            value="{{ old('bookmark_info_modal_footer_button_title.' . $lang, data_get($tour, 'bookmark_info_modal_footer_button_title.' . $lang, '')) }}"
+                                                            placeholder="e.g., Footer Button">
+                                                        @error('bookmark_info_modal_footer_button_title.' . $lang)
+                                                            <div class="text-danger">{{ $message }}</div>
+                                                        @enderror
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label class="form-label"
+                                                    for="bookmark_info_modal_footer_button_link">Footer Button
+                                                    Link</label>
+                                                <input type="url" name="bookmark_info_modal_footer_button_link"
+                                                    id="bookmark_info_modal_footer_button_link" class="form-control"
+                                                    placeholder="e.g., https://example.com"
+                                                    value="{{ old('bookmark_info_modal_footer_button_link', $tour->bookmark_info_modal_footer_button_link ?? '') }}">
+                                                @error('bookmark_info_modal_footer_button_link')
+                                                    <div class="text-danger">{{ $message }}</div>
+                                                @enderror
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="d-flex justify-content-end mt-3">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="ri-save-line me-1"></i> Update Tour Bookmark
                                 </button>
                             </div>
                         </form>
@@ -793,16 +1283,10 @@
                                                     class="form-control loader-color-input" placeholder="#000000"
                                                     value="{{ $color }}"
                                                     oninput="this.previousElementSibling.querySelector('input').value = this.value">
-                                                <!-- <button type="button" class="btn btn-soft-danger remove-loader-color">
-                                                                                                                                    <i class="ri-delete-bin-line"></i>
-                                                                                                                                </button> -->
                                             </div>
                                         </div>
                                     @endforeach
                                 </div>
-                                <!-- <button type="button" class="btn btn-soft-primary btn-sm mt-2" id="addLoaderColor">
-                                <i class="ri-add-line"></i> Add Color
-                            </button> -->
                                 @error('loader_color')<div class="text-danger">{{ $message }}</div>@enderror
                             </div>
 
@@ -829,16 +1313,14 @@
                                                     class="form-control spinner-color-input" placeholder="#000000"
                                                     value="{{ $color }}"
                                                     oninput="this.previousElementSibling.querySelector('input').value = this.value">
-                                                <!-- <button type="button" class="btn btn-soft-danger remove-spinner-color">
-                                                                                                                                    <i class="ri-delete-bin-line"></i>
-                                                                                                                                </button> -->
+                                                </button>
                                             </div>
                                         </div>
                                     @endforeach
                                 </div>
                                 <!-- <button type="button" class="btn btn-soft-primary btn-sm mt-2" id="addSpinnerColor">
-                                <i class="ri-add-line"></i> Add Color
-                            </button> -->
+                                    <i class="ri-add-line"></i> Add Color
+                                </button> -->
                                 @error('spinner_color')<div class="text-danger">{{ $message }}</div>@enderror
                             </div>
 
@@ -1043,6 +1525,7 @@
                     </div>
                 </div>
             </div>
+
             <!-- icon modal of the material icon -->
             <!-- Modal -->
             <div class="modal fade w-100" id="materialIconModal">
@@ -1050,7 +1533,7 @@
                     <div class="modal-content">
                         <div class="modal-header">
                             <h5>Select Icon</h5>
-                            <button class="btn-close" data-bs-dismiss="modal"></button>
+                            <button class="btn-close" id="materialIconModalClose" data-bs-dismiss="modal"></button>
                         </div>
                         <div class="modal-body">
                             <input type="text" id="materialIconSearch" class="form-control mb-3"
@@ -1061,6 +1544,7 @@
                 </div>
             </div> <!-- modal end -->
 
+            <!-- attchment file -->
             <div class="tab-pane fade {{ ($firstActiveTab === 'vl-pills-attachments') ? 'active show' : '' }}"
                 id="vl-pills-attachments" role="tabpanel" aria-labelledby="vl-pills-attachments-tab">
                 <div class="card border-1 shadow-sm">
@@ -1731,7 +2215,7 @@
     </div>
 </div>
 
-@vite(['resources/js/pages/booking-tour-detail-update-tab.js', 'resources/js/pages/booking_edit_sidebarLink.js', 'resources/js/pages/booking_userDetails_edit.js'])
+@vite(['resources/js/pages/booking-tour-detail-update-tab.js', 'resources/js/pages/booking_edit_sidebarLink.js', 'resources/js/pages/booking_userDetails_edit.js', 'resources/js/pages/booking_tour_bookmark_action.js', 'resources/js/pages/booking_user_stars_edit.js'])
 
 <script>
     window.sidebarLinksData = {!! json_encode(old('sidebar_links', $tour->sidebar_links)) !!};

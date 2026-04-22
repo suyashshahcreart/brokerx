@@ -5,7 +5,7 @@
         integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA=="
         crossorigin="anonymous" referrerpolicy="no-referrer" />
     <!-- Choices.js CSS -->
-    @vite(['node_modules/choices.js/public/assets/styles/choices.min.css'])
+    @vite(['node_modules/choices.js/public/assets/styles/choices.min.css', 'resources/css/style.css'])
     <style>
         /* Pill and Chip Styles */
         .top-pill,
@@ -495,6 +495,7 @@
 @section('script')
     @vite(['resources/js/pages/bookings-edit.js', 'resources/js/pages/edit-booking-tour.js', 'resources/js/pages/edit-booking-tour-settings.js'])
     @include('admin.bookings.partials.quick-actions-script')
+    <script src="{{ asset('tinymce/tinymce.min.js') }}"></script>
     <script>
         // Persist active tab across reloads
         document.addEventListener('DOMContentLoaded', function () {
@@ -521,13 +522,13 @@
         window.bookingData = {
             id: {{ $booking->id }},
             @if($tour ?? null)
-                                                                    tourId: {{ $tour->id }},
+                tourId: {{ $tour->id }},
                 hasTour: true
             @else
-                    tourId: null,
-                        hasTour: false
-                @endif
-                                    };
+                tourId: null,
+                hasTour: false
+            @endif
+            };
 
         // Store old values for restoration after main JS loads (for validation errors)
         window.bookingOldValues = {
