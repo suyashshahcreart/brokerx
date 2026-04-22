@@ -114,7 +114,7 @@ function addUserDetailsRow(detail = {}) {
 
             <div class="col-md-4">
                 <label class="form-label">Summary</label>
-                <textarea name="user_details[${rowIndex}][summery]" class="form-control" rows="2" placeholder="e.g, Summary">${summery}</textarea>
+                <textarea name="user_details[${rowIndex}][summary]" class="form-control" rows="2" placeholder="e.g, Summary">${summery}</textarea>
             </div>
 
             <div class="col-md-12 mt-3">
