@@ -11,7 +11,7 @@
  */
 
 export const materialIconList = [
-  { value: '', label: 'Do Not Disturb Alt', variant: 'filled' },
+  { value: 'do_not_disturb_alt', label: 'Do Not Disturb Alt', variant: 'filled' },
   { value: '10k', label: '10k' },
   { value: '123', label: '123' },
   { value: '18_up_rating', label: '18 Up Rating' },

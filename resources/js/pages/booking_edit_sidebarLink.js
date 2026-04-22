@@ -2,14 +2,9 @@ import $ from 'jquery';
 window.$ = window.jQuery = $;
 import '../../css/pages/materialIconLiberaryStyles.css';
 /* My Liberary Imports */
-import { IconLibrary } from '../materialIconLiberary';
-import { materialIconList } from '../data/materialIconsList';
-/* Quill Imports */
-import Quill from 'quill';
-import "quill/dist/quill.core.css";
-import "quill/dist/quill.snow.css";
+import iconLib from './booking_tour_iconLib';
+import reinitalizeEditors from '../tinyEditor';
 
-const iconLib = new IconLibrary({ materialIconList });
 const quillEditors = {}; // map rowIndex -> { en: Quill, gu: Quill, hi: Quill }
 
 // Language configuration
@@ -30,7 +25,7 @@ function getEnabledLanguages() {
 
 $(document).ready(function () {
     // setup the icon library modal and search input
-    iconLib.init('materialIconModal', 'materialIconSearch');
+    iconLib.init('materialIconModal', 'materialIconSearch', 'materialIconModalClose'); // Pass the close button element
     // Initialize sidebar links functionality
     initSidebarLinks();
     // Render existing sidebar links
@@ -44,54 +39,14 @@ function initSidebarLinks() {
     }
 }
 
-function initQuillForRow(rowIndex, initialContent = {}) {
-    if (!quillEditors[rowIndex]) {
-        quillEditors[rowIndex] = {};
-    }
-
-    const allLanguages = ['en', 'gu', 'hi'];
-    allLanguages.forEach(code => {
-        const containerId = `contentQuillEditor_${rowIndex}_${code}`;
-        const hiddenInput = document.getElementById(`contentHidden_${rowIndex}_${code}`);
-
-        if (!hiddenInput || quillEditors[rowIndex][code]) {
-            return;
-        }
-
-        const quill = new Quill(`#${containerId}`, {
-            theme: 'snow',
-            modules: {
-                toolbar: [
-                    ['bold', 'italic', 'underline', 'strike'],
-                    [{ 'header': [1, 2, 3, false] }],
-                    ['blockquote', 'code-block'],
-                    [{ 'list': 'ordered' }, { 'list': 'bullet' }],
-                    [{ 'color': [] }, { 'background': [] }],
-                    ['link', 'clean']
-                ]
-            }
-        });
-
-        const value = initialContent[code];
-        if (value) {
-            quill.setText(value);
-            hiddenInput.value = value;
-        }
-
-        quill.on('text-change', function () {
-            hiddenInput.value = quill.getText();
-        });
-
-        quillEditors[rowIndex][code] = quill;
-    });
-}
-
 function addSidebarLinkRow(linkData = {}) {
     const container = document.getElementById('sidebarLinksRow');
     if (!container) return;
 
-    const rowCount = container.querySelectorAll('.sidebar-link-row').length;
-    const rowIndex = rowCount;
+    const existingRows = Array.from(container.querySelectorAll('.sidebar-link-row'));
+    const rowIndex = existingRows.length
+        ? Math.max(...existingRows.map(row => Number(row.dataset.rowIndex) || 0)) + 1
+        : 0;
 
     // Extract data from linkData
     const icon = linkData.icon || '';
@@ -148,13 +103,8 @@ function addSidebarLinkRow(linkData = {}) {
         //<textarea name="sidebar_links[${rowIndex}][content][${code}]" class="form-control" id="exampleFormControlTextarea1" rows="6">${linkData.content?.[code] || ''}</textarea>
         contentPanesHTML += `
             <div class="tab-pane fade ${fadeClass}" id="content-pane-${code}-${rowIndex}" role="tabpanel" aria-labelledby="content-tab-${code}-${rowIndex}">
-                    <div id="contentQuillEditor_${rowIndex}_${code}" class="quill-editor" style="min-height: 150px; border: 1px solid #ced4da; border-radius: .25rem; background: #fff;">
-                        ${linkData.content?.[code] || ''}
-                    </div>
-                <div class="d-none">
-                    <input type="hidden" name="sidebar_links[${rowIndex}][content][${code}]" id="contentHidden_${rowIndex}_${code}" class="content-hidden-input" value="${linkData.content?.[code] || ''}">
-                </div>    
-                </div>`;
+                <textarea name="sidebar_links[${rowIndex}][content][${code}]" class="editor">${linkData.content?.[code] || ''}</textarea>
+            </div>`;
     });
 
     const rowHTML = `
@@ -165,7 +115,7 @@ function addSidebarLinkRow(linkData = {}) {
                     <input type="text" name="sidebar_links[${rowIndex}][icon]"
                         class="form-control icon-input" placeholder="Click to select"
                         data-row-index="${rowIndex}" readonly value="${icon}">
-                    <div class="icon-preview" id="iconPreview_${rowIndex}">
+                    <div class="icon-preview" id="sidebarIconPreview_${rowIndex}">
                         ${icon ? `
                             <div class="icon-item text-center">
                                 <span class="material-icons-outlined">${icon}</span>
@@ -225,6 +175,7 @@ function addSidebarLinkRow(linkData = {}) {
     `;
 
     container.insertAdjacentHTML('beforeend', rowHTML);
+    reinitalizeEditors();
 
     const typeSelect = document.getElementById(`typeSelect_${rowIndex}`);
     const linkContainer = document.getElementById(`linkInputContainer_${rowIndex}`);
@@ -299,7 +250,8 @@ function addSidebarLinkRow(linkData = {}) {
     const iconInput = newRow.querySelector('.icon-input');
     if (iconInput) {
         iconInput.addEventListener('click', function () {
-            iconLib.open(this, $(`#iconPreview_${rowIndex}`));
+            const preview = $(this).closest('.input-group').find('.icon-preview');
+            iconLib.open(this, $(`#sidebarIconPreview_${rowIndex}`));
         });
     }
 

@@ -121,6 +121,23 @@ class Tour extends Model
         'user_details_button_icon',
         'user_details_button_tooltip',
         'user_details',
+        // Bookmark Info modal fields
+        'bookmark_title',
+        'bookmark_ribbon_background_color',
+        'bookmark_ribbon_text_color',
+        'bookmark_show_on_tour_load',
+        'bookmark_show_on_tour_load_delay_ms',
+        'bookmark_action',
+        'bookmark_modal_title',
+        'bookmark_modal_description',
+        'bookmark_info_modal_footer_button_title',
+        'bookmark_info_modal_footer_button_link',
+        'bookmark_info_modal_footer_text',
+        'bookmark_open_link_url',
+        'bookmark_document_url',
+        'bookmark_video_url',
+        'bookmark_image_url',
+        'user_star',
     ];
 
     /**
@@ -168,6 +185,13 @@ class Tour extends Model
             'bottommark_dimensions' => 'array',
             'show_user_details_button' => 'boolean',
             'user_details' => 'array',
+            'bookmark_show_on_tour_load' => 'boolean',
+            'bookmark_show_on_tour_load_delay_ms' => 'integer',
+            'bookmark_modal_title' => 'array',
+            'bookmark_modal_description' => 'array',
+            'bookmark_info_modal_footer_button_title' => 'array',
+            'bookmark_info_modal_footer_text' => 'array',
+            'user_star' => 'array',
         ];
     }
 
