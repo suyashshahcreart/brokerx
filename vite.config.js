@@ -10,6 +10,7 @@ export default defineConfig({
             input: [
                 // css
                 'resources/scss/app.scss',
+                'resources/css/style.css',
                 'resources/scss/icons.scss',
                 'node_modules/swiper/swiper-bundle.min.css',
                 'node_modules/nouislider/dist/nouislider.min.css',
@@ -79,6 +80,8 @@ export default defineConfig({
                 'resources/js/icon-lib.js',
                 'resources/js/pages/booking_edit_sidebarLink.js',
                 'resources/js/pages/booking_userDetails_edit.js',
+                'resources/js/pages/booking_tour_bookmark_action.js',
+                'resources/js/pages/booking_user_stars_edit.js',
 
                 //components
                 'resources/js/components/maps-google.js',

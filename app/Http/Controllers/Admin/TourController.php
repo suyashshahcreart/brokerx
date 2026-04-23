@@ -2645,6 +2645,349 @@ class TourController extends Controller
         return redirect()->back()->with(['success' => 'User details updated successfully.']);
     }
 
+
+    /**
+     * Update only bookmark tab data. 
+     * Bookmark Updating 
+     * @param Request $request
+     * @param Tour $tour
+     * @return JsonResponse|RedirectResponse
+     * */
+    public function updateBookmarkFields(Request $request, Tour $tour): JsonResponse|RedirectResponse
+    {
+        $validated = $request->validate([
+            'bookmark_title' => ['nullable', 'array'],
+            'bookmark_title.en' => ['nullable', 'string', 'max:255'],
+            'bookmark_title.gu' => ['nullable', 'string', 'max:255'],
+            'bookmark_title.hi' => ['nullable', 'string', 'max:255'],
+            'bookmark_ribbon_background_color' => ['nullable', 'string', 'max:100'],
+            'bookmark_ribbon_text_color' => ['nullable', 'string', 'max:100'],
+            'bookmark_show_on_tour_load' => ['nullable', 'boolean'],
+            'bookmark_show_on_tour_load_delay_ms' => ['nullable', 'integer', 'min:0'],
+            'bookmark_action' => ['nullable', 'string', 'max:255'],
+            'bookmark_modal_title' => ['nullable', 'array'],
+            'bookmark_modal_title.en' => ['nullable', 'string'],
+            'bookmark_modal_title.gu' => ['nullable', 'string'],
+            'bookmark_modal_title.hi' => ['nullable', 'string'],
+            'bookmark_modal_description' => ['nullable', 'array'],
+            'bookmark_modal_description.en' => ['nullable', 'string'],
+            'bookmark_modal_description.gu' => ['nullable', 'string'],
+            'bookmark_modal_description.hi' => ['nullable', 'string'],
+            'bookmark_info_modal_footer_button_title' => ['nullable', 'array'],
+            'bookmark_info_modal_footer_button_title.en' => ['nullable', 'string'],
+            'bookmark_info_modal_footer_button_title.gu' => ['nullable', 'string'],
+            'bookmark_info_modal_footer_button_link' => ['nullable', 'string', 'max:500'],
+            'bookmark_info_modal_footer_text' => ['nullable', 'array'],
+            'bookmark_info_modal_footer_text.en' => ['nullable', 'string'],
+            'bookmark_info_modal_footer_text.gu' => ['nullable', 'string'],
+            'bookmark_open_link_url' => ['nullable', 'string', 'max:500'],
+            'bookmark_document_url' => ['nullable', 'string', 'max:500'],
+            'bookmark_video_url' => ['nullable', 'string', 'max:500'],
+            'bookmark_image_url' => ['nullable', 'string', 'max:1000'],
+            'bookmark_document_file' => ['nullable', 'file', 'max:10240', 'mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,txt'],
+            'bookmark_video_file' => ['nullable', 'file', 'max:102400', 'mimetypes:video/mp4,video/quicktime,video/x-msvideo,video/x-matroska,video/webm'],
+            'bookmark_image_file' => ['nullable', 'array'],
+            'bookmark_image_file.*' => ['nullable', 'file', 'image', 'max:10240'],
+        ]);
+
+        $oldData = $tour->toArray();
+        $finalJson = $this->normalizeFinalJsonPayload($tour);
+
+        $qrCode = $tour->booking_id ? QR::where('booking_id', $tour->booking_id)->value('code') : null;
+
+        $bookmarkDocumentUrl = $validated['bookmark_document_url'] ?? null;
+        $bookmarkVideoUrl = $validated['bookmark_video_url'] ?? null;
+        $bookmarkImageUrl = $validated['bookmark_image_url'] ?? null;
+        $bookmarkImagesUrl = [];
+
+        $existingBookmarkTitle = $tour->bookmark_title;
+        if (is_array($existingBookmarkTitle)) {
+            $resolvedBookmarkTitle = $existingBookmarkTitle;
+        } elseif (is_string($existingBookmarkTitle) && trim($existingBookmarkTitle) !== '') {
+            $decodedBookmarkTitle = json_decode($existingBookmarkTitle, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decodedBookmarkTitle)) {
+                $resolvedBookmarkTitle = $decodedBookmarkTitle;
+            } else {
+                $resolvedBookmarkTitle = ['en' => $existingBookmarkTitle];
+            }
+        } else {
+            $resolvedBookmarkTitle = [];
+        }
+
+        $incomingBookmarkTitle = $validated['bookmark_title'] ?? [];
+        if (!is_array($incomingBookmarkTitle)) {
+            $incomingBookmarkTitle = [];
+        }
+        foreach (['en', 'gu', 'hi'] as $lang) {
+            if (array_key_exists($lang, $incomingBookmarkTitle)) {
+                $resolvedBookmarkTitle[$lang] = $incomingBookmarkTitle[$lang];
+            }
+        }
+        $resolvedBookmarkTitle = array_filter(
+            $resolvedBookmarkTitle,
+            static fn($value) => is_string($value) && trim($value) !== ''
+        );
+
+        $existingBookmarkImagesUrl = $tour->bookmark_images_url;
+        if (is_string($existingBookmarkImagesUrl) && trim($existingBookmarkImagesUrl) !== '') {
+            $decodedBookmarkImagesUrl = json_decode($existingBookmarkImagesUrl, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decodedBookmarkImagesUrl)) {
+                $existingBookmarkImagesUrl = $decodedBookmarkImagesUrl;
+            } else {
+                $existingBookmarkImagesUrl = [];
+            }
+        }
+        if (is_array($existingBookmarkImagesUrl)) {
+            $bookmarkImagesUrl = array_values(array_filter($existingBookmarkImagesUrl, static fn($value) => is_string($value) && $value !== ''));
+        }
+
+        $uploadConfigs = [
+            'bookmark_document_file' => [
+                'prefix' => 'bookmark_document',
+                'field' => 'bookmarkDocumentUrl',
+            ],
+            'bookmark_video_file' => [
+                'prefix' => 'bookmark_video',
+                'field' => 'bookmarkVideoUrl',
+            ],
+            'bookmark_image_file' => [
+                'prefix' => 'bookmark_image',
+                'field' => 'bookmarkImageUrl',
+            ],
+        ];
+
+        foreach ($uploadConfigs as $inputName => $config) {
+            if (!$request->hasFile($inputName)) {
+                continue;
+            }
+
+            $file = $request->file($inputName);
+
+            // Multi-image input comes as an array, handled in a dedicated block below.
+            if ($inputName === 'bookmark_image_file' && is_array($file)) {
+                continue;
+            }
+
+            if (!$file || !$file->isValid()) {
+                continue;
+            }
+
+            $fileName = $config['prefix'] . '_' . time() . '_' . Str::random(8) . '.' . $file->getClientOriginalExtension();
+            $filePath = $qrCode
+                ? 'tours/' . $qrCode . '/info/' . $fileName
+                : 'info/' . $fileName;
+            $fileContent = file_get_contents($file->getRealPath());
+
+            if ($fileContent === false) {
+                continue;
+            }
+
+            Storage::disk('s3')->put($filePath, $fileContent, [
+                'ContentType' => $file->getMimeType() ?: 'application/octet-stream',
+            ]);
+
+            $uploadedUrl = Storage::disk('s3')->url($filePath);
+            if ($config['field'] === 'bookmarkDocumentUrl') {
+                $bookmarkDocumentUrl = $uploadedUrl;
+            } elseif ($config['field'] === 'bookmarkVideoUrl') {
+                $bookmarkVideoUrl = $uploadedUrl;
+            } elseif ($config['field'] === 'bookmarkImageUrl') {
+                $bookmarkImageUrl = $uploadedUrl;
+            }
+        }
+
+        if ($request->hasFile('bookmark_image_file')) {
+            $imageFiles = $request->file('bookmark_image_file');
+            if (!is_array($imageFiles)) {
+                $imageFiles = [$imageFiles];
+            }
+
+            foreach ($imageFiles as $imageFile) {
+                if (!$imageFile || !$imageFile->isValid()) {
+                    continue;
+                }
+
+                $imageFileName = 'bookmark_image_' . time() . '_' . Str::random(8) . '.' . $imageFile->getClientOriginalExtension();
+                $imageFilePath = $qrCode
+                    ? 'tours/' . $qrCode . '/info/' . $imageFileName
+                    : 'info/' . $imageFileName;
+                $imageFileContent = file_get_contents($imageFile->getRealPath());
+
+                if ($imageFileContent === false) {
+                    continue;
+                }
+
+                Storage::disk('s3')->put($imageFilePath, $imageFileContent, [
+                    'ContentType' => $imageFile->getMimeType() ?: 'application/octet-stream',
+                ]);
+
+                // Persist relative short path in DB/JSON (e.g. info/file.jpg).
+                $bookmarkImagesUrl[] = 'info/' . $imageFileName;
+            }
+        }
+
+        // Optional manual URLs, comma-separated or JSON array from input.
+        if (!empty($bookmarkImageUrl)) {
+            $manualImageUrls = [];
+            $decodedManualImageUrls = json_decode($bookmarkImageUrl, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decodedManualImageUrls)) {
+                $manualImageUrls = $decodedManualImageUrls;
+            } else {
+                $manualImageUrls = array_map('trim', explode(',', $bookmarkImageUrl));
+            }
+
+            foreach ($manualImageUrls as $manualImageUrl) {
+                if (is_string($manualImageUrl) && $manualImageUrl !== '') {
+                    $bookmarkImagesUrl[] = $manualImageUrl;
+                }
+            }
+        }
+
+        $bookmarkImagesUrl = array_values(array_unique($bookmarkImagesUrl));
+
+        // Keep single-image column for backward compatibility.
+        if (!empty($bookmarkImagesUrl)) {
+            $bookmarkImageUrl = $bookmarkImagesUrl[0];
+        }
+
+        $updateData = [
+            'bookmark_title' => empty($resolvedBookmarkTitle)
+                ? null
+                : json_encode($resolvedBookmarkTitle, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+            'bookmark_ribbon_background_color' => $validated['bookmark_ribbon_background_color'] ?? null,
+            'bookmark_ribbon_text_color' => $validated['bookmark_ribbon_text_color'] ?? null,
+            'bookmark_show_on_tour_load' => $request->boolean('bookmark_show_on_tour_load'),
+            'bookmark_show_on_tour_load_delay_ms' => $validated['bookmark_show_on_tour_load_delay_ms'] ?? 0,
+            'bookmark_action' => $validated['bookmark_action'] ?? null,
+            'bookmark_modal_title' => $validated['bookmark_modal_title'] ?? null,
+            'bookmark_modal_description' => $validated['bookmark_modal_description'] ?? null,
+            'bookmark_info_modal_footer_button_title' => $validated['bookmark_info_modal_footer_button_title'] ?? null,
+            'bookmark_info_modal_footer_button_link' => $validated['bookmark_info_modal_footer_button_link'] ?? null,
+            'bookmark_info_modal_footer_text' => $validated['bookmark_info_modal_footer_text'] ?? null,
+            'bookmark_open_link_url' => $validated['bookmark_open_link_url'] ?? null,
+            'bookmark_document_url' => $bookmarkDocumentUrl,
+            'bookmark_video_url' => $bookmarkVideoUrl,
+            'bookmark_image_url' => $bookmarkImageUrl,
+            'bookmark_images_url' => empty($bookmarkImagesUrl) ? null : $bookmarkImagesUrl,
+        ];
+
+        // Keep DB fields snake_case, but persist tour JSON inside bookmark object in camelCase.
+        $finalJson['bookmark'] = $finalJson['bookmark'] ?? [];
+        $finalJson['bookmark']['bookmarkTitle'] = empty($resolvedBookmarkTitle) ? [] : $resolvedBookmarkTitle;
+        $finalJson['bookmark']['ribbonBackgroundColor'] = $updateData['bookmark_ribbon_background_color'];
+        $finalJson['bookmark']['ribbonTextColor'] = $updateData['bookmark_ribbon_text_color'];
+        $finalJson['bookmark']['showOnTourLoad'] = $updateData['bookmark_show_on_tour_load'];
+        $finalJson['bookmark']['showOnTourLoadDelayMs'] = $updateData['bookmark_show_on_tour_load_delay_ms'];
+        $finalJson['bookmark']['action'] = $updateData['bookmark_action'];
+        $finalJson['bookmark']['modalTitle'] = $updateData['bookmark_modal_title'];
+        $finalJson['bookmark']['modalDescription'] = $updateData['bookmark_modal_description'];
+        $finalJson['bookmark']['infoModalFooterButtonTitle'] = $updateData['bookmark_info_modal_footer_button_title'];
+        $finalJson['bookmark']['infoModalFooterButtonLink'] = $updateData['bookmark_info_modal_footer_button_link'];
+        $finalJson['bookmark']['infoModalFooterText'] = $updateData['bookmark_info_modal_footer_text'];
+        $finalJson['bookmark']['openLinkUrl'] = $updateData['bookmark_open_link_url'];
+        $finalJson['bookmark']['documentUrl'] = $updateData['bookmark_document_url'];
+        $finalJson['bookmark']['videoUrl'] = $updateData['bookmark_video_url'];
+        $finalJson['bookmark']['imageUrl'] = $updateData['bookmark_image_url'];
+        $finalJson['bookmark']['imageUrls'] = $updateData['bookmark_images_url'] ?? [];
+
+        $updateData['final_json'] = $finalJson;
+
+        $tour->update($updateData);
+        $newData = $tour->fresh()->toArray();
+
+        activity('tours')
+            ->performedOn($tour)
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'old' => $oldData,
+                'new' => $newData,
+            ])
+            ->log('Tour bookmark fields updated');
+
+        $this->updateTourJsonAndJsFilesInS3($tour, $finalJson);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Bookmark fields updated successfully.',
+                'tour' => $tour->fresh(),
+            ]);
+        }
+
+        return redirect()->back()->with(['success' => 'Bookmark fields updated successfully.']);
+    }
+
+    /**
+     * Update user star configuration and details.
+     * @param Request $request
+     * @param Tour $tour
+     * @return JsonResponse|RedirectResponse
+     */
+    public function updateUserStar(Request $request, Tour $tour): JsonResponse|RedirectResponse
+    {
+        $validated = $request->validate([
+            'user_star_show_ribbon' => ['nullable', 'boolean'],
+            'user_star_show_modal' => ['nullable', 'boolean'],
+            'user_star_show_cta_button' => ['nullable', 'boolean'],
+            'user_star_cta_button_text' => ['nullable', 'string'],
+            'user_star_cta_button_link' => ['nullable', 'string'],
+            'user_star_cta_label_size' => ['nullable', 'string'],
+            'user_star_cta_label_color' => ['nullable', 'string'],
+            'stars' => ['nullable', 'array'],
+            'stars.*.label' => ['nullable', 'string'],
+            'stars.*.count' => ['nullable', 'numeric', 'min:0'],
+            'stars.*.url' => ['nullable', 'string'],
+        ]);
+
+        $stars = collect($validated['stars'] ?? [])
+            ->map(function ($star) {
+                return [
+                    'label' => $star['label'] ?? '',
+                    'count' => isset($star['count']) && $star['count'] !== '' ? (float) $star['count'] : 0,
+                    'url' => $star['url'] ?? '',
+                ];
+            })
+            ->filter(function ($star) {
+                return $star['label'] !== '' || $star['url'] !== '' || (float) $star['count'] > 0;
+            })
+            ->values()
+            ->all();
+
+        $userStar = [
+            'stars' => $stars,
+            'showRibbon' => $request->has('user_star_show_ribbon'),
+            'showModalOnLoad' => $request->has('user_star_show_modal'),
+            'showCtaButton' => $request->has('user_star_show_cta_button'),
+            'ctaLabel' => $validated['user_star_cta_button_text'] ?? 'Learn More',
+            'ctaColor' => $validated['user_star_cta_label_color'] ?? '#da8f67',
+            'ctaSize' => $validated['user_star_cta_label_size'] ?? 'medium',
+            'ctaLink' => $validated['user_star_cta_button_link'] ?? null,
+        ];
+
+        $finalJson = $this->normalizeFinalJsonPayload($tour);
+        $finalJson['bottomMarker']['userStars'] = $userStar;
+
+        $tour->update([
+            'user_star' => $userStar,
+            'final_json' => $finalJson,
+        ]);
+
+        $this->updateTourJsonAndJsFilesInS3($tour, $finalJson);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'User star updated successfully.',
+                'tour' => $tour->fresh(),
+            ]);
+        }
+
+        return redirect()->back()->with([
+            'success' => 'User star updated successfully.',
+            'active_tab' => 'vl-pills-userStar',
+        ]);
+    }
+
 }
 
 

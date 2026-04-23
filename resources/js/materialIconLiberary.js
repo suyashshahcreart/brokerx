@@ -9,18 +9,24 @@ export class IconLibrary {
         this.modal = null;
     }
 
-    init(iconModalId, searchInputId) {
+    init(iconModalId, searchInputId, closeModalButtonId) {
         this.initCDNLinks()
         this.modal = new bootstrap.Modal(document.getElementById(iconModalId));
         this.searchInput = $(`#${searchInputId}`);
         this.searchInput.on('input', (e) => {
             this.search(e.target.value);
         });
+        this.closeModalButton = $(`#${closeModalButtonId}`);
+        this.closeModalButton.on('click', () => {
+            this.searchInput.val('');
+            this.filteredIcons = this.icons;
+            this.modal.hide();
+        });
     }
 
     open(inputSelector, previewIcon) {
         this.targetInput = inputSelector;
-        this.previewIcon = previewIcon;
+        this.previewIcon = previewIcon ;
         this.renderIcons();
         this.modal.show();
     }
@@ -41,7 +47,6 @@ export class IconLibrary {
     renderIcons() {
         const container = $('#iconContainer');
         container.empty();
-
         this.filteredIcons.forEach(icon => {
             const el = $(`
                 <div class="icon-item text-center">
@@ -57,11 +62,13 @@ export class IconLibrary {
     selectIcon(icon) {
         $(this.targetInput).val(icon.value);
         this.searchInput.val('');
-        this.previewIcon.html(`
+        if (this.previewIcon && this.previewIcon.length) {
+            this.previewIcon.html(`
                 <div class="icon-item text-center">
                     <span class="material-icons-outlined">${icon.value}</span>
                 </div>
-            `)
+            `);
+        }
         this.filteredIcons = this.icons;
         this.modal.hide();
     }
