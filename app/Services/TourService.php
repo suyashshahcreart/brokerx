@@ -188,7 +188,17 @@ class TourService
         // Bookmark fields add
         $bookmark = $finalJson['bookmark'] ?? [];
         if ($forceSync || Arr::has($diffJson, 'bookmark.showBookmarkButton')) {
-            $tour->bookmark_title = $bookmark['bookmarkTitle'] ?? false;
+            $bookmarkTitle = $bookmark['bookmarkTitle'] ?? null;
+            if (is_array($bookmarkTitle)) {
+                $bookmarkTitle = array_filter($bookmarkTitle, static fn($value) => is_string($value) && trim($value) !== '');
+                $tour->bookmark_title = empty($bookmarkTitle)
+                    ? null
+                    : json_encode($bookmarkTitle, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+            } elseif (is_string($bookmarkTitle) && trim($bookmarkTitle) !== '') {
+                $tour->bookmark_title = json_encode(['en' => $bookmarkTitle], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+            } else {
+                $tour->bookmark_title = null;
+            }
             $tour->bookmark_ribbon_background_color = $bookmark['ribbonBackgroundColor'] ?? null;
             $tour->bookmark_ribbon_text_color = $bookmark['ribbonTextColor'] ?? null;
             $tour->bookmark_show_on_tour_load = $bookmark['showOnTourLoad'] ?? null;

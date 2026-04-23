@@ -2656,7 +2656,10 @@ class TourController extends Controller
     public function updateBookmarkFields(Request $request, Tour $tour): JsonResponse|RedirectResponse
     {
         $validated = $request->validate([
-            'bookmark_title' => ['nullable', 'string', 'max:255'],
+            'bookmark_title' => ['nullable', 'array'],
+            'bookmark_title.en' => ['nullable', 'string', 'max:255'],
+            'bookmark_title.gu' => ['nullable', 'string', 'max:255'],
+            'bookmark_title.hi' => ['nullable', 'string', 'max:255'],
             'bookmark_ribbon_background_color' => ['nullable', 'string', 'max:100'],
             'bookmark_ribbon_text_color' => ['nullable', 'string', 'max:100'],
             'bookmark_show_on_tour_load' => ['nullable', 'boolean'],
@@ -2696,6 +2699,34 @@ class TourController extends Controller
         $bookmarkVideoUrl = $validated['bookmark_video_url'] ?? null;
         $bookmarkImageUrl = $validated['bookmark_image_url'] ?? null;
         $bookmarkImagesUrl = [];
+
+        $existingBookmarkTitle = $tour->bookmark_title;
+        if (is_array($existingBookmarkTitle)) {
+            $resolvedBookmarkTitle = $existingBookmarkTitle;
+        } elseif (is_string($existingBookmarkTitle) && trim($existingBookmarkTitle) !== '') {
+            $decodedBookmarkTitle = json_decode($existingBookmarkTitle, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decodedBookmarkTitle)) {
+                $resolvedBookmarkTitle = $decodedBookmarkTitle;
+            } else {
+                $resolvedBookmarkTitle = ['en' => $existingBookmarkTitle];
+            }
+        } else {
+            $resolvedBookmarkTitle = [];
+        }
+
+        $incomingBookmarkTitle = $validated['bookmark_title'] ?? [];
+        if (!is_array($incomingBookmarkTitle)) {
+            $incomingBookmarkTitle = [];
+        }
+        foreach (['en', 'gu', 'hi'] as $lang) {
+            if (array_key_exists($lang, $incomingBookmarkTitle)) {
+                $resolvedBookmarkTitle[$lang] = $incomingBookmarkTitle[$lang];
+            }
+        }
+        $resolvedBookmarkTitle = array_filter(
+            $resolvedBookmarkTitle,
+            static fn($value) => is_string($value) && trim($value) !== ''
+        );
 
         $existingBookmarkImagesUrl = $tour->bookmark_images_url;
         if (is_string($existingBookmarkImagesUrl) && trim($existingBookmarkImagesUrl) !== '') {
@@ -2820,7 +2851,9 @@ class TourController extends Controller
         }
 
         $updateData = [
-            'bookmark_title' => $validated['bookmark_title'] ?? null,
+            'bookmark_title' => empty($resolvedBookmarkTitle)
+                ? null
+                : json_encode($resolvedBookmarkTitle, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
             'bookmark_ribbon_background_color' => $validated['bookmark_ribbon_background_color'] ?? null,
             'bookmark_ribbon_text_color' => $validated['bookmark_ribbon_text_color'] ?? null,
             'bookmark_show_on_tour_load' => $request->boolean('bookmark_show_on_tour_load'),
@@ -2840,7 +2873,7 @@ class TourController extends Controller
 
         // Keep DB fields snake_case, but persist tour JSON inside bookmark object in camelCase.
         $finalJson['bookmark'] = $finalJson['bookmark'] ?? [];
-        $finalJson['bookmark']['bookmarkTitle'] = $updateData['bookmark_title'];
+        $finalJson['bookmark']['bookmarkTitle'] = empty($resolvedBookmarkTitle) ? [] : $resolvedBookmarkTitle;
         $finalJson['bookmark']['ribbonBackgroundColor'] = $updateData['bookmark_ribbon_background_color'];
         $finalJson['bookmark']['ribbonTextColor'] = $updateData['bookmark_ribbon_text_color'];
         $finalJson['bookmark']['showOnTourLoad'] = $updateData['bookmark_show_on_tour_load'];
