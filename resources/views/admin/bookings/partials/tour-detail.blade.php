@@ -868,8 +868,8 @@
                                         <div class="col-md-6">
                                             <div class="mb-3">
                                                 <label class="form-label" for="bookmark_image_file">Upload Image</label>
-                                                <input type="file" name="bookmark_image_file" id="bookmark_image_file"
-                                                    class="form-control" accept="image/*">
+                                                <input type="file" name="bookmark_image_file[]" multiple
+                                                    id="bookmark_image_file" class="form-control" accept="image/*">
                                                 @error('bookmark_image_file')<div class="text-danger">{{ $message }}
                                                 </div>@enderror
                                             </div>
@@ -877,10 +877,17 @@
                                         <div class="col-md-6">
                                             <div class="mb-3">
                                                 <label class="form-label" for="bookmark_image_url">Image URL</label>
-                                                <input type="url" name="bookmark_image_url" id="bookmark_image_url"
-                                                    class="form-control"
-                                                    placeholder="e.g., https://example.com/image.jpg"
-                                                    value="{{ old('bookmark_image_url', $tour->bookmark_image_url ?? '') }}">
+                                                @foreach ($tour->bookmark_images_url as $imageUrl)
+                                                    <div class="d-flex align-items-center gap-2 mb-2">
+                                                        <input type="text" name="bookmark_images_url[]" class="form-control"
+                                                            placeholder="e.g., https://example.com/image.jpg"
+                                                            value="{{ old('bookmark_images_url[]', $imageUrl) }}">
+                                                        <button type="button"
+                                                            class="btn btn-sm btn-danger remove-bookmark-image-btn">
+                                                            <i class="ri-close-line"></i>
+                                                        </button>
+                                                    </div>
+                                                @endforeach
                                                 @error('bookmark_image_url')<div class="text-danger">{{ $message }}
                                                 </div>@enderror
                                             </div>
@@ -944,8 +951,8 @@
                                                             ({{ $bookmarkLangLabels[$lang] ?? strtoupper($lang) }})
                                                         </label>
                                                         <textarea name="bookmark_modal_description[{{ $lang }}]"
-                                                            id="bookmark_modal_description_{{ $lang }}" class="form-control editor"
-                                                            rows="3"
+                                                            id="bookmark_modal_description_{{ $lang }}"
+                                                            class="form-control editor" rows="3"
                                                             placeholder="Enter modal description">{{ old('bookmark_modal_description.' . $lang, data_get($tour, 'bookmark_modal_description.' . $lang, '')) }}</textarea>
                                                         @error('bookmark_modal_description.' . $lang)
                                                             <div class="text-danger">{{ $message }}</div>
