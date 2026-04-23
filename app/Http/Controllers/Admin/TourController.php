@@ -2656,7 +2656,10 @@ class TourController extends Controller
     public function updateBookmarkFields(Request $request, Tour $tour): JsonResponse|RedirectResponse
     {
         $validated = $request->validate([
-            'bookmark_title' => ['nullable', 'string', 'max:255'],
+            'bookmark_title' => ['nullable', 'array'],
+            'bookmark_title.en' => ['nullable', 'string', 'max:255'],
+            'bookmark_title.gu' => ['nullable', 'string', 'max:255'],
+            'bookmark_title.hi' => ['nullable', 'string', 'max:255'],
             'bookmark_ribbon_background_color' => ['nullable', 'string', 'max:100'],
             'bookmark_ribbon_text_color' => ['nullable', 'string', 'max:100'],
             'bookmark_show_on_tour_load' => ['nullable', 'boolean'],
@@ -2680,10 +2683,11 @@ class TourController extends Controller
             'bookmark_open_link_url' => ['nullable', 'string', 'max:500'],
             'bookmark_document_url' => ['nullable', 'string', 'max:500'],
             'bookmark_video_url' => ['nullable', 'string', 'max:500'],
-            'bookmark_image_url' => ['nullable', 'string', 'max:500'],
+            'bookmark_image_url' => ['nullable', 'string', 'max:1000'],
             'bookmark_document_file' => ['nullable', 'file', 'max:10240', 'mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,txt'],
             'bookmark_video_file' => ['nullable', 'file', 'max:102400', 'mimetypes:video/mp4,video/quicktime,video/x-msvideo,video/x-matroska,video/webm'],
-            'bookmark_image_file' => ['nullable', 'file', 'image', 'max:10240'],
+            'bookmark_image_file' => ['nullable', 'array'],
+            'bookmark_image_file.*' => ['nullable', 'file', 'image', 'max:10240'],
         ]);
 
         $oldData = $tour->toArray();
@@ -2694,6 +2698,48 @@ class TourController extends Controller
         $bookmarkDocumentUrl = $validated['bookmark_document_url'] ?? null;
         $bookmarkVideoUrl = $validated['bookmark_video_url'] ?? null;
         $bookmarkImageUrl = $validated['bookmark_image_url'] ?? null;
+        $bookmarkImagesUrl = [];
+
+        $existingBookmarkTitle = $tour->bookmark_title;
+        if (is_array($existingBookmarkTitle)) {
+            $resolvedBookmarkTitle = $existingBookmarkTitle;
+        } elseif (is_string($existingBookmarkTitle) && trim($existingBookmarkTitle) !== '') {
+            $decodedBookmarkTitle = json_decode($existingBookmarkTitle, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decodedBookmarkTitle)) {
+                $resolvedBookmarkTitle = $decodedBookmarkTitle;
+            } else {
+                $resolvedBookmarkTitle = ['en' => $existingBookmarkTitle];
+            }
+        } else {
+            $resolvedBookmarkTitle = [];
+        }
+
+        $incomingBookmarkTitle = $validated['bookmark_title'] ?? [];
+        if (!is_array($incomingBookmarkTitle)) {
+            $incomingBookmarkTitle = [];
+        }
+        foreach (['en', 'gu', 'hi'] as $lang) {
+            if (array_key_exists($lang, $incomingBookmarkTitle)) {
+                $resolvedBookmarkTitle[$lang] = $incomingBookmarkTitle[$lang];
+            }
+        }
+        $resolvedBookmarkTitle = array_filter(
+            $resolvedBookmarkTitle,
+            static fn($value) => is_string($value) && trim($value) !== ''
+        );
+
+        $existingBookmarkImagesUrl = $tour->bookmark_images_url;
+        if (is_string($existingBookmarkImagesUrl) && trim($existingBookmarkImagesUrl) !== '') {
+            $decodedBookmarkImagesUrl = json_decode($existingBookmarkImagesUrl, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decodedBookmarkImagesUrl)) {
+                $existingBookmarkImagesUrl = $decodedBookmarkImagesUrl;
+            } else {
+                $existingBookmarkImagesUrl = [];
+            }
+        }
+        if (is_array($existingBookmarkImagesUrl)) {
+            $bookmarkImagesUrl = array_values(array_filter($existingBookmarkImagesUrl, static fn($value) => is_string($value) && $value !== ''));
+        }
 
         $uploadConfigs = [
             'bookmark_document_file' => [
@@ -2716,6 +2762,12 @@ class TourController extends Controller
             }
 
             $file = $request->file($inputName);
+
+            // Multi-image input comes as an array, handled in a dedicated block below.
+            if ($inputName === 'bookmark_image_file' && is_array($file)) {
+                continue;
+            }
+
             if (!$file || !$file->isValid()) {
                 continue;
             }
@@ -2744,8 +2796,64 @@ class TourController extends Controller
             }
         }
 
+        if ($request->hasFile('bookmark_image_file')) {
+            $imageFiles = $request->file('bookmark_image_file');
+            if (!is_array($imageFiles)) {
+                $imageFiles = [$imageFiles];
+            }
+
+            foreach ($imageFiles as $imageFile) {
+                if (!$imageFile || !$imageFile->isValid()) {
+                    continue;
+                }
+
+                $imageFileName = 'bookmark_image_' . time() . '_' . Str::random(8) . '.' . $imageFile->getClientOriginalExtension();
+                $imageFilePath = $qrCode
+                    ? 'tours/' . $qrCode . '/info/' . $imageFileName
+                    : 'info/' . $imageFileName;
+                $imageFileContent = file_get_contents($imageFile->getRealPath());
+
+                if ($imageFileContent === false) {
+                    continue;
+                }
+
+                Storage::disk('s3')->put($imageFilePath, $imageFileContent, [
+                    'ContentType' => $imageFile->getMimeType() ?: 'application/octet-stream',
+                ]);
+
+                // Persist relative short path in DB/JSON (e.g. info/file.jpg).
+                $bookmarkImagesUrl[] = 'info/' . $imageFileName;
+            }
+        }
+
+        // Optional manual URLs, comma-separated or JSON array from input.
+        if (!empty($bookmarkImageUrl)) {
+            $manualImageUrls = [];
+            $decodedManualImageUrls = json_decode($bookmarkImageUrl, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decodedManualImageUrls)) {
+                $manualImageUrls = $decodedManualImageUrls;
+            } else {
+                $manualImageUrls = array_map('trim', explode(',', $bookmarkImageUrl));
+            }
+
+            foreach ($manualImageUrls as $manualImageUrl) {
+                if (is_string($manualImageUrl) && $manualImageUrl !== '') {
+                    $bookmarkImagesUrl[] = $manualImageUrl;
+                }
+            }
+        }
+
+        $bookmarkImagesUrl = array_values(array_unique($bookmarkImagesUrl));
+
+        // Keep single-image column for backward compatibility.
+        if (!empty($bookmarkImagesUrl)) {
+            $bookmarkImageUrl = $bookmarkImagesUrl[0];
+        }
+
         $updateData = [
-            'bookmark_title' => $validated['bookmark_title'] ?? null,
+            'bookmark_title' => empty($resolvedBookmarkTitle)
+                ? null
+                : json_encode($resolvedBookmarkTitle, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
             'bookmark_ribbon_background_color' => $validated['bookmark_ribbon_background_color'] ?? null,
             'bookmark_ribbon_text_color' => $validated['bookmark_ribbon_text_color'] ?? null,
             'bookmark_show_on_tour_load' => $request->boolean('bookmark_show_on_tour_load'),
@@ -2760,11 +2868,12 @@ class TourController extends Controller
             'bookmark_document_url' => $bookmarkDocumentUrl,
             'bookmark_video_url' => $bookmarkVideoUrl,
             'bookmark_image_url' => $bookmarkImageUrl,
+            'bookmark_images_url' => empty($bookmarkImagesUrl) ? null : $bookmarkImagesUrl,
         ];
 
         // Keep DB fields snake_case, but persist tour JSON inside bookmark object in camelCase.
         $finalJson['bookmark'] = $finalJson['bookmark'] ?? [];
-        $finalJson['bookmark']['bookmarkTitle'] = $updateData['bookmark_title'];
+        $finalJson['bookmark']['bookmarkTitle'] = empty($resolvedBookmarkTitle) ? [] : $resolvedBookmarkTitle;
         $finalJson['bookmark']['ribbonBackgroundColor'] = $updateData['bookmark_ribbon_background_color'];
         $finalJson['bookmark']['ribbonTextColor'] = $updateData['bookmark_ribbon_text_color'];
         $finalJson['bookmark']['showOnTourLoad'] = $updateData['bookmark_show_on_tour_load'];
@@ -2779,6 +2888,7 @@ class TourController extends Controller
         $finalJson['bookmark']['documentUrl'] = $updateData['bookmark_document_url'];
         $finalJson['bookmark']['videoUrl'] = $updateData['bookmark_video_url'];
         $finalJson['bookmark']['imageUrl'] = $updateData['bookmark_image_url'];
+        $finalJson['bookmark']['imageUrls'] = $updateData['bookmark_images_url'] ?? [];
 
         $updateData['final_json'] = $finalJson;
 

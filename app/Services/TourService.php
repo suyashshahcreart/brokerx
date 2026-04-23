@@ -188,7 +188,17 @@ class TourService
         // Bookmark fields add
         $bookmark = $finalJson['bookmark'] ?? [];
         if ($forceSync || Arr::has($diffJson, 'bookmark.showBookmarkButton')) {
-            $tour->bookmark_title = $bookmark['bookmarkTitle'] ?? false;
+            $bookmarkTitle = $bookmark['bookmarkTitle'] ?? null;
+            if (is_array($bookmarkTitle)) {
+                $bookmarkTitle = array_filter($bookmarkTitle, static fn($value) => is_string($value) && trim($value) !== '');
+                $tour->bookmark_title = empty($bookmarkTitle)
+                    ? null
+                    : json_encode($bookmarkTitle, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+            } elseif (is_string($bookmarkTitle) && trim($bookmarkTitle) !== '') {
+                $tour->bookmark_title = json_encode(['en' => $bookmarkTitle], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+            } else {
+                $tour->bookmark_title = null;
+            }
             $tour->bookmark_ribbon_background_color = $bookmark['ribbonBackgroundColor'] ?? null;
             $tour->bookmark_ribbon_text_color = $bookmark['ribbonTextColor'] ?? null;
             $tour->bookmark_show_on_tour_load = $bookmark['showOnTourLoad'] ?? null;
@@ -202,7 +212,14 @@ class TourService
             $tour->bookmark_open_link_url = $bookmark['openLinkUrl'] ?? null;
             $tour->bookmark_document_url = $bookmark['documentUrl'] ?? null;
             $tour->bookmark_video_url = $bookmark['videoUrl'] ?? null;
-            $tour->bookmark_image_url = $bookmark['imageUrls'] ?? null;
+            $bookmarkImageUrls = $bookmark['imageUrls'] ?? [];
+            if (!is_array($bookmarkImageUrls)) {
+                $bookmarkImageUrls = !empty($bookmarkImageUrls) ? [$bookmarkImageUrls] : [];
+            }
+            $tour->bookmark_images_url = $bookmarkImageUrls;
+            $tour->bookmark_image_url = !empty($bookmarkImageUrls)
+                ? $bookmarkImageUrls[0]
+                : ($bookmark['imageUrl'] ?? null);
         }
         /* User Star Rating sync function */
         if($forceSync || Arr::has($diffJson, 'bottomMarker.userStars')) {
