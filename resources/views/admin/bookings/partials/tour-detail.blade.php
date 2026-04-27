@@ -682,17 +682,78 @@
                             @method('PUT')
                             <input type="hidden" name="booking_id" value="{{ $booking->id }}">
 
+                            @php
+                                $bookmarkLangLabels = ['en' => 'English', 'gu' => 'Gujarati', 'hi' => 'Hindi'];
+                                $bookmarkEnabledLanguages = is_array($tour->enable_language) && !empty($tour->enable_language)
+                                    ? array_values(array_intersect(['en', 'gu', 'hi'], $tour->enable_language))
+                                    : ['en'];
+                                if (empty($bookmarkEnabledLanguages)) {
+                                    $bookmarkEnabledLanguages = ['en'];
+                                }
+                                $bookmarkFirstLang = $bookmarkEnabledLanguages[0];
+
+                                $bookmarkTitleValues = [];
+                                $oldBookmarkTitle = old('bookmark_title');
+                                if (is_array($oldBookmarkTitle)) {
+                                    $bookmarkTitleValues = $oldBookmarkTitle;
+                                } else {
+                                    $storedBookmarkTitle = $tour->bookmark_title;
+                                    if (is_array($storedBookmarkTitle)) {
+                                        $bookmarkTitleValues = $storedBookmarkTitle;
+                                    } elseif (is_string($storedBookmarkTitle) && trim($storedBookmarkTitle) !== '') {
+                                        $decodedBookmarkTitle = json_decode($storedBookmarkTitle, true);
+                                        if (json_last_error() === JSON_ERROR_NONE && is_array($decodedBookmarkTitle)) {
+                                            $bookmarkTitleValues = $decodedBookmarkTitle;
+                                        } else {
+                                            $bookmarkTitleValues = ['en' => $storedBookmarkTitle];
+                                        }
+                                    }
+                                }
+                            @endphp
+
                             <div class="row">
-                                <div class="col-md-4">
+                                <div class="col-md-12">
                                     <div class="mb-3">
-                                        <label class="form-label" for="bookmark_title">Bookmark Title</label>
-                                        <input type="text" name="bookmark_title" id="bookmark_title"
-                                            class="form-control" placeholder="e.g., About us"
-                                            value="{{ old('bookmark_title', $tour->bookmark_title ?? '') }}">
+                                        <label class="form-label">Bookmark Title (Ribbon Label)</label>
+
+                                        <ul class="nav nav-tabs mb-3" id="bookmarkTitleLanguageTabs" role="tablist">
+                                            @foreach($bookmarkEnabledLanguages as $lang)
+                                                <li class="nav-item" role="presentation">
+                                                    <button
+                                                        class="nav-link {{ $lang === $bookmarkFirstLang ? 'active' : '' }}"
+                                                        id="bookmark-title-lang-{{ $lang }}-tab" data-bs-toggle="tab"
+                                                        data-bs-target="#bookmark-title-lang-{{ $lang }}-pane" type="button"
+                                                        role="tab" aria-controls="bookmark-title-lang-{{ $lang }}-pane"
+                                                        aria-selected="{{ $lang === $bookmarkFirstLang ? 'true' : 'false' }}">
+                                                        {{ $bookmarkLangLabels[$lang] ?? strtoupper($lang) }}
+                                                    </button>
+                                                </li>
+                                            @endforeach
+                                        </ul>
+
+                                        <div class="tab-content" id="bookmarkTitleLanguageTabsContent">
+                                            @foreach($bookmarkEnabledLanguages as $lang)
+                                                <div class="tab-pane fade {{ $lang === $bookmarkFirstLang ? 'show active' : '' }}"
+                                                    id="bookmark-title-lang-{{ $lang }}-pane" role="tabpanel"
+                                                    aria-labelledby="bookmark-title-lang-{{ $lang }}-tab">
+                                                    <input type="text" name="bookmark_title[{{ $lang }}]"
+                                                        id="bookmark_title_{{ $lang }}" class="form-control"
+                                                        placeholder="e.g., About us"
+                                                        value="{{ old('bookmark_title.' . $lang, data_get($bookmarkTitleValues, $lang, '')) }}">
+                                                    @error('bookmark_title.' . $lang)
+                                                        <div class="text-danger">{{ $message }}</div>
+                                                    @enderror
+                                                </div>
+                                            @endforeach
+                                        </div>
+
                                         @error('bookmark_title')<div class="text-danger">{{ $message }}</div>@enderror
                                     </div>
                                 </div>
-                                <div class="col-md-4">
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
                                     <div class="mb-3">
                                         <label class="form-label" for="bookmark_ribbon_background_color">Ribbon
                                             Background
@@ -716,7 +777,7 @@
                                         @enderror
                                     </div>
                                 </div>
-                                <div class="col-md-4">
+                                <div class="col-md-6">
                                     <div class="mb-3">
                                         <label class="form-label" for="bookmark_ribbon_text_color">Ribbon Text
                                             Color</label>
@@ -868,8 +929,8 @@
                                         <div class="col-md-6">
                                             <div class="mb-3">
                                                 <label class="form-label" for="bookmark_image_file">Upload Image</label>
-                                                <input type="file" name="bookmark_image_file" id="bookmark_image_file"
-                                                    class="form-control" accept="image/*">
+                                                <input type="file" name="bookmark_image_file[]" multiple
+                                                    id="bookmark_image_file" class="form-control" accept="image/*">
                                                 @error('bookmark_image_file')<div class="text-danger">{{ $message }}
                                                 </div>@enderror
                                             </div>
@@ -877,12 +938,22 @@
                                         <div class="col-md-6">
                                             <div class="mb-3">
                                                 <label class="form-label" for="bookmark_image_url">Image URL</label>
-                                                <input type="url" name="bookmark_image_url" id="bookmark_image_url"
-                                                    class="form-control"
-                                                    placeholder="e.g., https://example.com/image.jpg"
-                                                    value="{{ old('bookmark_image_url', $tour->bookmark_image_url ?? '') }}">
-                                                @error('bookmark_image_url')<div class="text-danger">{{ $message }}
-                                                </div>@enderror
+                                                @if (is_array($tour->bookmark_images_url) && count($tour->bookmark_images_url) > 0)
+                                                    @foreach ($tour->bookmark_images_url as $imageUrl)
+                                                        <div class="d-flex align-items-center gap-2 mb-2">
+                                                            <input type="text" name="bookmark_images_url[]" class="form-control"
+                                                                placeholder="e.g., https://example.com/image.jpg"
+                                                                value="{{ old('bookmark_images_url[]', $imageUrl) }}">
+                                                            <button type="button"
+                                                                class="btn btn-sm btn-danger remove-bookmark-image-btn">
+                                                                <i class="ri-close-line"></i>
+                                                            </button>
+                                                        </div>
+                                                    @endforeach
+                                                    @error('bookmark_image_url')<div class="text-danger">{{ $message }}</div>@enderror
+                                                @else
+                                                <small class="text-muted d-block mb-2"> NO IMAGES SET (UPLOAD IMAGES)</small>
+                                                @endauth
                                             </div>
                                         </div>
                                     </div>
@@ -890,17 +961,6 @@
                             </div>
 
                             <div id="bookmark_action_openInfoModal" class="bookmark-action-section d-none">
-                                @php
-                                    $bookmarkLangLabels = ['en' => 'English', 'gu' => 'Gujarati', 'hi' => 'Hindi'];
-                                    $bookmarkEnabledLanguages = is_array($tour->enable_language) && !empty($tour->enable_language)
-                                        ? array_values(array_intersect(['en', 'gu', 'hi'], $tour->enable_language))
-                                        : ['en'];
-                                    if (empty($bookmarkEnabledLanguages)) {
-                                        $bookmarkEnabledLanguages = ['en'];
-                                    }
-                                    $bookmarkFirstLang = $bookmarkEnabledLanguages[0];
-                                @endphp
-
                                 <ul class="nav nav-tabs mb-3" id="bookmarkLanguageTabs" role="tablist">
                                     @foreach($bookmarkEnabledLanguages as $lang)
                                         <li class="nav-item" role="presentation">
@@ -944,8 +1004,8 @@
                                                             ({{ $bookmarkLangLabels[$lang] ?? strtoupper($lang) }})
                                                         </label>
                                                         <textarea name="bookmark_modal_description[{{ $lang }}]"
-                                                            id="bookmark_modal_description_{{ $lang }}" class="form-control editor"
-                                                            rows="3"
+                                                            id="bookmark_modal_description_{{ $lang }}"
+                                                            class="form-control editor" rows="3"
                                                             placeholder="Enter modal description">{{ old('bookmark_modal_description.' . $lang, data_get($tour, 'bookmark_modal_description.' . $lang, '')) }}</textarea>
                                                         @error('bookmark_modal_description.' . $lang)
                                                             <div class="text-danger">{{ $message }}</div>
