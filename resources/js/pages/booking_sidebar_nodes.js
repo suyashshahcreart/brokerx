@@ -37,37 +37,6 @@ function escapeHtml(value) {
         .replace(/'/g, '&#039;');
 }
 
-function appendNodeFields(fieldsEl, baseName, value) {
-    if (value === null || value === undefined) {
-        const input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = baseName;
-        input.value = '';
-        fieldsEl.appendChild(input);
-        return;
-    }
-
-    if (Array.isArray(value)) {
-        value.forEach((item, index) => {
-            appendNodeFields(fieldsEl, `${baseName}[${index}]`, item);
-        });
-        return;
-    }
-
-    if (typeof value === 'object') {
-        Object.entries(value).forEach(([key, nestedValue]) => {
-            appendNodeFields(fieldsEl, `${baseName}[${key}]`, nestedValue);
-        });
-        return;
-    }
-
-    const input = document.createElement('input');
-    input.type = 'hidden';
-    input.name = baseName;
-    input.value = String(value);
-    fieldsEl.appendChild(input);
-}
-
 function syncSidebarNodesPayload(listEl, fieldsEl, countEl) {
     const rows = Array.from(listEl.querySelectorAll('.sidebar-node-item'));
 
@@ -88,9 +57,10 @@ function syncSidebarNodesPayload(listEl, fieldsEl, countEl) {
     }).filter(Boolean);
 
     fieldsEl.innerHTML = '';
-    payload.forEach((node, index) => {
-        appendNodeFields(fieldsEl, `sidebar_node[${index}]`, node);
-    });
+    const payloadInput = document.getElementById('sidebar_node_payload');
+    if (payloadInput) {
+        payloadInput.value = JSON.stringify(payload);
+    }
 
     if (countEl) {
         countEl.textContent = String(payload.length);

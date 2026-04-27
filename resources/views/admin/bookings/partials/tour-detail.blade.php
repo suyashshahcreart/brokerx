@@ -950,9 +950,11 @@
                                                             </button>
                                                         </div>
                                                     @endforeach
-                                                    @error('bookmark_image_url')<div class="text-danger">{{ $message }}</div>@enderror
+                                                    @error('bookmark_image_url')<div class="text-danger">{{ $message }}
+                                                    </div>@enderror
                                                 @else
-                                                <small class="text-muted d-block mb-2"> NO IMAGES SET (UPLOAD IMAGES)</small>
+                                                <small class="text-muted d-block mb-2"> NO IMAGES SET (UPLOAD
+                                                    IMAGES)</small>
                                                 @endauth
                                             </div>
                                         </div>
@@ -1343,12 +1345,9 @@
                                                     class="form-control loader-color-input" placeholder="#000000"
                                                     value="{{ $color }}"
                                                     oninput="this.previousElementSibling.querySelector('input').value = this.value">
-<<<<<<< HEAD
                                                 <!-- <button type="button" class="btn btn-soft-danger remove-loader-color">
-                                                                                                                                            <i class="ri-delete-bin-line"></i>
-                                                                                                                                        </button> -->
-=======
->>>>>>> 11e23cbdd86c90b29e1e1ea6d5995d73818c9299
+                                                                                                                                                <i class="ri-delete-bin-line"></i>
+                                                                                                                                            </button> -->
                                             </div>
                                         </div>
                                     @endforeach
@@ -1379,13 +1378,13 @@
                                                     class="form-control spinner-color-input" placeholder="#000000"
                                                     value="{{ $color }}"
                                                     oninput="this.previousElementSibling.querySelector('input').value = this.value">
-<<<<<<< HEAD
-                                                <!-- <button type="button" class="btn btn-soft-danger remove-spinner-color">
-                                                                                                                                            <i class="ri-delete-bin-line"></i>
-                                                                                                                                        </button> -->
-=======
-                                                </button>
->>>>>>> 11e23cbdd86c90b29e1e1ea6d5995d73818c9299
+                                                <<<<<<< HEAD <!-- <button type="button"
+                                                    class="btn btn-soft-danger remove-spinner-color">
+                                                    <i class="ri-delete-bin-line"></i>
+                                                    </button> -->
+                                                    =======
+                                                    </button>
+                                                    >>>>>>> 11e23cbdd86c90b29e1e1ea6d5995d73818c9299
                                             </div>
                                         </div>
                                     @endforeach
@@ -1601,7 +1600,8 @@
                             <div class="tab-pane fade show" id="sidebar-tab-3-pane" role="tabpanel"
                                 aria-labelledby="sidebar-tab-3-tab" tabindex="0">
                                 @php
-                                    $sidebarNodeValue = old('sidebar_node', $tour->sidebar_node ?? []);
+                                    $storedNodesFromFinalJson = data_get($tour->final_json, 'nodes', []);
+                                    $sidebarNodeValue = old('sidebar_node', !empty($storedNodesFromFinalJson) ? $storedNodesFromFinalJson : ($tour->sidebar_node ?? []));
 
                                     if (is_string($sidebarNodeValue)) {
                                         $decodedSidebarNodes = json_decode($sidebarNodeValue, true);
@@ -1631,17 +1631,22 @@
                                     id="sidebarNodesForm" class="needs-validation" novalidate>
                                     @csrf
                                     @method('PUT')
+                                    <input type="hidden" name="sidebar_node_payload" id="sidebar_node_payload">
                                     <div id="sidebar_node_fields" class="d-none"></div>
                                     <div class="row">
                                         <div class="col-12">
                                             <div class="border rounded-3 overflow-hidden">
-                                                <div class="d-flex justify-content-between align-items-center px-3 py-2 bg-light border-bottom">
+                                                <div
+                                                    class="d-flex justify-content-between align-items-center px-3 py-2 bg-light border-bottom">
                                                     <div>
-                                                        <h5 class="mb-0">Side Menu Items (<span id="sidebarNodeCount">{{ $sidebarNodeCount }}</span>)</h5>
+                                                        <h5 class="mb-0">Side Menu Items (<span
+                                                                id="sidebarNodeCount">{{ $sidebarNodeCount }}</span>)
+                                                        </h5>
                                                     </div>
                                                 </div>
 
-                                                <div class="px-3 py-2 border-bottom small text-muted d-flex align-items-center gap-3">
+                                                <div
+                                                    class="px-3 py-2 border-bottom small text-muted d-flex align-items-center gap-3">
                                                     <span><i class="ri-draggable me-1"></i> Drag</span>
                                                     <span><i class="ri-menu-line me-1"></i> Item</span>
                                                 </div>
@@ -1653,17 +1658,21 @@
                                                             $nodeTitle = data_get($node, 'sideMenuTitle.' . $preferredLanguage, data_get($node, 'sideMenuTitle.en', data_get($node, 'sideMenuTitle.hi', data_get($node, 'sideMenuTitle.gu', data_get($node, 'name', 'Untitled Node')))));
                                                             $nodeIcon = data_get($node, 'sideMenuIcon', 'ri-image-line');
                                                             $nodeId = data_get($node, 'id', '');
-                                                            $nodeDataJson = json_encode($node, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+                                                            $nodeDataJson = json_encode($node);
                                                         @endphp
                                                         <li class="list-group-item d-flex align-items-center justify-content-between sidebar-node-item"
-                                                            data-id="{{ $nodeId }}" data-title="{{ strtolower((string) $nodeTitle) }}">
+                                                            data-id="{{ $nodeId }}"
+                                                            data-title="{{ strtolower((string) $nodeTitle) }}">
                                                             <div class="d-flex align-items-center gap-2">
-                                                                <span class="drag-handle text-muted" style="cursor: grab;"><i class="ri-draggable"></i></span>
+                                                                <span class="drag-handle text-muted"
+                                                                    style="cursor: grab;"><i
+                                                                        class="ri-draggable"></i></span>
                                                                 <i class="{{ $nodeIcon }}"></i>
                                                                 <span class="sidebar-node-title">{{ $nodeTitle }}</span>
                                                             </div>
                                                             <div class="d-flex align-items-center gap-2">
-                                                                <button type="button" class="btn btn-sm btn-outline-secondary"
+                                                                <button type="button"
+                                                                    class="btn btn-sm btn-outline-secondary"
                                                                     data-action="edit-sidebar-node">
                                                                     <i class="ri-pencil-line me-1"></i>Edit
                                                                 </button>
@@ -1672,12 +1681,13 @@
                                                             </div>
                                                         </li>
                                                     @empty
-                                                        <li class="list-group-item text-muted" id="sidebarNodesEmpty">No sidebar nodes available.</li>
+                                                        <li class="list-group-item text-muted" id="sidebarNodesEmpty">No
+                                                            sidebar nodes available.</li>
                                                     @endforelse
                                                 </ul>
                                             </div>
-                                            <small class="text-muted d-block mt-2">Only the sideMenuOrder value is
-                                                normalized when this form is saved.</small>
+                                            <small class="text-muted d-block mt-2">sideMenuOrder is normalized and
+                                                node value types are preserved when this form is saved.</small>
                                             @error('sidebar_node')<div class="text-danger">{{ $message }}</div>@enderror
                                         </div>
                                         <div class="d-flex justify-content-end mt-3">
@@ -1692,17 +1702,22 @@
                                         <div class="modal-content">
                                             <div class="modal-header">
                                                 <div>
-                                                    <h5 class="modal-title" id="sidebarNodeTitleModalLabel">Edit Sidebar Node Title</h5>
-                                                    <small class="text-muted d-block" id="sidebarNodeTitleModalNodeName"></small>
+                                                    <h5 class="modal-title" id="sidebarNodeTitleModalLabel">Edit Sidebar
+                                                        Node Title</h5>
+                                                    <small class="text-muted d-block"
+                                                        id="sidebarNodeTitleModalNodeName"></small>
                                                 </div>
-                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                                    aria-label="Close"></button>
                                             </div>
                                             <div class="modal-body">
                                                 <div id="sidebarNodeTitleFields"></div>
                                             </div>
                                             <div class="modal-footer">
-                                                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
-                                                <button type="button" class="btn btn-primary" id="saveSidebarNodeTitleButton">Save changes</button>
+                                                <button type="button" class="btn btn-light"
+                                                    data-bs-dismiss="modal">Cancel</button>
+                                                <button type="button" class="btn btn-primary"
+                                                    id="saveSidebarNodeTitleButton">Save changes</button>
                                             </div>
                                         </div>
                                     </div>
