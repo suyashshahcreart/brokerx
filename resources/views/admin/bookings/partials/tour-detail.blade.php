@@ -1602,6 +1602,7 @@
                                 @php
                                     $storedNodesFromFinalJson = data_get($tour->final_json, 'nodes', []);
                                     $sidebarNodeValue = old('sidebar_node', !empty($storedNodesFromFinalJson) ? $storedNodesFromFinalJson : ($tour->sidebar_node ?? []));
+                                    $sidebarLinksValue = old('sidebarlinks', $tour->sidebar_links ?? data_get($tour->final_json, 'sidebarLinks', []));
 
                                     if (is_string($sidebarNodeValue)) {
                                         $decodedSidebarNodes = json_decode($sidebarNodeValue, true);
@@ -1614,10 +1615,7 @@
 
                                     $sidebarNodeValue = collect($sidebarNodeValue)
                                         ->filter(function ($node) {
-                                            return is_array($node)
-                                                && array_key_exists('sideMenuOrder', $node)
-                                                && $node['sideMenuOrder'] !== null
-                                                && $node['sideMenuOrder'] !== '';
+                                            return is_array($node) && array_key_exists("showInSideMenu", $node) ;
                                         })
                                         ->sortBy(function ($node) {
                                             return (int) ($node['sideMenuOrder'] ?? 0);
@@ -1626,6 +1624,7 @@
                                         ->toArray();
 
                                     $sidebarNodeCount = count($sidebarNodeValue);
+                                    $sidebarExtraLinkCount = is_array($sidebarLinksValue) ? count($sidebarLinksValue) : 0;
                                 @endphp
                                 <form action="{{ route('admin.tours.updateSidebarNodes', $tour) }}" method="POST"
                                     id="sidebarNodesForm" class="needs-validation" novalidate>
@@ -1642,6 +1641,16 @@
                                                         <h5 class="mb-0">Side Menu Items (<span
                                                                 id="sidebarNodeCount">{{ $sidebarNodeCount }}</span>)
                                                         </h5>
+                                                        <small class="text-muted d-block">{{ $sidebarNodeCount }} items +
+                                                            {{ $sidebarExtraLinkCount }} extra links</small>
+                                                    </div>
+                                                </div>
+
+                                                <div class="px-3 py-2 border-bottom bg-white">
+                                                    <div class="input-group input-group-sm">
+                                                        <span class="input-group-text"><i class="ri-search-line"></i></span>
+                                                        <input type="search" class="form-control" id="sidebarNodeSearch"
+                                                            placeholder="Search items...">
                                                     </div>
                                                 </div>
 
@@ -1655,7 +1664,7 @@
                                                     @forelse ($sidebarNodeValue as $node)
                                                         @php
                                                             $preferredLanguage = $tour->default_language ?? 'en';
-                                                            $nodeTitle = data_get($node, 'sideMenuTitle.' . $preferredLanguage, data_get($node, 'sideMenuTitle.en', data_get($node, 'sideMenuTitle.hi', data_get($node, 'sideMenuTitle.gu', data_get($node, 'name', 'Untitled Node')))));
+                                                            $nodeTitle = data_get($node, 'sideMenuTitle');
                                                             $nodeIcon = data_get($node, 'sideMenuIcon', 'ri-image-line');
                                                             $nodeId = data_get($node, 'id', '');
                                                             $nodeDataJson = json_encode($node);
@@ -1665,12 +1674,13 @@
                                                             data-title="{{ strtolower((string) $nodeTitle) }}">
                                                             <div class="d-flex align-items-center gap-2">
                                                                 <span class="drag-handle text-muted"
-                                                                    style="cursor: grab;"><i
-                                                                        class="ri-draggable"></i></span>
+                                                                    style="cursor: grab;"><i class="ri-draggable"></i></span>
                                                                 <i class="{{ $nodeIcon }}"></i>
                                                                 <span class="sidebar-node-title">{{ $nodeTitle }}</span>
                                                             </div>
                                                             <div class="d-flex align-items-center gap-2">
+                                                                <span class="badge bg-light text-dark border sidebar-node-order-badge">#
+                                                                    {{ (int) (data_get($node, 'sideMenuOrder', 0)) }}</span>
                                                                 <button type="button"
                                                                     class="btn btn-sm btn-outline-secondary"
                                                                     data-action="edit-sidebar-node">

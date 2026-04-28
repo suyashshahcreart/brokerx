@@ -11,10 +11,7 @@ function normalizeNodeJson(rawJson) {
 
 function getNodeTitleMap(node) {
     const rawTitleMap = node.sideMenuTitle;
-
-    return rawTitleMap && typeof rawTitleMap === 'object' && !Array.isArray(rawTitleMap)
-        ? rawTitleMap
-        : {};
+    return rawTitleMap && typeof rawTitleMap === 'object' ? rawTitleMap : { en:rawTitleMap, hi:rawTitleMap, gu:rawTitleMap };
 }
 
 function getNodeDisplayTitle(node) {
@@ -43,7 +40,6 @@ function syncSidebarNodesPayload(listEl, fieldsEl, countEl) {
     const payload = rows.map((row, index) => {
         const rawJson = row.querySelector('.node-json')?.value || '{}';
         const node = normalizeNodeJson(rawJson);
-
         const hasSideMenuOrder = Object.prototype.hasOwnProperty.call(node, 'sideMenuOrder')
             && node.sideMenuOrder !== null
             && node.sideMenuOrder !== '';
@@ -53,6 +49,12 @@ function syncSidebarNodesPayload(listEl, fieldsEl, countEl) {
         }
 
         node.sideMenuOrder = index;
+
+        const orderBadge = row.querySelector('.sidebar-node-order-badge');
+        if (orderBadge) {
+            orderBadge.textContent = `# ${index + 1}`;
+        }
+
         return node;
     }).filter(Boolean);
 
