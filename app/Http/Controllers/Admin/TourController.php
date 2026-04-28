@@ -2296,6 +2296,10 @@ class TourController extends Controller
             ->filter(fn($node) => is_array($node))
             ->values()
             ->toArray();
+        $existingCategories = collect($finalJson['sidebarCategories'] ?? [])
+            ->filter(fn($category) => is_array($category))
+            ->values()
+            ->toArray();
 
         $mergedNodes = $existingNodes;
 
@@ -2351,7 +2355,48 @@ class TourController extends Controller
         }
 
         if (!empty($sidebarCategories)) {
-            $finalJson['sidebarCategories'] = array_values($sidebarCategories);
+            $mergedCategories = $existingCategories;
+
+            $categoryIndexById = [];
+            foreach ($mergedCategories as $index => $existingCategory) {
+                $existingId = isset($existingCategory['id']) ? trim((string) $existingCategory['id']) : '';
+
+                if ($existingId !== '' && !array_key_exists($existingId, $categoryIndexById)) {
+                    $categoryIndexById[$existingId] = $index;
+                }
+            }
+
+            foreach ($sidebarCategories as $submittedCategory) {
+                $submittedId = isset($submittedCategory['id']) ? trim((string) $submittedCategory['id']) : '';
+
+                if ($submittedId === '') {
+                    continue;
+                }
+
+                if (array_key_exists($submittedId, $categoryIndexById)) {
+                    $index = $categoryIndexById[$submittedId];
+
+                    // Patch only category-management fields and preserve unknown keys.
+                    if (array_key_exists('name', $submittedCategory)) {
+                        $mergedCategories[$index]['name'] = $submittedCategory['name'];
+                    }
+
+                    if (array_key_exists('icon', $submittedCategory)) {
+                        $mergedCategories[$index]['icon'] = $submittedCategory['icon'];
+                    }
+
+                    if (array_key_exists('order', $submittedCategory)) {
+                        $mergedCategories[$index]['order'] = $submittedCategory['order'];
+                    }
+                } else {
+                    $categoryIndexById[$submittedId] = count($mergedCategories);
+                    $mergedCategories[] = $submittedCategory;
+                }
+            }
+
+            $finalJson['sidebarCategories'] = array_values($mergedCategories);
+        } elseif (!array_key_exists('sidebarCategories', $finalJson) && !empty($existingCategories)) {
+            $finalJson['sidebarCategories'] = array_values($existingCategories);
         }
 
         $tour->update([

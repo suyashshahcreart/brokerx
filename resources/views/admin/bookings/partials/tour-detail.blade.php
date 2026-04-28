@@ -1669,6 +1669,11 @@
                                                         </h5>
                                                         <small class="text-muted d-block">{{ $sidebarNodeCount }} items + {{ $sidebarExtraLinkCount }} extra links</small>
                                                     </div>
+                                                    <div>
+                                                        <button type="button" class="btn btn-sm btn-outline-primary" id="addSidebarCategoryButton">
+                                                            <i class="ri-add-line me-1"></i>Add Category
+                                                        </button>
+                                                    </div>
                                                 </div>
 
                                                 <div class="px-3 py-2 border-bottom bg-white">
@@ -1720,6 +1725,40 @@
                                                     data-bs-dismiss="modal">Cancel</button>
                                                 <button type="button" class="btn btn-primary"
                                                     id="saveSidebarNodeTitleButton">Save changes</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="modal fade" id="sidebarCategoryModal" tabindex="-1"
+                                    aria-labelledby="sidebarCategoryModalLabel" aria-hidden="true">
+                                    <div class="modal-dialog modal-lg modal-dialog-centered">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title" id="sidebarCategoryModalLabel">Add Sidebar Category</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                                    aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <input type="hidden" id="sidebarCategoryIdInput">
+                                                <div class="mb-3">
+                                                    <label for="sidebarCategoryIconInput" class="form-label">Icon</label>
+                                                    <div class="input-group">
+                                                        <input type="text" class="form-control icon-input" id="sidebarCategoryIconInput"
+                                                            placeholder="Click to select" readonly>
+                                                        <button type="button" class="btn btn-outline-secondary" id="selectSidebarCategoryIconButton">
+                                                            <i class="ri-search-line me-1"></i>Select
+                                                        </button>
+                                                    </div>
+                                                    <div class="icon-preview mt-2" id="sidebarCategoryIconPreview"></div>
+                                                </div>
+                                                <div id="sidebarCategoryNameFields"></div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-light"
+                                                    data-bs-dismiss="modal">Cancel</button>
+                                                <button type="button" class="btn btn-primary"
+                                                    id="saveSidebarCategoryButton">Save category</button>
                                             </div>
                                         </div>
                                     </div>

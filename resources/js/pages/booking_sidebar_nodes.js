@@ -1,4 +1,6 @@
+import $ from 'jquery';
 import Sortable from 'sortablejs';
+import iconLib from './booking_tour_iconLib';
 
 const UNCATEGORIZED_CATEGORY_ID = '__uncategorized__';
 
@@ -89,6 +91,14 @@ function getCategoryDisplayTitle(category) {
         .filter((value) => value !== '');
 
     return String(titleMap[preferredLanguage] ?? values[0] ?? 'Category').trim() || 'Category';
+}
+
+function generateSidebarCategoryId() {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+        return `cat_${crypto.randomUUID()}`;
+    }
+
+    return `cat_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
 }
 
 function isSidebarNodeVisible(node) {
@@ -213,7 +223,7 @@ function buildCategoryCard(category, nodes, options = {}) {
     const categoryId = options.isUncategorized ? UNCATEGORIZED_CATEGORY_ID : getCategoryKey(category);
     const collapseId = `sidebarNodeGroup_${categoryId.replace(/[^A-Za-z0-9_\-]/g, '_')}`;
     const title = options.isUncategorized ? 'Uncategorized' : getCategoryDisplayTitle(category);
-    const icon = options.isUncategorized ? 'ri-list-unordered' : String(category?.icon || 'ri-folder-2-line');
+    const icon = options.isUncategorized ? 'list' : String(category?.icon || 'folder');
     const draggableClass = options.isUncategorized ? 'sidebar-category-fixed' : '';
     const rows = nodes.length > 0
         ? nodes.map((node) => buildNodeRow(node)).join('')
@@ -226,11 +236,12 @@ function buildCategoryCard(category, nodes, options = {}) {
                     <span class="${options.isUncategorized ? 'text-muted' : 'drag-handle sidebar-category-drag-handle text-muted'}" ${options.isUncategorized ? '' : 'style="cursor: grab;"'}>
                         <i class="${options.isUncategorized ? 'ri-list-unordered' : 'ri-drag-move-2-line'}"></i>
                     </span>
-                    <i class="${escapeHtml(icon)}"></i>
+                    <span class="material-icons-outlined" style="font-size: 18px; line-height: 1;">${escapeHtml(icon)}</span>
                     <span class="sidebar-category-title">${escapeHtml(title)}</span>
                 </div>
                 <div class="d-flex align-items-center gap-2">
                     <span class="badge bg-white text-dark border sidebar-category-count">${nodes.length}</span>
+                    ${options.isUncategorized ? '' : '<button type="button" class="btn btn-sm btn-outline-secondary" data-action="edit-sidebar-category"><i class="ri-pencil-line me-1"></i>Edit</button>'}
                     <button type="button" class="btn btn-sm btn-light border" data-bs-toggle="collapse" data-bs-target="#${collapseId}" aria-expanded="true" aria-controls="${collapseId}">
                         <i class="ri-subtract-line"></i>
                     </button>
@@ -268,6 +279,19 @@ function renderSidebarNodes(containerEl, countEl) {
     }
 }
 
+function renderSidebarCategoryIconPreview(previewEl, iconName) {
+    if (!previewEl || !iconName) {
+        previewEl.html('');
+        return;
+    }
+
+    previewEl.html(`
+        <div class="icon-item text-center">
+            <span class="material-icons-outlined">${escapeHtml(iconName)}</span>
+        </div>
+    `);
+}
+
 function setupSidebarSortables(containerEl, countEl) {
     const categoriesSortable = new Sortable(containerEl, {
         animation: 150,
@@ -294,6 +318,24 @@ function setupSidebarSortables(containerEl, countEl) {
         categoriesSortable,
         nodeSortables,
     };
+}
+
+function refreshSidebarLayout(containerEl, countEl, searchEl) {
+    if (window.sidebarSortables?.categoriesSortable) {
+        window.sidebarSortables.categoriesSortable.destroy();
+    }
+
+    if (Array.isArray(window.sidebarSortables?.nodeSortables)) {
+        window.sidebarSortables.nodeSortables.forEach((sortable) => sortable.destroy());
+    }
+
+    renderSidebarNodes(containerEl, countEl);
+    window.sidebarSortables = setupSidebarSortables(containerEl, countEl);
+    syncSidebarNodesPayload(containerEl, countEl);
+
+    if (searchEl && searchEl.value.trim() !== '') {
+        searchEl.dispatchEvent(new Event('input', { bubbles: true }));
+    }
 }
 
 function syncSidebarNodesPayload(containerEl, countEl) {
@@ -519,6 +561,152 @@ function setupSidebarNodeTitleEditor(containerEl, countEl) {
     });
 }
 
+function buildSidebarCategoryNameFields(fieldsEl, category) {
+    const nameMap = getTitleMap(category?.name);
+    const languages = getEnabledLanguages();
+    const content = languages.map((language) => {
+        const value = nameMap[language] || '';
+
+        return `
+            <div class="mb-3 sidebar-category-language-row" data-language="${escapeHtml(language)}">
+                <label class="form-label" for="sidebarCategoryName_${escapeHtml(language)}">${escapeHtml(getLanguageLabel(language))} Name</label>
+                <input type="text" class="form-control" id="sidebarCategoryName_${escapeHtml(language)}" data-language-value value="${escapeHtml(value)}" placeholder="Enter ${escapeHtml(getLanguageLabel(language))} name">
+            </div>
+        `;
+    }).join('');
+
+    fieldsEl.innerHTML = `
+        <div class="text-muted small mb-3">Set the category name for each available language.</div>
+        ${content}
+    `;
+}
+
+function setupSidebarCategoryEditor(containerEl, countEl, searchEl) {
+    const modalEl = document.getElementById('sidebarCategoryModal');
+    const modalLabelEl = document.getElementById('sidebarCategoryModalLabel');
+    const modalFieldsEl = document.getElementById('sidebarCategoryNameFields');
+    const modalIconInput = document.getElementById('sidebarCategoryIconInput');
+    const modalIconPreview = $('#sidebarCategoryIconPreview');
+    const modalCategoryIdInput = document.getElementById('sidebarCategoryIdInput');
+    const addCategoryButton = document.getElementById('addSidebarCategoryButton');
+    const selectIconButton = document.getElementById('selectSidebarCategoryIconButton');
+    const saveButton = document.getElementById('saveSidebarCategoryButton');
+
+    if (!modalEl || !modalLabelEl || !modalFieldsEl || !modalIconInput || !modalCategoryIdInput || !saveButton) {
+        return;
+    }
+
+    const modal = typeof bootstrap !== 'undefined'
+        ? bootstrap.Modal.getOrCreateInstance(modalEl)
+        : null;
+
+    const openCategoryModal = (mode, category) => {
+        modalLabelEl.textContent = mode === 'create' ? 'Add Sidebar Category' : 'Edit Sidebar Category';
+        modalCategoryIdInput.value = String(category?.id || '');
+        modalIconInput.value = String(category?.icon || 'folder');
+        renderSidebarCategoryIconPreview(modalIconPreview, modalIconInput.value);
+        buildSidebarCategoryNameFields(modalFieldsEl, category || { name: {} });
+        modal?.show();
+    };
+
+    addCategoryButton?.addEventListener('click', () => {
+        openCategoryModal('create', {
+            id: '',
+            icon: 'folder',
+            name: {},
+        });
+    });
+
+    selectIconButton?.addEventListener('click', () => {
+        iconLib.open(modalIconInput, modalIconPreview);
+    });
+
+    modalIconInput.addEventListener('click', () => {
+        iconLib.open(modalIconInput, modalIconPreview);
+    });
+
+    selectIconButton?.addEventListener('click', () => {
+        iconLib.open(modalIconInput, modalIconPreview);
+    });
+
+    modalIconInput.addEventListener('click', () => {
+        iconLib.open(modalIconInput, modalIconPreview);
+    });
+
+    containerEl.addEventListener('click', (event) => {
+        const button = event.target.closest('[data-action="edit-sidebar-category"]');
+        if (!button) {
+            return;
+        }
+
+        const card = button.closest('.sidebar-category-card');
+        const categoryId = String(card?.dataset.categoryId ?? '').trim();
+
+        if (!categoryId || categoryId === UNCATEGORIZED_CATEGORY_ID) {
+            return;
+        }
+
+        const category = window.sidebarCategoriesById.get(categoryId);
+        if (!category) {
+            return;
+        }
+
+        openCategoryModal('edit', category);
+    });
+
+    saveButton.addEventListener('click', () => {
+        ensureSidebarState();
+
+        const categoryId = modalCategoryIdInput.value.trim();
+        const isCreate = categoryId === '';
+        const nextId = isCreate ? generateSidebarCategoryId() : categoryId;
+        const existingCategory = window.sidebarCategoriesById.get(nextId);
+
+        const updatedName = {};
+        Array.from(modalFieldsEl.querySelectorAll('.sidebar-category-language-row')).forEach((row) => {
+            const language = row.dataset.language?.trim();
+            const valueInput = row.querySelector('[data-language-value]');
+            const value = valueInput?.value.trim() || '';
+
+            if (language) {
+                updatedName[language] = value;
+            }
+        });
+
+        const nextCategory = {
+            ...(existingCategory || {}),
+            id: nextId,
+            icon: modalIconInput.value.trim() || 'folder',
+            name: updatedName,
+        };
+
+        if (isCreate) {
+            nextCategory.order = window.sidebarCategoriesData.length;
+            window.sidebarCategoriesData.push(nextCategory);
+        } else {
+            window.sidebarCategoriesData = window.sidebarCategoriesData.map((category) => {
+                if (getCategoryKey(category) === nextId) {
+                    return {
+                        ...category,
+                        ...nextCategory,
+                    };
+                }
+
+                return category;
+            });
+        }
+
+        window.sidebarCategoriesById = new Map(
+            window.sidebarCategoriesData
+                .map((category) => [getCategoryKey(category), category])
+                .filter(([key]) => key !== '')
+        );
+
+        refreshSidebarLayout(containerEl, countEl, searchEl);
+        modal?.hide();
+    });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     const listEl = document.getElementById('sidebarNodes');
     const searchEl = document.getElementById('sidebarNodeSearch');
@@ -529,10 +717,15 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
+    if (document.getElementById('materialIconModal')) {
+        iconLib.init('materialIconModal', 'materialIconSearch', 'materialIconModalClose');
+    }
+
     ensureSidebarState();
     renderSidebarNodes(listEl, countEl);
-    setupSidebarSortables(listEl, countEl);
+    window.sidebarSortables = setupSidebarSortables(listEl, countEl);
     setupSidebarNodeSearch(listEl, searchEl);
     setupSidebarNodeTitleEditor(listEl, countEl);
+    setupSidebarCategoryEditor(listEl, countEl, searchEl);
     syncSidebarNodesPayload(listEl, countEl);
 });

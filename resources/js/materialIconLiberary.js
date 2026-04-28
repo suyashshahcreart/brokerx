@@ -7,9 +7,14 @@ export class IconLibrary {
         this.filteredIcons = [...materialIconList];
         this.targetInput = null;
         this.modal = null;
+        this.initialized = false;
     }
 
     init(iconModalId, searchInputId, closeModalButtonId) {
+        if (this.initialized) {
+            return;
+        }
+
         this.initCDNLinks()
         this.modal = new bootstrap.Modal(document.getElementById(iconModalId));
         this.searchInput = $(`#${searchInputId}`);
@@ -22,6 +27,8 @@ export class IconLibrary {
             this.filteredIcons = this.icons;
             this.modal.hide();
         });
+
+        this.initialized = true;
     }
 
     open(inputSelector, previewIcon) {
