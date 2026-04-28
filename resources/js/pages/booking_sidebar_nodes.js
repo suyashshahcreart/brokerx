@@ -34,8 +34,8 @@ function escapeHtml(value) {
         .replace(/'/g, '&#039;');
 }
 
-function syncSidebarNodesPayload(listEl, fieldsEl, countEl) {
-    const rows = Array.from(listEl.querySelectorAll('.sidebar-node-item'));
+function syncSidebarNodesPayload(containerEl, fieldsEl, countEl) {
+    const rows = Array.from(containerEl.querySelectorAll('.sidebar-node-list .sidebar-node-item'));
 
     const payload = rows.map((row, index) => {
         const rawJson = row.querySelector('.node-json')?.value || '{}';
@@ -49,6 +49,24 @@ function syncSidebarNodesPayload(listEl, fieldsEl, countEl) {
         }
 
         node.sideMenuOrder = index;
+
+        const sidebarNodeList = row.closest('.sidebar-node-list');
+        const categoryId = sidebarNodeList?.dataset.categoryId?.trim() || '';
+
+        if (categoryId !== '') {
+            node.sideMenuCategoryId = categoryId;
+        } else {
+            delete node.sideMenuCategoryId;
+        }
+
+        const categoryRows = sidebarNodeList
+            ? Array.from(sidebarNodeList.querySelectorAll('.sidebar-node-item'))
+            : [];
+        const categoryIndex = categoryRows.indexOf(row);
+
+        if (categoryIndex >= 0) {
+            node.categoryOrder = categoryIndex;
+        }
 
         const orderBadge = row.querySelector('.sidebar-node-order-badge');
         if (orderBadge) {
@@ -122,23 +140,29 @@ function buildSidebarNodeTitleFields(fieldsEl, node) {
     `;
 }
 
-function setupSidebarNodeSearch(listEl, searchEl) {
+function setupSidebarNodeSearch(containerEl, searchEl) {
     if (!searchEl) {
         return;
     }
 
     searchEl.addEventListener('input', function () {
         const query = this.value.trim().toLowerCase();
-        const rows = Array.from(listEl.querySelectorAll('.sidebar-node-item'));
+        const rows = Array.from(containerEl.querySelectorAll('.sidebar-node-item'));
 
         rows.forEach((row) => {
             const title = row.dataset.title || '';
             row.style.display = title.includes(query) ? '' : 'none';
         });
+
+        const groups = Array.from(containerEl.querySelectorAll('.sidebar-node-group'));
+        groups.forEach((group) => {
+            const visibleRows = Array.from(group.querySelectorAll('.sidebar-node-item')).filter((row) => row.style.display !== 'none');
+            group.style.display = visibleRows.length > 0 ? '' : 'none';
+        });
     });
 }
 
-function setupSidebarNodeTitleEditor(listEl, fieldsEl, countEl) {
+function setupSidebarNodeTitleEditor(containerEl, fieldsEl, countEl) {
     const modalEl = document.getElementById('sidebarNodeTitleModal');
     const modalTitleEl = document.getElementById('sidebarNodeTitleModalLabel');
     const modalNodeNameEl = document.getElementById('sidebarNodeTitleModalNodeName');
@@ -155,7 +179,7 @@ function setupSidebarNodeTitleEditor(listEl, fieldsEl, countEl) {
 
     let activeRow = null;
 
-    listEl.addEventListener('click', (event) => {
+    containerEl.addEventListener('click', (event) => {
         const button = event.target.closest('[data-action="edit-sidebar-node"]');
 
         if (!button) {
@@ -209,7 +233,7 @@ function setupSidebarNodeTitleEditor(listEl, fieldsEl, countEl) {
         }
 
         updateSidebarNodeRow(activeRow);
-        syncSidebarNodesPayload(listEl, fieldsEl, countEl);
+        syncSidebarNodesPayload(containerEl, fieldsEl, countEl);
         modal?.hide();
     });
 }
@@ -219,16 +243,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const fieldsEl = document.getElementById('sidebar_node_fields');
     const searchEl = document.getElementById('sidebarNodeSearch');
     const countEl = document.getElementById('sidebarNodeCount');
+    const nodeLists = listEl ? Array.from(listEl.querySelectorAll('.sidebar-node-list')) : [];
 
-    if (!listEl || !fieldsEl) {
+    if (!listEl || !fieldsEl || nodeLists.length === 0) {
         return;
     }
 
-    new Sortable(listEl, {
-        animation: 150,
-        handle: '.drag-handle',
-        draggable: '.sidebar-node-item',
-        onEnd: () => syncSidebarNodesPayload(listEl, fieldsEl, countEl),
+    nodeLists.forEach((nodeList) => {
+        new Sortable(nodeList, {
+            animation: 150,
+            handle: '.drag-handle',
+            draggable: '.sidebar-node-item',
+            group: 'sidebar-nodes',
+            onEnd: () => syncSidebarNodesPayload(listEl, fieldsEl, countEl),
+        });
     });
 
     setupSidebarNodeSearch(listEl, searchEl);
