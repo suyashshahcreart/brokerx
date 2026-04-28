@@ -1600,11 +1600,15 @@
                             <div class="tab-pane fade show" id="sidebar-tab-3-pane" role="tabpanel"
                                 aria-labelledby="sidebar-tab-3-tab" tabindex="0">
                                 @php
+                                    $submittedSidebarPayload = old('sidebar_node_payload');
+                                    $submittedSidebarPayload = is_string($submittedSidebarPayload) ? json_decode($submittedSidebarPayload, true) : [];
+                                    $submittedSidebarPayload = is_array($submittedSidebarPayload) ? $submittedSidebarPayload : [];
+
                                     $storedNodesFromFinalJson = data_get($tour->final_json, 'nodes', []);
                                     $sidebarCategoriesValue = data_get($tour->final_json, 'sidebarCategories', []);
-                                    $sidebarNodeValue = old('sidebar_node', !empty($storedNodesFromFinalJson) ? $storedNodesFromFinalJson : ($tour->sidebar_node ?? []));
+                                    $sidebarNodeValue = $submittedSidebarPayload['nodes'] ?? old('sidebar_node', !empty($storedNodesFromFinalJson) ? $storedNodesFromFinalJson : ($tour->sidebar_node ?? []));
+                                    $sidebarCategoriesValue = $submittedSidebarPayload['sidebarCategories'] ?? $sidebarCategoriesValue;
                                     $sidebarLinksValue = old('sidebarlinks', $tour->sidebar_links ?? data_get($tour->final_json, 'sidebarLinks', []));
-                                    $preferredLanguage = $tour->default_language ?? 'en';
 
                                     if (is_string($sidebarNodeValue)) {
                                         $decodedSidebarNodes = json_decode($sidebarNodeValue, true);
@@ -1624,21 +1628,24 @@
                                         $sidebarCategoriesValue = [];
                                     }
 
-                                    $resolveSidebarTitle = function ($value) use ($preferredLanguage) {
-                                        if (is_array($value)) {
-                                            return $value[$preferredLanguage]
-                                                ?? $value['en']
-                                                ?? $value['hi']
-                                                ?? $value['gu']
-                                                ?? collect($value)->first(function ($item) {
-                                                    return is_string($item) && trim($item) !== '';
-                                                });
-                                        }
+                                    $sidebarNodeCount = collect($sidebarNodeValue)
+                                        ->filter(function ($node) {
+                                            return is_array($node)
+                                                && array_key_exists('showInSideMenu', $node)
+                                                && in_array($node['showInSideMenu'], [true, 1, '1', 'true'], true);
+                                        })
+                                        ->count();
 
-                                        return $value;
-                                    };
+                                    $sidebarExtraLinkCount = is_array($sidebarLinksValue) ? count($sidebarLinksValue) : 0;
 
-                                    $sidebarCategoriesValue = collect($sidebarCategoriesValue)
+                                    $sidebarNodesSource = collect($sidebarNodeValue)
+                                        ->filter(function ($node) {
+                                            return is_array($node);
+                                        })
+                                        ->values()
+                                        ->toArray();
+
+                                    $sidebarCategoriesSource = collect($sidebarCategoriesValue)
                                         ->filter(function ($category) {
                                             return is_array($category) && data_get($category, 'id');
                                         })
@@ -1647,101 +1654,20 @@
                                         })
                                         ->values()
                                         ->toArray();
-
-                                    $sidebarVisibleNodes = collect($sidebarNodeValue)
-                                        ->filter(function ($node) {
-                                            return is_array($node) && array_key_exists('showInSideMenu', $node);
-                                        })
-                                        ->values();
-
-                                    $sidebarNodeGroups = [];
-                                    foreach ($sidebarCategoriesValue as $category) {
-                                        $categoryId = (string) data_get($category, 'id', '');
-                                        $categoryTitle = $resolveSidebarTitle(data_get($category, 'name', '')) ?: 'Category';
-
-                                        $sidebarNodeGroups[] = [
-                                            'id' => $categoryId,
-                                            'title' => $categoryTitle,
-                                            'icon' => data_get($category, 'icon', 'ri-folder-2-line'),
-                                            'order' => (int) data_get($category, 'order', 0),
-                                            'nodes' => $sidebarVisibleNodes
-                                                ->filter(function ($node) use ($categoryId) {
-                                                    return (string) data_get($node, 'sideMenuCategoryId', '') === $categoryId;
-                                                })
-                                                ->sortBy(function ($node) {
-                                                    $categoryOrder = str_pad((string) (int) data_get($node, 'categoryOrder', 0), 6, '0', STR_PAD_LEFT);
-                                                    $sideMenuOrder = str_pad((string) (int) data_get($node, 'sideMenuOrder', 0), 6, '0', STR_PAD_LEFT);
-                                                    $nodeName = strtolower((string) data_get($node, 'name', ''));
-
-                                                    return $categoryOrder . '|' . $sideMenuOrder . '|' . $nodeName;
-                                                })
-                                                ->values()
-                                                ->toArray(),
-                                        ];
-                                    }
-
-                                    $categorizedNodeIds = collect($sidebarNodeGroups)
-                                        ->pluck('nodes')
-                                        ->flatten(1)
-                                        ->pluck('id')
-                                        ->filter()
-                                        ->map(fn ($id) => (string) $id)
-                                        ->all();
-
-                                    $uncategorizedNodes = $sidebarVisibleNodes
-                                        ->reject(function ($node) use ($categorizedNodeIds) {
-                                            return in_array((string) data_get($node, 'id', ''), $categorizedNodeIds, true);
-                                        })
-                                        ->sortBy(function ($node) {
-                                            $categoryOrder = str_pad((string) (int) data_get($node, 'categoryOrder', 0), 6, '0', STR_PAD_LEFT);
-                                            $sideMenuOrder = str_pad((string) (int) data_get($node, 'sideMenuOrder', 0), 6, '0', STR_PAD_LEFT);
-                                            $nodeName = strtolower((string) data_get($node, 'name', ''));
-
-                                            return $categoryOrder . '|' . $sideMenuOrder . '|' . $nodeName;
-                                        })
-                                        ->values()
-                                        ->toArray();
-
-                                    if (!empty($uncategorizedNodes)) {
-                                        $sidebarNodeGroups[] = [
-                                            'id' => '__uncategorized__',
-                                            'title' => 'Uncategorized',
-                                            'icon' => 'ri-list-unordered',
-                                            'order' => PHP_INT_MAX,
-                                            'nodes' => $uncategorizedNodes,
-                                        ];
-                                    }
-
-                                    $sidebarNodeValue = collect($sidebarNodeValue)
-                                        ->filter(function ($node) {
-                                            return is_array($node) && array_key_exists("showInSideMenu", $node) ;
-                                        })
-                                        ->sortBy(function ($node) {
-                                            return (int) ($node['sideMenuOrder'] ?? 0);
-                                        })
-                                        ->values()
-                                        ->toArray();
-
-                                    $sidebarNodeCount = count($sidebarNodeValue);
-                                    $sidebarExtraLinkCount = is_array($sidebarLinksValue) ? count($sidebarLinksValue) : 0;
                                 @endphp
                                 <form action="{{ route('admin.tours.updateSidebarNodes', $tour) }}" method="POST"
                                     id="sidebarNodesForm" class="needs-validation" novalidate>
                                     @csrf
                                     @method('PUT')
                                     <input type="hidden" name="sidebar_node_payload" id="sidebar_node_payload">
-                                    <div id="sidebar_node_fields" class="d-none"></div>
                                     <div class="row">
                                         <div class="col-12">
                                             <div class="border rounded-3 overflow-hidden">
-                                                <div
-                                                    class="d-flex justify-content-between align-items-center px-3 py-2 bg-light border-bottom">
+                                                <div class="d-flex justify-content-between align-items-center px-3 py-2 bg-light border-bottom">
                                                     <div>
-                                                        <h5 class="mb-0">Side Menu Items (<span
-                                                                id="sidebarNodeCount">{{ $sidebarNodeCount }}</span>)
+                                                        <h5 class="mb-0">Side Menu Items (<span id="sidebarNodeCount">{{ $sidebarNodeCount }}</span>)
                                                         </h5>
-                                                        <small class="text-muted d-block">{{ $sidebarNodeCount }} items +
-                                                            {{ $sidebarExtraLinkCount }} extra links</small>
+                                                        <small class="text-muted d-block">{{ $sidebarNodeCount }} items + {{ $sidebarExtraLinkCount }} extra links</small>
                                                     </div>
                                                 </div>
 
@@ -1753,80 +1679,17 @@
                                                     </div>
                                                 </div>
 
-                                                <div
-                                                    class="px-3 py-2 border-bottom small text-muted d-flex align-items-center gap-3">
-                                                    <span><i class="ri-draggable me-1"></i> Drag</span>
-                                                    <span><i class="ri-menu-line me-1"></i> Item</span>
+                                                <div class="px-3 py-2 border-bottom small text-muted d-flex align-items-center gap-3 flex-wrap">
+                                                    <span><i class="ri-drag-move-2-line me-1"></i> Drag categories and items</span>
+                                                    <span><i class="ri-search-line me-1"></i> Search updates the visible tree only</span>
                                                 </div>
 
                                                 <div id="sidebarNodes">
-                                                    @forelse ($sidebarNodeGroups as $group)
-                                                        @php
-                                                            $groupId = data_get($group, 'id', 'group');
-                                                            $groupTitle = data_get($group, 'title', 'Category');
-                                                            $groupIcon = data_get($group, 'icon', 'ri-folder-2-line');
-                                                            $groupNodes = data_get($group, 'nodes', []);
-                                                            $groupCollapseId = 'sidebarNodeGroup_' . preg_replace('/[^A-Za-z0-9_\-]/', '_', (string) $groupId);
-                                                        @endphp
-                                                        <div class="border rounded-3 overflow-hidden mb-3 sidebar-node-group"
-                                                            data-category-id="{{ $groupId === '__uncategorized__' ? '' : $groupId }}">
-                                                            <button type="button"
-                                                                class="btn btn-light w-100 text-start d-flex align-items-center justify-content-between rounded-0 px-3 py-2"
-                                                                data-bs-toggle="collapse"
-                                                                data-bs-target="#{{ $groupCollapseId }}"
-                                                                aria-expanded="true"
-                                                                aria-controls="{{ $groupCollapseId }}">
-                                                                <span class="d-flex align-items-center gap-2">
-                                                                    <i class="{{ $groupIcon }}"></i>
-                                                                    <span>{{ $groupTitle }}</span>
-                                                                </span>
-                                                                <span class="badge bg-white text-dark border">{{ count($groupNodes) }}</span>
-                                                            </button>
-                                                            <div id="{{ $groupCollapseId }}" class="collapse show">
-                                                                <ul class="list-group list-group-flush sidebar-node-list"
-                                                                    data-category-id="{{ $groupId === '__uncategorized__' ? '' : $groupId }}">
-                                                                    @forelse ($groupNodes as $node)
-                                                                        @php
-                                                                            $nodeTitle = $resolveSidebarTitle(data_get($node, 'sideMenuTitle'));
-                                                                            $nodeIcon = data_get($node, 'sideMenuIcon', 'ri-image-line');
-                                                                            $nodeId = data_get($node, 'id', '');
-                                                                            $nodeDataJson = json_encode($node);
-                                                                        @endphp
-                                                                        <li class="list-group-item d-flex align-items-center justify-content-between sidebar-node-item"
-                                                                            data-id="{{ $nodeId }}"
-                                                                            data-title="{{ strtolower((string) $nodeTitle) }}"
-                                                                            data-category-id="{{ data_get($node, 'sideMenuCategoryId', '') }}">
-                                                                            <div class="d-flex align-items-center gap-2">
-                                                                                <span class="drag-handle text-muted"
-                                                                                    style="cursor: grab;"><i class="ri-draggable"></i></span>
-                                                                                <i class="{{ $nodeIcon }}"></i>
-                                                                                <span class="sidebar-node-title">{{ $nodeTitle }}</span>
-                                                                            </div>
-                                                                            <div class="d-flex align-items-center gap-2">
-                                                                                <span class="badge bg-light text-dark border sidebar-node-order-badge">#
-                                                                                    {{ (int) (data_get($node, 'sideMenuOrder', 0)) }}</span>
-                                                                                <button type="button"
-                                                                                    class="btn btn-sm btn-outline-secondary"
-                                                                                    data-action="edit-sidebar-node">
-                                                                                    <i class="ri-pencil-line me-1"></i>Edit
-                                                                                </button>
-                                                                                <input type="hidden" class="node-json"
-                                                                                    value="{{ $nodeDataJson }}">
-                                                                            </div>
-                                                                        </li>
-                                                                    @empty
-                                                                        <li class="list-group-item text-muted">No sidebar nodes in this category.</li>
-                                                                    @endforelse
-                                                                </ul>
-                                                            </div>
-                                                        </div>
-                                                    @empty
-                                                        <div class="list-group-item text-muted" id="sidebarNodesEmpty">No sidebar nodes available.</div>
-                                                    @endforelse
+                                                    <div class="list-group-item text-muted" id="sidebarNodesEmpty">Loading sidebar nodes...</div>
                                                 </div>
                                             </div>
-                                            <small class="text-muted d-block mt-2">Nodes are grouped by sidebar category and
-                                                sideMenuOrder is normalized when this form is saved.</small>
+                                            <small class="text-muted d-block mt-2">Drag categories or move items between them. Saving persists the full node list into final_json.nodes and sidebarCategories.</small>
+                                            @error('sidebar_node_payload')<div class="text-danger">{{ $message }}</div>@enderror
                                             @error('sidebar_node')<div class="text-danger">{{ $message }}</div>@enderror
                                         </div>
                                         <div class="d-flex justify-content-end mt-3">
@@ -2559,8 +2422,10 @@
 @vite(['resources/js/pages/booking-tour-detail-update-tab.js', 'resources/js/pages/booking_edit_sidebarLink.js', 'resources/js/pages/booking_sidebar_nodes.js', 'resources/js/pages/booking_userDetails_edit.js', 'resources/js/pages/booking_tour_bookmark_action.js', 'resources/js/pages/booking_user_stars_edit.js'])
 
 <script>
-    window.sidebarLinksData = {!! json_encode(old('sidebar_links', $tour->sidebar_links)) !!};
-    window.enabledLanguages = {!! json_encode($tour->enable_language ?? ['en']) !!};
-    window.defaultLanguage = {!! json_encode($tour->default_language ?? 'en') !!};
+    window.sidebarNodesData = {!! json_encode($sidebarNodesSource, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!};
+    window.sidebarCategoriesData = {!! json_encode($sidebarCategoriesSource, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!};
+    window.sidebarLinksData = {!! json_encode(old('sidebar_links', $tour->sidebar_links), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!};
+    window.enabledLanguages = {!! json_encode($tour->enable_language ?? ['en'], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!};
+    window.defaultLanguage = {!! json_encode($tour->default_language ?? 'en', JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!};
 
 </script>

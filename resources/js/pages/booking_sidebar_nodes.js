@@ -1,28 +1,65 @@
 import Sortable from 'sortablejs';
 
-function normalizeNodeJson(rawJson) {
+const UNCATEGORIZED_CATEGORY_ID = '__uncategorized__';
+
+function isPlainObject(value) {
+    return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function normalizeNodeJson(rawValue) {
+    if (isPlainObject(rawValue)) {
+        return rawValue;
+    }
+
+    if (typeof rawValue !== 'string' || rawValue.trim() === '') {
+        return {};
+    }
+
     try {
-        const parsed = JSON.parse(rawJson || '{}');
-        return parsed && typeof parsed === 'object' ? parsed : {};
+        const parsed = JSON.parse(rawValue);
+        return isPlainObject(parsed) ? parsed : {};
     } catch (error) {
         return {};
     }
 }
 
-function getNodeTitleMap(node) {
-    const rawTitleMap = node.sideMenuTitle;
-    return rawTitleMap && typeof rawTitleMap === 'object' ? rawTitleMap : { en:rawTitleMap, hi:rawTitleMap, gu:rawTitleMap };
+function getNodeKey(node) {
+    return String(node?.id ?? node?.name ?? '');
 }
 
-function getNodeDisplayTitle(node) {
-    const titleMap = getNodeTitleMap(node);
-    const preferredLanguage = window.defaultLanguage || 'en';
-    const values = Object.values(titleMap).filter((value) => String(value ?? '').trim() !== '');
+function getCategoryKey(category) {
+    return String(category?.id ?? '');
+}
 
-    return titleMap[preferredLanguage]
-        || values[0]
-        || node.name
-        || 'Untitled Node';
+function getTitleMap(value) {
+    if (isPlainObject(value)) {
+        return value;
+    }
+
+    const textValue = String(value ?? '').trim();
+    return {
+        en: textValue,
+        hi: textValue,
+        gu: textValue,
+    };
+}
+
+function getEnabledLanguages() {
+    const enabledLanguages = Array.isArray(window.enabledLanguages) && window.enabledLanguages.length > 0
+        ? window.enabledLanguages
+        : ['en'];
+
+    return Array.from(new Set(enabledLanguages.map((language) => String(language))));
+}
+
+function getLanguageLabel(language) {
+    const labels = {
+        en: 'English',
+        hi: 'Hindi',
+        gu: 'Gujarati',
+    };
+
+    return labels[language] || String(language).toUpperCase();
 }
 
 function escapeHtml(value) {
@@ -34,94 +71,349 @@ function escapeHtml(value) {
         .replace(/'/g, '&#039;');
 }
 
-function syncSidebarNodesPayload(containerEl, fieldsEl, countEl) {
-    const rows = Array.from(containerEl.querySelectorAll('.sidebar-node-list .sidebar-node-item'));
+function getNodeDisplayTitle(node) {
+    const titleMap = getTitleMap(node.sideMenuTitle);
+    const preferredLanguage = window.defaultLanguage || 'en';
+    const values = Object.values(titleMap)
+        .map((value) => String(value ?? '').trim())
+        .filter((value) => value !== '');
 
-    const payload = rows.map((row, index) => {
-        const rawJson = row.querySelector('.node-json')?.value || '{}';
-        const node = normalizeNodeJson(rawJson);
-        const hasSideMenuOrder = Object.prototype.hasOwnProperty.call(node, 'sideMenuOrder')
-            && node.sideMenuOrder !== null
-            && node.sideMenuOrder !== '';
+    return String(titleMap[preferredLanguage] ?? values[0] ?? node.name ?? 'Untitled Node').trim() || 'Untitled Node';
+}
 
-        if (!hasSideMenuOrder) {
-            return null;
+function getCategoryDisplayTitle(category) {
+    const titleMap = getTitleMap(category?.name);
+    const preferredLanguage = window.defaultLanguage || 'en';
+    const values = Object.values(titleMap)
+        .map((value) => String(value ?? '').trim())
+        .filter((value) => value !== '');
+
+    return String(titleMap[preferredLanguage] ?? values[0] ?? 'Category').trim() || 'Category';
+}
+
+function isSidebarNodeVisible(node) {
+    return !!node && Object.prototype.hasOwnProperty.call(node, 'showInSideMenu')
+        && (node.showInSideMenu === true || node.showInSideMenu === 1 || node.showInSideMenu === '1' || node.showInSideMenu === 'true');
+}
+
+function sortCategories(categories) {
+    return [...categories].sort((left, right) => {
+        const leftOrder = Number(left?.order ?? 0);
+        const rightOrder = Number(right?.order ?? 0);
+
+        if (leftOrder !== rightOrder) {
+            return leftOrder - rightOrder;
         }
 
-        node.sideMenuOrder = index;
+        return getCategoryDisplayTitle(left).localeCompare(getCategoryDisplayTitle(right), undefined, { sensitivity: 'base' });
+    });
+}
 
-        const sidebarNodeList = row.closest('.sidebar-node-list');
-        const categoryId = sidebarNodeList?.dataset.categoryId?.trim() || '';
+function sortNodes(nodes) {
+    return [...nodes].sort((left, right) => {
+        const leftCategoryOrder = Number(left?.categoryOrder ?? 0);
+        const rightCategoryOrder = Number(right?.categoryOrder ?? 0);
 
-        if (categoryId !== '') {
-            node.sideMenuCategoryId = categoryId;
-        } else {
-            delete node.sideMenuCategoryId;
+        if (leftCategoryOrder !== rightCategoryOrder) {
+            return leftCategoryOrder - rightCategoryOrder;
         }
 
-        const categoryRows = sidebarNodeList
-            ? Array.from(sidebarNodeList.querySelectorAll('.sidebar-node-item'))
-            : [];
-        const categoryIndex = categoryRows.indexOf(row);
+        const leftSideMenuOrder = Number(left?.sideMenuOrder ?? 0);
+        const rightSideMenuOrder = Number(right?.sideMenuOrder ?? 0);
 
-        if (categoryIndex >= 0) {
-            node.categoryOrder = categoryIndex;
+        if (leftSideMenuOrder !== rightSideMenuOrder) {
+            return leftSideMenuOrder - rightSideMenuOrder;
         }
 
-        const orderBadge = row.querySelector('.sidebar-node-order-badge');
-        if (orderBadge) {
-            orderBadge.textContent = `# ${index + 1}`;
+        return getNodeDisplayTitle(left).localeCompare(getNodeDisplayTitle(right), undefined, { sensitivity: 'base' });
+    });
+}
+
+function ensureSidebarState() {
+    window.sidebarNodesData = Array.isArray(window.sidebarNodesData)
+        ? window.sidebarNodesData.filter((node) => isPlainObject(node))
+        : [];
+
+    window.sidebarCategoriesData = Array.isArray(window.sidebarCategoriesData)
+        ? window.sidebarCategoriesData.filter((category) => isPlainObject(category))
+        : [];
+
+    window.sidebarNodesById = new Map(
+        window.sidebarNodesData
+            .map((node) => [getNodeKey(node), node])
+            .filter(([key]) => key !== '')
+    );
+
+    window.sidebarCategoriesById = new Map(
+        window.sidebarCategoriesData
+            .map((category) => [getCategoryKey(category), category])
+            .filter(([key]) => key !== '')
+    );
+}
+
+function getSidebarGroups() {
+    ensureSidebarState();
+
+    const categories = sortCategories(window.sidebarCategoriesData);
+    const visibleNodes = window.sidebarNodesData.filter((node) => isSidebarNodeVisible(node));
+    const groupedNodes = new Map();
+
+    categories.forEach((category) => {
+        groupedNodes.set(getCategoryKey(category), []);
+    });
+
+    const uncategorizedNodes = [];
+    visibleNodes.forEach((node) => {
+        const categoryId = String(node.sideMenuCategoryId ?? '').trim();
+
+        if (categoryId !== '' && groupedNodes.has(categoryId)) {
+            groupedNodes.get(categoryId).push(node);
+            return;
         }
 
-        return node;
-    }).filter(Boolean);
+        uncategorizedNodes.push(node);
+    });
 
-    fieldsEl.innerHTML = '';
-    const payloadInput = document.getElementById('sidebar_node_payload');
-    if (payloadInput) {
-        payloadInput.value = JSON.stringify(payload);
+    groupedNodes.forEach((nodes, categoryId) => {
+        groupedNodes.set(categoryId, sortNodes(nodes));
+    });
+
+    return {
+        categories,
+        groupedNodes,
+        uncategorizedNodes: sortNodes(uncategorizedNodes),
+        visibleCount: visibleNodes.length,
+    };
+}
+
+function buildNodeRow(node) {
+    const nodeId = getNodeKey(node);
+    const displayTitle = getNodeDisplayTitle(node);
+    const nodeIcon = String(node.sideMenuIcon || 'ri-image-line');
+
+    return `
+        <li class="list-group-item d-flex align-items-center justify-content-between sidebar-node-item" data-node-id="${escapeHtml(nodeId)}" data-title="${escapeHtml(displayTitle.toLowerCase())}" data-category-id="${escapeHtml(String(node.sideMenuCategoryId ?? ''))}">
+            <div class="d-flex align-items-center gap-2">
+                <span class="drag-handle text-muted" style="cursor: grab;"><i class="ri-drag-move-2-line"></i></span>
+                <i class="${escapeHtml(nodeIcon)}"></i>
+                <span class="sidebar-node-title">${escapeHtml(displayTitle)}</span>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-light text-dark border sidebar-node-order-badge"># ${Number(node.sideMenuOrder ?? 0) + 1}</span>
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-action="edit-sidebar-node">
+                    <i class="ri-pencil-line me-1"></i>Edit
+                </button>
+                <input type="hidden" class="node-json" value="${escapeHtml(JSON.stringify(node))}">
+            </div>
+        </li>
+    `;
+}
+
+function buildCategoryCard(category, nodes, options = {}) {
+    const categoryId = options.isUncategorized ? UNCATEGORIZED_CATEGORY_ID : getCategoryKey(category);
+    const collapseId = `sidebarNodeGroup_${categoryId.replace(/[^A-Za-z0-9_\-]/g, '_')}`;
+    const title = options.isUncategorized ? 'Uncategorized' : getCategoryDisplayTitle(category);
+    const icon = options.isUncategorized ? 'ri-list-unordered' : String(category?.icon || 'ri-folder-2-line');
+    const draggableClass = options.isUncategorized ? 'sidebar-category-fixed' : '';
+    const rows = nodes.length > 0
+        ? nodes.map((node) => buildNodeRow(node)).join('')
+        : '<li class="list-group-item text-muted sidebar-node-empty">No sidebar nodes in this category.</li>';
+
+    return `
+        <div class="border rounded-3 overflow-hidden mb-3 sidebar-category-card ${draggableClass}" data-category-id="${escapeHtml(categoryId)}">
+            <div class="d-flex align-items-center justify-content-between px-3 py-2 bg-light border-bottom sidebar-category-header">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="${options.isUncategorized ? 'text-muted' : 'drag-handle sidebar-category-drag-handle text-muted'}" ${options.isUncategorized ? '' : 'style="cursor: grab;"'}>
+                        <i class="${options.isUncategorized ? 'ri-list-unordered' : 'ri-drag-move-2-line'}"></i>
+                    </span>
+                    <i class="${escapeHtml(icon)}"></i>
+                    <span class="sidebar-category-title">${escapeHtml(title)}</span>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-white text-dark border sidebar-category-count">${nodes.length}</span>
+                    <button type="button" class="btn btn-sm btn-light border" data-bs-toggle="collapse" data-bs-target="#${collapseId}" aria-expanded="true" aria-controls="${collapseId}">
+                        <i class="ri-subtract-line"></i>
+                    </button>
+                </div>
+            </div>
+            <div id="${collapseId}" class="collapse show">
+                <ul class="list-group list-group-flush sidebar-node-list" data-category-id="${escapeHtml(options.isUncategorized ? '' : categoryId)}">
+                    ${rows}
+                </ul>
+            </div>
+        </div>
+    `;
+}
+
+function renderSidebarNodes(containerEl, countEl) {
+    const { categories, groupedNodes, uncategorizedNodes, visibleCount } = getSidebarGroups();
+    const html = [];
+
+    categories.forEach((category) => {
+        html.push(buildCategoryCard(category, groupedNodes.get(getCategoryKey(category)) || []));
+    });
+
+    if (uncategorizedNodes.length > 0) {
+        html.push(buildCategoryCard(null, uncategorizedNodes, { isUncategorized: true }));
+    }
+
+    if (html.length === 0) {
+        containerEl.innerHTML = '<div class="list-group-item text-muted" id="sidebarNodesEmpty">No sidebar nodes available.</div>';
+    } else {
+        containerEl.innerHTML = html.join('');
     }
 
     if (countEl) {
-        countEl.textContent = String(payload.length);
+        countEl.textContent = String(visibleCount);
     }
 }
 
-function updateSidebarNodeRow(row) {
-    const rawJson = row.querySelector('.node-json')?.value || '{}';
-    const node = normalizeNodeJson(rawJson);
-    const titleEl = row.querySelector('.sidebar-node-title');
-    const displayTitle = getNodeDisplayTitle(node);
+function setupSidebarSortables(containerEl, countEl) {
+    const categoriesSortable = new Sortable(containerEl, {
+        animation: 150,
+        handle: '.sidebar-category-drag-handle',
+        draggable: '.sidebar-category-card:not(.sidebar-category-fixed)',
+        ghostClass: 'sidebar-category-ghost',
+        onEnd: () => syncSidebarNodesPayload(containerEl, countEl),
+    });
 
-    if (titleEl) {
-        titleEl.textContent = displayTitle;
-    }
+    const nodeSortables = Array.from(containerEl.querySelectorAll('.sidebar-node-list')).map((nodeList) => new Sortable(nodeList, {
+        animation: 150,
+        handle: '.drag-handle',
+        draggable: '.sidebar-node-item',
+        group: {
+            name: 'sidebar-nodes',
+            pull: true,
+            put: true,
+        },
+        onAdd: () => syncSidebarNodesPayload(containerEl, countEl),
+        onEnd: () => syncSidebarNodesPayload(containerEl, countEl),
+    }));
 
-    row.dataset.title = displayTitle.toLowerCase();
-}
-
-function getEnabledLanguages() {
-    const enabledLanguages = Array.isArray(window.enabledLanguages) && window.enabledLanguages.length > 0
-        ? window.enabledLanguages
-        : [];
-
-    const titleLanguages = Array.from(Object.keys(window.sidebarNodeTitles || {}));
-
-    return Array.from(new Set([...enabledLanguages, ...titleLanguages]));
-}
-
-function getLanguageLabel(language) {
-    const labels = {
-        en: 'English',
-        hi: 'Hindi',
-        gu: 'Gujarati',
+    return {
+        categoriesSortable,
+        nodeSortables,
     };
+}
 
-    return labels[language] || language.toUpperCase();
+function syncSidebarNodesPayload(containerEl, countEl) {
+    ensureSidebarState();
+
+    const categoryCards = Array.from(containerEl.querySelectorAll('.sidebar-category-card'));
+    const nextCategories = [];
+    let globalNodeOrder = 0;
+
+    categoryCards.forEach((card, categoryIndex) => {
+        const categoryId = String(card.dataset.categoryId ?? '').trim();
+        const isUncategorized = categoryId === '' || categoryId === UNCATEGORIZED_CATEGORY_ID;
+
+        if (!isUncategorized) {
+            const category = window.sidebarCategoriesById.get(categoryId);
+            if (category) {
+                category.order = categoryIndex;
+                nextCategories.push(category);
+            }
+        }
+
+        const rows = Array.from(card.querySelectorAll('.sidebar-node-item'));
+        rows.forEach((row, categoryOrder) => {
+            const nodeId = String(row.dataset.nodeId ?? '').trim();
+            const node = window.sidebarNodesById.get(nodeId);
+
+            if (!node) {
+                return;
+            }
+
+            node.showInSideMenu = true;
+            node.sideMenuCategoryId = isUncategorized ? '' : categoryId;
+            node.categoryOrder = categoryOrder;
+            node.sideMenuOrder = globalNodeOrder;
+
+            const title = getNodeDisplayTitle(node);
+            const titleEl = row.querySelector('.sidebar-node-title');
+            if (titleEl) {
+                titleEl.textContent = title;
+            }
+
+            row.dataset.title = title.toLowerCase();
+            row.dataset.categoryId = node.sideMenuCategoryId;
+
+            const badgeEl = row.querySelector('.sidebar-node-order-badge');
+            if (badgeEl) {
+                badgeEl.textContent = `# ${globalNodeOrder + 1}`;
+            }
+
+            const hiddenJsonEl = row.querySelector('.node-json');
+            if (hiddenJsonEl) {
+                hiddenJsonEl.value = JSON.stringify(node);
+            }
+
+            globalNodeOrder += 1;
+        });
+
+        const countBadge = card.querySelector('.sidebar-category-count');
+        if (countBadge) {
+            countBadge.textContent = String(rows.length);
+        }
+    });
+
+    window.sidebarCategoriesData = nextCategories;
+
+    window.sidebarNodesData = window.sidebarNodesData.map((node) => {
+        const nodeId = getNodeKey(node);
+        return window.sidebarNodesById.get(nodeId) || node;
+    });
+
+    window.sidebarCategoriesById = new Map(
+        window.sidebarCategoriesData
+            .map((category) => [getCategoryKey(category), category])
+            .filter(([key]) => key !== '')
+    );
+
+    const payloadInput = document.getElementById('sidebar_node_payload');
+    if (payloadInput) {
+        payloadInput.value = JSON.stringify({
+            nodes: window.sidebarNodesData,
+            sidebarCategories: window.sidebarCategoriesData,
+        });
+    }
+
+    if (countEl) {
+        countEl.textContent = String(window.sidebarNodesData.filter((node) => isSidebarNodeVisible(node)).length);
+    }
+}
+
+function setupSidebarNodeSearch(containerEl, searchEl) {
+    if (!searchEl) {
+        return;
+    }
+
+    searchEl.addEventListener('input', function () {
+        const query = this.value.trim().toLowerCase();
+        const cards = Array.from(containerEl.querySelectorAll('.sidebar-category-card'));
+
+        cards.forEach((card) => {
+            const categoryTitle = card.querySelector('.sidebar-category-title')?.textContent?.trim().toLowerCase() || '';
+            const rows = Array.from(card.querySelectorAll('.sidebar-node-item'));
+            let visibleRows = 0;
+
+            rows.forEach((row) => {
+                const title = row.dataset.title || '';
+                const shouldShow = query === '' || title.includes(query) || categoryTitle.includes(query);
+                row.style.display = shouldShow ? '' : 'none';
+
+                if (shouldShow) {
+                    visibleRows += 1;
+                }
+            });
+
+            card.style.display = query === '' || categoryTitle.includes(query) || visibleRows > 0 ? '' : 'none';
+        });
+    });
 }
 
 function buildSidebarNodeTitleFields(fieldsEl, node) {
-    const titleMap = getNodeTitleMap(node);
+    const titleMap = getTitleMap(node.sideMenuTitle);
     const languages = getEnabledLanguages();
     const content = languages.map((language) => {
         const value = titleMap[language] || '';
@@ -140,29 +432,18 @@ function buildSidebarNodeTitleFields(fieldsEl, node) {
     `;
 }
 
-function setupSidebarNodeSearch(containerEl, searchEl) {
-    if (!searchEl) {
-        return;
+function updateSidebarNodeRow(row, node) {
+    const title = getNodeDisplayTitle(node);
+    const titleEl = row.querySelector('.sidebar-node-title');
+
+    if (titleEl) {
+        titleEl.textContent = title;
     }
 
-    searchEl.addEventListener('input', function () {
-        const query = this.value.trim().toLowerCase();
-        const rows = Array.from(containerEl.querySelectorAll('.sidebar-node-item'));
-
-        rows.forEach((row) => {
-            const title = row.dataset.title || '';
-            row.style.display = title.includes(query) ? '' : 'none';
-        });
-
-        const groups = Array.from(containerEl.querySelectorAll('.sidebar-node-group'));
-        groups.forEach((group) => {
-            const visibleRows = Array.from(group.querySelectorAll('.sidebar-node-item')).filter((row) => row.style.display !== 'none');
-            group.style.display = visibleRows.length > 0 ? '' : 'none';
-        });
-    });
+    row.dataset.title = title.toLowerCase();
 }
 
-function setupSidebarNodeTitleEditor(containerEl, fieldsEl, countEl) {
+function setupSidebarNodeTitleEditor(containerEl, countEl) {
     const modalEl = document.getElementById('sidebarNodeTitleModal');
     const modalTitleEl = document.getElementById('sidebarNodeTitleModalLabel');
     const modalNodeNameEl = document.getElementById('sidebarNodeTitleModalNodeName');
@@ -178,6 +459,7 @@ function setupSidebarNodeTitleEditor(containerEl, fieldsEl, countEl) {
         : null;
 
     let activeRow = null;
+    let activeNode = null;
 
     containerEl.addEventListener('click', (event) => {
         const button = event.target.closest('[data-action="edit-sidebar-node"]');
@@ -191,9 +473,10 @@ function setupSidebarNodeTitleEditor(containerEl, fieldsEl, countEl) {
             return;
         }
 
-        const rawJson = activeRow.querySelector('.node-json')?.value || '{}';
-        const node = normalizeNodeJson(rawJson);
-        const displayTitle = getNodeDisplayTitle(node);
+        const nodeId = String(activeRow.dataset.nodeId ?? '').trim();
+        activeNode = window.sidebarNodesById.get(nodeId) || normalizeNodeJson(activeRow.querySelector('.node-json')?.value || '{}');
+
+        const displayTitle = getNodeDisplayTitle(activeNode);
 
         if (modalTitleEl) {
             modalTitleEl.textContent = 'Edit Sidebar Node Title';
@@ -203,19 +486,16 @@ function setupSidebarNodeTitleEditor(containerEl, fieldsEl, countEl) {
             modalNodeNameEl.textContent = displayTitle;
         }
 
-        buildSidebarNodeTitleFields(modalFieldsEl, node);
+        buildSidebarNodeTitleFields(modalFieldsEl, activeNode);
         modal?.show();
     });
 
     saveButton.addEventListener('click', () => {
-        if (!activeRow) {
+        if (!activeRow || !activeNode) {
             return;
         }
 
-        const rawJsonEl = activeRow.querySelector('.node-json');
-        const node = normalizeNodeJson(rawJsonEl?.value || '{}');
         const updatedTitles = {};
-
         Array.from(modalFieldsEl.querySelectorAll('.sidebar-node-language-row')).forEach((row) => {
             const language = row.dataset.language?.trim();
             const valueInput = row.querySelector('[data-language-value]');
@@ -226,40 +506,33 @@ function setupSidebarNodeTitleEditor(containerEl, fieldsEl, countEl) {
             }
         });
 
-        node.sideMenuTitle = updatedTitles;
+        activeNode.sideMenuTitle = updatedTitles;
 
-        if (rawJsonEl) {
-            rawJsonEl.value = JSON.stringify(node);
+        const hiddenJsonEl = activeRow.querySelector('.node-json');
+        if (hiddenJsonEl) {
+            hiddenJsonEl.value = JSON.stringify(activeNode);
         }
 
-        updateSidebarNodeRow(activeRow);
-        syncSidebarNodesPayload(containerEl, fieldsEl, countEl);
+        updateSidebarNodeRow(activeRow, activeNode);
+        syncSidebarNodesPayload(containerEl, countEl);
         modal?.hide();
     });
 }
 
 document.addEventListener('DOMContentLoaded', () => {
     const listEl = document.getElementById('sidebarNodes');
-    const fieldsEl = document.getElementById('sidebar_node_fields');
     const searchEl = document.getElementById('sidebarNodeSearch');
     const countEl = document.getElementById('sidebarNodeCount');
-    const nodeLists = listEl ? Array.from(listEl.querySelectorAll('.sidebar-node-list')) : [];
+    const payloadInput = document.getElementById('sidebar_node_payload');
 
-    if (!listEl || !fieldsEl || nodeLists.length === 0) {
+    if (!listEl || !payloadInput) {
         return;
     }
 
-    nodeLists.forEach((nodeList) => {
-        new Sortable(nodeList, {
-            animation: 150,
-            handle: '.drag-handle',
-            draggable: '.sidebar-node-item',
-            group: 'sidebar-nodes',
-            onEnd: () => syncSidebarNodesPayload(listEl, fieldsEl, countEl),
-        });
-    });
-
+    ensureSidebarState();
+    renderSidebarNodes(listEl, countEl);
+    setupSidebarSortables(listEl, countEl);
     setupSidebarNodeSearch(listEl, searchEl);
-    setupSidebarNodeTitleEditor(listEl, fieldsEl, countEl);
-    syncSidebarNodesPayload(listEl, fieldsEl, countEl);
+    setupSidebarNodeTitleEditor(listEl, countEl);
+    syncSidebarNodesPayload(listEl, countEl);
 });

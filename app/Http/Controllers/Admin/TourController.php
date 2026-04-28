@@ -2257,39 +2257,36 @@ class TourController extends Controller
 
     public function updateTourSidebarNodes(Request $request, Tour $tour): JsonResponse|RedirectResponse
     {
-        dd($request->all());
         $validated = $request->validate([
             'sidebar_node_payload' => ['nullable', 'json'],
             'nodes' => ['nullable', 'array'],
             'nodes.*' => ['nullable', 'array'],
+            'sidebarCategories' => ['nullable', 'array'],
+            'sidebarCategories.*' => ['nullable', 'array'],
             'sidebar_node' => ['nullable', 'array'],
             'sidebar_node.*' => ['nullable', 'array'],
         ]);
 
-        $submittedNodes = [];
+        $submittedPayload = [];
         if (!empty($validated['sidebar_node_payload'])) {
-            $decodedNodes = json_decode($validated['sidebar_node_payload'], true);
-            if (json_last_error() === JSON_ERROR_NONE && is_array($decodedNodes)) {
-                $submittedNodes = $decodedNodes;
+            $decodedPayload = json_decode($validated['sidebar_node_payload'], true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decodedPayload)) {
+                $submittedPayload = $decodedPayload;
             }
         }
 
-        if (empty($submittedNodes)) {
-            $submittedNodes = $validated['nodes'] ?? $validated['sidebar_node'] ?? [];
-        }
+        $submittedNodes = $submittedPayload['nodes'] ?? $validated['nodes'] ?? $validated['sidebar_node'] ?? [];
+        $submittedCategories = $submittedPayload['sidebarCategories'] ?? $validated['sidebarCategories'] ?? [];
 
-        $sidebarNodes = collect($submittedNodes)
-            ->filter(function ($node) {
-                return is_array($node)
-                    && array_key_exists('sideMenuOrder', $node)
-                    && $node['sideMenuOrder'] !== null
-                    && $node['sideMenuOrder'] !== '';
-            })
-            ->values()
-            ->map(function (array $node, int $index) {
-                $node['sideMenuOrder'] = $index;
-
+        $sidebarNodes = collect(array_values(array_filter($submittedNodes, fn ($node) => is_array($node))))
+            ->map(function (array $node) {
                 return $this->normalizeSidebarNodeTypes($node);
+            })
+            ->toArray();
+
+        $sidebarCategories = collect(array_values(array_filter($submittedCategories, fn ($category) => is_array($category))))
+            ->map(function (array $category) {
+                return $this->normalizeSidebarCategoryTypes($category);
             })
             ->toArray();
 
@@ -2301,19 +2298,61 @@ class TourController extends Controller
             ->toArray();
 
         $mergedNodes = $existingNodes;
-        foreach ($sidebarNodes as $sidebarNode) {
-            $matchIndex = $this->findSidebarNodeMatchIndex($mergedNodes, $sidebarNode);
 
-            if ($matchIndex !== null) {
-                // Keep full node data (panorama, links, etc.) and only apply sidebar edits.
-                $mergedNodes[$matchIndex] = array_replace_recursive($mergedNodes[$matchIndex], $sidebarNode);
-            } else {
-                $mergedNodes[] = $sidebarNode;
+        // Build fast lookup maps for O(n) patching on large node arrays.
+        $indexById = [];
+        $indexByName = [];
+        foreach ($mergedNodes as $index => $node) {
+            $id = isset($node['id']) ? (string) $node['id'] : '';
+            $name = isset($node['name']) ? (string) $node['name'] : '';
+
+            if ($id !== '' && !array_key_exists($id, $indexById)) {
+                $indexById[$id] = $index;
+            }
+
+            if ($name !== '' && !array_key_exists($name, $indexByName)) {
+                $indexByName[$name] = $index;
             }
         }
 
-        // If there are no existing nodes yet, use submitted sidebar nodes as the initial nodes set.
-        $finalJson['nodes'] = empty($mergedNodes) ? $sidebarNodes : array_values($mergedNodes);
+        foreach ($sidebarNodes as $sidebarNode) {
+            $sidebarId = isset($sidebarNode['id']) ? (string) $sidebarNode['id'] : '';
+            $sidebarName = isset($sidebarNode['name']) ? (string) $sidebarNode['name'] : '';
+
+            $matchIndex = null;
+            if ($sidebarId !== '' && array_key_exists($sidebarId, $indexById)) {
+                $matchIndex = $indexById[$sidebarId];
+            } elseif ($sidebarName !== '' && array_key_exists($sidebarName, $indexByName)) {
+                $matchIndex = $indexByName[$sidebarName];
+            }
+
+            if ($matchIndex === null) {
+                continue;
+            }
+
+            // Update only ordering/category-related fields; preserve all other node payload exactly.
+            if (array_key_exists('sideMenuOrder', $sidebarNode)) {
+                $mergedNodes[$matchIndex]['sideMenuOrder'] = $sidebarNode['sideMenuOrder'];
+            }
+
+            if (array_key_exists('sideMenuCategoryId', $sidebarNode)) {
+                $mergedNodes[$matchIndex]['sideMenuCategoryId'] = $sidebarNode['sideMenuCategoryId'];
+            }
+
+            if (array_key_exists('categoryOrder', $sidebarNode)) {
+                $mergedNodes[$matchIndex]['categoryOrder'] = $sidebarNode['categoryOrder'];
+            }
+        }
+
+        if (!empty($sidebarNodes) || !empty($existingNodes)) {
+            $finalJson['nodes'] = array_values($mergedNodes);
+        } elseif (!array_key_exists('nodes', $finalJson)) {
+            $finalJson['nodes'] = [];
+        }
+
+        if (!empty($sidebarCategories)) {
+            $finalJson['sidebarCategories'] = array_values($sidebarCategories);
+        }
 
         $tour->update([
             'sidebar_node' => $finalJson['nodes'],
@@ -2380,6 +2419,31 @@ class TourController extends Controller
         }
 
         return $node;
+    }
+
+    private function normalizeSidebarCategoryTypes(array $category): array
+    {
+        foreach ($category as $key => $value) {
+            if (is_array($value)) {
+                $category[$key] = $this->normalizeSidebarCategoryTypes($value);
+                continue;
+            }
+
+            if ($key === 'order' && is_string($value)) {
+                $trimmedValue = trim($value);
+                $category[$key] = is_numeric($trimmedValue) ? (int) $trimmedValue : $value;
+                continue;
+            }
+
+            if (in_array($key, ['id', 'icon'], true) && is_string($value)) {
+                $category[$key] = trim($value);
+                continue;
+            }
+
+            $category[$key] = $value;
+        }
+
+        return $category;
     }
 
     private function castSidebarNodeScalar(string $key, mixed $value): mixed
