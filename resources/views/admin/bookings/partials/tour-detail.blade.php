@@ -1650,7 +1650,7 @@
                                             return is_array($category) && data_get($category, 'id');
                                         })
                                         ->sortBy(function ($category) {
-                                            return (int) data_get($category, 'order', 0);
+                                            return (int) data_get($category, 'sideMenuOrder', data_get($category, 'order', 0));
                                         })
                                         ->values()
                                         ->toArray();

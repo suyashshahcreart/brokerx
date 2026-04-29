@@ -108,8 +108,8 @@ function isSidebarNodeVisible(node) {
 
 function sortCategories(categories) {
     return [...categories].sort((left, right) => {
-        const leftOrder = Number(left?.order ?? 0);
-        const rightOrder = Number(right?.order ?? 0);
+        const leftOrder = Number(left?.sideMenuOrder ?? left?.order ?? 0);
+        const rightOrder = Number(right?.sideMenuOrder ?? right?.order ?? 0);
 
         if (leftOrder !== rightOrder) {
             return leftOrder - rightOrder;
@@ -227,7 +227,9 @@ function buildCategoryCard(category, nodes, options = {}) {
     const draggableClass = options.isUncategorized ? 'sidebar-category-fixed' : '';
     const rows = nodes.length > 0
         ? nodes.map((node) => buildNodeRow(node)).join('')
-        : '<li class="list-group-item text-muted sidebar-node-empty">No sidebar nodes in this category.</li>';
+        : options.isUncategorized
+            ? '<li class="list-group-item text-muted sidebar-node-empty">Drop nodes here to place them outside a category.</li>'
+            : '<li class="list-group-item text-muted sidebar-node-empty">No sidebar nodes in this category.</li>';
 
     return `
         <div class="border rounded-3 overflow-hidden mb-3 sidebar-category-card ${draggableClass}" data-category-id="${escapeHtml(categoryId)}">
@@ -264,9 +266,7 @@ function renderSidebarNodes(containerEl, countEl) {
         html.push(buildCategoryCard(category, groupedNodes.get(getCategoryKey(category)) || []));
     });
 
-    if (uncategorizedNodes.length > 0) {
-        html.push(buildCategoryCard(null, uncategorizedNodes, { isUncategorized: true }));
-    }
+    html.push(buildCategoryCard(null, uncategorizedNodes, { isUncategorized: true }));
 
     if (html.length === 0) {
         containerEl.innerHTML = '<div class="list-group-item text-muted" id="sidebarNodesEmpty">No sidebar nodes available.</div>';
@@ -353,6 +353,7 @@ function syncSidebarNodesPayload(containerEl, countEl) {
             const category = window.sidebarCategoriesById.get(categoryId);
             if (category) {
                 category.order = categoryIndex;
+                category.sideMenuOrder = categoryIndex;
                 nextCategories.push(category);
             }
         }
@@ -625,14 +626,6 @@ function setupSidebarCategoryEditor(containerEl, countEl, searchEl) {
         iconLib.open(modalIconInput, modalIconPreview);
     });
 
-    selectIconButton?.addEventListener('click', () => {
-        iconLib.open(modalIconInput, modalIconPreview);
-    });
-
-    modalIconInput.addEventListener('click', () => {
-        iconLib.open(modalIconInput, modalIconPreview);
-    });
-
     containerEl.addEventListener('click', (event) => {
         const button = event.target.closest('[data-action="edit-sidebar-category"]');
         if (!button) {
@@ -680,8 +673,13 @@ function setupSidebarCategoryEditor(containerEl, countEl, searchEl) {
             name: updatedName,
         };
 
+        if (!Object.prototype.hasOwnProperty.call(nextCategory, 'sideMenuOrder')) {
+            nextCategory.sideMenuOrder = Number(existingCategory?.sideMenuOrder ?? existingCategory?.order ?? 0);
+        }
+
         if (isCreate) {
             nextCategory.order = window.sidebarCategoriesData.length;
+            nextCategory.sideMenuOrder = window.sidebarCategoriesData.length;
             window.sidebarCategoriesData.push(nextCategory);
         } else {
             window.sidebarCategoriesData = window.sidebarCategoriesData.map((category) => {

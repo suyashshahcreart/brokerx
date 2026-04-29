@@ -2388,6 +2388,11 @@ class TourController extends Controller
                     if (array_key_exists('order', $submittedCategory)) {
                         $mergedCategories[$index]['order'] = $submittedCategory['order'];
                     }
+
+                    if (array_key_exists('sideMenuOrder', $submittedCategory)) {
+                        $mergedCategories[$index]['sideMenuOrder'] = $submittedCategory['sideMenuOrder'];
+                        $mergedCategories[$index]['order'] = $submittedCategory['sideMenuOrder'];
+                    }
                 } else {
                     $categoryIndexById[$submittedId] = count($mergedCategories);
                     $mergedCategories[] = $submittedCategory;
@@ -2474,7 +2479,7 @@ class TourController extends Controller
                 continue;
             }
 
-            if ($key === 'order' && is_string($value)) {
+            if (in_array($key, ['order', 'sideMenuOrder'], true) && is_string($value)) {
                 $trimmedValue = trim($value);
                 $category[$key] = is_numeric($trimmedValue) ? (int) $trimmedValue : $value;
                 continue;
