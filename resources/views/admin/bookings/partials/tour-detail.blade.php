@@ -31,55 +31,56 @@
                 aria-selected="{{ ($firstActiveTab === 'vl-pills-tour-bookmark') ? 'true' : 'false' }}">
                 <i class="ri-bookmark-3-line me-2"></i>
                 <span>Tour Bookmark</span>
-                <a class="nav-link {{ ($firstActiveTab === 'vl-pills-userStar') ? 'active show' : '' }}"
-                    id="vl-pills-userStar-tab" data-bs-toggle="pill" href="#vl-pills-userStar" role="tab"
-                    aria-controls="vl-pills-userStar"
-                    aria-selected="{{ ($firstActiveTab === 'vl-pills-userStar') ? 'true' : 'false' }}">
-                    <i class="ri-star-line me-2"></i>
-                    <span>User Stars</span>
-                </a>
-                <a class="nav-link {{ ($firstActiveTab === 'vl-pills-attachments') ? 'active show' : '' }}"
-                    id="vl-pills-attachments-tab" data-bs-toggle="pill" href="#vl-pills-attachments" role="tab"
-                    aria-controls="vl-pills-attachments"
-                    aria-selected="{{ ($firstActiveTab === 'vl-pills-attachments') ? 'true' : 'false' }}">
-                    <i class="ri-attachment-line me-2"></i>
-                    <span>Attachments</span>
-                </a>
-                <a class="nav-link {{ ($firstActiveTab === 'vl-pills-language') ? 'active show' : '' }}"
-                    id="vl-pills-language-tab" data-bs-toggle="pill" href="#vl-pills-language" role="tab"
-                    aria-controls="vl-pills-language"
-                    aria-selected="{{ ($firstActiveTab === 'vl-pills-language') ? 'true' : 'false' }}">
-                    <i class="ri-translate-2 me-2"></i>
-                    <span>Language Section</span>
-                </a>
-                <a class="nav-link {{ ($firstActiveTab === 'vl-pills-loader-config') ? 'active show' : '' }}"
-                    id="vl-pills-loader-config-tab" data-bs-toggle="pill" href="#vl-pills-loader-config" role="tab"
-                    aria-controls="vl-pills-loader-config"
-                    aria-selected="{{ ($firstActiveTab === 'vl-pills-loader-config') ? 'true' : 'false' }}">
-                    <i class="ri-timer-flash-line me-2"></i>
-                    <span>Loader Configuration Section</span>
-                </a>
-                <a class="nav-link {{ ($firstActiveTab === 'vl-pills-sidebar-section') ? 'active show' : '' }}"
-                    id="vl-pills-sidebar-section-tab" data-bs-toggle="pill" href="#vl-pills-sidebar-section" role="tab"
-                    aria-controls="vl-pills-sidebar-section"
-                    aria-selected="{{ ($firstActiveTab === 'vl-pills-sidebar-section') ? 'true' : 'false' }}">
-                    <i class="ri-layout-left-line me-2"></i>
-                    <span>Sidebar Section</span>
-                </a>
-                <a class="nav-link {{ ($firstActiveTab === 'vl-pills-bottom-mark-top') ? 'active show' : '' }}"
-                    id="vl-pills-bottom-mark-top-tab" data-bs-toggle="pill" href="#vl-pills-bottom-mark-top" role="tab"
-                    aria-controls="vl-pills-bottom-mark-top"
-                    aria-selected="{{ ($firstActiveTab === 'vl-pills-bottom-mark-top') ? 'true' : 'false' }}">
-                    <i class="ri-layout-row-line me-2"></i>
-                    <span>Bottom Mark: Top Section</span>
-                </a>
-                <a class="nav-link {{ ($firstActiveTab === 'vl-pills-bottom-mark-property') ? 'active show' : '' }}"
-                    id="vl-pills-bottom-mark-property-tab" data-bs-toggle="pill" href="#vl-pills-bottom-mark-property"
-                    role="tab" aria-controls="vl-pills-bottom-mark-property"
-                    aria-selected="{{ ($firstActiveTab === 'vl-pills-bottom-mark-property') ? 'true' : 'false' }}">
-                    <i class="ri-cash-line me-2"></i>
-                    <span>Bottom Mark: Mark Property</span>
-                </a>
+            </a>
+            <a class="nav-link {{ ($firstActiveTab === 'vl-pills-userStar') ? 'active show' : '' }}"
+                id="vl-pills-userStar-tab" data-bs-toggle="pill" href="#vl-pills-userStar" role="tab"
+                aria-controls="vl-pills-userStar"
+                aria-selected="{{ ($firstActiveTab === 'vl-pills-userStar') ? 'true' : 'false' }}">
+                <i class="ri-star-line me-2"></i>
+                <span>User Stars</span>
+            </a>
+            <a class="nav-link {{ ($firstActiveTab === 'vl-pills-attachments') ? 'active show' : '' }}"
+                id="vl-pills-attachments-tab" data-bs-toggle="pill" href="#vl-pills-attachments" role="tab"
+                aria-controls="vl-pills-attachments"
+                aria-selected="{{ ($firstActiveTab === 'vl-pills-attachments') ? 'true' : 'false' }}">
+                <i class="ri-attachment-line me-2"></i>
+                <span>Attachments</span>
+            </a>
+            <a class="nav-link {{ ($firstActiveTab === 'vl-pills-language') ? 'active show' : '' }}"
+                id="vl-pills-language-tab" data-bs-toggle="pill" href="#vl-pills-language" role="tab"
+                aria-controls="vl-pills-language"
+                aria-selected="{{ ($firstActiveTab === 'vl-pills-language') ? 'true' : 'false' }}">
+                <i class="ri-translate-2 me-2"></i>
+                <span>Language Section</span>
+            </a>
+            <a class="nav-link {{ ($firstActiveTab === 'vl-pills-loader-config') ? 'active show' : '' }}"
+                id="vl-pills-loader-config-tab" data-bs-toggle="pill" href="#vl-pills-loader-config" role="tab"
+                aria-controls="vl-pills-loader-config"
+                aria-selected="{{ ($firstActiveTab === 'vl-pills-loader-config') ? 'true' : 'false' }}">
+                <i class="ri-timer-flash-line me-2"></i>
+                <span>Loader Configuration Section</span>
+            </a>
+            <a class="nav-link {{ ($firstActiveTab === 'vl-pills-sidebar-section') ? 'active show' : '' }}"
+                id="vl-pills-sidebar-section-tab" data-bs-toggle="pill" href="#vl-pills-sidebar-section" role="tab"
+                aria-controls="vl-pills-sidebar-section"
+                aria-selected="{{ ($firstActiveTab === 'vl-pills-sidebar-section') ? 'true' : 'false' }}">
+                <i class="ri-layout-left-line me-2"></i>
+                <span>Sidebar Section</span>
+            </a>
+            <a class="nav-link {{ ($firstActiveTab === 'vl-pills-bottom-mark-top') ? 'active show' : '' }}"
+                id="vl-pills-bottom-mark-top-tab" data-bs-toggle="pill" href="#vl-pills-bottom-mark-top" role="tab"
+                aria-controls="vl-pills-bottom-mark-top"
+                aria-selected="{{ ($firstActiveTab === 'vl-pills-bottom-mark-top') ? 'true' : 'false' }}">
+                <i class="ri-layout-row-line me-2"></i>
+                <span>Bottom Mark: Top Section</span>
+            </a>
+            <a class="nav-link {{ ($firstActiveTab === 'vl-pills-bottom-mark-property') ? 'active show' : '' }}"
+                id="vl-pills-bottom-mark-property-tab" data-bs-toggle="pill" href="#vl-pills-bottom-mark-property"
+                role="tab" aria-controls="vl-pills-bottom-mark-property"
+                aria-selected="{{ ($firstActiveTab === 'vl-pills-bottom-mark-property') ? 'true' : 'false' }}">
+                <i class="ri-cash-line me-2"></i>
+                <span>Bottom Mark: Mark Property</span>
+            </a>
         </div>
     </div>
     <div class="col-md-9">
@@ -1378,13 +1379,9 @@
                                                     class="form-control spinner-color-input" placeholder="#000000"
                                                     value="{{ $color }}"
                                                     oninput="this.previousElementSibling.querySelector('input').value = this.value">
-                                                <<<<<<< HEAD <!-- <button type="button"
-                                                    class="btn btn-soft-danger remove-spinner-color">
+                                                <!-- <button type="button" class="btn btn-soft-danger remove-spinner-color">
                                                     <i class="ri-delete-bin-line"></i>
-                                                    </button> -->
-                                                    =======
-                                                    </button>
-                                                    >>>>>>> 11e23cbdd86c90b29e1e1ea6d5995d73818c9299
+                                                </button> -->
                                             </div>
                                         </div>
                                     @endforeach
@@ -1422,27 +1419,20 @@
                         </div>
                     </div>
                     <div class="card-body">
-                        <!-- nav links for the sidebar tabls -->
-                        <ul class="nav nav-tabs mb-3" id="tourAttachmentsTabs" role="tablist">
+                        <ul class="nav nav-tabs mb-3" id="sidebarSectionTabs" role="tablist">
                             <li class="nav-item" role="presentation">
                                 <button class="nav-link active" id="sidebar-tab-1-tab" data-bs-toggle="tab"
                                     data-bs-target="#sidebar-tab-1-pane" type="button" role="tab"
-                                    aria-controls="tour-attachment-1-pane" aria-selected="true">Sidebar Details</button>
+                                    aria-controls="sidebar-tab-1-pane" aria-selected="true">Sidebar Details</button>
                             </li>
                             <li class="nav-item" role="presentation">
-                                <button class="nav-link" id="sidebar-2-tab" data-bs-toggle="tab"
+                                <button class="nav-link" id="sidebar-menu-tab" data-bs-toggle="tab"
                                     data-bs-target="#sidebar-tab-2-pane" type="button" role="tab"
-                                    aria-controls="tour-attachment-2-pane" aria-selected="false">Sidebar Links</button>
-                            </li>
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link" id="sidebar-3-tab" data-bs-toggle="tab"
-                                    data-bs-target="#sidebar-tab-3-pane" type="button" role="tab"
-                                    aria-controls="tour-attachment-3-pane" aria-selected="false">Sidebar Nodes</button>
+                                    aria-controls="sidebar-tab-2-pane" aria-selected="false">Sidebar Menu</button>
                             </li>
                         </ul>
 
-                        <!-- tab Content div -->
-                        <div class="tab-content" id="sidebarTabContent">
+                        <div class="tab-content" id="sidebarSectionTabContent">
                             <div class="tab-pane fade show active" id="sidebar-tab-1-pane" role="tabpanel"
                                 aria-labelledby="sidebar-tab-1-tab" tabindex="0">
                                 <form id="sidebarTabUpdateForm" method="POST"
@@ -1567,202 +1557,9 @@
                                     </div>
                                 </form>
                             </div><!-- first tab end -->
-                            <div class="tab-pane fade show" id="sidebar-tab-2-pane" role="tabpanel"
-                                aria-labelledby="sidebar-tab-2-tab" tabindex="0">
-                                <form action="{{ route('admin.tours.updateSidebarLinks', $tour) }}" method="POST"
-                                    id="sidebarLinksForm" class="needs-validation" novalidate>
-                                    @csrf
-                                    @method('PUT')
-                                    <input type="hidden" name="booking_id" value="{{ $booking->id }}">
-                                    <div class="row">
-                                        <!-- sidebar link fields -->
-                                        <div class="col-12">
-                                            <div class="mb-3">
-                                                <label for="sidebar_links" class="form-label fs-5">Sidebar Links</label>
-                                                <div class="container" id="sidebarLinksRow">
-                                                    <!-- Filled by the js -->
-                                                </div>
-                                                <div>
-                                                    <button type="button" id="addSideLinkBtn" class="btn btn-secondary">
-                                                        Add Sidebar Link
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="d-flex justify-content-end mt-3">
-                                            <button type="submit" class="btn btn-primary">
-                                                <i class="ri-save-line me-1"></i> Update Sidebar Section
-                                            </button>
-                                        </div>
-                                    </div><!-- Row end -->
-                                </form><!-- Form end -->
-                            </div>
-                            <div class="tab-pane fade show" id="sidebar-tab-3-pane" role="tabpanel"
-                                aria-labelledby="sidebar-tab-3-tab" tabindex="0">
-                                @php
-                                    $submittedSidebarPayload = old('sidebar_node_payload');
-                                    $submittedSidebarPayload = is_string($submittedSidebarPayload) ? json_decode($submittedSidebarPayload, true) : [];
-                                    $submittedSidebarPayload = is_array($submittedSidebarPayload) ? $submittedSidebarPayload : [];
-
-                                    $storedNodesFromFinalJson = data_get($tour->final_json, 'nodes', []);
-                                    $sidebarCategoriesValue = data_get($tour->final_json, 'sidebarCategories', []);
-                                    $sidebarNodeValue = $submittedSidebarPayload['nodes'] ?? old('sidebar_node', !empty($storedNodesFromFinalJson) ? $storedNodesFromFinalJson : ($tour->sidebar_node ?? []));
-                                    $sidebarCategoriesValue = $submittedSidebarPayload['sidebarCategories'] ?? $sidebarCategoriesValue;
-                                    $sidebarLinksValue = old('sidebarlinks', $tour->sidebar_links ?? data_get($tour->final_json, 'sidebarLinks', []));
-
-                                    if (is_string($sidebarNodeValue)) {
-                                        $decodedSidebarNodes = json_decode($sidebarNodeValue, true);
-                                        $sidebarNodeValue = is_array($decodedSidebarNodes) ? $decodedSidebarNodes : [];
-                                    }
-
-                                    if (is_string($sidebarCategoriesValue)) {
-                                        $decodedSidebarCategories = json_decode($sidebarCategoriesValue, true);
-                                        $sidebarCategoriesValue = is_array($decodedSidebarCategories) ? $decodedSidebarCategories : [];
-                                    }
-
-                                    if (!is_array($sidebarNodeValue)) {
-                                        $sidebarNodeValue = [];
-                                    }
-
-                                    if (!is_array($sidebarCategoriesValue)) {
-                                        $sidebarCategoriesValue = [];
-                                    }
-
-                                    $sidebarNodeCount = collect($sidebarNodeValue)
-                                        ->filter(function ($node) {
-                                            return is_array($node)
-                                                && array_key_exists('showInSideMenu', $node)
-                                                && in_array($node['showInSideMenu'], [true, 1, '1', 'true'], true);
-                                        })
-                                        ->count();
-
-                                    $sidebarExtraLinkCount = is_array($sidebarLinksValue) ? count($sidebarLinksValue) : 0;
-
-                                    $sidebarNodesSource = collect($sidebarNodeValue)
-                                        ->filter(function ($node) {
-                                            return is_array($node);
-                                        })
-                                        ->values()
-                                        ->toArray();
-
-                                    $sidebarCategoriesSource = collect($sidebarCategoriesValue)
-                                        ->filter(function ($category) {
-                                            return is_array($category) && data_get($category, 'id');
-                                        })
-                                        ->sortBy(function ($category) {
-                                            return (int) data_get($category, 'sideMenuOrder', data_get($category, 'order', 0));
-                                        })
-                                        ->values()
-                                        ->toArray();
-                                @endphp
-                                <form action="{{ route('admin.tours.updateSidebarNodes', $tour) }}" method="POST"
-                                    id="sidebarNodesForm" class="needs-validation" novalidate>
-                                    @csrf
-                                    @method('PUT')
-                                    <input type="hidden" name="sidebar_node_payload" id="sidebar_node_payload">
-                                    <div class="row">
-                                        <div class="col-12">
-                                            <div class="border rounded-3 overflow-hidden">
-                                                <div class="d-flex justify-content-between align-items-center px-3 py-2 bg-light border-bottom">
-                                                    <div>
-                                                        <h5 class="mb-0">Side Menu Items (<span id="sidebarNodeCount">{{ $sidebarNodeCount }}</span>)
-                                                        </h5>
-                                                        <small class="text-muted d-block">{{ $sidebarNodeCount }} items + {{ $sidebarExtraLinkCount }} extra links</small>
-                                                    </div>
-                                                    <div>
-                                                        <button type="button" class="btn btn-sm btn-outline-primary" id="addSidebarCategoryButton">
-                                                            <i class="ri-add-line me-1"></i>Add Category
-                                                        </button>
-                                                    </div>
-                                                </div>
-
-                                                <div class="px-3 py-2 border-bottom bg-white">
-                                                    <div class="input-group input-group-sm">
-                                                        <span class="input-group-text"><i class="ri-search-line"></i></span>
-                                                        <input type="search" class="form-control" id="sidebarNodeSearch"
-                                                            placeholder="Search items...">
-                                                    </div>
-                                                </div>
-
-                                                <div class="px-3 py-2 border-bottom small text-muted d-flex align-items-center gap-3 flex-wrap">
-                                                    <span><i class="ri-drag-move-2-line me-1"></i> Drag categories and items</span>
-                                                    <span><i class="ri-search-line me-1"></i> Search updates the visible tree only</span>
-                                                </div>
-
-                                                <div id="sidebarNodes">
-                                                    <div class="list-group-item text-muted" id="sidebarNodesEmpty">Loading sidebar nodes...</div>
-                                                </div>
-                                            </div>
-                                            <small class="text-muted d-block mt-2">Drag categories or move items between them. Saving persists the full node list into final_json.nodes and sidebarCategories.</small>
-                                            @error('sidebar_node_payload')<div class="text-danger">{{ $message }}</div>@enderror
-                                            @error('sidebar_node')<div class="text-danger">{{ $message }}</div>@enderror
-                                        </div>
-                                        <div class="d-flex justify-content-end mt-3">
-                                            <button class="btn btn-primary">Update Sidebar Nodes</button>
-                                        </div>
-                                    </div>
-                                </form>
-
-                                <div class="modal fade" id="sidebarNodeTitleModal" tabindex="-1"
-                                    aria-labelledby="sidebarNodeTitleModalLabel" aria-hidden="true">
-                                    <div class="modal-dialog modal-lg modal-dialog-centered">
-                                        <div class="modal-content">
-                                            <div class="modal-header">
-                                                <div>
-                                                    <h5 class="modal-title" id="sidebarNodeTitleModalLabel">Edit Sidebar
-                                                        Node Title</h5>
-                                                    <small class="text-muted d-block"
-                                                        id="sidebarNodeTitleModalNodeName"></small>
-                                                </div>
-                                                <button type="button" class="btn-close" data-bs-dismiss="modal"
-                                                    aria-label="Close"></button>
-                                            </div>
-                                            <div class="modal-body">
-                                                <div id="sidebarNodeTitleFields"></div>
-                                            </div>
-                                            <div class="modal-footer">
-                                                <button type="button" class="btn btn-light"
-                                                    data-bs-dismiss="modal">Cancel</button>
-                                                <button type="button" class="btn btn-primary"
-                                                    id="saveSidebarNodeTitleButton">Save changes</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="modal fade" id="sidebarCategoryModal" tabindex="-1"
-                                    aria-labelledby="sidebarCategoryModalLabel" aria-hidden="true">
-                                    <div class="modal-dialog modal-lg modal-dialog-centered">
-                                        <div class="modal-content">
-                                            <div class="modal-header">
-                                                <h5 class="modal-title" id="sidebarCategoryModalLabel">Add Sidebar Category</h5>
-                                                <button type="button" class="btn-close" data-bs-dismiss="modal"
-                                                    aria-label="Close"></button>
-                                            </div>
-                                            <div class="modal-body">
-                                                <input type="hidden" id="sidebarCategoryIdInput">
-                                                <div class="mb-3">
-                                                    <label for="sidebarCategoryIconInput" class="form-label">Icon</label>
-                                                    <div class="input-group">
-                                                        <input type="text" class="form-control icon-input" id="sidebarCategoryIconInput"
-                                                            placeholder="Click to select" readonly>
-                                                        <button type="button" class="btn btn-outline-secondary" id="selectSidebarCategoryIconButton">
-                                                            <i class="ri-search-line me-1"></i>Select
-                                                        </button>
-                                                    </div>
-                                                    <div class="icon-preview mt-2" id="sidebarCategoryIconPreview"></div>
-                                                </div>
-                                                <div id="sidebarCategoryNameFields"></div>
-                                            </div>
-                                            <div class="modal-footer">
-                                                <button type="button" class="btn btn-light"
-                                                    data-bs-dismiss="modal">Cancel</button>
-                                                <button type="button" class="btn btn-primary"
-                                                    id="saveSidebarCategoryButton">Save category</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+                            <div class="tab-pane fade" id="sidebar-tab-2-pane" role="tabpanel"
+                                aria-labelledby="sidebar-menu-tab" tabindex="0">
+                                @include('admin.bookings.partials.sidebar-menu')
                             </div>
                         </div>
                     </div>
@@ -2459,12 +2256,3 @@
 </div>
 
 @vite(['resources/js/pages/booking-tour-detail-update-tab.js', 'resources/js/pages/booking_edit_sidebarLink.js', 'resources/js/pages/booking_sidebar_nodes.js', 'resources/js/pages/booking_userDetails_edit.js', 'resources/js/pages/booking_tour_bookmark_action.js', 'resources/js/pages/booking_user_stars_edit.js'])
-
-<script>
-    window.sidebarNodesData = {!! json_encode($sidebarNodesSource, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!};
-    window.sidebarCategoriesData = {!! json_encode($sidebarCategoriesSource, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!};
-    window.sidebarLinksData = {!! json_encode(old('sidebar_links', $tour->sidebar_links), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!};
-    window.enabledLanguages = {!! json_encode($tour->enable_language ?? ['en'], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!};
-    window.defaultLanguage = {!! json_encode($tour->default_language ?? 'en', JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!};
-
-</script>

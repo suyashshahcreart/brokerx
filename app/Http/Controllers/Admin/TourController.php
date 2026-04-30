@@ -2277,6 +2277,7 @@ class TourController extends Controller
 
         $submittedNodes = $submittedPayload['nodes'] ?? $validated['nodes'] ?? $validated['sidebar_node'] ?? [];
         $submittedCategories = $submittedPayload['sidebarCategories'] ?? $validated['sidebarCategories'] ?? [];
+        $submittedLinks = $submittedPayload['sidebarLinks'] ?? $validated['sidebarLinks'] ?? [];
 
         $sidebarNodes = collect(array_values(array_filter($submittedNodes, fn ($node) => is_array($node))))
             ->map(function (array $node) {
@@ -2346,6 +2347,22 @@ class TourController extends Controller
             if (array_key_exists('categoryOrder', $sidebarNode)) {
                 $mergedNodes[$matchIndex]['categoryOrder'] = $sidebarNode['categoryOrder'];
             }
+
+            if (array_key_exists('showInSideMenu', $sidebarNode)) {
+                $mergedNodes[$matchIndex]['showInSideMenu'] = $sidebarNode['showInSideMenu'];
+            }
+
+            if (array_key_exists('sideMenuTitle', $sidebarNode)) {
+                $mergedNodes[$matchIndex]['sideMenuTitle'] = $sidebarNode['sideMenuTitle'];
+            }
+
+            if (array_key_exists('sideMenuIcon', $sidebarNode)) {
+                $mergedNodes[$matchIndex]['sideMenuIcon'] = $sidebarNode['sideMenuIcon'];
+            }
+
+            if (array_key_exists('addInGroup', $sidebarNode)) {
+                $mergedNodes[$matchIndex]['addInGroup'] = $sidebarNode['addInGroup'];
+            }
         }
 
         if (!empty($sidebarNodes) || !empty($existingNodes)) {
@@ -2403,9 +2420,16 @@ class TourController extends Controller
         } elseif (!array_key_exists('sidebarCategories', $finalJson) && !empty($existingCategories)) {
             $finalJson['sidebarCategories'] = array_values($existingCategories);
         }
-
+        
+        // If sidebar links were submitted, replace the final_json links with the submitted value.
+        if (!empty($submittedLinks) && is_array($submittedLinks)) {
+            $finalJson['sidebarLinks'] = array_values($submittedLinks);
+        } elseif (!array_key_exists('sidebarLinks', $finalJson)) {
+            $finalJson['sidebarLinks'] = $tour->sidebar_links ?? [];
+        }
         $tour->update([
             'sidebar_node' => $finalJson['nodes'],
+            'sidebar_links' => $finalJson['sidebarLinks'] ?? [],
             'final_json' => $finalJson,
         ]);
         $newData = $tour->fresh()->toArray();
