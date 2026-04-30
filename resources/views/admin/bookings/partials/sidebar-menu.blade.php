@@ -55,10 +55,156 @@
         ->toArray();
 @endphp
 
+<style>
+    .sidebar-menu-board {
+        background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        border-radius: 1rem;
+        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+    }
+
+    .sidebar-menu-toolbar {
+        background: #fff;
+        border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+    }
+
+    .sidebar-menu-card {
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        border-radius: 0.9rem;
+        background: #fff;
+        overflow: hidden;
+    }
+
+    .sidebar-menu-card + .sidebar-menu-card {
+        margin-top: 0.75rem;
+    }
+
+    .sidebar-menu-category-header {
+        background: linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
+        cursor: pointer;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+    }
+
+    .sidebar-menu-category-header:hover {
+        background: linear-gradient(180deg, #f0f4f8 0%, #e8ecf5 100%);
+    }
+
+    .sidebar-menu-category-header.collapsed {
+        border-bottom: 0;
+    }
+
+    .sidebar-menu-card .collapse {
+        overflow: hidden;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .sidebar-menu-card .collapse:not(.show) {
+        max-height: 0;
+        opacity: 0;
+    }
+
+    .sidebar-menu-card .collapse.show {
+        max-height: 10000px;
+        opacity: 1;
+    }
+
+    .sidebar-menu-row {
+        min-height: 68px;
+        gap: 1rem;
+    }
+
+    .sidebar-menu-row .sidebar-menu-row-main {
+        min-width: 0;
+    }
+
+    .sidebar-menu-row .sidebar-menu-row-title {
+        font-weight: 600;
+        line-height: 1.2;
+    }
+
+    .sidebar-menu-row .sidebar-menu-row-subtitle {
+        font-size: 0.82rem;
+        color: #64748b;
+        word-break: break-word;
+    }
+
+    .sidebar-menu-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.25rem 0.6rem;
+        border-radius: 999px;
+        border: 1px solid rgba(15, 23, 42, 0.1);
+        background: #fff;
+        font-size: 0.75rem;
+        color: #334155;
+        white-space: nowrap;
+    }
+
+    .sidebar-menu-category-toggle {
+        width: 2.2rem;
+        height: 2.2rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 0.6rem;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .sidebar-menu-category-toggle:hover {
+        background: rgba(15, 23, 42, 0.06);
+    }
+
+    .sidebar-menu-category-toggle i {
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .sidebar-menu-category-header .sidebar-menu-category-toggle[aria-expanded="false"] i {
+        transform: rotate(-180deg);
+    }
+
+    .sidebar-menu-category-header .sidebar-menu-category-toggle[aria-expanded="true"] i {
+        transform: rotate(0deg);
+    }
+
+    .sidebar-menu-empty-state {
+        border: 1px dashed rgba(15, 23, 42, 0.18);
+        border-radius: 0.85rem;
+        background: rgba(248, 250, 252, 0.9);
+    }
+
+    .sidebar-menu-order-input {
+        width: 7.8rem;
+    }
+
+    .sidebar-menu-action-group .btn {
+        white-space: nowrap;
+    }
+
+    .sidebar-menu-icon-wrap {
+        width: 2.25rem;
+        height: 2.25rem;
+        border-radius: 0.75rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: #f8fafc;
+        color: #334155;
+        flex: 0 0 auto;
+    }
+
+    .sidebar-menu-icon-wrap i,
+    .sidebar-menu-icon-wrap .material-icons-outlined {
+        font-size: 1rem;
+        line-height: 1;
+    }
+</style>
+
 <div class="row g-3">
     <div class="col-12">
-        <div class="card border-1 shadow-sm h-100">
-            <div class="card-header d-flex align-items-center justify-content-between">
+        <div class="sidebar-menu-board h-100">
+            <div class="card-header sidebar-menu-toolbar d-flex align-items-center justify-content-between flex-wrap gap-3 px-3 py-3">
                 <div>
                     <h5 class="card-title mb-0">Side Menu Items (<span id="sidebarNodeCount">{{ $sidebarNodeCount }}</span>)</h5>
                     <small class="text-muted d-block">{{ $sidebarNodeCount }} items in one ordered menu</small>
@@ -72,8 +218,8 @@
                     </button>
                 </div>
             </div>
-            <div class="card-body">
-                <div class="border rounded-3 overflow-hidden">
+            <div class="card-body p-3 p-lg-4">
+                <div class="sidebar-menu-card overflow-hidden">
                     <div class="px-3 py-2 border-bottom bg-white">
                         <div class="input-group input-group-sm">
                             <span class="input-group-text"><i class="ri-search-line"></i></span>
@@ -86,8 +232,8 @@
                         <span><i class="ri-search-line me-1"></i> Search updates the visible tree only</span>
                     </div>
 
-                    <div id="sidebarNodes" class="p-3">
-                        <div class="list-group-item text-muted" id="sidebarNodesEmpty">Loading sidebar nodes...</div>
+                    <div id="sidebarNodes" class="p-3 sidebar-menu-dropzone">
+                        <div class="sidebar-menu-empty-state text-muted px-3 py-3" id="sidebarNodesEmpty">Loading sidebar nodes...</div>
                     </div>
                 </div>
                 

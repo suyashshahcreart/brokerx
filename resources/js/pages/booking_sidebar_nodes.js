@@ -73,6 +73,24 @@ function escapeHtml(value) {
         .replace(/'/g, '&#039;');
 }
 
+function renderIconElement(iconName) {
+    const icon = String(iconName ?? '').trim();
+    
+    // Check if it's a remixicon (starts with ri-)
+    if (icon.startsWith('ri-')) {
+        return `<i class="${escapeHtml(icon)}"></i>`;
+    }
+    
+    // Check if it's a material icon (no hyphens at start or contains underscores)
+    if (icon && !icon.startsWith('-')) {
+        // If it doesn't have 'ri-' prefix, treat as material icon
+        return `<span class="material-icons-outlined">${escapeHtml(icon)}</span>`;
+    }
+    
+    // Default fallback to remixicon
+    return `<i class="ri-link-line"></i>`;
+}
+
 function getNodeDisplayTitle(node) {
     const titleMap = getTitleMap(node.sideMenuTitle);
     const preferredLanguage = window.defaultLanguage || 'en';
@@ -183,6 +201,8 @@ function getSidebarGroups() {
     const categories = sortCategories(window.sidebarCategoriesData);
     const visibleNodes = window.sidebarNodesData.filter((node) => isSidebarNodeVisible(node));
     const groupedNodes = new Map();
+    console.log('Visible nodes:', visibleNodes);
+    console.log('Categories:', categories);
 
     categories.forEach((category) => {
         groupedNodes.set(getCategoryKey(category), []);
@@ -217,6 +237,7 @@ function getSidebarMenuItems() {
 
     const { categories, groupedNodes, uncategorizedNodes } = getSidebarGroups();
     const links = sortLinks(Array.isArray(window.sidebarLinksData) ? window.sidebarLinksData : []);
+    console.log('Sidebar links:', links);
     const items = [];
 
     categories.forEach((category) => {
@@ -276,14 +297,17 @@ function buildNodeRow(node) {
     const isVisible = isSidebarNodeVisible(node);
 
     return `
-        <li class="list-group-item d-flex align-items-center justify-content-between sidebar-node-item sidebar-menu-item" data-menu-item-type="node" data-node-id="${escapeHtml(nodeId)}" data-title="${escapeHtml(displayTitle.toLowerCase())}" data-category-id="${escapeHtml(String(node.sideMenuCategoryId ?? ''))}" data-show-in-side-menu="${isVisible ? '1' : '0'}">
-            <div class="d-flex align-items-center gap-2">
+        <li class="list-group-item d-flex align-items-center justify-content-between sidebar-node-item sidebar-menu-item sidebar-menu-row px-3 py-3" data-menu-item-type="node" data-node-id="${escapeHtml(nodeId)}" data-title="${escapeHtml(displayTitle.toLowerCase())}" data-category-id="${escapeHtml(String(node.sideMenuCategoryId ?? ''))}" data-show-in-side-menu="${isVisible ? '1' : '0'}">
+            <div class="d-flex align-items-center gap-3 sidebar-menu-row-main">
                 <span class="drag-handle text-muted" style="cursor: grab;"><i class="ri-drag-move-2-line"></i></span>
-                <i class="${escapeHtml(nodeIcon)}"></i>
-                <span class="sidebar-node-title">${escapeHtml(displayTitle)}</span>
+                <span class="sidebar-menu-icon-wrap">${renderIconElement(nodeIcon)}</span>
+                <div class="sidebar-menu-row-main">
+                    <div class="sidebar-menu-row-title sidebar-node-title">${escapeHtml(displayTitle)}</div>
+                    <div class="sidebar-menu-row-subtitle">${escapeHtml(String(node.sideMenuCategoryId ?? '').trim() || 'No category')}</div>
+                </div>
             </div>
-            <div class="d-flex align-items-center gap-2">
-                <div class="input-group input-group-sm sidebar-node-order-control" style="width: 130px;">
+            <div class="d-flex align-items-center gap-2 flex-wrap justify-content-end sidebar-menu-action-group">
+                <div class="input-group input-group-sm sidebar-node-order-control sidebar-menu-order-input">
                     <span class="input-group-text">#</span>
                     <input type="text" class="form-control sidebar-node-order-field" value="${Number(node.sideMenuOrder ?? 0) + 1}" readonly>
                     <button type="button" class="btn btn-outline-secondary" data-action="move-node-up" title="Move up" aria-label="Move up">
@@ -316,18 +340,23 @@ function buildCategoryCard(category, nodes, options = {}) {
     const toggleIcon = isCollapsed ? 'ri-add-line' : 'ri-subtract-line';
 
     return `
-        <div class="border rounded-3 overflow-hidden mb-3 sidebar-category-card sidebar-menu-item" data-menu-item-type="category" data-category-id="${escapeHtml(categoryId)}">
-            <div class="d-flex align-items-center justify-content-between px-3 py-2 bg-light border-bottom sidebar-category-header">
-                <div class="d-flex align-items-center gap-2">
+        <div class="sidebar-menu-card mb-3 sidebar-category-card sidebar-menu-item" data-menu-item-type="category" data-category-id="${escapeHtml(categoryId)}">
+            <div class="sidebar-menu-category-header d-flex align-items-center justify-content-between gap-3 px-3 py-3">
+                <div class="d-flex align-items-center gap-3 sidebar-menu-row-main">
                     <span class="drag-handle sidebar-category-drag-handle text-muted" style="cursor: grab;">
                         <i class="ri-drag-move-2-line"></i>
                     </span>
-                    <span class="material-icons-outlined" style="font-size: 18px; line-height: 1;">${escapeHtml(icon)}</span>
-                    <span class="sidebar-category-title">${escapeHtml(title)}</span>
+                    <span class="sidebar-menu-icon-wrap">${renderIconElement(icon)}</span>
+                    <div class="sidebar-menu-row-main">
+                        <div class="sidebar-menu-row-title sidebar-category-title">${escapeHtml(title)}</div>
+                        <div class="sidebar-menu-row-subtitle d-flex align-items-center gap-2 flex-wrap">
+                            <span class="sidebar-menu-chip"><i class="ri-node-tree"></i><span class="sidebar-category-count">${nodes.length}</span> nodes</span>
+                            <span class="sidebar-menu-chip">${escapeHtml(options.isUncategorized ? 'Top level' : 'Category')}</span>
+                        </div>
+                    </div>
                 </div>
-                <div class="d-flex align-items-center gap-2">
-                    <span class="badge bg-white text-dark border sidebar-category-count">${nodes.length}</span>
-                    <div class="input-group input-group-sm sidebar-category-order-control" style="width: 130px;">
+                <div class="d-flex align-items-center gap-2 flex-wrap justify-content-end sidebar-menu-action-group">
+                    <div class="input-group input-group-sm sidebar-category-order-control sidebar-menu-order-input">
                         <span class="input-group-text">#</span>
                         <input type="text" class="form-control sidebar-category-order-field" value="${Number(category.sideMenuOrder ?? category.order ?? 0) + 1}" readonly>
                         <button type="button" class="btn btn-outline-secondary" data-action="move-category-up" title="Move up" aria-label="Move up">
@@ -338,13 +367,13 @@ function buildCategoryCard(category, nodes, options = {}) {
                         </button>
                     </div>
                     <button type="button" class="btn btn-sm btn-outline-secondary" data-action="edit-sidebar-category"><i class="ri-pencil-line me-1"></i>Edit</button>
-                    <button type="button" class="btn btn-sm btn-light border sidebar-category-toggle" data-bs-toggle="collapse" data-bs-target="#${collapseId}" aria-expanded="${!isCollapsed}" aria-controls="${collapseId}">
+                    <button type="button" class="btn btn-sm btn-light border sidebar-category-toggle sidebar-menu-category-toggle" data-bs-toggle="collapse" data-bs-target="#${collapseId}" aria-expanded="${!isCollapsed}" aria-controls="${collapseId}">
                         <i class="${toggleIcon}"></i>
                     </button>
                 </div>
             </div>
             <div id="${collapseId}" class="${collapseClass}">
-                <ul class="list-group list-group-flush sidebar-node-list" data-category-id="${escapeHtml(options.isUncategorized ? '' : categoryId)}">
+                <ul class="list-group list-group-flush sidebar-node-list bg-white" data-category-id="${escapeHtml(options.isUncategorized ? '' : categoryId)}">
                     ${rows}
                 </ul>
             </div>
@@ -355,7 +384,7 @@ function buildCategoryCard(category, nodes, options = {}) {
 function buildTopLevelNodeList(nodes) {
     const rows = nodes.length > 0
         ? nodes.map((node) => buildNodeRow(node)).join('')
-        : '<li class="list-group-item text-muted sidebar-node-empty">Drop nodes here to keep them without category.</li>';
+        : '<li class="list-group-item text-muted sidebar-node-empty sidebar-menu-empty-state px-3 py-3">Drop nodes here to keep them without category.</li>';
 
     return `
         <ul class="list-group list-group-flush sidebar-node-list sidebar-top-level-list mb-3" data-category-id="">
@@ -371,18 +400,18 @@ function buildLinkRow(link, index) {
     const icon = String(link?.sideMenuIcon ?? link?.icon ?? 'ri-link-line');
 
     return `
-        <li class="list-group-item d-flex align-items-center justify-content-between sidebar-link-item sidebar-menu-item" data-menu-item-type="link" data-link-index="${index}">
-            <div class="d-flex align-items-center gap-2">
+        <li class="list-group-item d-flex align-items-center justify-content-between sidebar-link-item sidebar-menu-item sidebar-menu-row px-3 py-3" data-menu-item-type="link" data-link-index="${index}">
+            <div class="d-flex align-items-center gap-3 sidebar-menu-row-main">
                 <span class="drag-handle" style="cursor:grab"><i class="ri-drag-move-2-line"></i></span>
-                <i class="${escapeHtml(icon)}"></i>
-                <div>
-                    <div class="fw-semibold">${escapeHtml(title || href)}</div>
-                    <div class="text-muted small">${escapeHtml(href)}</div>
+                <span class="sidebar-menu-icon-wrap">${renderIconElement(icon)}</span>
+                <div class="sidebar-menu-row-main">
+                    <div class="sidebar-menu-row-title">${escapeHtml(title || href)}</div>
+                    <div class="sidebar-menu-row-subtitle">${escapeHtml(href || action)}</div>
                 </div>
             </div>
-            <div class="d-flex align-items-center gap-2">
+            <div class="d-flex align-items-center gap-2 flex-wrap justify-content-end sidebar-menu-action-group">
                 <input type="hidden" class="link-json" value='${escapeHtml(JSON.stringify(link))}'>
-                <input type="number" class="form-control form-control-sm sidebar-link-order-field" style="width:72px" value="${index + 1}" min="1">
+                <input type="number" class="form-control form-control-sm sidebar-link-order-field sidebar-menu-order-input" value="${index + 1}" min="1">
                 <button type="button" class="btn btn-sm btn-outline-secondary" data-action="move-link-up">↑</button>
                 <button type="button" class="btn btn-sm btn-outline-secondary" data-action="move-link-down">↓</button>
                 <button type="button" class="btn btn-sm btn-outline-secondary" data-action="edit-sidebar-link"><i class="ri-pencil-line"></i></button>
@@ -408,7 +437,7 @@ function renderSidebarNodes(containerEl, countEl) {
     });
 
     if (html.length === 0) {
-        containerEl.innerHTML = '<div class="list-group-item text-muted" id="sidebarNodesEmpty">No sidebar nodes available.</div>';
+        containerEl.innerHTML = '<div class="sidebar-menu-empty-state text-muted px-3 py-3" id="sidebarNodesEmpty">No sidebar nodes available.</div>';
     } else {
         containerEl.innerHTML = html.join('');
     }
@@ -426,7 +455,7 @@ function renderSidebarCategoryIconPreview(previewEl, iconName) {
 
     previewEl.html(`
         <div class="icon-item text-center">
-            <span class="material-icons-outlined">${escapeHtml(iconName)}</span>
+            ${renderIconElement(iconName.trim())}
         </div>
     `);
 }
@@ -478,7 +507,7 @@ function syncSidebarNodeEmptyState(listEl) {
             const message = isTopLevelList
                 ? 'Drop nodes here to keep them without category.'
                 : 'No sidebar nodes in this category.';
-            listEl.insertAdjacentHTML('beforeend', `<li class="list-group-item text-muted sidebar-node-empty">${escapeHtml(message)}</li>`);
+            listEl.insertAdjacentHTML('beforeend', `<li class="list-group-item text-muted sidebar-node-empty sidebar-menu-empty-state px-3 py-3">${escapeHtml(message)}</li>`);
         }
         return;
     }
@@ -496,13 +525,79 @@ function refreshSidebarLayout(containerEl, countEl, searchEl) {
     }
 
     renderSidebarNodes(containerEl, countEl);
+    
+    // Initialize Bootstrap collapse for all categories
+    Array.from(containerEl.querySelectorAll('.collapse')).forEach((collapseEl) => {
+        if (typeof bootstrap !== 'undefined') {
+            bootstrap.Collapse.getOrCreateInstance(collapseEl, { toggle: false });
+        }
+        const card = collapseEl.closest('.sidebar-category-card');
+        const header = card?.querySelector('.sidebar-menu-category-header');
+        if (header && !collapseEl.classList.contains('show')) {
+            header.classList.add('collapsed');
+        }
+    });
+    
     window.sidebarSortables = setupSidebarSortables(containerEl, countEl);
     setupCategoryCollapseListeners(containerEl, countEl);
+    setupCategoryToggleButtons(containerEl, countEl);
     syncSidebarNodesPayload(containerEl, countEl);
 
     if (searchEl && searchEl.value.trim() !== '') {
         searchEl.dispatchEvent(new Event('input', { bubbles: true }));
     }
+}
+
+function setupCategoryToggleButtons(containerEl, countEl) {
+    if (!containerEl) return;
+
+    // Handle category toggle button click
+    containerEl.addEventListener('click', (event) => {
+        const toggleBtn = event.target.closest('.sidebar-category-toggle');
+        if (!toggleBtn) return;
+
+        const card = toggleBtn.closest('.sidebar-category-card');
+        const collapseId = toggleBtn.getAttribute('data-bs-target');
+        const collapseEl = collapseId ? document.querySelector(collapseId) : card?.querySelector('.collapse');
+
+        if (!collapseEl) return;
+
+        try {
+            if (typeof bootstrap !== 'undefined') {
+                const collapse = bootstrap.Collapse.getOrCreateInstance(collapseEl, { toggle: false });
+                if (collapseEl.classList.contains('show')) {
+                    collapse.hide();
+                } else {
+                    collapse.show();
+                }
+            }
+        } catch (err) {
+            console.error('Collapse toggle error:', err);
+        }
+    });
+
+    // Also allow header click to toggle (but not on buttons/inputs)
+    containerEl.addEventListener('click', (event) => {
+        const header = event.target.closest('.sidebar-menu-category-header');
+        if (!header || event.target.closest('.sidebar-category-toggle, .btn, input')) return;
+
+        const card = header.closest('.sidebar-category-card');
+        const collapseEl = card?.querySelector('.collapse');
+        if (!collapseEl) return;
+
+        try {
+            if (typeof bootstrap !== 'undefined') {
+                const collapse = bootstrap.Collapse.getOrCreateInstance(collapseEl, { toggle: false });
+                if (collapseEl.classList.contains('show')) {
+                    collapse.hide();
+                } else {
+                    collapse.show();
+                }
+            }
+        } catch (err) {
+            console.error('Collapse toggle error:', err);
+        }
+    });
 }
 
 function syncSidebarNodesPayload(containerEl, countEl) {
@@ -709,11 +804,12 @@ function setupCategoryCollapseListeners(containerEl, countEl) {
 
     // Use delegated listeners to capture Bootstrap collapse events and sync payload
     $(containerEl).on('shown.bs.collapse hidden.bs.collapse', '.collapse', function () {
-        // update toggle icon for this category header
+        // update toggle icon and header state for this category
         try {
             const collapseEl = this; // DOM element
             const container = collapseEl.closest('.sidebar-category-card');
             if (container) {
+                const header = container.querySelector('.sidebar-menu-category-header');
                 const toggleBtn = container.querySelector('.sidebar-category-toggle');
                 if (toggleBtn) {
                     const iconEl = toggleBtn.querySelector('i');
@@ -721,6 +817,14 @@ function setupCategoryCollapseListeners(containerEl, countEl) {
                         const isShown = collapseEl.classList.contains('show');
                         iconEl.className = isShown ? 'ri-subtract-line' : 'ri-add-line';
                         toggleBtn.setAttribute('aria-expanded', String(isShown));
+                    }
+                }
+                // Update header collapsed state for styling
+                if (header) {
+                    if (collapseEl.classList.contains('show')) {
+                        header.classList.remove('collapsed');
+                    } else {
+                        header.classList.add('collapsed');
                     }
                 }
             }
@@ -951,7 +1055,7 @@ function setupSidebarNodeTitleEditor(containerEl, countEl, searchEl) {
             ? 'Drop nodes here to keep them outside categories.'
             : 'No sidebar nodes in this category.';
 
-        return `<li class="list-group-item text-muted sidebar-node-empty">${escapeHtml(message)}</li>`;
+        return `<li class="list-group-item text-muted sidebar-node-empty sidebar-menu-empty-state px-3 py-3">${escapeHtml(message)}</li>`;
     };
 
     const syncListEmptyState = (listEl) => {

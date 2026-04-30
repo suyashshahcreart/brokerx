@@ -2257,6 +2257,7 @@ class TourController extends Controller
 
     public function updateTourSidebarNodes(Request $request, Tour $tour): JsonResponse|RedirectResponse
     {
+        dd($request->all());
         $validated = $request->validate([
             'sidebar_node_payload' => ['nullable', 'json'],
             'nodes' => ['nullable', 'array'],
