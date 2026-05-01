@@ -1,6 +1,7 @@
 import $ from 'jquery';
 import Sortable from 'sortablejs';
 import iconLib from './booking_tour_iconLib';
+import reinitalizeEditors from '../tinyEditor';
 
 const UNCATEGORIZED_CATEGORY_ID = '__uncategorized__';
 
@@ -1216,12 +1217,25 @@ function setupSidebarLinksEditor(containerEl, countEl) {
     const imageInput = document.getElementById('sidebarLinkImageInput');
     const imagePreviewBtn = document.getElementById('sidebarLinkImagePreviewButton');
     const imagePreviewEl = document.getElementById('sidebarLinkImagePreview');
+    const mediaWrapper = document.getElementById('sidebarLinkMediaWrapper');
+    const mediaUrlInput = document.getElementById('sidebarLinkMediaUrlInput');
+    const mediaFileNameInput = document.getElementById('sidebarLinkMediaFileNameInput');
+    const mediaFileInput = document.getElementById('sidebarLinkMediaFileInput');
+    const mediaFileLabel = document.getElementById('sidebarLinkMediaFileLabel');
+    const mediaFilePreview = document.getElementById('sidebarLinkMediaFilePreview');
+    const urlWrapper = document.getElementById('sidebarLinkUrlWrapper');
+    const imageWrapper = document.getElementById('sidebarLinkImageWrapper');
+    const infoModalWrapper = document.getElementById('sidebarLinkInfoModalWrapper');
+    const infoModalSizeInput = document.getElementById('sidebarLinkInfoModalSizeInput');
+    const infoModalMultilangFields = document.getElementById('sidebarLinkInfoModalMultilangFields');
+    const infoModalButtonLinkInput = document.getElementById('sidebarLinkInfoModalButtonLinkInput');
+
     const selectIconButton = document.getElementById('selectSidebarLinkIconButton');
     const removeIconButton = document.getElementById('removeSidebarLinkIconButton');
     const saveButton = document.getElementById('saveSidebarLinkButton');
     const addButton = document.getElementById('addSidebarLinkButton');
 
-    if (!modalEl || !titleFieldsEl || !urlInput || !actionInput || !saveButton || !iconInput) return;
+    if (!modalEl || !titleFieldsEl || !urlInput || !saveButton || !iconInput) return;
 
     const buildTitleFields = (link) => {
         const titleMap = getTitleMap(link?.title || {});
@@ -1256,35 +1270,190 @@ function setupSidebarLinksEditor(containerEl, countEl) {
         `;
     };
 
+    const buildInfoModalFields = (link) => {
+        if (!infoModalMultilangFields) return;
+        const titleMap = getTitleMap(link?.modalTitle || {});
+        const descMap = getTitleMap(link?.modalDescription || {});
+        const footerMap = getTitleMap(link?.modalFooterText || {});
+        
+        const languages = getEnabledLanguages();
+        const tabs = languages.map((language, index) => {
+            const isActive = index === 0;
+            return `
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link ${isActive ? 'active' : ''}" id="sidebarLinkInfoTab_${escapeHtml(language)}" data-bs-toggle="tab" data-bs-target="#sidebarLinkInfoPane_${escapeHtml(language)}" type="button" role="tab">${escapeHtml(getLanguageLabel(language))}</button>
+                </li>
+            `;
+        }).join('');
+
+        const panes = languages.map((language, index) => {
+            const isActive = index === 0 ? 'show active' : '';
+            const tVal = titleMap[language] || '';
+            const dVal = descMap[language] || '';
+            const fVal = footerMap[language] || '';
+            return `
+                <div class="tab-pane fade ${isActive} p-3 border border-top-0 rounded-bottom" id="sidebarLinkInfoPane_${escapeHtml(language)}" role="tabpanel">
+                    <div class="mb-3">
+                        <label class="form-label" for="sidebarLinkInfoTitle_${escapeHtml(language)}">Modal Title (${escapeHtml(getLanguageLabel(language))})</label>
+                        <input type="text" class="form-control" id="sidebarLinkInfoTitle_${escapeHtml(language)}" data-info-lang="${escapeHtml(language)}" data-info-field="title" value="${escapeHtml(tVal)}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="sidebarLinkInfoDesc_${escapeHtml(language)}">Modal Description (${escapeHtml(getLanguageLabel(language))})</label>
+                        <textarea class="form-control editor" id="sidebarLinkInfoDesc_${escapeHtml(language)}" data-info-lang="${escapeHtml(language)}" data-info-field="desc" rows="3">${escapeHtml(dVal)}</textarea>
+                    </div>
+                    <div>
+                        <label class="form-label" for="sidebarLinkInfoFooter_${escapeHtml(language)}">Modal Footer Text (${escapeHtml(getLanguageLabel(language))})</label>
+                        <input type="text" class="form-control" id="sidebarLinkInfoFooter_${escapeHtml(language)}" data-info-lang="${escapeHtml(language)}" data-info-field="footer" value="${escapeHtml(fVal)}">
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        infoModalMultilangFields.innerHTML = `
+            <div class="mb-3">
+                <ul class="nav nav-tabs" role="tablist">
+                    ${tabs}
+                </ul>
+                <div class="tab-content">
+                    ${panes}
+                </div>
+            </div>
+        `;
+    };
+
     const syncIconPreview = () => {
         renderSidebarCategoryIconPreview(iconPreviewEl, iconInput.value.trim());
     };
 
     const updateContentVisibility = () => {
         const typeVal = typeInput ? String(typeInput.value || '') : '';
-        const actionVal = actionInput ? String(actionInput.value || '') : '';
-        const shouldShow = typeVal === 'content' || actionVal === 'content';
+        
         if (contentWrapper) {
-            contentWrapper.style.display = shouldShow ? '' : 'none';
+            contentWrapper.style.display = typeVal === 'content' ? '' : 'none';
         }
+        
+        if (mediaWrapper) {
+            const isMedia = ['image', 'video', 'document'].includes(typeVal);
+            mediaWrapper.style.display = isMedia ? '' : 'none';
+            if (isMedia && mediaFileInput) {
+                if (typeVal === 'image') {
+                    mediaFileInput.multiple = true;
+                    mediaFileInput.accept = 'image/*';
+                    mediaFileLabel.textContent = 'Upload Image(s)';
+                } else if (typeVal === 'video') {
+                    mediaFileInput.multiple = false;
+                    mediaFileInput.accept = 'video/*';
+                    mediaFileLabel.textContent = 'Upload Video';
+                } else {
+                    mediaFileInput.multiple = false;
+                    mediaFileInput.accept = '*/*';
+                    mediaFileLabel.textContent = 'Upload Document';
+                }
+            }
+        }
+        
+        if (urlWrapper) urlWrapper.style.display = typeVal === 'link' ? '' : 'none';
+        
+        if (infoModalWrapper) infoModalWrapper.style.display = typeVal === 'information modal' ? '' : 'none';
+        if (imageWrapper) imageWrapper.style.display = 'none'; // Replaced by mediaUrl for image type but kept for backwards compatibility if needed
     };
 
+    if (mediaFileInput) {
+        mediaFileInput.addEventListener('change', (e) => {
+            const files = e.target.files;
+            if (!files || files.length === 0) {
+                mediaFilePreview.innerHTML = '';
+                return;
+            }
+            
+            mediaFilePreview.innerHTML = '';
+            const fileNames = [];
+            
+            Array.from(files).forEach(file => {
+                fileNames.push(file.name);
+                if (file.type.startsWith('image/')) {
+                    const img = document.createElement('img');
+                    img.src = URL.createObjectURL(file);
+                    img.style.width = '64px';
+                    img.style.height = '64px';
+                    img.style.objectFit = 'cover';
+                    img.className = 'rounded border';
+                    mediaFilePreview.appendChild(img);
+                } else {
+                    const icon = document.createElement('div');
+                    icon.className = 'd-flex align-items-center justify-content-center bg-light border rounded text-secondary';
+                    icon.style.width = '64px';
+                    icon.style.height = '64px';
+                    icon.innerHTML = '<i class="ri-file-line fs-3"></i>';
+                    mediaFilePreview.appendChild(icon);
+                }
+            });
+            
+            // Auto-fill filename field for convenience
+            if (mediaFileNameInput) {
+                mediaFileNameInput.value = fileNames.join(', ');
+            }
+        });
+    }
+
     typeInput?.addEventListener('change', updateContentVisibility);
-    actionInput?.addEventListener('change', updateContentVisibility);
 
     const openModalForIndex = (index, presetLink = null) => {
         ensureSidebarState();
         const idx = Number.isFinite(Number(index)) ? Number(index) : -1;
         indexInput.value = String(idx);
+        
+        const isNew = idx === -1;
         const link = isPlainObject(presetLink)
             ? presetLink
             : ((Array.isArray(window.sidebarLinksData) && window.sidebarLinksData[idx]) ? window.sidebarLinksData[idx] : {});
+        
+        // Destroy existing tinymce instances for info modal description fields
+        if (window.tinymce) {
+            Array.from(infoModalMultilangFields.querySelectorAll('.editor')).forEach(el => {
+                const id = el.id;
+                if (id && tinymce.get(id)) {
+                    tinymce.get(id).remove();
+                }
+            });
+        }
+
         buildTitleFields(link);
+        buildInfoModalFields(link);
+        
+        // Reinitialize the tiny editors
+        setTimeout(() => {
+            if (typeof reinitalizeEditors === 'function') {
+                reinitalizeEditors();
+            }
+        }, 100);
+        
         urlInput.value = String(link.link ?? link.href ?? '');
-        actionInput.value = String(link.mediaAction ?? link.action ?? 'link');
-        typeInput && (typeInput.value = String(link.type ?? (link.mediaAction === 'content' ? 'content' : 'link')));
-        orderInput && (orderInput.value = link.order ? String(Number(link.order) + 1) : '');
+        typeInput && (typeInput.value = String(link.type ?? 'link'));
+        
+        let orderVal = link.order;
+        if (isNew) {
+            orderVal = window.sidebarLinksData.length; // Next available order level for new links
+        }
+        orderInput && (orderInput.value = (orderVal !== undefined && orderVal !== null) ? String(Number(orderVal) + 1) : '');
+        
         iconInput.value = String(link.sideMenuIcon ?? link.icon ?? 'ri-link-line');
+        if (mediaUrlInput) mediaUrlInput.value = String(link.mediaUrl ?? '');
+        if (mediaFileNameInput) mediaFileNameInput.value = String(link.mediaFileName ?? (link.mediaFileNames ? link.mediaFileNames.join(', ') : '') ?? '');
+        if (mediaFileInput) mediaFileInput.value = ''; // Reset file input
+        if (mediaFilePreview) mediaFilePreview.innerHTML = ''; // Reset preview
+        
+        const mediaActionRadios = document.querySelectorAll('input[name="sidebarLinkMediaAction"]');
+        if (mediaActionRadios.length > 0) {
+            let act = String(link.mediaAction || 'modal');
+            mediaActionRadios.forEach(radio => {
+                radio.checked = (radio.value === act);
+            });
+        }
+        
+        if (infoModalSizeInput) infoModalSizeInput.value = String(link.modalSize ?? 'medium');
+        if (infoModalButtonLinkInput) infoModalButtonLinkInput.value = String(link.modalFooterButtonLink ?? '');
+        
         // content
         if (contentInput) {
             const html = String(link.content ?? '');
@@ -1430,16 +1599,71 @@ function setupSidebarLinksEditor(containerEl, countEl) {
             return contentInput ? String(contentInput.value || '') : '';
         }());
 
+        const typeVal = typeInput ? String(typeInput.value || '') : '';
+        
+        const mTitleMap = {};
+        const mDescMap = {};
+        const mFooterMap = {};
+        if (infoModalMultilangFields) {
+            Array.from(infoModalMultilangFields.querySelectorAll('[data-info-lang]')).forEach(inp => {
+                const lang = inp.dataset.infoLang;
+                const field = inp.dataset.infoField;
+                if (field === 'title') mTitleMap[lang] = inp.value || '';
+                if (field === 'desc') {
+                    const id = inp.id;
+                    let val = inp.value || '';
+                    if (window.tinymce && tinymce.get(id)) {
+                        val = tinymce.get(id).getContent();
+                    }
+                    mDescMap[lang] = val;
+                }
+                if (field === 'footer') mFooterMap[lang] = inp.value || '';
+            });
+        }
+
         const nextLink = {
             title: titleMap,
-            link: String(urlInput.value || ''),
-            mediaAction: String(actionInput.value || 'link'),
-            type: typeInput ? String(typeInput.value || '') : undefined,
+            type: typeVal || undefined,
             order: orderInput && orderInput.value ? Number(orderInput.value) - 1 : undefined,
             sideMenuIcon: String(iconInput.value || 'ri-link-line'),
-            content: contentHtml || undefined,
-            image: imageInput ? String(imageInput.value || '') : undefined,
         };
+
+        if (typeVal === 'link') {
+            nextLink.link = String(urlInput.value || '');
+            nextLink.mediaAction = 'link';
+        } else if (typeVal === 'content') {
+            nextLink.content = contentHtml || undefined;
+            nextLink.mediaAction = 'content';
+        } else if (typeVal === 'information modal') {
+            nextLink.modalSize = infoModalSizeInput ? infoModalSizeInput.value : 'medium';
+            nextLink.modalTitle = mTitleMap;
+            nextLink.modalDescription = mDescMap;
+            nextLink.modalFooterText = mFooterMap;
+            nextLink.modalFooterButtonLink = infoModalButtonLinkInput ? String(infoModalButtonLinkInput.value || '') : '';
+        } else if (['image', 'video', 'document'].includes(typeVal)) {
+            nextLink.mediaUrl = mediaUrlInput ? String(mediaUrlInput.value || '') : '';
+            const mFnRaw = mediaFileNameInput ? String(mediaFileNameInput.value || '') : '';
+            
+            const mediaActionChecked = document.querySelector('input[name="sidebarLinkMediaAction"]:checked');
+            nextLink.mediaAction = mediaActionChecked ? mediaActionChecked.value : 'modal';
+            
+            if (typeVal === 'image') {
+                const names = mFnRaw.split(',').map(n => n.trim()).filter(n => n);
+                nextLink.mediaUrls = nextLink.mediaUrl ? [nextLink.mediaUrl] : [];
+                nextLink.mediaFileNames = names;
+                nextLink.mediaFileName = names.length > 0 ? names[0] : '';
+            } else {
+                nextLink.mediaFileName = mFnRaw;
+                if (typeVal === 'video') {
+                    nextLink.mediaIsYouTube = false; // By default, based on JSON structure
+                }
+            }
+        }
+        
+        // Retain generic image backwards compatibility if imageInput exists and was populated
+        if (imageInput && imageInput.value) {
+             nextLink.image = String(imageInput.value);
+        }
 
         if (!Array.isArray(window.sidebarLinksData)) {
             window.sidebarLinksData = [];

@@ -326,7 +326,7 @@
 
                 <div class="modal fade" id="sidebarLinkModal" tabindex="-1" aria-labelledby="sidebarLinkModalLabel"
                     aria-hidden="true">
-                    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+                    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
                         <div class="modal-content">
                             <div class="modal-header">
                                 <h5 class="modal-title" id="sidebarLinkModalLabel">Edit sidebar link</h5>
@@ -358,7 +358,10 @@
                                             <label for="sidebarLinkTypeInput" class="form-label">Type</label>
                                             <select id="sidebarLinkTypeInput" class="form-select">
                                                 <option value="link">Link</option>
-                                                <option value="content">Content</option>
+                                                <option value="information modal">Information Modal</option>
+                                                <option value="image">Image</option>
+                                                <option value="video">Video</option>
+                                                <option value="document">Document</option>
                                             </select>
                                         </div>
                                         <div class="col-md-6">
@@ -367,19 +370,70 @@
                                                 min="1">
                                         </div>
                                     </div>
-                                    <div class="mt-3">
+                                    <div class="mt-3" id="sidebarLinkUrlWrapper">
                                         <label for="sidebarLinkUrlInput" class="form-label">Link URL</label>
                                         <input type="url" id="sidebarLinkUrlInput" class="form-control"
                                             placeholder="https://example.com">
                                     </div>
+                                    <div id="sidebarLinkMediaWrapper" style="display: none;">
+                                        <div class="mt-3">
+                                            <label class="form-label d-block">Media Action</label>
+                                            <div class="form-check form-check-inline">
+                                                <input class="form-check-input" type="radio"
+                                                    name="sidebarLinkMediaAction" id="mediaActionModal" value="modal"
+                                                    checked>
+                                                <label class="form-check-label" for="mediaActionModal">Modal</label>
+                                            </div>
+                                            <div class="form-check form-check-inline">
+                                                <input class="form-check-input" type="radio"
+                                                    name="sidebarLinkMediaAction" id="mediaActionDownload"
+                                                    value="download">
+                                                <label class="form-check-label"
+                                                    for="mediaActionDownload">Download</label>
+                                            </div>
+                                        </div>
+
+                                        <div class="mt-3">
+                                            <label for="sidebarLinkMediaFileInput" class="form-label"
+                                                id="sidebarLinkMediaFileLabel">Upload File(s)</label>
+                                            <input class="form-control" type="file" id="sidebarLinkMediaFileInput">
+                                            <div id="sidebarLinkMediaFilePreview" class="mt-2 d-flex flex-wrap gap-2">
+                                            </div>
+                                        </div>
+
+                                        <div class="mt-3">
+                                            <label for="sidebarLinkMediaUrlInput" class="form-label">Media URL</label>
+                                            <input type="text" id="sidebarLinkMediaUrlInput" class="form-control"
+                                                placeholder="info/media.ext">
+                                        </div>
+
+                                        <div class="mt-3">
+                                            <label for="sidebarLinkMediaFileNameInput" class="form-label">Media File
+                                                Name (Optional)</label>
+                                            <input type="text" id="sidebarLinkMediaFileNameInput" class="form-control"
+                                                placeholder="media.ext">
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="mb-3">
-                                    <label for="sidebarLinkActionInput" class="form-label">Action</label>
-                                    <select id="sidebarLinkActionInput" class="form-select">
-                                        <option value="link">Open Link</option>
-                                        <option value="modal">Open In Modal</option>
-                                        <option value="content">Show Content</option>
-                                    </select>
+
+                                <div id="sidebarLinkInfoModalWrapper" style="display: none;">
+                                    <div class="mb-3">
+                                        <label for="sidebarLinkInfoModalSizeInput" class="form-label">Modal Size</label>
+                                        <select id="sidebarLinkInfoModalSizeInput" class="form-select">
+                                            <option value="small">Small</option>
+                                            <option value="medium" selected>Medium</option>
+                                            <option value="large">Large</option>
+                                        </select>
+                                    </div>
+
+                                    <div id="sidebarLinkInfoModalMultilangFields"></div>
+
+                                    <div class="mb-3">
+                                        <label for="sidebarLinkInfoModalButtonLinkInput" class="form-label">Modal Footer
+                                            Button Link URL</label>
+                                        <input type="url" id="sidebarLinkInfoModalButtonLinkInput" class="form-control"
+                                            placeholder="https://example.com">
+                                    </div>
                                 </div>
 
                                 <div class="mb-3" id="sidebarLinkContentWrapper" style="display: none;">
@@ -387,7 +441,7 @@
                                     <textarea id="sidebarLinkContentInput" class="form-control" rows="8"></textarea>
                                 </div>
 
-                                <div class="mb-3">
+                                <div class="mb-3" id="sidebarLinkImageWrapper" style="display: none;">
                                     <label for="sidebarLinkImageInput" class="form-label">Image (URL)</label>
                                     <div class="input-group">
                                         <input type="url" id="sidebarLinkImageInput" class="form-control"
