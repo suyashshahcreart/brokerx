@@ -237,21 +237,11 @@ function getSidebarGroups() {
 function getSidebarMenuItems() {
     ensureSidebarState();
 
-    const { categories, groupedNodes, uncategorizedNodes } = getSidebarGroups();
     const links = sortLinks(Array.isArray(window.sidebarLinksData) ? window.sidebarLinksData : []);
-    console.log('Sidebar links:', links);
     const items = [];
 
-    categories.forEach((category) => {
-        items.push({
-            type: 'category',
-            order: Number(category?.sideMenuOrder ?? category?.order ?? 0),
-            category,
-            nodes: groupedNodes.get(getCategoryKey(category)) || [],
-        });
-    });
-
-    uncategorizedNodes.forEach((node) => {
+    const visibleNodes = window.sidebarNodesData.filter((node) => isSidebarNodeVisible(node));
+    sortNodes(visibleNodes).forEach((node) => {
         items.push({
             type: 'node',
             order: Number(node?.sideMenuOrder ?? 0),
@@ -272,24 +262,36 @@ function getSidebarMenuItems() {
             return left.order - right.order;
         }
 
-        const typeWeight = { category: 0, node: 1, link: 2 };
+        const typeWeight = { node: 0, link: 1 };
         if (typeWeight[left.type] !== typeWeight[right.type]) {
             return typeWeight[left.type] - typeWeight[right.type];
         }
 
-        const leftTitle = left.type === 'category'
-            ? getCategoryDisplayTitle(left.category)
-            : left.type === 'node'
-                ? getNodeDisplayTitle(left.node)
-                : String(left.link?.title?.en || left.link?.title || left.link?.link || '');
-        const rightTitle = right.type === 'category'
-            ? getCategoryDisplayTitle(right.category)
-            : right.type === 'node'
-                ? getNodeDisplayTitle(right.node)
-                : String(right.link?.title?.en || right.link?.title || right.link?.link || '');
+        const leftTitle = left.type === 'node'
+            ? getNodeDisplayTitle(left.node)
+            : String(left.link?.title?.en || left.link?.title || left.link?.link || '');
+        const rightTitle = right.type === 'node'
+            ? getNodeDisplayTitle(right.node)
+            : String(right.link?.title?.en || right.link?.title || right.link?.link || '');
 
         return String(leftTitle).localeCompare(String(rightTitle), undefined, { sensitivity: 'base' });
     });
+}
+
+function buildSidebarCategorySelectOptions(selectedCategoryId) {
+    ensureSidebarState();
+    const categories = sortCategories(window.sidebarCategoriesData);
+    const selectedValue = String(selectedCategoryId ?? '').trim();
+
+    let options = `<option value="" ${selectedValue === '' ? 'selected' : ''}>No category</option>`;
+    categories.forEach((category) => {
+        const categoryId = getCategoryKey(category);
+        const title = getCategoryDisplayTitle(category);
+        const selected = categoryId === selectedValue ? 'selected' : '';
+        options += `<option value="${escapeHtml(categoryId)}" ${selected}>${escapeHtml(title)}</option>`;
+    });
+
+    return options;
 }
 
 function buildNodeRow(node) {
@@ -297,6 +299,8 @@ function buildNodeRow(node) {
     const displayTitle = getNodeDisplayTitle(node);
     const nodeIcon = String(node.sideMenuIcon || 'ri-image-line');
     const isVisible = isSidebarNodeVisible(node);
+    const categoryLabel = getSidebarNodeCategoryLabel(node.sideMenuCategoryId);
+    const categoryOptions = buildSidebarCategorySelectOptions(node.sideMenuCategoryId);
 
     return `
         <li class="list-group-item d-flex align-items-center justify-content-between sidebar-node-item sidebar-menu-item sidebar-menu-row px-3 py-3" data-menu-item-type="node" data-node-id="${escapeHtml(nodeId)}" data-title="${escapeHtml(displayTitle.toLowerCase())}" data-category-id="${escapeHtml(String(node.sideMenuCategoryId ?? ''))}" data-show-in-side-menu="${isVisible ? '1' : '0'}">
@@ -305,10 +309,13 @@ function buildNodeRow(node) {
                 <span class="sidebar-menu-icon-wrap">${renderIconElement(nodeIcon)}</span>
                 <div class="sidebar-menu-row-main">
                     <div class="sidebar-menu-row-title sidebar-node-title">${escapeHtml(displayTitle)}</div>
-                    <div class="sidebar-menu-row-subtitle">${escapeHtml(String(node.sideMenuCategoryId ?? '').trim() || 'No category')}</div>
+                    <div class="sidebar-menu-row-subtitle sidebar-node-category-label">${escapeHtml(categoryLabel)}</div>
                 </div>
             </div>
             <div class="d-flex align-items-center gap-2 flex-wrap justify-content-end sidebar-menu-action-group">
+                <select class="form-select form-select-sm sidebar-node-category-select" style="min-width: 170px" title="Category">
+                    ${categoryOptions}
+                </select>
                 <div class="input-group input-group-sm sidebar-node-order-control sidebar-menu-order-input">
                     <span class="input-group-text">#</span>
                     <input type="text" class="form-control sidebar-node-order-field" value="${Number(node.sideMenuOrder ?? 0) + 1}" readonly>
@@ -413,9 +420,16 @@ function buildLinkRow(link, index) {
             </div>
             <div class="d-flex align-items-center gap-2 flex-wrap justify-content-end sidebar-menu-action-group">
                 <input type="hidden" class="link-json" value='${escapeHtml(JSON.stringify(link))}'>
-                <input type="number" class="form-control form-control-sm sidebar-link-order-field sidebar-menu-order-input" value="${index + 1}" min="1">
-                <button type="button" class="btn btn-sm btn-outline-secondary" data-action="move-link-up">↑</button>
-                <button type="button" class="btn btn-sm btn-outline-secondary" data-action="move-link-down">↓</button>
+                <div class="input-group input-group-sm sidebar-menu-order-input">
+                    <span class="input-group-text">#</span>
+                    <input type="text" class="form-control sidebar-link-order-field" value="${Number(index) + 1}" readonly>
+                    <button type="button" class="btn btn-outline-secondary" data-action="move-link-up" title="Move up" aria-label="Move up">
+                        <i class="ri-arrow-up-line"></i>
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" data-action="move-link-down" title="Move down" aria-label="Move down">
+                        <i class="ri-arrow-down-line"></i>
+                    </button>
+                </div>
                 <button type="button" class="btn btn-sm btn-outline-secondary" data-action="edit-sidebar-link"><i class="ri-pencil-line"></i></button>
                 <button type="button" class="btn btn-sm btn-outline-danger" data-action="remove-sidebar-link"><i class="ri-delete-bin-line"></i></button>
             </div>
@@ -425,12 +439,8 @@ function buildLinkRow(link, index) {
 
 function renderSidebarNodes(containerEl, countEl) {
     const items = getSidebarMenuItems();
-    const { visibleCount } = getSidebarGroups();
+    const visibleCount = window.sidebarNodesData.filter((node) => isSidebarNodeVisible(node)).length;
     const html = items.map((item) => {
-        if (item.type === 'category') {
-            return buildCategoryCard(item.category, item.nodes || []);
-        }
-
         if (item.type === 'node') {
             return buildNodeRow(item.node);
         }
@@ -453,29 +463,6 @@ function renderSidebarNodes(containerEl, countEl) {
     }
 }
 
-function renderSidebarLinks(containerEl) {
-    if (!containerEl) {
-        return;
-    }
-
-    ensureSidebarState();
-
-    const links = sortLinks(Array.isArray(window.sidebarLinksData) ? window.sidebarLinksData : []);
-    const html = links.map((link, index) => buildLinkRow(link, index));
-
-    if (html.length === 0) {
-        containerEl.innerHTML = '<li class="list-group-item text-muted sidebar-menu-empty-state px-3 py-3">No sidebar links available.</li>';
-    } else {
-        containerEl.innerHTML = html.join('');
-    }
-
-    // Update link count badge
-    const countBadge = document.getElementById('sidebarLinkCount');
-    if (countBadge) {
-        countBadge.textContent = String(links.length);
-    }
-}
-
 function renderSidebarCategoryIconPreview(previewEl, iconName) {
     if (!previewEl || !iconName) {
         previewEl.html('');
@@ -493,32 +480,14 @@ function setupSidebarSortables(containerEl, countEl) {
     const rootSortable = new Sortable(containerEl, {
         animation: 150,
         handle: '.drag-handle',
-        draggable: '.sidebar-category-card, .sidebar-node-item, .sidebar-link-item',
-        group: {
-            name: 'sidebar-menu',
-            pull: true,
-            put: true,
-        },
+        draggable: '.sidebar-node-item, .sidebar-link-item',
         ghostClass: 'sidebar-category-ghost',
         onEnd: () => syncSidebarNodesPayload(containerEl, countEl),
     });
 
-    const nodeSortables = Array.from(containerEl.querySelectorAll('.sidebar-node-list')).map((nodeList) => new Sortable(nodeList, {
-        animation: 150,
-        handle: '.drag-handle',
-        draggable: '.sidebar-node-item',
-        group: {
-            name: 'sidebar-menu',
-            pull: true,
-            put: true,
-        },
-        onAdd: () => syncSidebarNodesPayload(containerEl, countEl),
-        onEnd: () => syncSidebarNodesPayload(containerEl, countEl),
-    }));
-
     return {
         rootSortable,
-        nodeSortables,
+        nodeSortables: [],
     };
 }
 
@@ -554,22 +523,7 @@ function refreshSidebarLayout(containerEl, countEl, searchEl) {
     }
 
     renderSidebarNodes(containerEl, countEl);
-    
-    // Initialize Bootstrap collapse for all categories
-    Array.from(containerEl.querySelectorAll('.collapse')).forEach((collapseEl) => {
-        if (typeof bootstrap !== 'undefined') {
-            bootstrap.Collapse.getOrCreateInstance(collapseEl, { toggle: false });
-        }
-        const card = collapseEl.closest('.sidebar-category-card');
-        const header = card?.querySelector('.sidebar-menu-category-header');
-        if (header && !collapseEl.classList.contains('show')) {
-            header.classList.add('collapsed');
-        }
-    });
-    
     window.sidebarSortables = setupSidebarSortables(containerEl, countEl);
-    setupCategoryCollapseListeners(containerEl, countEl);
-    setupCategoryToggleButtons(containerEl, countEl);
     syncSidebarNodesPayload(containerEl, countEl);
 
     if (searchEl && searchEl.value.trim() !== '') {
@@ -577,161 +531,63 @@ function refreshSidebarLayout(containerEl, countEl, searchEl) {
     }
 }
 
-function setupCategoryToggleButtons(containerEl, countEl) {
-    if (!containerEl) return;
-
-    // Handle category toggle button click
-    containerEl.addEventListener('click', (event) => {
-        const toggleBtn = event.target.closest('.sidebar-category-toggle');
-        if (!toggleBtn) return;
-
-        const card = toggleBtn.closest('.sidebar-category-card');
-        const collapseId = toggleBtn.getAttribute('data-bs-target');
-        const collapseEl = collapseId ? document.querySelector(collapseId) : card?.querySelector('.collapse');
-
-        if (!collapseEl) return;
-
-        try {
-            if (typeof bootstrap !== 'undefined') {
-                const collapse = bootstrap.Collapse.getOrCreateInstance(collapseEl, { toggle: false });
-                if (collapseEl.classList.contains('show')) {
-                    collapse.hide();
-                } else {
-                    collapse.show();
-                }
-            }
-        } catch (err) {
-            console.error('Collapse toggle error:', err);
-        }
-    });
-
-    // Also allow header click to toggle (but not on buttons/inputs)
-    containerEl.addEventListener('click', (event) => {
-        const header = event.target.closest('.sidebar-menu-category-header');
-        if (!header || event.target.closest('.sidebar-category-toggle, .btn, input')) return;
-
-        const card = header.closest('.sidebar-category-card');
-        const collapseEl = card?.querySelector('.collapse');
-        if (!collapseEl) return;
-
-        try {
-            if (typeof bootstrap !== 'undefined') {
-                const collapse = bootstrap.Collapse.getOrCreateInstance(collapseEl, { toggle: false });
-                if (collapseEl.classList.contains('show')) {
-                    collapse.hide();
-                } else {
-                    collapse.show();
-                }
-            }
-        } catch (err) {
-            console.error('Collapse toggle error:', err);
-        }
-    });
-}
+// category collapse UI removed (single list menu)
 
 function syncSidebarNodesPayload(containerEl, countEl) {
     ensureSidebarState();
 
-    const topLevelItems = Array.from(containerEl.children).filter((child) => child.classList?.contains('sidebar-menu-item'));
-    const nextCategories = [];
+    const menuItems = Array.from(containerEl.children).filter((child) => child.classList?.contains('sidebar-menu-item'));
     const nextLinks = [];
-    let globalNodeOrder = 0;
-    let categoryOrder = 0;
+    let globalOrder = 0;
     let linkOrder = 0;
 
-    const syncNodeRows = (rows, categoryId, isUncategorized) => {
-        rows.forEach((row, categoryRowOrder) => {
-            const nodeId = String(row.dataset.nodeId ?? '').trim();
-            const node = window.sidebarNodesById.get(nodeId);
+    menuItems.forEach((item) => {
+        const itemType = String(item.dataset.menuItemType ?? '').trim();
 
+        if (itemType === 'node') {
+            const nodeId = String(item.dataset.nodeId ?? '').trim();
+            const node = window.sidebarNodesById.get(nodeId);
             if (!node) {
                 return;
             }
 
-            const visibleInput = row.querySelector('.sidebar-node-visible-input');
+            const visibleInput = item.querySelector('.sidebar-node-visible-input');
             node.showInSideMenu = visibleInput ? (visibleInput.value === '1' || visibleInput.value === 'true') : true;
-            node.sideMenuCategoryId = isUncategorized ? '' : categoryId;
-            node.categoryOrder = categoryRowOrder;
-            node.sideMenuOrder = globalNodeOrder;
+
+            const categorySelect = item.querySelector('.sidebar-node-category-select');
+            node.sideMenuCategoryId = categorySelect ? String(categorySelect.value ?? '').trim() : String(node.sideMenuCategoryId ?? '');
+
+            node.sideMenuOrder = globalOrder;
+            globalOrder += 1;
 
             const title = getNodeDisplayTitle(node);
-            const titleEl = row.querySelector('.sidebar-node-title');
-            if (titleEl) {
-                titleEl.textContent = title;
-            }
+            const titleEl = item.querySelector('.sidebar-node-title');
+            if (titleEl) titleEl.textContent = title;
 
-            row.dataset.title = title.toLowerCase();
-            row.dataset.categoryId = node.sideMenuCategoryId;
+            const categoryLabelEl = item.querySelector('.sidebar-node-category-label');
+            if (categoryLabelEl) categoryLabelEl.textContent = getSidebarNodeCategoryLabel(node.sideMenuCategoryId);
 
-            const orderFieldEl = row.querySelector('.sidebar-node-order-field');
-            if (orderFieldEl) {
-                orderFieldEl.value = String(globalNodeOrder + 1);
-            }
+            item.dataset.title = title.toLowerCase();
+            item.dataset.categoryId = node.sideMenuCategoryId;
 
-            const hiddenJsonEl = row.querySelector('.node-json');
-            if (hiddenJsonEl) {
-                hiddenJsonEl.value = JSON.stringify(node);
-            }
+            const orderFieldEl = item.querySelector('.sidebar-node-order-field');
+            if (orderFieldEl) orderFieldEl.value = String(node.sideMenuOrder + 1);
 
-            globalNodeOrder += 1;
-        });
-    };
-
-    topLevelItems.forEach((item) => {
-        const itemType = String(item.dataset.menuItemType ?? '').trim();
-
-        if (itemType === 'node') {
-            syncNodeRows([item], '', true);
-            return;
-        }
-
-        if (itemType === 'category') {
-            const categoryId = String(item.dataset.categoryId ?? '').trim();
-            const category = window.sidebarCategoriesById.get(categoryId);
-
-            if (category) {
-                category.order = categoryOrder;
-                category.sideMenuOrder = categoryOrder;
-                // capture collapse state from DOM
-                try {
-                    const collapseEl = item.querySelector('.collapse');
-                    category.collapsed = collapseEl ? !collapseEl.classList.contains('show') : false;
-                } catch (err) {
-                    category.collapsed = !!category.collapsed;
-                }
-                nextCategories.push(category);
-                categoryOrder += 1;
-            }
-
-            const rows = Array.from(item.querySelectorAll('.sidebar-node-list > .sidebar-node-item'));
-            syncNodeRows(rows, categoryId, false);
-
-            const countBadge = item.querySelector('.sidebar-category-count');
-            if (countBadge) {
-                countBadge.textContent = String(rows.length);
-            }
-
-            const orderFieldEl = item.querySelector('.sidebar-category-order-field');
-            if (orderFieldEl) {
-                orderFieldEl.value = String(categoryOrder);
-            }
+            const hiddenJsonEl = item.querySelector('.node-json');
+            if (hiddenJsonEl) hiddenJsonEl.value = JSON.stringify(node);
 
             return;
         }
 
         if (itemType === 'link') {
-            const rowIndex = Number(item.dataset.linkIndex ?? -1);
             const linkJsonEl = item.querySelector('.link-json');
             let link = {};
-
             if (linkJsonEl) {
                 try {
                     link = JSON.parse(linkJsonEl.value || '{}');
                 } catch (error) {
                     link = {};
                 }
-            } else if (Array.isArray(window.sidebarLinksData) && rowIndex >= 0 && rowIndex < window.sidebarLinksData.length) {
-                link = window.sidebarLinksData[rowIndex];
             }
 
             link.order = linkOrder;
@@ -739,27 +595,19 @@ function syncSidebarNodesPayload(containerEl, countEl) {
             nextLinks.push(link);
 
             const orderFieldEl = item.querySelector('.sidebar-link-order-field');
-            if (orderFieldEl) {
-                orderFieldEl.value = String(linkOrder + 1);
-            }
+            if (orderFieldEl) orderFieldEl.value = String(linkOrder + 1);
 
             linkOrder += 1;
+            return;
         }
     });
 
-    window.sidebarCategoriesData = nextCategories;
     window.sidebarLinksData = nextLinks;
 
     window.sidebarNodesData = window.sidebarNodesData.map((node) => {
         const nodeId = getNodeKey(node);
         return window.sidebarNodesById.get(nodeId) || node;
     });
-
-    window.sidebarCategoriesById = new Map(
-        window.sidebarCategoriesData
-            .map((category) => [getCategoryKey(category), category])
-            .filter(([key]) => key !== '')
-    );
 
     const allRows = Array.from(containerEl.querySelectorAll('.sidebar-node-item'));
     allRows.forEach((row, index) => {
@@ -775,14 +623,12 @@ function syncSidebarNodesPayload(containerEl, countEl) {
         }
     });
 
-    // disable/enable top-level menu item move buttons (categories, links)
-    const topItems = Array.from(containerEl.querySelectorAll(':scope > .sidebar-menu-item'));
-    topItems.forEach((item, index) => {
-        const up = item.querySelector('[data-action="move-category-up"], [data-action="move-link-up"]');
-        const down = item.querySelector('[data-action="move-category-down"], [data-action="move-link-down"]');
-
+    const linkRows = Array.from(containerEl.querySelectorAll('.sidebar-link-item'));
+    linkRows.forEach((row, index) => {
+        const up = row.querySelector('[data-action="move-link-up"]');
+        const down = row.querySelector('[data-action="move-link-down"]');
         if (up) up.disabled = index === 0;
-        if (down) down.disabled = index === topItems.length - 1;
+        if (down) down.disabled = index === linkRows.length - 1;
     });
 
     const payloadInput = document.getElementById('sidebar_node_payload');
@@ -806,64 +652,16 @@ function setupSidebarNodeSearch(containerEl, searchEl) {
 
     searchEl.addEventListener('input', function () {
         const query = this.value.trim().toLowerCase();
-        const cards = Array.from(containerEl.querySelectorAll('.sidebar-category-card'));
-
-        cards.forEach((card) => {
-            const categoryTitle = card.querySelector('.sidebar-category-title')?.textContent?.trim().toLowerCase() || '';
-            const rows = Array.from(card.querySelectorAll('.sidebar-node-item'));
-            let visibleRows = 0;
-
-            rows.forEach((row) => {
-                const title = row.dataset.title || '';
-                const shouldShow = query === '' || title.includes(query) || categoryTitle.includes(query);
-                row.style.display = shouldShow ? '' : 'none';
-
-                if (shouldShow) {
-                    visibleRows += 1;
-                }
-            });
-
-            card.style.display = query === '' || categoryTitle.includes(query) || visibleRows > 0 ? '' : 'none';
+        const items = Array.from(containerEl.querySelectorAll('.sidebar-menu-item'));
+        items.forEach((row) => {
+            const title = String(row.dataset.title ?? '').toLowerCase();
+            const shouldShow = query === '' || title.includes(query);
+            row.style.display = shouldShow ? '' : 'none';
         });
     });
 }
 
-function setupCategoryCollapseListeners(containerEl, countEl) {
-    if (!containerEl) return;
-
-    // Use delegated listeners to capture Bootstrap collapse events and sync payload
-    $(containerEl).on('shown.bs.collapse hidden.bs.collapse', '.collapse', function () {
-        // update toggle icon and header state for this category
-        try {
-            const collapseEl = this; // DOM element
-            const container = collapseEl.closest('.sidebar-category-card');
-            if (container) {
-                const header = container.querySelector('.sidebar-menu-category-header');
-                const toggleBtn = container.querySelector('.sidebar-category-toggle');
-                if (toggleBtn) {
-                    const iconEl = toggleBtn.querySelector('i');
-                    if (iconEl) {
-                        const isShown = collapseEl.classList.contains('show');
-                        iconEl.className = isShown ? 'ri-subtract-line' : 'ri-add-line';
-                        toggleBtn.setAttribute('aria-expanded', String(isShown));
-                    }
-                }
-                // Update header collapsed state for styling
-                if (header) {
-                    if (collapseEl.classList.contains('show')) {
-                        header.classList.remove('collapsed');
-                    } else {
-                        header.classList.add('collapsed');
-                    }
-                }
-            }
-        } catch (err) {
-            // ignore
-        }
-
-        syncSidebarNodesPayload(containerEl, countEl);
-    });
-}
+// category collapse listeners removed (single list menu)
 
 function setupSidebarNodeOrderButtons(containerEl, countEl) {
     const moveNodeRowByDirection = (row, direction) => {
@@ -880,28 +678,20 @@ function setupSidebarNodeOrderButtons(containerEl, countEl) {
         }
 
         const targetRow = allRows[targetIndex];
-        const sourceList = row.closest('.sidebar-node-list');
-        const targetList = targetRow.closest('.sidebar-node-list');
-
-        if (!sourceList || !targetList) {
-            return false;
-        }
 
         row.remove();
 
         if (direction < 0) {
-            targetList.insertBefore(row, targetRow);
+            containerEl.insertBefore(row, targetRow);
         } else {
             const nextSibling = targetRow.nextElementSibling;
             if (nextSibling) {
-                targetList.insertBefore(row, nextSibling);
+                containerEl.insertBefore(row, nextSibling);
             } else {
-                targetList.appendChild(row);
+                containerEl.appendChild(row);
             }
         }
 
-        syncSidebarNodeEmptyState(sourceList);
-        syncSidebarNodeEmptyState(targetList);
         return true;
     };
 
@@ -951,7 +741,7 @@ function setupMenuOrderButtons(containerEl, countEl) {
     };
 
     containerEl.addEventListener('click', (event) => {
-        const actionButton = event.target.closest('[data-action="move-category-up"], [data-action="move-category-down"], [data-action="move-link-up"], [data-action="move-link-down"]');
+        const actionButton = event.target.closest('[data-action="move-link-up"], [data-action="move-link-down"]');
         if (!actionButton) return;
 
         const item = actionButton.closest('.sidebar-menu-item');
@@ -1083,67 +873,20 @@ function setupSidebarNodeTitleEditor(containerEl, countEl, searchEl) {
     let activeRow = null;
     let activeNode = null;
 
-    const buildEmptyStateRow = (isUncategorized) => {
-        const message = isUncategorized
-            ? 'Drop nodes here to keep them outside categories.'
-            : 'No sidebar nodes in this category.';
-
-        return `<li class="list-group-item text-muted sidebar-node-empty sidebar-menu-empty-state px-3 py-3">${escapeHtml(message)}</li>`;
-    };
-
-    const syncListEmptyState = (listEl) => {
-        if (!listEl) {
-            return;
-        }
-
-        const items = Array.from(listEl.querySelectorAll('.sidebar-node-item'));
-        const emptyRows = Array.from(listEl.querySelectorAll('.sidebar-node-empty'));
-        const isUncategorized = String(listEl.dataset.categoryId ?? '').trim() === '';
-
-        if (items.length === 0) {
-            if (emptyRows.length === 0) {
-                listEl.insertAdjacentHTML('beforeend', buildEmptyStateRow(isUncategorized));
-            }
-            return;
-        }
-
-        emptyRows.forEach((row) => row.remove());
-    };
-
-    const getNodeListByCategoryId = (categoryId) => {
-        const normalizedCategoryId = String(categoryId ?? '').trim();
-        const lists = Array.from(containerEl.querySelectorAll('.sidebar-node-list'));
-
-        if (normalizedCategoryId === '') {
-            return lists.find((list) => String(list.dataset.categoryId ?? '').trim() === '') || null;
-        }
-
-        return lists.find((list) => String(list.dataset.categoryId ?? '').trim() === normalizedCategoryId) || null;
-    };
-
-    const moveNodeRowToCategoryAndOrder = (row, categoryId, orderValue) => {
-        const targetList = getNodeListByCategoryId(categoryId);
-        if (!targetList) {
-            return;
-        }
-
-        const sourceList = row.closest('.sidebar-node-list');
-
-        if (sourceList !== targetList) {
-            row.remove();
-        }
-
+    const moveMenuItemToGlobalOrder = (row, orderValue) => {
         const desiredIndex = Number.isFinite(orderValue) ? Math.max(0, Math.floor(orderValue) - 1) : 0;
-        const targetRows = Array.from(targetList.querySelectorAll('.sidebar-node-item')).filter((item) => item !== row);
-
-        if (targetRows.length === 0 || desiredIndex >= targetRows.length) {
-            targetList.appendChild(row);
-        } else {
-            targetList.insertBefore(row, targetRows[desiredIndex]);
+        const items = Array.from(containerEl.querySelectorAll(':scope > .sidebar-menu-item')).filter((item) => item !== row);
+        if (items.length === 0) {
+            containerEl.appendChild(row);
+            return;
         }
 
-        syncListEmptyState(sourceList);
-        syncListEmptyState(targetList);
+        if (desiredIndex >= items.length) {
+            containerEl.appendChild(row);
+            return;
+        }
+
+        containerEl.insertBefore(row, items[desiredIndex]);
     };
 
     const refreshCategoryPath = () => {
@@ -1254,7 +997,12 @@ function setupSidebarNodeTitleEditor(containerEl, countEl, searchEl) {
         activeNode.sideMenuCategoryId = selectedCategoryId;
         activeNode.sideMenuOrder = Number.isNaN(orderValue) ? 0 : Math.max(0, orderValue - 1);
 
-        moveNodeRowToCategoryAndOrder(activeRow, selectedCategoryId, orderValue);
+        // In single-list mode, category only changes metadata; order moves within one list.
+        const rowCategorySelect = activeRow.querySelector('.sidebar-node-category-select');
+        if (rowCategorySelect) {
+            rowCategorySelect.value = selectedCategoryId;
+        }
+        moveMenuItemToGlobalOrder(activeRow, orderValue);
 
         const hiddenJsonEl = activeRow.querySelector('.node-json');
         if (hiddenJsonEl) {
@@ -1452,7 +1200,7 @@ function setupSidebarLinksEditor(containerEl, countEl) {
                 else containerEl.appendChild(row);
             }
             syncSidebarNodesPayload(containerEl, countEl);
-            renderSidebarLinks(containerEl);
+            renderSidebarNodes(containerEl, countEl);
             syncSidebarNodesPayload(containerEl, countEl);
             return;
         }
@@ -1486,7 +1234,7 @@ function setupSidebarLinksEditor(containerEl, countEl) {
 
             if (linkIndex >= 0) {
                 window.sidebarLinksData.splice(linkIndex, 1);
-                renderSidebarLinks(containerEl);
+                renderSidebarNodes(containerEl, countEl);
                 syncSidebarNodesPayload(containerEl, countEl);
             }
             return;
@@ -1529,7 +1277,7 @@ function setupSidebarLinksEditor(containerEl, countEl) {
             window.sidebarLinksData.push(nextLink);
         }
 
-        renderSidebarLinks(containerEl);
+        renderSidebarNodes(containerEl, countEl);
         syncSidebarNodesPayload(containerEl, countEl);
         modal?.hide();
         // destroy tinymce instance for content editor to avoid duplicates
@@ -1730,10 +1478,13 @@ document.addEventListener('DOMContentLoaded', () => {
     setupMenuOrderButtons(listEl, countEl);
     setupSidebarNodeTitleEditor(listEl, countEl, searchEl);
     setupSidebarCategoryEditor(listEl, countEl, searchEl);
-    const linksListEl = document.getElementById('sidebarLinksList');
-    if (linksListEl) {
-        renderSidebarLinks(linksListEl);
-        setupSidebarLinksEditor(linksListEl, countEl);
-    }
+    setupSidebarLinksEditor(listEl, countEl);
+
+    // category dropdown change (single list menu)
+    listEl.addEventListener('change', (event) => {
+        const select = event.target.closest('.sidebar-node-category-select');
+        if (!select) return;
+        syncSidebarNodesPayload(listEl, countEl);
+    });
     syncSidebarNodesPayload(listEl, countEl);
 });

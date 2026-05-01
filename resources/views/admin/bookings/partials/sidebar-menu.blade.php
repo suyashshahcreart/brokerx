@@ -257,24 +257,6 @@
                 @error('sidebar_node_payload')<div class="text-danger">{{ $message }}</div>@enderror
                 @error('sidebar_node')<div class="text-danger">{{ $message }}</div>@enderror
 
-                <!-- Sidebar Links Section -->
-                <div class="card mt-4">
-                    <div class="card-header bg-light d-flex align-items-center justify-content-between">
-                        <div class="d-flex align-items-center gap-2">
-                            <h6 class="mb-0">Sidebar Links</h6>
-                            <span class="badge bg-secondary" id="sidebarLinkCount">0</span>
-                        </div>
-                        <button type="button" class="btn btn-sm btn-primary" id="addSidebarLinkButton">
-                            <i class="ri-add-line me-1"></i>Add Link
-                        </button>
-                    </div>
-                    <div class="card-body p-0">
-                        <ul class="list-group list-group-flush" id="sidebarLinksList">
-                            <li class="list-group-item text-muted sidebar-menu-empty-state px-3 py-3">No sidebar links available.</li>
-                        </ul>
-                    </div>
-                </div>
-
                 <div class="modal fade" id="sidebarNodeTitleModal" tabindex="-1"
                     aria-labelledby="sidebarNodeTitleModalLabel" aria-hidden="true">
                     <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
