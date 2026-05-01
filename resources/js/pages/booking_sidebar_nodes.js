@@ -4,6 +4,10 @@ import iconLib from './booking_tour_iconLib';
 
 const UNCATEGORIZED_CATEGORY_ID = '__uncategorized__';
 
+let SidebarNodesState = null;
+let sidebarCategoriesState = null;
+let sidebarLinksState = null;
+
 function isPlainObject(value) {
     return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
@@ -201,8 +205,6 @@ function getSidebarGroups() {
     const categories = sortCategories(window.sidebarCategoriesData);
     const visibleNodes = window.sidebarNodesData.filter((node) => isSidebarNodeVisible(node));
     const groupedNodes = new Map();
-    console.log('Visible nodes:', visibleNodes);
-    console.log('Categories:', categories);
 
     categories.forEach((category) => {
         groupedNodes.set(getCategoryKey(category), []);
@@ -433,7 +435,11 @@ function renderSidebarNodes(containerEl, countEl) {
             return buildNodeRow(item.node);
         }
 
-        return buildLinkRow(item.link, item.order);
+        if (item.type === 'link') {
+            return buildLinkRow(item.link, item.order);
+        }
+
+        return '';
     });
 
     if (html.length === 0) {
@@ -444,6 +450,29 @@ function renderSidebarNodes(containerEl, countEl) {
 
     if (countEl) {
         countEl.textContent = String(visibleCount);
+    }
+}
+
+function renderSidebarLinks(containerEl) {
+    if (!containerEl) {
+        return;
+    }
+
+    ensureSidebarState();
+
+    const links = sortLinks(Array.isArray(window.sidebarLinksData) ? window.sidebarLinksData : []);
+    const html = links.map((link, index) => buildLinkRow(link, index));
+
+    if (html.length === 0) {
+        containerEl.innerHTML = '<li class="list-group-item text-muted sidebar-menu-empty-state px-3 py-3">No sidebar links available.</li>';
+    } else {
+        containerEl.innerHTML = html.join('');
+    }
+
+    // Update link count badge
+    const countBadge = document.getElementById('sidebarLinkCount');
+    if (countBadge) {
+        countBadge.textContent = String(links.length);
     }
 }
 
@@ -1035,11 +1064,15 @@ function setupSidebarNodeTitleEditor(containerEl, countEl, searchEl) {
     const modalNodeNameEl = document.getElementById('sidebarNodeTitleModalNodeName');
     const modalFieldsEl = document.getElementById('sidebarNodeTitleFields');
     const visibleToggleEl = document.getElementById('sidebarNodeVisibleToggle');
+    const iconInput = document.getElementById('sidebarNodeIconInput');
+    const iconPreviewEl = $('#sidebarNodeIconPreview');
+    const selectIconButton = document.getElementById('selectSidebarNodeIconButton');
+    const removeIconButton = document.getElementById('removeSidebarNodeIconButton');
     const categorySelectEl = document.getElementById('sidebarNodeCategoryInput');
     const categoryPathEl = document.getElementById('sidebarNodeCategoryPath');
     const orderInputEl = document.getElementById('sidebarNodeOrderInput');
     const saveButton = document.getElementById('saveSidebarNodeTitleButton');
-    if (!modalEl || !modalFieldsEl || !saveButton || !visibleToggleEl || !categorySelectEl || !orderInputEl) {
+    if (!modalEl || !modalFieldsEl || !saveButton || !visibleToggleEl || !categorySelectEl || !orderInputEl || !iconInput) {
         return;
     }
 
@@ -1125,6 +1158,31 @@ function setupSidebarNodeTitleEditor(containerEl, countEl, searchEl) {
         refreshCategoryPath();
     };
 
+    const syncIconPreview = () => {
+        renderSidebarCategoryIconPreview(iconPreviewEl, iconInput.value.trim());
+    };
+
+    selectIconButton?.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setTimeout(() => {
+            iconLib.open(iconInput, iconPreviewEl);
+        }, 100);
+    });
+
+    iconInput.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setTimeout(() => {
+            iconLib.open(iconInput, iconPreviewEl);
+        }, 100);
+    });
+
+    removeIconButton?.addEventListener('click', () => {
+        iconInput.value = '';
+        syncIconPreview();
+    });
+
     containerEl.addEventListener('click', (event) => {
         const button = event.target.closest('[data-action="edit-sidebar-node"]');
 
@@ -1154,10 +1212,12 @@ function setupSidebarNodeTitleEditor(containerEl, countEl, searchEl) {
         buildSidebarNodeTitleFields(modalFieldsEl, activeNode);
 
         visibleToggleEl.checked = isVisible;
+        iconInput.value = String(activeNode.sideMenuIcon ?? '');
         categorySelectEl.innerHTML = buildSidebarNodeCategoryOptions(activeNode.sideMenuCategoryId);
         categorySelectEl.value = String(activeNode.sideMenuCategoryId ?? '');
         orderInputEl.value = String(Number(activeNode.sideMenuOrder ?? 0) + 1);
 
+        syncIconPreview();
         syncCategoryControlState();
         modal?.show();
     });
@@ -1190,7 +1250,7 @@ function setupSidebarNodeTitleEditor(containerEl, countEl, searchEl) {
 
         activeNode.showInSideMenu = visibleToggleEl.checked;
         activeNode.sideMenuTitle = updatedTitles;
-        // sideMenuIcon removed from modal; keep existing value if present
+        activeNode.sideMenuIcon = String(iconInput.value ?? '').trim();
         activeNode.sideMenuCategoryId = selectedCategoryId;
         activeNode.sideMenuOrder = Number.isNaN(orderValue) ? 0 : Math.max(0, orderValue - 1);
 
@@ -1238,7 +1298,7 @@ function setupSidebarLinksEditor(containerEl, countEl) {
     const removeIconButton = document.getElementById('removeSidebarLinkIconButton');
     const saveButton = document.getElementById('saveSidebarLinkButton');
     const addButton = document.getElementById('addSidebarLinkButton');
-
+       
     if (!modalEl || !titleFieldsEl || !urlInput || !actionInput || !saveButton || !iconInput) return;
 
     const buildTitleFields = (link) => {
@@ -1290,11 +1350,13 @@ function setupSidebarLinksEditor(containerEl, countEl) {
     typeInput?.addEventListener('change', updateContentVisibility);
     actionInput?.addEventListener('change', updateContentVisibility);
 
-    const openModalForIndex = (index) => {
+    const openModalForIndex = (index, presetLink = null) => {
         ensureSidebarState();
         const idx = Number.isFinite(Number(index)) ? Number(index) : -1;
         indexInput.value = String(idx);
-        const link = (Array.isArray(window.sidebarLinksData) && window.sidebarLinksData[idx]) ? window.sidebarLinksData[idx] : {};
+        const link = isPlainObject(presetLink)
+            ? presetLink
+            : ((Array.isArray(window.sidebarLinksData) && window.sidebarLinksData[idx]) ? window.sidebarLinksData[idx] : {});
         buildTitleFields(link);
         urlInput.value = String(link.link ?? link.href ?? '');
         actionInput.value = String(link.mediaAction ?? link.action ?? 'link');
@@ -1335,12 +1397,20 @@ function setupSidebarLinksEditor(containerEl, countEl) {
         }
     };
 
-    selectIconButton?.addEventListener('click', () => {
-        iconLib.open(iconInput, iconPreviewEl);
+    selectIconButton?.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setTimeout(() => {
+            iconLib.open(iconInput, iconPreviewEl);
+        }, 100);
     });
 
-    iconInput.addEventListener('click', () => {
-        iconLib.open(iconInput, iconPreviewEl);
+    iconInput.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setTimeout(() => {
+            iconLib.open(iconInput, iconPreviewEl);
+        }, 100);
     });
 
     removeIconButton?.addEventListener('click', () => {
@@ -1382,24 +1452,41 @@ function setupSidebarLinksEditor(containerEl, countEl) {
                 else containerEl.appendChild(row);
             }
             syncSidebarNodesPayload(containerEl, countEl);
-            renderSidebarNodes(containerEl, countEl);
+            renderSidebarLinks(containerEl);
             syncSidebarNodesPayload(containerEl, countEl);
             return;
         }
 
         if (editBtn) {
             const row = editBtn.closest('.sidebar-link-item');
-            const idx = row ? row.dataset.linkIndex : null;
-            openModalForIndex(idx);
+            if (!row) {
+                return;
+            }
+
+            const idx = Number(row.dataset.linkIndex ?? -1);
+            const rowJson = normalizeNodeJson(row.querySelector('.link-json')?.value || '{}');
+            openModalForIndex(idx, rowJson);
             return;
         }
 
         if (removeBtn) {
             const row = removeBtn.closest('.sidebar-link-item');
-            const idx = row ? Number(row.dataset.linkIndex) : null;
-            if (idx !== null && Array.isArray(window.sidebarLinksData)) {
-                window.sidebarLinksData.splice(idx, 1);
-                renderSidebarNodes(containerEl, countEl);
+            if (!row || !Array.isArray(window.sidebarLinksData)) {
+                return;
+            }
+
+            const rowJson = row.querySelector('.link-json')?.value || '';
+            const linkIndex = window.sidebarLinksData.findIndex((link) => {
+                try {
+                    return JSON.stringify(link) === rowJson;
+                } catch (err) {
+                    return false;
+                }
+            });
+
+            if (linkIndex >= 0) {
+                window.sidebarLinksData.splice(linkIndex, 1);
+                renderSidebarLinks(containerEl);
                 syncSidebarNodesPayload(containerEl, countEl);
             }
             return;
@@ -1442,7 +1529,7 @@ function setupSidebarLinksEditor(containerEl, countEl) {
             window.sidebarLinksData.push(nextLink);
         }
 
-        renderSidebarNodes(containerEl, countEl);
+        renderSidebarLinks(containerEl);
         syncSidebarNodesPayload(containerEl, countEl);
         modal?.hide();
         // destroy tinymce instance for content editor to avoid duplicates
@@ -1512,12 +1599,20 @@ function setupSidebarCategoryEditor(containerEl, countEl, searchEl) {
         });
     });
 
-    selectIconButton?.addEventListener('click', () => {
-        iconLib.open(modalIconInput, modalIconPreview);
+    selectIconButton?.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setTimeout(() => {
+            iconLib.open(modalIconInput, modalIconPreview);
+        }, 100);
     });
 
-    modalIconInput.addEventListener('click', () => {
-        iconLib.open(modalIconInput, modalIconPreview);
+    modalIconInput.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setTimeout(() => {
+            iconLib.open(modalIconInput, modalIconPreview);
+        }, 100);
     });
 
     containerEl.addEventListener('click', (event) => {
@@ -1611,6 +1706,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (document.getElementById('materialIconModal')) {
         iconLib.init('materialIconModal', 'materialIconSearch', 'materialIconModalClose');
+        
+        // Disable Bootstrap modal on icon modal to prevent focus trap recursion
+        const iconModalEl = document.getElementById('materialIconModal');
+        if (iconModalEl && typeof bootstrap !== 'undefined') {
+            try {
+                // Remove Bootstrap Modal instance if it exists
+                const existingModal = bootstrap.Modal.getInstance(iconModalEl);
+                if (existingModal) {
+                    existingModal.dispose();
+                }
+            } catch (err) {
+                // ignore
+            }
+        }
     }
 
     ensureSidebarState();
@@ -1624,7 +1733,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const linksListEl = document.getElementById('sidebarLinksList');
     if (linksListEl) {
         renderSidebarLinks(linksListEl);
-        setupSidebarLinksEditor(listEl, countEl);
+        setupSidebarLinksEditor(linksListEl, countEl);
     }
     syncSidebarNodesPayload(listEl, countEl);
 });

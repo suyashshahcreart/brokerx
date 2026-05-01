@@ -1568,12 +1568,12 @@
 
             <!-- icon modal of the material icon -->
             <!-- Modal -->
-            <div class="modal fade w-100" id="materialIconModal">
+            <div class="modal fade w-100" id="materialIconModal" tabindex="-1" aria-labelledby="materialIconModalLabel" aria-hidden="true" data-bs-backdrop="false" data-bs-keyboard="false">
                 <div class="modal-dialog modal-xl">
                     <div class="modal-content">
                         <div class="modal-header">
-                            <h5>Select Icon</h5>
-                            <button class="btn-close" id="materialIconModalClose" data-bs-dismiss="modal"></button>
+                            <h5 id="materialIconModalLabel">Select Icon</h5>
+                            <button class="btn-close" id="materialIconModalClose" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
                         <div class="modal-body">
                             <input type="text" id="materialIconSearch" class="form-control mb-3"
@@ -2255,4 +2255,4 @@
     </div>
 </div>
 
-@vite(['resources/js/pages/booking-tour-detail-update-tab.js', 'resources/js/pages/booking_edit_sidebarLink.js', 'resources/js/pages/booking_sidebar_nodes.js', 'resources/js/pages/booking_userDetails_edit.js', 'resources/js/pages/booking_tour_bookmark_action.js', 'resources/js/pages/booking_user_stars_edit.js'])
+@vite(['resources/js/pages/booking-tour-detail-update-tab.js', 'resources/js/pages/booking_sidebar_nodes.js', 'resources/js/pages/booking_userDetails_edit.js', 'resources/js/pages/booking_tour_bookmark_action.js', 'resources/js/pages/booking_user_stars_edit.js'])
