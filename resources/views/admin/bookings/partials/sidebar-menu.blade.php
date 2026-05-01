@@ -284,11 +284,14 @@
                                         <div class="mb-3 mt-3">
                                             <label for="sidebarNodeIconInput" class="form-label">Icon</label>
                                             <div class="input-group">
-                                                <input type="text" class="form-control icon-input" id="sidebarNodeIconInput" placeholder="Click to select" readonly>
-                                                <button type="button" class="btn btn-outline-secondary" id="selectSidebarNodeIconButton">
+                                                <input type="text" class="form-control icon-input"
+                                                    id="sidebarNodeIconInput" placeholder="Click to select" readonly>
+                                                <button type="button" class="btn btn-outline-secondary"
+                                                    id="selectSidebarNodeIconButton">
                                                     <i class="ri-search-line me-1"></i>Select
                                                 </button>
-                                                <button type="button" class="btn btn-outline-danger" id="removeSidebarNodeIconButton">
+                                                <button type="button" class="btn btn-outline-danger"
+                                                    id="removeSidebarNodeIconButton">
                                                     <i class="ri-close-line me-1"></i>Remove
                                                 </button>
                                             </div>
@@ -424,10 +427,22 @@
                                             id="selectSidebarCategoryIconButton">
                                             <i class="ri-search-line me-1"></i>Select
                                         </button>
+                                        <button type="button" class="btn btn-outline-danger"
+                                            id="removeSidebarCategoryIconButton">
+                                            <i class="ri-close-line me-1"></i>Remove
+                                        </button>
                                     </div>
                                     <div class="icon-preview mt-2" id="sidebarCategoryIconPreview"></div>
                                 </div>
                                 <div id="sidebarCategoryNameFields"></div>
+                                <div class="mb-3">
+                                    <label for="sidebarCategoryParentIdInput" class="form-label">Parent Category</label>
+                                    <select class="form-select" id="sidebarCategoryParentIdInput">
+                                        <option value="">No parent (top level)</option>
+                                    </select>
+                                    <small class="text-muted d-block mt-1">Select a parent to create a
+                                        subcategory.</small>
+                                </div>
                             </div>
                             <div class="modal-footer">
                                 <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
