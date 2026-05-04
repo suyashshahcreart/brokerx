@@ -80,6 +80,13 @@
                     <i class="ri-cash-line me-2"></i>
                     <span>Bottom Mark: Mark Property</span>
                 </a>
+            <a class="nav-link {{ ($firstActiveTab === 'vl-pills-infomodal-nodes') ? 'active show' : '' }}"
+                id="vl-pills-infomodal-nodes-tab" data-bs-toggle="pill" href="#vl-pills-infomodal-nodes" role="tab"
+                aria-controls="vl-pills-infomodal-nodes"
+                aria-selected="{{ ($firstActiveTab === 'vl-pills-infomodal-nodes') ? 'true' : 'false' }}">
+                <i class="ri-information-line me-2"></i>
+                <span>Info Modal Nodes</span>
+            </a>
         </div>
     </div>
     <div class="col-md-9">
@@ -2271,13 +2278,20 @@
                 </div>
             </div>
 
+            <!-- Info Modal Nodes -->
+            <div class="tab-pane fade {{ ($firstActiveTab === 'vl-pills-infomodal-nodes') ? 'active show' : '' }}"
+                id="vl-pills-infomodal-nodes" role="tabpanel" aria-labelledby="vl-pills-infomodal-nodes-tab">
+                @include('admin.bookings.partials.infomodal_nodes')
+            </div>
+
         </div>
     </div>
 </div>
 
-@vite(['resources/js/pages/booking-tour-detail-update-tab.js', 'resources/js/pages/booking_edit_sidebarLink.js', 'resources/js/pages/booking_userDetails_edit.js', 'resources/js/pages/booking_tour_bookmark_action.js', 'resources/js/pages/booking_user_stars_edit.js'])
+@vite(['resources/js/pages/booking-tour-detail-update-tab.js', 'resources/js/pages/booking_edit_sidebarLink.js', 'resources/js/pages/booking_userDetails_edit.js', 'resources/js/pages/booking_tour_bookmark_action.js', 'resources/js/pages/booking_user_stars_edit.js', 'resources/js/pages/booking_infomodal_nodes.js'])
 
 <script>
     window.sidebarLinksData = {!! json_encode(old('sidebar_links', $tour->sidebar_links)) !!};
     window.enabledLanguages = {!! json_encode($tour->enable_language ?? ['en']) !!};
+    window.tourFinalJson = @json($tour->final_json ?? []);
 </script>
