@@ -14,7 +14,6 @@ export class IconLibrary {
         if (this.initialized) {
             return;
         }
-
         this.initCDNLinks()
         this.modal = new bootstrap.Modal(document.getElementById(iconModalId));
         this.searchInput = $(`#${searchInputId}`);
@@ -33,7 +32,7 @@ export class IconLibrary {
 
     open(inputSelector, previewIcon) {
         this.targetInput = inputSelector;
-        this.previewIcon = previewIcon ;
+        this.previewIcon = previewIcon;
         this.renderIcons();
         this.modal.show();
     }

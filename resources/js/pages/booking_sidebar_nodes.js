@@ -3,6 +3,7 @@ import Sortable from 'sortablejs';
 import iconLib from './booking_tour_iconLib';
 import reinitalizeEditors from '../tinyEditor';
 
+
 const UNCATEGORIZED_CATEGORY_ID = '__uncategorized__';
 
 let SidebarNodesState = null;
@@ -163,8 +164,8 @@ function isSidebarNodeVisible(node) {
 
 function sortCategories(categories) {
     return [...categories].sort((left, right) => {
-        const leftOrder = Number(left?.sideMenuOrder ?? left?.order ?? 0);
-        const rightOrder = Number(right?.sideMenuOrder ?? right?.order ?? 0);
+        const leftOrder = Number(left?.order ?? 0);
+        const rightOrder = Number(right?.order ?? 0);
 
         if (leftOrder !== rightOrder) {
             return leftOrder - rightOrder;
@@ -176,8 +177,8 @@ function sortCategories(categories) {
 
 function sortLinks(links) {
     return [...links].sort((left, right) => {
-        const leftOrder = Number(left?.order ?? left?.sideMenuOrder ?? 0);
-        const rightOrder = Number(right?.order ?? right?.sideMenuOrder ?? 0);
+        const leftOrder = Number(left?.order ?? 0);
+        const rightOrder = Number(right?.order ?? 0);
 
         if (leftOrder !== rightOrder) {
             return leftOrder - rightOrder;
@@ -291,7 +292,7 @@ function getSidebarMenuItems() {
     uncategorizedNodes.forEach((node) => {
         items.push({
             type: 'node',
-            order: Number(node?.sideMenuOrder ?? 0),
+            order: Number(node?.sideMenuOrder ?? node?.order ?? 0),
             node,
         });
     });
@@ -329,29 +330,12 @@ function getSidebarMenuItems() {
     });
 }
 
-function buildSidebarCategorySelectOptions(selectedCategoryId) {
-    ensureSidebarState();
-    const categories = Array.isArray(window.sidebarCategoriesData) ? window.sidebarCategoriesData : [];
-    const selectedValue = String(selectedCategoryId ?? '').trim();
-
-    let options = `<option value="" ${selectedValue === '' ? 'selected' : ''}>No category</option>`;
-    flattenCategoriesForSelect(categories).forEach(({ category, depth }) => {
-        const categoryId = getCategoryKey(category);
-        const title = `${'— '.repeat(Math.min(depth, 6))}${getCategoryDisplayTitle(category)}`;
-        const selected = categoryId === selectedValue ? 'selected' : '';
-        options += `<option value="${escapeHtml(categoryId)}" ${selected}>${escapeHtml(title)}</option>`;
-    });
-
-    return options;
-}
-
 function buildNodeRow(node) {
     const nodeId = getNodeKey(node);
     const displayTitle = getNodeDisplayTitle(node);
     const nodeIcon = String(node.sideMenuIcon || 'ri-image-line');
     const isVisible = isSidebarNodeVisible(node);
     const categoryLabel = getSidebarNodeCategoryLabel(node.sideMenuCategoryId);
-    const categoryOptions = buildSidebarCategorySelectOptions(node.sideMenuCategoryId);
 
     return `
         <li class="list-group-item d-flex align-items-center justify-content-between sidebar-node-item sidebar-menu-item sidebar-menu-row px-3 py-3" data-menu-item-type="node" data-node-id="${escapeHtml(nodeId)}" data-title="${escapeHtml(displayTitle.toLowerCase())}" data-category-id="${escapeHtml(String(node.sideMenuCategoryId ?? ''))}" data-show-in-side-menu="${isVisible ? '1' : '0'}">
@@ -364,9 +348,6 @@ function buildNodeRow(node) {
                 </div>
             </div>
             <div class="d-flex align-items-center gap-2 flex-wrap justify-content-end sidebar-menu-action-group">
-                <select class="form-select form-select-sm sidebar-node-category-select" style="min-width: 170px" title="Category">
-                    ${categoryOptions}
-                </select>
                 <div class="input-group input-group-sm sidebar-node-order-control sidebar-menu-order-input">
                     <span class="input-group-text">#</span>
                     <input type="text" class="form-control sidebar-node-order-field" value="${Number(node.sideMenuOrder ?? 0) + 1}" readonly>
@@ -402,7 +383,6 @@ function buildCategoryCard(category, nodes, options = {}) {
     const parentId = String(options.parentId ?? '').trim();
     const depth = Number(options.depth ?? 0);
     const depthClass = depth > 0 ? 'ms-3' : '';
-
     return `
         <div class="sidebar-menu-card mb-3 sidebar-category-card sidebar-menu-item ${depthClass}" data-menu-item-type="category" data-category-id="${escapeHtml(categoryId)}" data-parent-id="${escapeHtml(parentId)}" data-title="${escapeHtml(title.toLowerCase())}">
             <div class="sidebar-menu-category-header d-flex align-items-center justify-content-between gap-3 px-3 py-3">
@@ -431,12 +411,12 @@ function buildCategoryCard(category, nodes, options = {}) {
                         </button>
                     </div>
                     <button type="button" class="btn btn-sm btn-outline-secondary" data-action="edit-sidebar-category"><i class="ri-pencil-line me-1"></i>Edit</button>
-                    <button type="button" class="btn btn-sm btn-light border sidebar-category-toggle sidebar-menu-category-toggle" data-bs-toggle="collapse" data-bs-target="#${collapseId}" aria-expanded="${!isCollapsed}" aria-controls="${collapseId}">
+                    <button type="button" class="btn btn-sm btn-light border" data-bs-toggle="collapse" data-bs-target="#${collapseId}" >
                         <i class="${toggleIcon}"></i>
                     </button>
                 </div>
             </div>
-            <div id="${collapseId}" class="${collapseClass}">
+            <div id="${collapseId}" class="collapse">
                 <ul class="list-group list-group-flush sidebar-node-list bg-white" data-category-id="${escapeHtml(options.isUncategorized ? '' : categoryId)}">
                     ${rows}
                 </ul>
@@ -1275,7 +1255,7 @@ function setupSidebarLinksEditor(containerEl, countEl) {
         const titleMap = getTitleMap(link?.modalTitle || {});
         const descMap = getTitleMap(link?.modalDescription || {});
         const footerMap = getTitleMap(link?.modalFooterText || {});
-        
+
         const languages = getEnabledLanguages();
         const tabs = languages.map((language, index) => {
             const isActive = index === 0;
@@ -1327,11 +1307,11 @@ function setupSidebarLinksEditor(containerEl, countEl) {
 
     const updateContentVisibility = () => {
         const typeVal = typeInput ? String(typeInput.value || '') : '';
-        
+
         if (contentWrapper) {
             contentWrapper.style.display = typeVal === 'content' ? '' : 'none';
         }
-        
+
         if (mediaWrapper) {
             const isMedia = ['image', 'video', 'document'].includes(typeVal);
             mediaWrapper.style.display = isMedia ? '' : 'none';
@@ -1351,9 +1331,9 @@ function setupSidebarLinksEditor(containerEl, countEl) {
                 }
             }
         }
-        
+
         if (urlWrapper) urlWrapper.style.display = typeVal === 'link' ? '' : 'none';
-        
+
         if (infoModalWrapper) infoModalWrapper.style.display = typeVal === 'information modal' ? '' : 'none';
         if (imageWrapper) imageWrapper.style.display = 'none'; // Replaced by mediaUrl for image type but kept for backwards compatibility if needed
     };
@@ -1365,10 +1345,10 @@ function setupSidebarLinksEditor(containerEl, countEl) {
                 mediaFilePreview.innerHTML = '';
                 return;
             }
-            
+
             mediaFilePreview.innerHTML = '';
             const fileNames = [];
-            
+
             Array.from(files).forEach(file => {
                 fileNames.push(file.name);
                 if (file.type.startsWith('image/')) {
@@ -1388,7 +1368,7 @@ function setupSidebarLinksEditor(containerEl, countEl) {
                     mediaFilePreview.appendChild(icon);
                 }
             });
-            
+
             // Auto-fill filename field for convenience
             if (mediaFileNameInput) {
                 mediaFileNameInput.value = fileNames.join(', ');
@@ -1402,12 +1382,12 @@ function setupSidebarLinksEditor(containerEl, countEl) {
         ensureSidebarState();
         const idx = Number.isFinite(Number(index)) ? Number(index) : -1;
         indexInput.value = String(idx);
-        
+
         const isNew = idx === -1;
         const link = isPlainObject(presetLink)
             ? presetLink
             : ((Array.isArray(window.sidebarLinksData) && window.sidebarLinksData[idx]) ? window.sidebarLinksData[idx] : {});
-        
+
         // Destroy existing tinymce instances for info modal description fields
         if (window.tinymce) {
             Array.from(infoModalMultilangFields.querySelectorAll('.editor')).forEach(el => {
@@ -1420,29 +1400,29 @@ function setupSidebarLinksEditor(containerEl, countEl) {
 
         buildTitleFields(link);
         buildInfoModalFields(link);
-        
+
         // Reinitialize the tiny editors
         setTimeout(() => {
             if (typeof reinitalizeEditors === 'function') {
                 reinitalizeEditors();
             }
         }, 100);
-        
+
         urlInput.value = String(link.link ?? link.href ?? '');
         typeInput && (typeInput.value = String(link.type ?? 'link'));
-        
+
         let orderVal = link.order;
         if (isNew) {
             orderVal = window.sidebarLinksData.length; // Next available order level for new links
         }
         orderInput && (orderInput.value = (orderVal !== undefined && orderVal !== null) ? String(Number(orderVal) + 1) : '');
-        
+
         iconInput.value = String(link.sideMenuIcon ?? link.icon ?? 'ri-link-line');
         if (mediaUrlInput) mediaUrlInput.value = String(link.mediaUrl ?? '');
         if (mediaFileNameInput) mediaFileNameInput.value = String(link.mediaFileName ?? (link.mediaFileNames ? link.mediaFileNames.join(', ') : '') ?? '');
         if (mediaFileInput) mediaFileInput.value = ''; // Reset file input
         if (mediaFilePreview) mediaFilePreview.innerHTML = ''; // Reset preview
-        
+
         const mediaActionRadios = document.querySelectorAll('input[name="sidebarLinkMediaAction"]');
         if (mediaActionRadios.length > 0) {
             let act = String(link.mediaAction || 'modal');
@@ -1450,10 +1430,10 @@ function setupSidebarLinksEditor(containerEl, countEl) {
                 radio.checked = (radio.value === act);
             });
         }
-        
+
         if (infoModalSizeInput) infoModalSizeInput.value = String(link.modalSize ?? 'medium');
         if (infoModalButtonLinkInput) infoModalButtonLinkInput.value = String(link.modalFooterButtonLink ?? '');
-        
+
         // content
         if (contentInput) {
             const html = String(link.content ?? '');
@@ -1600,7 +1580,7 @@ function setupSidebarLinksEditor(containerEl, countEl) {
         }());
 
         const typeVal = typeInput ? String(typeInput.value || '') : '';
-        
+
         const mTitleMap = {};
         const mDescMap = {};
         const mFooterMap = {};
@@ -1643,10 +1623,10 @@ function setupSidebarLinksEditor(containerEl, countEl) {
         } else if (['image', 'video', 'document'].includes(typeVal)) {
             nextLink.mediaUrl = mediaUrlInput ? String(mediaUrlInput.value || '') : '';
             const mFnRaw = mediaFileNameInput ? String(mediaFileNameInput.value || '') : '';
-            
+
             const mediaActionChecked = document.querySelector('input[name="sidebarLinkMediaAction"]:checked');
             nextLink.mediaAction = mediaActionChecked ? mediaActionChecked.value : 'modal';
-            
+
             if (typeVal === 'image') {
                 const names = mFnRaw.split(',').map(n => n.trim()).filter(n => n);
                 nextLink.mediaUrls = nextLink.mediaUrl ? [nextLink.mediaUrl] : [];
@@ -1659,10 +1639,10 @@ function setupSidebarLinksEditor(containerEl, countEl) {
                 }
             }
         }
-        
+
         // Retain generic image backwards compatibility if imageInput exists and was populated
         if (imageInput && imageInput.value) {
-             nextLink.image = String(imageInput.value);
+            nextLink.image = String(imageInput.value);
         }
 
         if (!Array.isArray(window.sidebarLinksData)) {
@@ -1890,9 +1870,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const listEl = document.getElementById('sidebarNodes');
     const searchEl = document.getElementById('sidebarNodeSearch');
     const countEl = document.getElementById('sidebarNodeCount');
-    const payloadInput = document.getElementById('sidebar_node_payload');
+    const nodesHidden = document.getElementById('sidebar_nodes');
+    const categoriesHidden = document.getElementById('sidebar_categories');
+    const linksHidden = document.getElementById('sidebar_links');
 
-    if (!listEl || !payloadInput) {
+    if (!listEl || !nodesHidden || !categoriesHidden || !linksHidden) {
         return;
     }
 

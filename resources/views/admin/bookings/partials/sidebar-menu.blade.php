@@ -1,13 +1,41 @@
 @php
+    $decodeOldJsonArray = function ($key) {
+        $raw = old($key);
+        if ($raw === null) {
+            return null;
+        }
+        if (is_array($raw)) {
+            return $raw;
+        }
+        if (!is_string($raw) || $raw === '') {
+            return [];
+        }
+        $decoded = json_decode($raw, true);
+
+        return json_last_error() === JSON_ERROR_NONE && is_array($decoded) ? $decoded : [];
+    };
+
+    $nodesFromOld = $decodeOldJsonArray('sidebar_nodes');
+    $categoriesFromOld = $decodeOldJsonArray('sidebar_categories');
+    $linksFromOld = $decodeOldJsonArray('sidebar_links');
+
     $submittedSidebarPayload = old('sidebar_node_payload');
     $submittedSidebarPayload = is_string($submittedSidebarPayload) ? json_decode($submittedSidebarPayload, true) : [];
     $submittedSidebarPayload = is_array($submittedSidebarPayload) ? $submittedSidebarPayload : [];
 
     $storedNodesFromFinalJson = data_get($tour->final_json, 'nodes', []);
     $sidebarCategoriesValue = data_get($tour->final_json, 'sidebarCategories', []);
-    $sidebarNodeValue = $submittedSidebarPayload['nodes'] ?? old('sidebar_node', !empty($storedNodesFromFinalJson) ? $storedNodesFromFinalJson : ($tour->sidebar_node ?? []));
-    $sidebarCategoriesValue = $submittedSidebarPayload['sidebarCategories'] ?? $sidebarCategoriesValue;
-    $sidebarLinksValue = old('sidebar_links', $tour->sidebar_links ?? data_get($tour->final_json, 'sidebarLinks', []));
+    $defaultLinks = $tour->sidebar_links ?? data_get($tour->final_json, 'sidebarLinks', []);
+
+    $sidebarNodeValue = $nodesFromOld !== null
+        ? $nodesFromOld
+        : ($submittedSidebarPayload['nodes'] ?? old('sidebar_node', !empty($storedNodesFromFinalJson) ? $storedNodesFromFinalJson : ($tour->sidebar_node ?? [])));
+
+    $sidebarCategoriesValue = $categoriesFromOld !== null
+        ? $categoriesFromOld
+        : ($submittedSidebarPayload['sidebarCategories'] ?? $sidebarCategoriesValue);
+
+    $sidebarLinksValue = $linksFromOld !== null ? $linksFromOld : old('sidebar_links', $defaultLinks);
 
     if (is_string($sidebarNodeValue)) {
         $decodedSidebarNodes = json_decode($sidebarNodeValue, true);
@@ -248,12 +276,17 @@
                     class="needs-validation mt-3" novalidate>
                     @csrf
                     @method('PUT')
-                    <input type="hidden" name="sidebar_node_payload" id="sidebar_node_payload">
+                    <input type="hidden" name="sidebar_nodes" id="sidebar_nodes">
+                    <input type="hidden" name="sidebar_categories" id="sidebar_categories">
+                    <input type="hidden" name="sidebar_links" id="sidebar_links">
                     <div class="d-flex justify-content-end">
                         <button class="btn btn-primary">Save Menu Order</button>
                     </div>
                 </form>
 
+                @error('sidebar_nodes')<div class="text-danger">{{ $message }}</div>@enderror
+                @error('sidebar_categories')<div class="text-danger">{{ $message }}</div>@enderror
+                @error('sidebar_links')<div class="text-danger">{{ $message }}</div>@enderror
                 @error('sidebar_node_payload')<div class="text-danger">{{ $message }}</div>@enderror
                 @error('sidebar_node')<div class="text-danger">{{ $message }}</div>@enderror
 

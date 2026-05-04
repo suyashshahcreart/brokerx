@@ -2260,6 +2260,9 @@ class TourController extends Controller
         dd($request->all());
         $validated = $request->validate([
             'sidebar_node_payload' => ['nullable', 'json'],
+            'sidebar_nodes' => ['nullable', 'json'],
+            'sidebar_categories' => ['nullable', 'json'],
+            'sidebar_links' => ['nullable', 'json'],
             'nodes' => ['nullable', 'array'],
             'nodes.*' => ['nullable', 'array'],
             'sidebarCategories' => ['nullable', 'array'],
@@ -2267,6 +2270,16 @@ class TourController extends Controller
             'sidebar_node' => ['nullable', 'array'],
             'sidebar_node.*' => ['nullable', 'array'],
         ]);
+
+        $decodeJsonArray = static function (?string $value): ?array {
+            if ($value === null || $value === '') {
+                return null;
+            }
+
+            $decoded = json_decode($value, true);
+
+            return json_last_error() === JSON_ERROR_NONE && is_array($decoded) ? $decoded : null;
+        };
 
         $submittedPayload = [];
         if (!empty($validated['sidebar_node_payload'])) {
@@ -2276,9 +2289,25 @@ class TourController extends Controller
             }
         }
 
-        $submittedNodes = $submittedPayload['nodes'] ?? $validated['nodes'] ?? $validated['sidebar_node'] ?? [];
-        $submittedCategories = $submittedPayload['sidebarCategories'] ?? $validated['sidebarCategories'] ?? [];
-        $submittedLinks = $submittedPayload['sidebarLinks'] ?? $validated['sidebarLinks'] ?? [];
+        $nodesFromFields = $decodeJsonArray($validated['sidebar_nodes'] ?? null);
+        $categoriesFromFields = $decodeJsonArray($validated['sidebar_categories'] ?? null);
+        $linksFromFields = $decodeJsonArray($validated['sidebar_links'] ?? null);
+
+        $submittedNodes = $nodesFromFields
+            ?? ($submittedPayload['nodes'] ?? null)
+            ?? $validated['nodes']
+            ?? $validated['sidebar_node']
+            ?? [];
+
+        $submittedCategories = $categoriesFromFields
+            ?? ($submittedPayload['sidebarCategories'] ?? null)
+            ?? $validated['sidebarCategories']
+            ?? [];
+
+        $submittedLinks = $linksFromFields
+            ?? ($submittedPayload['sidebarLinks'] ?? null)
+            ?? $validated['sidebarLinks']
+            ?? [];
 
         $sidebarNodes = collect(array_values(array_filter($submittedNodes, fn ($node) => is_array($node))))
             ->map(function (array $node) {
