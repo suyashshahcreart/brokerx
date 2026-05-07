@@ -66,198 +66,18 @@
                         </div>
                     </div>
 
-                    <div id="tooltipSection" class="mb-4 p-3 border rounded">
-                        <h5 class="mb-3 fw-semibold">Tooltip Section</h5>
-                        <div class="mb-3" id="tooltipTitleSection">
-                            <!-- js inset in to this -->
-                        </div>
-                        <div id="tooltipPositionSection" class="mb-4 p-3 border rounded">
-                            <h6 class="mb-3 fw-semibold">Tooltip Position</h6>
-                            <div>
-                                <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="radio" name="tooltipPosition" id="posUp"
-                                        value="up">
-                                    <label class="form-check-label" for="posUp">Up</label>
-                                </div>
-                                <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="radio" name="tooltipPosition" id="posDown"
-                                        value="down" checked>
-                                    <label class="form-check-label" for="posDown">Down</label>
-                                </div>
-                                <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="radio" name="tooltipPosition" id="posLeft"
-                                        value="left">
-                                    <label class="form-check-label" for="posLeft">Left</label>
-                                </div>
-                                <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="radio" name="tooltipPosition" id="posRight"
-                                        value="right">
-                                    <label class="form-check-label" for="posRight">Right</label>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="mb-3" id="tooltipDescriptionENSection">
-                            <label for="tooltipDescriptionEN" class="form-label">Tooltip Description</label>
-                            <textarea class="form-control" id="tooltipDescriptionEN" rows="3" maxlength="300"
-                                placeholder="Enter tooltip description"></textarea>
-                            <small class="text-muted" id="tooltipDescriptionENCount">0</small>/300
-                        </div>
+                    <div id="tooltipSection" class="mb-4 p-3 border rounded d-none">
+                        <!-- js fille this tool tip section Update -->
                     </div>
 
-
-                    <div class="tab-content mb-4">
-                        <!-- English Tab -->
-                        <div class="tab-pane fade show active" id="langENContent" role="tabpanel"
-                            aria-labelledby="langEN">
-                            <!-- Title Section -->
-                            <div id="titleSection" class="mb-4 p-3 border rounded d-none">
-                                <h6 class="mb-3 fw-semibold">Title</h6>
-                                <div class="mb-3">
-                                    <label for="linkTitleEN" class="form-label">Link Title</label>
-                                    <input type="text" class="form-control" id="linkTitleEN"
-                                        placeholder="Enter link title">
-                                </div>
-                                <div class="mb-3">
-                                    <label for="modalTitleEN" class="form-label">Modal Title</label>
-                                    <input type="text" class="form-control" id="modalTitleEN" maxlength="120"
-                                        placeholder="Enter modal title">
-                                </div>
-                            </div>
-
-                            <!-- Description Section -->
-                            <div id="descriptionSection" class="mb-4 p-3 border rounded d-none">
-                                <h6 class="mb-3 fw-semibold">Description</h6>
-                                <div class="mb-3">
-                                    <label for="modalDescriptionEN" class="form-label">Modal Description (Rich
-                                        Text)</label>
-                                    <textarea class="form-control editor" id="modalDescriptionEN" rows="8"
-                                        placeholder="Enter modal description"></textarea>
-                                </div>
-                            </div>
-
-                            <!-- Link Section -->
-                            <div id="linkSection" class="mb-4 p-3 border rounded d-none">
-                                <h6 class="mb-3 fw-semibold">Links & Actions</h6>
-                                <div class="mb-3">
-                                    <label for="infoModalLinkEN" class="form-label">Info Modal Link Text</label>
-                                    <input type="text" class="form-control" id="infoModalLinkEN"
-                                        placeholder="Link text for info modal">
-                                </div>
-                                <div class="mb-3" id="linkUrlSection">
-                                    <label for="actionUrl" class="form-label">Action URL</label>
-                                    <input type="url" class="form-control" id="actionUrl"
-                                        placeholder="https://example.com">
-                                </div>
-                            </div>
-
-                            <!-- Button Section -->
-                            <div id="buttonTextENSection" class="mb-4 p-3 border rounded d-none">
-                                <h6 class="mb-3 fw-semibold">Button Text</h6>
-                                <div class="mb-3">
-                                    <label for="buttonTextEN" class="form-label">Button Display Text</label>
-                                    <input type="text" class="form-control" id="buttonTextEN" maxlength="120"
-                                        placeholder="Enter button text">
-                                </div>
-                            </div>
-
-                            <!-- Footer Section -->
-                            <div id="footerSection" class="mb-4 p-3 border rounded d-none">
-                                <h6 class="mb-3 fw-semibold">Modal Footer</h6>
-                                <div class="mb-3" id="infoModalFooterButtonSection">
-                                    <label for="infoModalFooterButtonTitleEN" class="form-label">Footer Button
-                                        Title</label>
-                                    <input type="text" class="form-control" id="infoModalFooterButtonTitleEN"
-                                        placeholder="Button text in footer">
-                                </div>
-                                <div class="mb-3" id="infoModalFooterButtonLinkSection">
-                                    <label for="infoModalFooterButtonLink" class="form-label">Footer Button Link</label>
-                                    <input type="url" class="form-control" id="infoModalFooterButtonLink"
-                                        placeholder="https://example.com">
-                                </div>
-                                <div class="mb-3" id="infoModalFooterTextSection">
-                                    <label for="infoModalFooterTextEN" class="form-label">Footer Text</label>
-                                    <input type="text" class="form-control" id="infoModalFooterTextEN"
-                                        placeholder="Footer text message">
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Gujarati Tab -->
-                        <div class="tab-pane fade" id="langGUContent" role="tabpanel" aria-labelledby="langGU">
-                            <!-- Title Section -->
-                            <div id="titleSectionGU" class="mb-4 p-3 border rounded d-none">
-                                <h6 class="mb-3 fw-semibold">Title (Gujarati)</h6>
-                                <div class="mb-3" id="tooltipTitleGUSection">
-                                    <label for="tooltipTitleGU" class="form-label">Tooltip Title</label>
-                                    <input type="text" class="form-control" id="tooltipTitleGU" maxlength="120"
-                                        placeholder="ટૂલટીપ શીર્ષક દાખલ કરો">
-                                    <small class="text-muted" id="tooltipTitleGUCount">0</small>/120
-                                </div>
-                                <div class="mb-3">
-                                    <label for="linkTitleGU" class="form-label">Link Title</label>
-                                    <input type="text" class="form-control" id="linkTitleGU" placeholder="લિંક શીર્ષક">
-                                </div>
-                                <div class="mb-3">
-                                    <label for="modalTitleGU" class="form-label">Modal Title</label>
-                                    <input type="text" class="form-control" id="modalTitleGU" maxlength="120"
-                                        placeholder="મોડલ શીર્ષક">
-                                </div>
-                            </div>
-
-                            <!-- Description Section -->
-                            <div id="descriptionSectionGU" class="mb-4 p-3 border rounded d-none">
-                                <h6 class="mb-3 fw-semibold">Description (Gujarati)</h6>
-                                <div class="mb-3" id="tooltipDescriptionGUSection">
-                                    <label for="tooltipDescriptionGU" class="form-label">Tooltip Description</label>
-                                    <textarea class="form-control" id="tooltipDescriptionGU" rows="3" maxlength="300"
-                                        placeholder="ટૂલટીપ વર્ણન"></textarea>
-                                    <small class="text-muted" id="tooltipDescriptionGUCount">0</small>/300
-                                </div>
-                                <div class="mb-3">
-                                    <label for="modalDescriptionGU" class="form-label">Modal Description</label>
-                                    <textarea class="form-control editor" id="modalDescriptionGU" rows="8"
-                                        placeholder="મોડલ વર્ણન"></textarea>
-                                </div>
-                            </div>
-
-                            <!-- Link Section -->
-                            <div id="linkSectionGU" class="mb-4 p-3 border rounded d-none">
-                                <h6 class="mb-3 fw-semibold">Links & Actions (Gujarati)</h6>
-                                <div class="mb-3">
-                                    <label for="infoModalLinkGU" class="form-label">Info Modal Link Text</label>
-                                    <input type="text" class="form-control" id="infoModalLinkGU"
-                                        placeholder="લિંક ટેક્સ્ટ">
-                                </div>
-                            </div>
-
-                            <!-- Button Section -->
-                            <div id="buttonTextGUSectionGU" class="mb-4 p-3 border rounded d-none">
-                                <h6 class="mb-3 fw-semibold">Button Text (Gujarati)</h6>
-                                <div class="mb-3">
-                                    <label for="buttonTextGU" class="form-label">Button Display Text</label>
-                                    <input type="text" class="form-control" id="buttonTextGU" maxlength="120"
-                                        placeholder="બટન ટેક્સ્ટ">
-                                </div>
-                            </div>
-
-                            <!-- Footer Section -->
-                            <div id="footerSectionGU" class="mb-4 p-3 border rounded d-none">
-                                <h6 class="mb-3 fw-semibold">Modal Footer (Gujarati)</h6>
-                                <div class="mb-3">
-                                    <label for="infoModalFooterButtonTitleGU" class="form-label">Footer Button
-                                        Title</label>
-                                    <input type="text" class="form-control" id="infoModalFooterButtonTitleGU"
-                                        placeholder="ફૂટર બટન ટેક્સ્ટ">
-                                </div>
-                                <div class="mb-3">
-                                    <label for="infoModalFooterTextGU" class="form-label">Footer Text</label>
-                                    <input type="text" class="form-control" id="infoModalFooterTextGU"
-                                        placeholder="ફૂટર ટેક્સ્ટ">
-                                </div>
-                            </div>
-                        </div>
+                    <div id="modalContentSection" class="mb-4 p-3 border rounded d-none">
+                        <!-- js filled it -->
                     </div>
 
+                    <div id="buttonOnlySection" class="mb-4 p-3 border rounded d-none">
+                        <!-- js fille this button only section Update -->
+                    </div>
+                    
                     <!-- Media Section -->
                     <div id="mediaSection" class="mb-4 p-3 border rounded d-none">
                         <h6 class="mb-3 fw-semibold">Media & URLs</h6>
@@ -420,22 +240,6 @@
                         </div>
                     </div>
 
-                    <!-- Position Section -->
-                    <div id="positionSection" class="mb-4 p-3 border rounded d-none">
-                        <h6 class="mb-3 fw-semibold">Position (Auto-populated)</h6>
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <label for="positionYaw" class="form-label">Yaw (rotation)</label>
-                                <input type="text" readonly class="form-control-plaintext" id="positionYaw"
-                                    placeholder="Auto-set from viewer">
-                            </div>
-                            <div class="col-md-6">
-                                <label for="positionPitch" class="form-label">Pitch (tilt)</label>
-                                <input type="text" readonly class="form-control-plaintext" id="positionPitch"
-                                    placeholder="Auto-set from viewer">
-                            </div>
-                        </div>
-                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>

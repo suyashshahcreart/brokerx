@@ -374,3 +374,84 @@
  *      detectedType = 'myType';
  *    }
  */
+
+
+`
+
+                    <div class="tab-content mb-4">
+                        <!-- English Tab -->
+                        <div class="tab-pane fade show active" id="langENContent" role="tabpanel"
+                            aria-labelledby="langEN">
+                            <!-- Title Section -->
+                            <div id="titleSection" class="mb-4 p-3 border rounded d-none">
+                                <h6 class="mb-3 fw-semibold">Title</h6>
+                                <div class="mb-3">
+                                    <label for="linkTitleEN" class="form-label">Link Title</label>
+                                    <input type="text" class="form-control" id="linkTitleEN"
+                                        placeholder="Enter link title">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="modalTitleEN" class="form-label">Modal Title</label>
+                                    <input type="text" class="form-control" id="modalTitleEN" maxlength="120"
+                                        placeholder="Enter modal title">
+                                </div>
+                            </div>
+
+                            <!-- Description Section -->
+                            <div id="descriptionSection" class="mb-4 p-3 border rounded d-none">
+                                <h6 class="mb-3 fw-semibold">Description</h6>
+                                <div class="mb-3">
+                                    <label for="modalDescriptionEN" class="form-label">Modal Description (Rich
+                                        Text)</label>
+                                    <textarea class="form-control editor" id="modalDescriptionEN" rows="8"
+                                        placeholder="Enter modal description"></textarea>
+                                </div>
+                            </div>
+
+                            <!-- Link Section -->
+                            <div id="linkSection" class="mb-4 p-3 border rounded d-none">
+                                <h6 class="mb-3 fw-semibold">Links & Actions</h6>
+                                <div class="mb-3">
+                                    <label for="infoModalLinkEN" class="form-label">Info Modal Link Text</label>
+                                    <input type="text" class="form-control" id="infoModalLinkEN"
+                                        placeholder="Link text for info modal">
+                                </div>
+                                <div class="mb-3" id="linkUrlSection">
+                                    <label for="actionUrl" class="form-label">Action URL</label>
+                                    <input type="url" class="form-control" id="actionUrl"
+                                        placeholder="https://example.com">
+                                </div>
+                            </div>
+
+                            <!-- Button Section -->
+                            <div id="buttonTextENSection" class="mb-4 p-3 border rounded d-none">
+                                <h6 class="mb-3 fw-semibold">Button Text</h6>
+                                <div class="mb-3">
+                                    <label for="buttonTextEN" class="form-label">Button Display Text</label>
+                                    <input type="text" class="form-control" id="buttonTextEN" maxlength="120"
+                                        placeholder="Enter button text">
+                                </div>
+                            </div>
+
+                            <!-- Footer Section -->
+                            <div id="footerSection" class="mb-4 p-3 border rounded d-none">
+                                <h6 class="mb-3 fw-semibold">Modal Footer</h6>
+                                <div class="mb-3" id="infoModalFooterButtonSection">
+                                    <label for="infoModalFooterButtonTitleEN" class="form-label">Footer Button
+                                        Title</label>
+                                    <input type="text" class="form-control" id="infoModalFooterButtonTitleEN"
+                                        placeholder="Button text in footer">
+                                </div>
+                                <div class="mb-3" id="infoModalFooterButtonLinkSection">
+                                    <label for="infoModalFooterButtonLink" class="form-label">Footer Button Link</label>
+                                    <input type="url" class="form-control" id="infoModalFooterButtonLink"
+                                        placeholder="https://example.com">
+                                </div>
+                                <div class="mb-3" id="infoModalFooterTextSection">
+                                    <label for="infoModalFooterTextEN" class="form-label">Footer Text</label>
+                                    <input type="text" class="form-control" id="infoModalFooterTextEN"
+                                        placeholder="Footer text message">
+                                </div>
+                            </div>
+                        </div>
+                    </div>`

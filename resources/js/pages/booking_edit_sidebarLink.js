@@ -218,18 +218,6 @@ function addSidebarLinkRow(linkData = {}) {
         }
     });
 
-    // Initialize Quill if content type is selected
-    if (type === 'content' || type === 'infoModal') {
-        // Set required on the first enabled content input
-        const enabledLanguages = getEnabledLanguages();
-        const firstEnabledCode = enabledLanguages.length > 0 ? enabledLanguages[0].code : 'en';
-        contentHiddenInputs.forEach(input => {
-            const langCode = input.name.match(/\[content\]\[(\w+)\]/)?.[1];
-            input.required = langCode === firstEnabledCode;
-        });
-        initQuillForRow(rowIndex, linkData.content || {});
-    }
-
     // Attach event listeners to the new row
     const newRow = container.querySelector('.sidebar-link-row:last-child');
 

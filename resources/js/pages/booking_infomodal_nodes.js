@@ -18,6 +18,13 @@ const EDIT_MODAL_TEXT_FIELD_IDS = [
 
 const EDIT_MODAL_MEDIA_FIELD_IDS = [];
 
+const modalEl = document.getElementById('editInfoModal');
+modalEl.addEventListener('hidden.bs.modal', () => {
+  const form = modalEl.querySelector('editInfoForm');
+  if (form) form.reset();
+  EditModalState.reset();
+});
+
 /**
  * EDIT_MODAL_VISIBILITY
  * Maps section categories to DOM element IDs that should be shown/hidden
@@ -540,6 +547,14 @@ function updateNodeWithEditedModal(node, modalIndex, newData) {
   return false;
 }
 
+//  Clean utility and object check
+function hasValidTranslations(obj) {
+  return obj &&
+    typeof obj === 'object' &&
+    Object.keys(obj).length > 0 &&
+    Object.values(obj).some(val => val && val.trim() !== '');
+}
+
 // tooltip section Update function in modal
 function renderToottipSection({
   container,
@@ -548,7 +563,6 @@ function renderToottipSection({
   name = 'tooltip'
 }) {
   if (!container) throw new Error('Container is required');
-
   const safeId = (str) => str.replace(/[^a-z0-9]/gi, '_');
 
   const capitalize = (str) =>
@@ -593,30 +607,25 @@ function renderToottipSection({
                 id="${name}-${id}"
                 role="tabpanel"
                 aria-labelledby="${name}-${id}-tab">
-
                 ${Object.entries(fields).map(([fieldName, fieldData]) => `
                     <div class="mb-3">
                         <label class="form-label">
-                            ${capitalize(fieldName)} (${lang})
+                            ${capitalize(fieldName)} (${lang})*
                         </label>
-
-                        ${fieldName.toLowerCase().includes('description')
-        ? `
-                                    <textarea
-                                        class="form-control"
-                                        name="${name}[${fieldName}][${lang}]"
-                                        rows="3"
-                                    >${fieldData?.[lang] || ''}</textarea>
-                                `
-        : `
-                                    <input
-                                        type="text"
-                                        class="form-control"
-                                        name="${name}[${fieldName}][${lang}]"
-                                        value="${fieldData?.[lang] || ''}"
-                                    >
-                                `
-      }
+                        ${fieldName.toLowerCase().includes('description')? `
+                          <textarea
+                              class="form-control"
+                              name="${name}[${fieldName}][${lang}]"
+                              rows="3"
+                              required
+                          >${fieldData?.[lang] || ''}</textarea>
+                        `
+                        : `<input
+                              type="text"
+                              class="form-control" required
+                              name="${name}[${fieldName}][${lang}]"
+                              value="${fieldData?.[lang] || ''}"
+                          >`}
                     </div>
                 `).join('')}
             </div>
@@ -660,6 +669,125 @@ function renderToottipSection({
             ${panes}
         </div>
         ${positionHtml}
+    `;
+}
+
+// modal rendering section function 
+function renderInfoModalEditor({
+    container,
+    data,
+    name = 'infoModal'
+}) {
+    if (!container) throw new Error('Container is required');
+
+    const safeId = (str) => str.replace(/[^a-z0-9]/gi, '_');
+    const capitalize = (str) =>
+        str.replace(/([A-Z])/g, ' $1')
+           .replace(/^./, s => s.toUpperCase());
+
+    // 🔥 CONFIG (this is the real power)
+    const multiLangFields = {
+        infoModalTitle: { type: 'text' },
+        infoModalDescription: { type: 'textarea' },
+        infoModalFooterButtonTitle: { type: 'text' },
+    };
+
+    const singleFields = {
+        infoModalFooterButtonLink: { type: 'text' },
+        infoModalIframeUrl: { type: 'text' },
+        infoModalWidth: { type: 'select', options: ['modal-sm', 'modal-md', 'modal-lg', 'modal-xl'] }
+    };
+
+    // 🌍 collect all languages
+    const langs = Object.keys(data.infoModalTitle || {});
+
+    // 🧠 fallback (important)
+    if (langs.length === 0) langs.push('en');
+
+    // 🔹 Tabs
+    const tabs = langs.map((lang, i) => {
+        const id = safeId(lang);
+        return `
+            <li class="nav-item">
+                <button 
+                    type="button"
+                    class="nav-link ${i === 0 ? 'active' : ''}"
+                    data-bs-toggle="tab"
+                    data-bs-target="#modal-${id}">
+                    ${lang}
+                </button>
+            </li>
+        `;
+    }).join('');
+
+    // 🔹 Tab content (multilang)
+    const panes = langs.map((lang, i) => {
+        const id = safeId(lang);
+        return `
+            <div class="tab-pane fade ${i === 0 ? 'show active' : ''}" id="modal-${id}">
+                <div class="mb-3">
+                    <label class="form-label">
+                        Modal Info Button Text (${lang})*
+                    </label>
+                    <input type="text" 
+                        class="form-control"
+                        name="infoModalLink[${lang}]"
+                        value="${data.infoModalLink?.[lang]}">
+                </div>
+                ${Object.entries(multiLangFields).map(([field, config]) => {
+                    const value = data[field]?.[lang] || '';
+                    return `
+                        <div class="mb-3">
+                            <label class="form-label">
+                                ${capitalize(field)} (${lang})*
+                            </label>
+                            ${config.type === 'textarea'
+                              ? `<textarea class="form-control editor" 
+                                  name="${name}[${field}][${lang}]"
+                                  rows="4">${value}</textarea>`
+                              : `<input type="text" 
+                                  class="form-control"
+                                  name="${name}[${field}][${lang}]"
+                                  value="${value}">` }
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        `;
+    }).join('');
+
+    // SELECT MODAL WIDTH OPTIONS
+    const selectModalWidthOptions = ['modal-sm', 'modal-md', 'modal-lg', 'modal-xl'].map(opt => `
+        <option value="${opt}" ${data.infoModalWidth === opt ? 'selected' : ''}>
+            Modal Width ${opt.replace('modal-', '').toUpperCase()}
+        </option>
+    `).join('');
+
+
+    // 🔥 FINAL RENDER
+    container.innerHTML = `
+      <h5 class="mb-3">Modal Configuration</h5>
+      <div class="mb-3 w-lg-50">
+          <label class="form-label">select Modal Width*</label>
+          <select class="form-select" name="infoModalWidth" required>
+              ${selectModalWidthOptions}
+          </select>
+      </div>
+      <ul class="nav nav-tabs">
+          ${tabs}
+      </ul>
+      <div class="tab-content mt-3">
+          ${panes}
+      </div>
+      <div class="mb-3">
+          <label class="form-label">
+              Modal Footer Button Link *
+          </label>
+          <input type="text" 
+              class="form-control"
+              name="infoModalFooterButtonLink"
+              value="${data?.infoModalFooterButtonLink}">
+      </div>
     `;
 }
 
@@ -723,15 +851,49 @@ function openEditModal(infoModal, node, modalIndex) {
     }
   }
 
-  let tooltipTitleLang = Object.keys(infoModal.title || {});
-  renderToottipSection({
-    container: document.getElementById('tooltipSection'),
-    fields: {
-      title: infoModal.title,
-      description: infoModal.description
-    },
-    tooltipPosition: infoModal.titleTooltipPosition
-  });
+
+  //  tooltip section updating
+  if (
+    hasValidTranslations(infoModal.title) &&
+    hasValidTranslations(infoModal.description)
+  ) {
+    renderToottipSection({
+      container: document.getElementById('tooltipSection'),
+      fields: {
+        title: infoModal.title,
+        description: infoModal.description
+      },
+      tooltipPosition: infoModal.titleTooltipPosition
+    });
+    document
+      .getElementById('tooltipSection')
+      .classList.remove('d-none');
+  }
+
+  console.log('Modal data check:', hasValidTranslations(infoModal.infoModalTitle), hasValidTranslations(infoModal.infoModalDescription));
+  // modal content section updating
+  if (
+    hasValidTranslations(infoModal.infoModalTitle) &&
+    hasValidTranslations(infoModal.infoModalDescription)
+  ) {
+    renderInfoModalEditor({
+      container: document.getElementById('modalContentSection'),
+      data: {
+        infoModalTitle: infoModal.infoModalTitle,
+        infoModalDescription: infoModal.infoModalDescription,
+        infoModalLink: infoModal.infoModalLink,
+        infoModalFooterButtonTitle: infoModal.infoModalFooterButtonTitle,
+        infoModalFooterText: infoModal.infoModalFooterText,
+        infoModalFooterButtonLink: infoModal.infoModalFooterButtonLink,
+        infoModalIframeUrl: infoModal.infoModalIframeUrl,
+        infoModalWidth: infoModal.infoModalWidth || infoModal.infoModalSize
+      }
+    });
+    document
+      .getElementById('modalContentSection')
+      .classList.remove('d-none');
+    reinitalizeEditors(); // re-apply rich text editors after dynamic render
+  }
 
   // SET TYPE & POSITION IN FORM
   const typeInput = document.querySelector(`input[name="infoType"][value="${modalType}"]`);
@@ -742,13 +904,13 @@ function openEditModal(infoModal, node, modalIndex) {
   if (posInput) posInput.checked = true;
 
   // POPULATE ENGLISH FIELDS
-  const tooltipSourceTitle = infoModal.title || infoModal[EditModalState.currentTitleField] || infoModal.infoModalTitle;
-  const tooltipTitleEN = getLocalizedStringForLanguage(tooltipSourceTitle, 'en') || '';
-  const tooltipTitleGU = getLocalizedStringForLanguage(tooltipSourceTitle, 'gu') || '';
+  // const tooltipSourceTitle = infoModal.title || infoModal[EditModalState.currentTitleField] || infoModal.infoModalTitle;
+  // const tooltipTitleEN = getLocalizedStringForLanguage(tooltipSourceTitle, 'en') || '';
+  // const tooltipTitleGU = getLocalizedStringForLanguage(tooltipSourceTitle, 'gu') || '';
 
-  const tooltipSourceDescription = infoModal.description || infoModal.infoModalDescription;
-  const descriptionEN = getLocalizedStringForLanguage(tooltipSourceDescription, 'en') || '';
-  const descriptionGU = getLocalizedStringForLanguage(tooltipSourceDescription, 'gu') || '';
+  // const tooltipSourceDescription = infoModal.description || infoModal.infoModalDescription;
+  // const descriptionEN = getLocalizedStringForLanguage(tooltipSourceDescription, 'en') || '';
+  // const descriptionGU = getLocalizedStringForLanguage(tooltipSourceDescription, 'gu') || '';
 
   // document.getElementById('tooltipTitleEN').value = tooltipTitleEN;
   // document.getElementById('tooltipTitleGU').value = tooltipTitleGU;
@@ -756,25 +918,25 @@ function openEditModal(infoModal, node, modalIndex) {
   // document.getElementById('tooltipDescriptionGU').value = descriptionGU;
 
   // POPULATE MEDIA & LINK FIELDS
-  document.getElementById('imageUrls').value = Array.isArray(infoModal.image) ? infoModal.image.join('\n') : (infoModal.image || '');
-  document.getElementById('youtubeUrl').value = infoModal.youtubeUrl || infoModal.videoUrl || '';
-  document.getElementById('audioUrl').value = infoModal.audio || infoModal.audioUrl || '';
-  document.getElementById('actionUrl').value = infoModal.link || infoModal.actionUrl || '';
+  // document.getElementById('imageUrls').value = Array.isArray(infoModal.image) ? infoModal.image.join('\n') : (infoModal.image || '');
+  // document.getElementById('youtubeUrl').value = infoModal.youtubeUrl || infoModal.videoUrl || '';
+  // document.getElementById('audioUrl').value = infoModal.audio || infoModal.audioUrl || '';
+  // document.getElementById('actionUrl').value = infoModal.link || infoModal.actionUrl || '';
 
   // POPULATE BUTTON TEXT LOCALIZED
-  if (document.getElementById('buttonTextEN')) document.getElementById('buttonTextEN').value = getLocalizedStringForLanguage(infoModal.buttonText, 'en') || '';
-  if (document.getElementById('buttonTextGU')) document.getElementById('buttonTextGU').value = getLocalizedStringForLanguage(infoModal.buttonText, 'gu') || '';
+  // if (document.getElementById('buttonTextEN')) document.getElementById('buttonTextEN').value = getLocalizedStringForLanguage(infoModal.buttonText, 'en') || '';
+  // if (document.getElementById('buttonTextGU')) document.getElementById('buttonTextGU').value = getLocalizedStringForLanguage(infoModal.buttonText, 'gu') || '';
 
   // POPULATE TITLES & MODAL CONTENT
-  document.getElementById('linkTitleEN').value = getLocalizedStringForLanguage(infoModal.linkTitle, 'en') || '';
-  document.getElementById('linkTitleGU').value = getLocalizedStringForLanguage(infoModal.linkTitle, 'gu') || '';
-  document.getElementById('infoModalLinkEN').value = getLocalizedStringForLanguage(infoModal.infoModalLink, 'en') || '';
-  document.getElementById('infoModalLinkGU').value = getLocalizedStringForLanguage(infoModal.infoModalLink, 'gu') || '';
+  // document.getElementById('linkTitleEN').value = getLocalizedStringForLanguage(infoModal.linkTitle, 'en') || '';
+  // document.getElementById('linkTitleGU').value = getLocalizedStringForLanguage(infoModal.linkTitle, 'gu') || '';
+  // document.getElementById('infoModalLinkEN').value = getLocalizedStringForLanguage(infoModal.infoModalLink, 'en') || '';
+  // document.getElementById('infoModalLinkGU').value = getLocalizedStringForLanguage(infoModal.infoModalLink, 'gu') || '';
 
-  document.getElementById('modalTitleEN').value = getLocalizedStringForLanguage(infoModal.infoModalTitle || infoModal.modalTitle, 'en') || '';
-  document.getElementById('modalTitleGU').value = getLocalizedStringForLanguage(infoModal.infoModalTitle || infoModal.modalTitle, 'gu') || '';
-  setEditorValue('modalDescriptionEN', getLocalizedStringForLanguage(infoModal.infoModalDescription || infoModal.modalDescription, 'en') || '');
-  setEditorValue('modalDescriptionGU', getLocalizedStringForLanguage(infoModal.infoModalDescription || infoModal.modalDescription, 'gu') || '');
+  // document.getElementById('modalTitleEN').value = getLocalizedStringForLanguage(infoModal.infoModalTitle || infoModal.modalTitle, 'en') || '';
+  // document.getElementById('modalTitleGU').value = getLocalizedStringForLanguage(infoModal.infoModalTitle || infoModal.modalTitle, 'gu') || '';
+  // setEditorValue('modalDescriptionEN', getLocalizedStringForLanguage(infoModal.infoModalDescription || infoModal.modalDescription, 'en') || '');
+  // setEditorValue('modalDescriptionGU', getLocalizedStringForLanguage(infoModal.infoModalDescription || infoModal.modalDescription, 'gu') || '');
 
   document.getElementById('infoModalIframeUrl').value = infoModal.infoModalIframeUrl || infoModal.iframeUrl || '';
 
@@ -785,31 +947,31 @@ function openEditModal(infoModal, node, modalIndex) {
     Array.from(sizeEl.options).forEach((opt) => opt.selected = (opt.value === val));
   }
 
-  document.getElementById('infoModalFooterButtonTitleEN').value = getLocalizedStringForLanguage(infoModal.infoModalFooterButtonTitle, 'en') || '';
-  document.getElementById('infoModalFooterButtonTitleGU').value = getLocalizedStringForLanguage(infoModal.infoModalFooterButtonTitle, 'gu') || '';
-  document.getElementById('infoModalFooterButtonLink').value = infoModal.infoModalFooterButtonLink || infoModal.infoModalFooterButtonLink || infoModal.infoModalFooterLink || infoModal.infoModalFooterButtonLinkUrl || '';
-  document.getElementById('infoModalFooterTextEN').value = getLocalizedStringForLanguage(infoModal.infoModalFooterText, 'en') || '';
-  document.getElementById('infoModalFooterTextGU').value = getLocalizedStringForLanguage(infoModal.infoModalFooterText, 'gu') || '';
+  // document.getElementById('infoModalFooterButtonTitleEN').value = getLocalizedStringForLanguage(infoModal.infoModalFooterButtonTitle, 'en') || '';
+  // document.getElementById('infoModalFooterButtonTitleGU').value = getLocalizedStringForLanguage(infoModal.infoModalFooterButtonTitle, 'gu') || '';
+  // document.getElementById('infoModalFooterButtonLink').value = infoModal.infoModalFooterButtonLink || infoModal.infoModalFooterButtonLink || infoModal.infoModalFooterLink || infoModal.infoModalFooterButtonLinkUrl || '';
+  // document.getElementById('infoModalFooterTextEN').value = getLocalizedStringForLanguage(infoModal.infoModalFooterText, 'en') || '';
+  // document.getElementById('infoModalFooterTextGU').value = getLocalizedStringForLanguage(infoModal.infoModalFooterText, 'gu') || '';
 
   // POPULATE ICON, BUTTON & BEHAVIOUR SETTINGS
-  document.getElementById('infoPointIcon').value = infoModal.icon || infoModal.iconClass || '';
-  document.getElementById('infoPointIconColor').value = infoModal.iconColor || '#3a3abb';
-  document.getElementById('infoPointIconSize').value = infoModal.iconSize || 'medium';
+  // document.getElementById('infoPointIcon').value = infoModal.icon || infoModal.iconClass || '';
+  // document.getElementById('infoPointIconColor').value = infoModal.iconColor || '#3a3abb';
+  // document.getElementById('infoPointIconSize').value = infoModal.iconSize || 'medium';
 
-  document.getElementById('isButtonOnly').checked = Boolean(infoModal.isButtonOnly);
-  document.getElementById('buttonType').value = infoModal.buttonType || '';
-  document.getElementById('buttonActionType').value = infoModal.buttonActionType || infoModal.buttonAction || '';
-  if (document.getElementById('buttonColor')) document.getElementById('buttonColor').value = infoModal.buttonColor || '#3a3abb';
-  if (document.getElementById('buttonTextColor')) document.getElementById('buttonTextColor').value = infoModal.buttonTextColor || '#ffffff';
-  if (document.getElementById('buttonSize')) document.getElementById('buttonSize').value = infoModal.buttonSize || '';
-  if (document.getElementById('buttonNodeId')) document.getElementById('buttonNodeId').value = infoModal.buttonNodeId || infoModal.buttonNodeId || '';
+  // document.getElementById('isButtonOnly').checked = Boolean(infoModal.isButtonOnly);
+  // document.getElementById('buttonType').value = infoModal.buttonType || '';
+  // document.getElementById('buttonActionType').value = infoModal.buttonActionType || infoModal.buttonAction || '';
+  // if (document.getElementById('buttonColor')) document.getElementById('buttonColor').value = infoModal.buttonColor || '#3a3abb';
+  // if (document.getElementById('buttonTextColor')) document.getElementById('buttonTextColor').value = infoModal.buttonTextColor || '#ffffff';
+  // if (document.getElementById('buttonSize')) document.getElementById('buttonSize').value = infoModal.buttonSize || '';
+  // if (document.getElementById('buttonNodeId')) document.getElementById('buttonNodeId').value = infoModal.buttonNodeId || infoModal.buttonNodeId || '';
 
-  document.getElementById('showOnLoad').checked = Boolean(infoModal.showOnLoad);
-  if (document.getElementById('showOnLoadDelayMs')) document.getElementById('showOnLoadDelayMs').value = infoModal.showOnLoadDelayMs || infoModal.showOnLoadDelay || 0;
+  // document.getElementById('showOnLoad').checked = Boolean(infoModal.showOnLoad);
+  // if (document.getElementById('showOnLoadDelayMs')) document.getElementById('showOnLoadDelayMs').value = infoModal.showOnLoadDelayMs || infoModal.showOnLoadDelay || 0;
 
   // POPULATE POSITION (AUTO-SET FROM VIEWER)
-  if (document.getElementById('positionYaw')) document.getElementById('positionYaw').value = infoModal.position?.yaw ?? '';
-  if (document.getElementById('positionPitch')) document.getElementById('positionPitch').value = infoModal.position?.pitch ?? '';
+  // if (document.getElementById('positionYaw')) document.getElementById('positionYaw').value = infoModal.position?.yaw ?? '';
+  // if (document.getElementById('positionPitch')) document.getElementById('positionPitch').value = infoModal.position?.pitch ?? '';
 
   // SMART VISIBILITY - SHOW ONLY SECTIONS WITH DATA
   const visibleSections = analyzeModalDataForVisibility(infoModal);
