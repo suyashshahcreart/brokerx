@@ -1,4 +1,4 @@
-import $ from 'jquery';
+import $, { map } from 'jquery';
 window.$ = window.jQuery = $;
 import '../../css/pages/materialIconLiberaryStyles.css';
 import iconLib from './booking_tour_iconLib';
@@ -45,6 +45,11 @@ const EDIT_MODAL_VISIBILITY = {
   button: ['buttonTypeSection', 'buttonStylingSection', 'buttonActionSection', 'buttonPreviewSection'],
   position: ['positionSection'],
 };
+
+// helper
+function capitalize(str) {
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
 
 function isNonEmptyString(value) {
   return typeof value === 'string' && value.trim() !== '';
@@ -345,113 +350,6 @@ function render(nodes, query = '') {
   });
 }
 
-/**
- * analyzeModalDataForVisibility(infoModal)
- * 
- * SMART VISIBILITY ANALYZER
- * Scans the modal object and determines which form sections to display
- * 
- * LOGIC:
- * For each category (title, description, link, media, etc), checks if
- * the modal has any non-empty data for that category. If yes, adds the
- * category to the visible sections list.
- * 
- * EXAMPLE:
- * If modal has: { title: 'My Title', description: 'My Desc', image: [...] }
- * This returns: ['title', 'description', 'media']
- * Then only those sections are shown in the form
- * 
- * BENEFITS:
- * - Cleaner UI: users only see relevant sections
- * - Reduces cognitive load
- * - Focuses attention on what matters
- * 
- * EXTENDING:
- * To add a new category, do this:
- * 1. Add section in EDIT_MODAL_VISIBILITY map
- * 2. Add check below:
- *    if (condition for your section) {
- *      visibleSections.push('myCategory');
- *    }
- * 3. In blade: add section with id matching EDIT_MODAL_VISIBILITY
- */
-function analyzeModalDataForVisibility(infoModal) {
-  const visibleSections = [];
-
-  // Title/Image
-  if (hasLocalizedValue(infoModal?.title) || hasLocalizedValue(infoModal?.infoModalTitle) || hasLocalizedValue(infoModal?.linkTitle)) {
-    visibleSections.push('title');
-  }
-
-  // Description
-  if (hasLocalizedValue(infoModal?.description) || hasLocalizedValue(infoModal?.infoModalDescription)) {
-    visibleSections.push('description');
-  }
-
-  // Links
-  if (isNonEmptyString(infoModal?.link) || isNonEmptyString(infoModal?.actionUrl) ||
-    hasLocalizedValue(infoModal?.linkTitle) || hasLocalizedValue(infoModal?.infoModalLink)) {
-    visibleSections.push('link');
-  }
-
-  // Modal Content
-  if (hasLocalizedValue(infoModal?.infoModalTitle) || hasLocalizedValue(infoModal?.infoModalDescription) ||
-    isNonEmptyString(infoModal?.infoModalIframeUrl) || isNonEmptyString(infoModal?.infoModalWidth)) {
-    visibleSections.push('modal');
-  }
-
-  // Footer
-  if (hasLocalizedValue(infoModal?.infoModalFooterButtonTitle) || isNonEmptyString(infoModal?.infoModalFooterButtonLink) ||
-    hasLocalizedValue(infoModal?.infoModalFooterText)) {
-    visibleSections.push('footer');
-  }
-
-  // Media (images, youtube, audio)
-  if (infoModal?.image || isNonEmptyString(infoModal?.youtubeUrl) || isNonEmptyString(infoModal?.videoUrl) ||
-    isNonEmptyString(infoModal?.audioUrl) || isNonEmptyString(infoModal?.audio)) {
-    visibleSections.push('media');
-  }
-
-  // Icon
-  if (isNonEmptyString(infoModal?.icon) || isNonEmptyString(infoModal?.iconColor) ||
-    isNonEmptyString(infoModal?.iconClass) || isNonEmptyString(infoModal?.iconSize)) {
-    visibleSections.push('icon');
-  }
-
-  // Button
-  if (infoModal?.isButtonOnly || isNonEmptyString(infoModal?.buttonType) ||
-    isNonEmptyString(infoModal?.buttonActionType) || isNonEmptyString(infoModal?.buttonAction) ||
-    hasLocalizedValue(infoModal?.buttonText) || isNonEmptyString(infoModal?.buttonColor)) {
-    visibleSections.push('button');
-  }
-
-  // Position
-  if (infoModal?.position?.yaw !== undefined || infoModal?.position?.pitch !== undefined) {
-    visibleSections.push('position');
-  }
-
-  return visibleSections;
-}
-
-/**
- * Update form visibility based on which sections have data
- */
-function updateVisibilityFromAnalysis(visibleSections) {
-  // Hide all sections first
-  Object.values(EDIT_MODAL_VISIBILITY).flat().forEach((sectionId) => {
-    setSectionVisibility(sectionId, false);
-  });
-
-  // Show only relevant sections
-  visibleSections.forEach((category) => {
-    const sections = EDIT_MODAL_VISIBILITY[category];
-    if (sections) {
-      sections.forEach((sectionId) => {
-        setSectionVisibility(sectionId, true);
-      });
-    }
-  });
-}
 
 /**
  * EditModalState
@@ -490,60 +388,8 @@ let EditModalState = {
  * @param {Object} newData - New modal data
  */
 function updateNodeWithEditedModal(node, modalIndex, newData) {
-  if (!node || !node.infoModals || !node.infoModals[modalIndex]) {
-    console.error('Invalid node or modal index');
-    return false;
-  }
-  const modal = node.infoModals[modalIndex];
-  const titleField = EditModalState.currentTitleField || getEditableTitleField(modal);
-
-  // Tooltip (visible) fields
-  const titleValue = buildLocalizedFieldValue(newData.tooltipTitle, modal.title || modal[titleField] || modal.infoModalTitle);
-  modal.title = titleValue;
-  modal[titleField] = titleValue;
-  modal.infoModalTitle = titleValue;
-
-  const descValue = buildLocalizedFieldValue(newData.tooltipDescription, modal.description || modal.infoModalDescription);
-  modal.description = descValue;
-  modal.infoModalDescription = descValue;
-  modal.tooltipPosition = newData.tooltipPosition || 'down';
-
-  // Button / Link localized values
-  modal.buttonText = buildLocalizedFieldValue(newData.buttonText, modal.buttonText);
-  modal.linkTitle = buildLocalizedFieldValue(newData.linkTitle, modal.linkTitle);
-  modal.infoModalLink = buildLocalizedFieldValue(newData.infoModalLink, modal.infoModalLink || modal.link || modal.actionUrl);
-  // actionUrl is non-localized
-  modal.actionUrl = newData.actionUrl || modal.actionUrl || modal.link || modal.infoModalLink;
-
-  // Modal content (localized)
-  const modalTitleVal = buildLocalizedFieldValue(newData.modalTitle, modal.infoModalTitle || modal.modalTitle);
-  modal.infoModalTitle = modalTitleVal;
-  modal.modalTitle = modalTitleVal;
-
-  const modalDescVal = buildLocalizedFieldValue(newData.modalDescription, modal.infoModalDescription || modal.modalDescription);
-  modal.infoModalDescription = modalDescVal;
-  modal.modalDescription = modalDescVal;
-
-  // Footer localized values
-  modal.infoModalFooterButtonTitle = buildLocalizedFieldValue(newData.infoModalFooterButtonTitle, modal.infoModalFooterButtonTitle);
-  modal.infoModalFooterText = buildLocalizedFieldValue(newData.infoModalFooterText, modal.infoModalFooterText);
-  modal.infoModalFooterButtonLink = newData.infoModalFooterButtonLink || modal.infoModalFooterButtonLink || modal.infoModalFooterLink || '';
-
-  // Iframe / size / media
-  modal.infoModalIframeUrl = newData.infoModalIframeUrl || modal.infoModalIframeUrl || modal.iframeUrl || '';
-  modal.infoModalSize = newData.infoModalSize || modal.infoModalSize || modal.infoModalWidth || '';
-  modal.image = Array.isArray(newData.imageUrls) ? newData.imageUrls : (modal.image || newData.imageUrls || modal.image);
-  modal.youtubeUrl = newData.youtubeUrl || modal.youtubeUrl || modal.videoUrl || '';
-  modal.audioUrl = newData.audioUrl || modal.audioUrl || modal.audio || '';
-
-  // Persist back to global tour JSON if present
-  const updatedNodes = window.tourFinalJson?.nodes || window.tourFinalJson?.tour?.nodes || [];
-  const nodeIndex = updatedNodes.findIndex((n) => n.id === node.id);
-  if (nodeIndex >= 0) {
-    updatedNodes[nodeIndex] = node;
-    return true;
-  }
-
+  if (!node || typeof node !== 'object') return;
+  alert('running update function')
   return false;
 }
 
@@ -612,7 +458,7 @@ function renderToottipSection({
                         <label class="form-label">
                             ${capitalize(fieldName)} (${lang})*
                         </label>
-                        ${fieldName.toLowerCase().includes('description')? `
+                        ${fieldName.toLowerCase().includes('description') ? `
                           <textarea
                               class="form-control"
                               name="${name}[${fieldName}][${lang}]"
@@ -620,7 +466,7 @@ function renderToottipSection({
                               required
                           >${fieldData?.[lang] || ''}</textarea>
                         `
-                        : `<input
+        : `<input
                               type="text"
                               class="form-control" required
                               name="${name}[${fieldName}][${lang}]"
@@ -674,40 +520,40 @@ function renderToottipSection({
 
 // modal rendering section function 
 function renderInfoModalEditor({
-    container,
-    data,
-    name = 'infoModal'
+  container,
+  data,
+  name = 'infoModal'
 }) {
-    if (!container) throw new Error('Container is required');
+  if (!container) throw new Error('Container is required');
 
-    const safeId = (str) => str.replace(/[^a-z0-9]/gi, '_');
-    const capitalize = (str) =>
-        str.replace(/([A-Z])/g, ' $1')
-           .replace(/^./, s => s.toUpperCase());
+  const safeId = (str) => str.replace(/[^a-z0-9]/gi, '_');
+  const capitalize = (str) =>
+    str.replace(/([A-Z])/g, ' $1')
+      .replace(/^./, s => s.toUpperCase());
 
-    // 🔥 CONFIG (this is the real power)
-    const multiLangFields = {
-        infoModalTitle: { type: 'text' },
-        infoModalDescription: { type: 'textarea' },
-        infoModalFooterButtonTitle: { type: 'text' },
-    };
+  // 🔥 CONFIG (this is the real power)
+  const multiLangFields = {
+    infoModalTitle: { type: 'text' },
+    infoModalDescription: { type: 'textarea' },
+    infoModalFooterButtonTitle: { type: 'text' },
+  };
 
-    const singleFields = {
-        infoModalFooterButtonLink: { type: 'text' },
-        infoModalIframeUrl: { type: 'text' },
-        infoModalWidth: { type: 'select', options: ['modal-sm', 'modal-md', 'modal-lg', 'modal-xl'] }
-    };
+  const singleFields = {
+    infoModalFooterButtonLink: { type: 'text' },
+    infoModalIframeUrl: { type: 'text' },
+    infoModalWidth: { type: 'select', options: ['modal-sm', 'modal-md', 'modal-lg', 'modal-xl'] }
+  };
 
-    // 🌍 collect all languages
-    const langs = Object.keys(data.infoModalTitle || {});
+  // 🌍 collect all languages
+  const langs = Object.keys(data.infoModalTitle || {});
 
-    // 🧠 fallback (important)
-    if (langs.length === 0) langs.push('en');
+  // 🧠 fallback (important)
+  if (langs.length === 0) langs.push('en');
 
-    // 🔹 Tabs
-    const tabs = langs.map((lang, i) => {
-        const id = safeId(lang);
-        return `
+  // 🔹 Tabs
+  const tabs = langs.map((lang, i) => {
+    const id = safeId(lang);
+    return `
             <li class="nav-item">
                 <button 
                     type="button"
@@ -718,12 +564,12 @@ function renderInfoModalEditor({
                 </button>
             </li>
         `;
-    }).join('');
+  }).join('');
 
-    // 🔹 Tab content (multilang)
-    const panes = langs.map((lang, i) => {
-        const id = safeId(lang);
-        return `
+  // 🔹 Tab content (multilang)
+  const panes = langs.map((lang, i) => {
+    const id = safeId(lang);
+    return `
             <div class="tab-pane fade ${i === 0 ? 'show active' : ''}" id="modal-${id}">
                 <div class="mb-3">
                     <label class="form-label">
@@ -735,37 +581,37 @@ function renderInfoModalEditor({
                         value="${data.infoModalLink?.[lang]}">
                 </div>
                 ${Object.entries(multiLangFields).map(([field, config]) => {
-                    const value = data[field]?.[lang] || '';
-                    return `
+      const value = data[field]?.[lang] || '';
+      return `
                         <div class="mb-3">
                             <label class="form-label">
                                 ${capitalize(field)} (${lang})*
                             </label>
                             ${config.type === 'textarea'
-                              ? `<textarea class="form-control editor" 
+          ? `<textarea class="form-control editor" 
                                   name="${name}[${field}][${lang}]"
                                   rows="4">${value}</textarea>`
-                              : `<input type="text" 
+          : `<input type="text" 
                                   class="form-control"
                                   name="${name}[${field}][${lang}]"
-                                  value="${value}">` }
+                                  value="${value}">`}
                         </div>
                     `;
-                }).join('')}
+    }).join('')}
             </div>
         `;
-    }).join('');
+  }).join('');
 
-    // SELECT MODAL WIDTH OPTIONS
-    const selectModalWidthOptions = ['modal-sm', 'modal-md', 'modal-lg', 'modal-xl'].map(opt => `
+  // SELECT MODAL WIDTH OPTIONS
+  const selectModalWidthOptions = ['modal-sm', 'modal-md', 'modal-lg', 'modal-xl'].map(opt => `
         <option value="${opt}" ${data.infoModalWidth === opt ? 'selected' : ''}>
             Modal Width ${opt.replace('modal-', '').toUpperCase()}
         </option>
     `).join('');
 
 
-    // 🔥 FINAL RENDER
-    container.innerHTML = `
+  // 🔥 FINAL RENDER
+  container.innerHTML = `
       <h5 class="mb-3">Modal Configuration</h5>
       <div class="mb-3 w-lg-50">
           <label class="form-label">select Modal Width*</label>
@@ -791,9 +637,163 @@ function renderInfoModalEditor({
     `;
 }
 
-// helper
-function capitalize(str) {
-  return str.charAt(0).toUpperCase() + str.slice(1);
+// modal button section settings
+function renderButtonSettingsEditor({
+  container,
+  data,
+  name = 'Button Settings'
+}) {
+  if (!container) throw new Error('Container is required');
+  let buttonTitleDiv = document.getElementById('buttonTitleDiv');
+  if (buttonTitleDiv && !isNonEmptyString(data.linkTitle)) {
+    // 🔹 Tabs
+    let navtabs = Object.keys(data.linkTitle).map((lang, i) => {
+      return `
+            <li class="nav-item">
+                <button 
+                    type="button"
+                    class="nav-link ${i === 0 ? 'active' : ''}"
+                    data-bs-toggle="tab"
+                    data-bs-target="#ButtonTitle-modal-${lang}">
+                    ${lang}
+                </button>
+            </li>
+        `;
+    }).join('');
+    let titlesTabs = Object.keys(data.linkTitle).map((lang, i) => {
+      return `
+      <div class="tab-pane fade show ${i === 0 ? 'active' : ''}" id="ButtonTitle-modal-${lang}" role="tabpanel" aria-labelledby="ButtonTitle-modal-${lang}-tab">
+        <div class="mb-3">
+            <label class="form-label">Button title (${lang})*</label>
+            <input type="text" class="form-control" name="buttonLink[${lang}]" value="${data.linkTitle?.[lang] || ''}">
+        </div>
+      </div>
+      `;
+    }).join('');
+    buttonTitleDiv.innerHTML = `
+      <ul class="nav nav-tabs" id="myTab" role="tablist">${navtabs}</ul>
+      <div id="ButtonTitleTabContent" class="tab-content mt-3">${titlesTabs}</div>
+    `;
+  }
+
+
+  // button select type
+  let buttonTypeSelect = document.getElementById('buttonTypeSelect');
+  buttonTypeSelect.onchange = function (e) {
+    if (e.target.value === 'icon') renderIconSettingEditor({
+      container: document.getElementById('iconDetailsDiv'),
+    })
+  };
+
+  if (buttonTypeSelect) {
+    [{ label: 'Text', value: 'text' }, { label: 'Icon', value: 'icon' }].map((option) => {
+      let optionEl = document.createElement('option');
+      optionEl.value = option.value;
+      optionEl.textContent = option.label;
+      if (data.buttonType === option.value) {
+        optionEl.selected = true;
+      }
+      buttonTypeSelect.appendChild(optionEl);
+    })
+  };
+  // button size select populete
+  let buttonSizeSelect = document.getElementById('buttonSizeSelect');
+  if (buttonSizeSelect) {
+    [
+      { label: 'Small', value: 'small' },
+      { label: 'Medium', value: 'medium' },
+      { label: 'Large', value: 'large' }
+    ].map((option) => {
+      let optionEl = document.createElement('option');
+      optionEl.value = option.value;
+      optionEl.textContent = option.label;
+      if (data.buttonSize === option.value) {
+        optionEl.selected = true;
+      }
+      buttonSizeSelect.appendChild(optionEl);
+    });
+  }
+
+  // button color section
+  let buttonColorPreview = document.getElementById('buttonColorPreview');
+  let buttonColorInput = document.getElementById('buttonColorInput');
+  if (buttonColorPreview && buttonColorInput) {
+    buttonColorPreview.value = data.buttonColor || '#000000';
+    buttonColorInput.value = data.buttonColor || '#000000';
+  }
+
+} // end function
+
+
+// icon reander function
+function renderIconSettingEditor({
+  container,
+  data = EditModalState.currentInfoModal || {},
+  name = 'Icon Settings'
+}) {
+  if (!container) throw new Error('Container is required');
+  hideAndResetButtonSettings();
+  // main icon selection section
+  let iconInput = document.getElementById('iconInput');
+  let iconPreview = document.getElementById('iconPreview');
+  iconInput.onclick = function () {
+    iconLib.open($('iconInput'),$('iconPreview'));
+  }
+  // icon color section 
+  // icon selection section
+  const sizes = [
+    { label: 'Small', value: 'small' },
+    { label: 'Medium', value: 'medium' },
+    { label: 'Large', value: 'large' }
+  ];
+  const iconOptions = sizes.map((size) => {
+    return `
+        <option 
+            value="${size.value}" 
+            ${data.iconSize === size.value ? 'selected' : ''}
+        >
+            ${size.label}
+        </option>
+    `;
+  }).join('');
+  document.getElementById('iconSizeSelect').innerHTML = iconOptions;
+  container.classList.remove('d-none');
+}
+
+// reset form function to helper function to reset form fields when modal is closed or when needed
+
+function hideAndResetButtonSettings() {
+  // Main wrappers
+  const buttonTitleDiv = document.getElementById('buttonTitleDiv');
+  const buttonDetailsDiv = document.getElementById('buttonDetailsDiv');
+  // ---------- Hide Sections ----------
+  if (buttonTitleDiv) {
+    buttonTitleDiv.style.display = 'none';
+    buttonTitleDiv.innerHTML = '';
+  }
+  if (buttonDetailsDiv) {
+    buttonDetailsDiv.style.display = 'none';
+  }
+  // ---------- Reset Inputs ----------
+  // Text Inputs
+  const textInputs = buttonDetailsDiv.querySelectorAll(
+    'input[type="text"]'
+  );
+  textInputs.forEach(input => {
+    input.value = '';
+  });
+  // Color Inputs
+  const colorInputs = buttonDetailsDiv.querySelectorAll(
+    'input[type="color"]'
+  );
+  colorInputs.forEach(input => {
+    input.value = '#000000';
+  });
+  // Selects
+  const selects = buttonDetailsDiv.querySelectorAll('select');
+  selects.forEach(select => {
+    select.selectedIndex = 0;
+  });
 }
 
 /**
@@ -869,8 +869,6 @@ function openEditModal(infoModal, node, modalIndex) {
       .getElementById('tooltipSection')
       .classList.remove('d-none');
   }
-
-  console.log('Modal data check:', hasValidTranslations(infoModal.infoModalTitle), hasValidTranslations(infoModal.infoModalDescription));
   // modal content section updating
   if (
     hasValidTranslations(infoModal.infoModalTitle) &&
@@ -895,6 +893,32 @@ function openEditModal(infoModal, node, modalIndex) {
     reinitalizeEditors(); // re-apply rich text editors after dynamic render
   }
 
+  // icon settings
+  // if (isNonEmptyString(infoModal.buttonActionType)) {
+  //   renderIconSettingEditor({
+  //     container: document.getElementById('iconSection'),
+  //     data: {
+  //       icon: infoModal.icon,
+  //       iconColor: infoModal.iconColor,
+  //       iconSize: infoModal.iconSize
+  //     }
+  //   });
+  //   document
+  //     .getElementById('iconSection')
+  //     .classList.remove('d-none');  
+  // }
+
+  // button settings
+  if (isNonEmptyString(infoModal.buttonActionType) || infoModal.isButtonOnly || isNonEmptyString(infoModal.buttonType)) {
+    renderButtonSettingsEditor({
+      container: document.getElementById('buttonIconSection'),
+      data: infoModal
+    });
+    document
+      .getElementById('buttonIconSection')
+      .classList.remove('d-none');
+  }
+
   // SET TYPE & POSITION IN FORM
   const typeInput = document.querySelector(`input[name="infoType"][value="${modalType}"]`);
   if (typeInput) typeInput.checked = true;
@@ -903,43 +927,6 @@ function openEditModal(infoModal, node, modalIndex) {
   const posInput = document.querySelector(`input[name="tooltipPosition"][value="${position}"]`);
   if (posInput) posInput.checked = true;
 
-  // POPULATE ENGLISH FIELDS
-  // const tooltipSourceTitle = infoModal.title || infoModal[EditModalState.currentTitleField] || infoModal.infoModalTitle;
-  // const tooltipTitleEN = getLocalizedStringForLanguage(tooltipSourceTitle, 'en') || '';
-  // const tooltipTitleGU = getLocalizedStringForLanguage(tooltipSourceTitle, 'gu') || '';
-
-  // const tooltipSourceDescription = infoModal.description || infoModal.infoModalDescription;
-  // const descriptionEN = getLocalizedStringForLanguage(tooltipSourceDescription, 'en') || '';
-  // const descriptionGU = getLocalizedStringForLanguage(tooltipSourceDescription, 'gu') || '';
-
-  // document.getElementById('tooltipTitleEN').value = tooltipTitleEN;
-  // document.getElementById('tooltipTitleGU').value = tooltipTitleGU;
-  // document.getElementById('tooltipDescriptionEN').value = descriptionEN;
-  // document.getElementById('tooltipDescriptionGU').value = descriptionGU;
-
-  // POPULATE MEDIA & LINK FIELDS
-  // document.getElementById('imageUrls').value = Array.isArray(infoModal.image) ? infoModal.image.join('\n') : (infoModal.image || '');
-  // document.getElementById('youtubeUrl').value = infoModal.youtubeUrl || infoModal.videoUrl || '';
-  // document.getElementById('audioUrl').value = infoModal.audio || infoModal.audioUrl || '';
-  // document.getElementById('actionUrl').value = infoModal.link || infoModal.actionUrl || '';
-
-  // POPULATE BUTTON TEXT LOCALIZED
-  // if (document.getElementById('buttonTextEN')) document.getElementById('buttonTextEN').value = getLocalizedStringForLanguage(infoModal.buttonText, 'en') || '';
-  // if (document.getElementById('buttonTextGU')) document.getElementById('buttonTextGU').value = getLocalizedStringForLanguage(infoModal.buttonText, 'gu') || '';
-
-  // POPULATE TITLES & MODAL CONTENT
-  // document.getElementById('linkTitleEN').value = getLocalizedStringForLanguage(infoModal.linkTitle, 'en') || '';
-  // document.getElementById('linkTitleGU').value = getLocalizedStringForLanguage(infoModal.linkTitle, 'gu') || '';
-  // document.getElementById('infoModalLinkEN').value = getLocalizedStringForLanguage(infoModal.infoModalLink, 'en') || '';
-  // document.getElementById('infoModalLinkGU').value = getLocalizedStringForLanguage(infoModal.infoModalLink, 'gu') || '';
-
-  // document.getElementById('modalTitleEN').value = getLocalizedStringForLanguage(infoModal.infoModalTitle || infoModal.modalTitle, 'en') || '';
-  // document.getElementById('modalTitleGU').value = getLocalizedStringForLanguage(infoModal.infoModalTitle || infoModal.modalTitle, 'gu') || '';
-  // setEditorValue('modalDescriptionEN', getLocalizedStringForLanguage(infoModal.infoModalDescription || infoModal.modalDescription, 'en') || '');
-  // setEditorValue('modalDescriptionGU', getLocalizedStringForLanguage(infoModal.infoModalDescription || infoModal.modalDescription, 'gu') || '');
-
-  document.getElementById('infoModalIframeUrl').value = infoModal.infoModalIframeUrl || infoModal.iframeUrl || '';
-
   // MODAL SIZE MAPPING
   const sizeEl = document.getElementById('infoModalSize');
   if (sizeEl) {
@@ -947,37 +934,8 @@ function openEditModal(infoModal, node, modalIndex) {
     Array.from(sizeEl.options).forEach((opt) => opt.selected = (opt.value === val));
   }
 
-  // document.getElementById('infoModalFooterButtonTitleEN').value = getLocalizedStringForLanguage(infoModal.infoModalFooterButtonTitle, 'en') || '';
-  // document.getElementById('infoModalFooterButtonTitleGU').value = getLocalizedStringForLanguage(infoModal.infoModalFooterButtonTitle, 'gu') || '';
-  // document.getElementById('infoModalFooterButtonLink').value = infoModal.infoModalFooterButtonLink || infoModal.infoModalFooterButtonLink || infoModal.infoModalFooterLink || infoModal.infoModalFooterButtonLinkUrl || '';
-  // document.getElementById('infoModalFooterTextEN').value = getLocalizedStringForLanguage(infoModal.infoModalFooterText, 'en') || '';
-  // document.getElementById('infoModalFooterTextGU').value = getLocalizedStringForLanguage(infoModal.infoModalFooterText, 'gu') || '';
-
-  // POPULATE ICON, BUTTON & BEHAVIOUR SETTINGS
-  // document.getElementById('infoPointIcon').value = infoModal.icon || infoModal.iconClass || '';
-  // document.getElementById('infoPointIconColor').value = infoModal.iconColor || '#3a3abb';
-  // document.getElementById('infoPointIconSize').value = infoModal.iconSize || 'medium';
-
-  // document.getElementById('isButtonOnly').checked = Boolean(infoModal.isButtonOnly);
-  // document.getElementById('buttonType').value = infoModal.buttonType || '';
-  // document.getElementById('buttonActionType').value = infoModal.buttonActionType || infoModal.buttonAction || '';
-  // if (document.getElementById('buttonColor')) document.getElementById('buttonColor').value = infoModal.buttonColor || '#3a3abb';
-  // if (document.getElementById('buttonTextColor')) document.getElementById('buttonTextColor').value = infoModal.buttonTextColor || '#ffffff';
-  // if (document.getElementById('buttonSize')) document.getElementById('buttonSize').value = infoModal.buttonSize || '';
-  // if (document.getElementById('buttonNodeId')) document.getElementById('buttonNodeId').value = infoModal.buttonNodeId || infoModal.buttonNodeId || '';
-
-  // document.getElementById('showOnLoad').checked = Boolean(infoModal.showOnLoad);
-  // if (document.getElementById('showOnLoadDelayMs')) document.getElementById('showOnLoadDelayMs').value = infoModal.showOnLoadDelayMs || infoModal.showOnLoadDelay || 0;
-
-  // POPULATE POSITION (AUTO-SET FROM VIEWER)
-  // if (document.getElementById('positionYaw')) document.getElementById('positionYaw').value = infoModal.position?.yaw ?? '';
-  // if (document.getElementById('positionPitch')) document.getElementById('positionPitch').value = infoModal.position?.pitch ?? '';
 
   // SMART VISIBILITY - SHOW ONLY SECTIONS WITH DATA
-  const visibleSections = analyzeModalDataForVisibility(infoModal);
-  updateVisibilityFromAnalysis(visibleSections);
-  updateCharacterCountsAll();
-
   const modal = window.bootstrap?.Modal.getOrCreateInstance(modalEl);
   modal.show();
 }
