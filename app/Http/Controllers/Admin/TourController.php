@@ -1226,6 +1226,176 @@ class TourController extends Controller
         }
     }
 
+    /**
+     * Update a single node inside tour JSON and persist changes to S3.
+     * Accepts both JSON API requests and multipart/form-data form requests.
+     * Expected inputs:
+     * - node_index (int) : index of the node in the nodes array
+     * - node (json|array) : the node payload (optional when individual form fields/files provided)
+     * - any file inputs (image_file, image_files[], audio_file, etc.) will be uploaded to S3
+     *
+     * @param Request $request
+     * @param Tour $tour
+     * @return JsonResponse|RedirectResponse
+     */
+    public function updateTourNode(Request $request, Tour $tour): JsonResponse|RedirectResponse
+    {
+        $validated = $request->validate([
+            'node_index' => ['required', 'integer'],
+            'node' => ['nullable'],
+        ]);
+
+        $nodeIndex = (int)$request->input('node_index');
+
+        // Resolve incoming node payload (may be JSON string or array)
+        $incoming = $request->input('node');
+        if (is_string($incoming) && $incoming !== '') {
+            $decoded = json_decode($incoming, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                $nodePayload = $decoded;
+            } else {
+                $nodePayload = [];
+            }
+        } elseif (is_array($incoming)) {
+            $nodePayload = $incoming;
+        } else {
+            // Build payload from flat form fields when 'node' is not provided
+            $nodePayload = [];
+            $possible = ['id','title','description','icon','youtubeUrl','videoUrl','iframeUrl','audio','imageUrl','imageUrls','buttonTitle','buttonLink','yaw','pitch','position'];
+            foreach ($possible as $key) {
+                if ($request->has($key)) {
+                    $nodePayload[$key] = $request->input($key);
+                }
+            }
+        }
+
+        // Normalize final_json from DB
+        $finalJson = $this->normalizeFinalJsonPayload($tour);
+        if (!is_array($finalJson)) {
+            $finalJson = [];
+        }
+        if (!isset($finalJson['nodes']) || !is_array($finalJson['nodes'])) {
+            $finalJson['nodes'] = [];
+        }
+
+        // Handle file uploads and map them into node payload
+        $qrCode = $tour->booking_id ? QR::where('booking_id', $tour->booking_id)->value('code') : null;
+        if ($request->files->count() > 0 && $qrCode) {
+            foreach ($request->files->all() as $inputName => $fileOrArray) {
+                // Support multiple files under same key
+                if (is_array($fileOrArray)) {
+                    $uploadedUrls = [];
+                    foreach ($fileOrArray as $f) {
+                        if (!$f) continue;
+                        $ext = $f->getClientOriginalExtension();
+                        $filename = $inputName . '_' . time() . '_' . Str::random(8) . '.' . $ext;
+                        $path = 'tours/' . $qrCode . '/assets/' . $filename;
+                        $content = file_get_contents($f->getRealPath());
+                        $mime = $f->getMimeType();
+                        Storage::disk('s3')->put($path, $content, ['ContentType' => $mime]);
+                        $uploadedUrls[] = 'assets/' . $filename;
+                    }
+                    if (!empty($uploadedUrls)) {
+                        if (str_contains($inputName, 'image')) {
+                            $nodePayload['imageUrls'] = $uploadedUrls;
+                        } else {
+                            $nodePayload[$inputName] = $uploadedUrls;
+                        }
+                    }
+                } else {
+                    $f = $fileOrArray;
+                    if (!$f) continue;
+                    $ext = $f->getClientOriginalExtension();
+                    $filename = $inputName . '_' . time() . '_' . Str::random(8) . '.' . $ext;
+                    $path = 'tours/' . $qrCode . '/assets/' . $filename;
+                    $content = file_get_contents($f->getRealPath());
+                    $mime = $f->getMimeType();
+                    Storage::disk('s3')->put($path, $content, ['ContentType' => $mime]);
+                    $asset = 'assets/' . $filename;
+
+                    if (str_contains($inputName, 'image')) {
+                        // Prefer single imageUrl for single image fields
+                        $nodePayload['imageUrl'] = $asset;
+                    } elseif (str_contains($inputName, 'audio')) {
+                        $nodePayload['audio'] = $asset;
+                    } else {
+                        // Generic mapping: store under the input name
+                        $nodePayload[$inputName] = $asset;
+                    }
+                }
+            }
+        }
+
+        // Merge into existing node (preserve existing keys if not overwritten)
+        $existingNode = $finalJson['nodes'][$nodeIndex] ?? [];
+        $updatedNode = array_merge($existingNode, $nodePayload);
+        $finalJson['nodes'][$nodeIndex] = $updatedNode;
+
+        // Persist final_json to DB
+        $tour->update(['final_json' => $finalJson]);
+
+        // Now update nodes on S3 (virtual-tour-nodes.json and tour-data.json + obfuscated tour-data.js)
+        try {
+            if (!$qrCode) {
+                throw new \Exception('No QR code associated with this tour, cannot update S3 files.');
+            }
+
+            $virtualTourNodesPath = 'tours/' . $qrCode . '/virtual-tour-nodes.json';
+            $tourDataJsonPath = 'tours/' . $qrCode . '/assets/js/tour-data.json';
+            $tourDataJsPath = 'tours/' . $qrCode . '/assets/js/tour-data.js';
+
+            // Load existing S3 files (if present)
+            $existingVirtual = [];
+            if (Storage::disk('s3')->exists($virtualTourNodesPath)) {
+                $content = Storage::disk('s3')->get($virtualTourNodesPath);
+                $existingVirtual = json_decode($content, true) ?? [];
+            }
+
+            $existingTourData = [];
+            if (Storage::disk('s3')->exists($tourDataJsonPath)) {
+                $content = Storage::disk('s3')->get($tourDataJsonPath);
+                $existingTourData = json_decode($content, true) ?? [];
+            }
+
+            $vtNodes = $existingVirtual['nodes'] ?? $existingVirtual;
+            $tdNodes = $existingTourData['nodes'] ?? $existingTourData;
+
+            if (!is_array($vtNodes)) $vtNodes = [];
+            if (!is_array($tdNodes)) $tdNodes = [];
+
+            $vtNodes[$nodeIndex] = array_merge($vtNodes[$nodeIndex] ?? [], $updatedNode);
+            $tdNodes[$nodeIndex] = array_merge($tdNodes[$nodeIndex] ?? [], $updatedNode);
+
+            $existingVirtual['nodes'] = $vtNodes;
+            $existingTourData['nodes'] = $tdNodes;
+
+            // Write virtual-tour-nodes.json
+            Storage::disk('s3')->put($virtualTourNodesPath, json_encode($existingVirtual), ['ContentType' => 'application/json']);
+
+            // Write tour-data.json
+            $tourDataJsonString = json_encode($existingTourData);
+            Storage::disk('s3')->put($tourDataJsonPath, $tourDataJsonString, ['ContentType' => 'application/json']);
+
+            // Build JS content and obfuscate (reuse obfuscateJs helper)
+            $jsFileContent = '\n        window.EMBEDDED_TOUR_DATA= ' . $tourDataJsonString . '\n        // Helper functions added by server';
+            $obfuscated = obfuscateJs($jsFileContent);
+            Storage::disk('s3')->put($tourDataJsPath, $obfuscated, ['ContentType' => 'application/javascript']);
+
+        } catch (\Throwable $e) {
+            \Log::error('Failed to update tour node in S3', ['tour_id' => $tour->id, 'error' => $e->getMessage()]);
+            if ($request->expectsJson()) {
+                return response()->json(['message' => 'Node updated in DB but failed to update S3', 'error' => $e->getMessage()], 500);
+            }
+            return redirect()->back()->withErrors(['general' => 'Node updated in DB but failed to update S3: ' . $e->getMessage()]);
+        }
+
+        if ($request->expectsJson()) {
+            return response()->json(['message' => 'Node updated successfully', 'node' => $updatedNode]);
+        }
+
+        return redirect()->back()->with('success', 'Node updated successfully');
+    }
+
 
     /**
      * Upload JSON file and update tour final_json

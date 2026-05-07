@@ -138,6 +138,9 @@ Route::middleware(['web', 'auth'])->group(function () {
     Route::get('/bookings/by-date-range', [BookingApiController::class, 'getByDateRange'])->name('api.bookings.by-date-range');
     Route::get('/tours', [TourApiController::class, 'index'])->name('api.tours.index');
 
+    // Update single tour node (accepts JSON or multipart/form-data)
+    Route::post('/tours/{tour}/node', [\App\Http\Controllers\Admin\TourController::class, 'updateTourNode'])->name('api.tours.update-node');
+
     // Booking assignee slots for photographers 
     Route::get('/booking-assignees/slots', [BookingAssigneController::class, 'slots'])->name('api.booking-assignees.slots');
     Route::get('/booking-assignees/all-bookings', [BookingAssigneController::class, 'getAllBookings'])->name('api.booking-assignees.all-bookings');
