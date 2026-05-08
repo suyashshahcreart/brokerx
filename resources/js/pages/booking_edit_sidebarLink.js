@@ -54,8 +54,6 @@ function addSidebarLinkRow(linkData = {}) {
     const order = linkData.order || rowIndex + 1;
     const link = linkData.link || '';
 
-    console.log(`sidebar link row with data of ${type}:`, linkData);
-
     const enabledLanguages = getEnabledLanguages();
     const allLanguages = [
         { code: 'en', label: 'English' },
