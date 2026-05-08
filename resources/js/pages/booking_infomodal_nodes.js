@@ -45,6 +45,34 @@ const EDIT_MODAL_VISIBILITY = {
   button: ['buttonTypeSection', 'buttonStylingSection', 'buttonActionSection', 'buttonPreviewSection'],
   position: ['positionSection'],
 };
+// Button action system
+const BUTTON_ACTION_TYPES = [
+  {
+    label: 'Redirect to Link',
+    value: 'redirect_link'
+  },
+  {
+    label: 'Open Info Modal',
+    value: 'info_modal'
+  },
+  {
+    label: 'Navigate to Node',
+    value: 'navigate_node'
+  },
+  {
+    label: 'Open Image',
+    value: 'open_image'
+  },
+  {
+    label: 'Open Video',
+    value: 'open_video'
+  },
+  {
+    label: 'Open Document',
+    value: 'open_document'
+  }
+];
+
 
 // helper
 function capitalize(str) {
@@ -725,6 +753,8 @@ function renderButtonSettingsEditor({
 } // end function
 
 
+
+
 // icon reander function
 function renderIconSettingEditor({
   container,
@@ -737,8 +767,43 @@ function renderIconSettingEditor({
   let iconInput = document.getElementById('iconInput');
   let iconPreview = document.getElementById('iconPreview');
   iconInput.onclick = function () {
-    iconLib.open($('iconInput'),$('iconPreview'));
+    iconLib.open($('iconInput'), $('iconPreview'));
   }
+  // icon title 
+  let IconTitleDiv = document.getElementById('IconTitleDiv');
+  if (IconTitleDiv && !isNonEmptyString(data.linkTitle)) {
+    console.log('rendering icon title editor with data:', data.linkTitle);
+    let navtabs = Object.keys(data.linkTitle).map((lang, i) => {
+      return `
+            <li class="nav-item">
+                <button 
+                    type="button"
+                    class="nav-link ${i === 0 ? 'active' : ''}"
+                    data-bs-toggle="tab"
+                    data-bs-target="#IconTitleDiv-modal-${lang}">
+                    ${lang}
+                </button>
+            </li>
+        `;
+    }).join('');
+
+    let titlesTabs = Object.keys(data.linkTitle).map((lang, i) => {
+      return `
+      <div class="tab-pane fade show ${i === 0 ? 'active' : ''}" id="IconTitleDiv-modal-${lang}" role="tabpanel" aria-labelledby="IconTitleDiv-modal-${lang}-tab">
+        <div class="mb-3">
+            <label class="form-label">Icon Tooltip (${lang})*</label>
+            <input type="text" class="form-control" name="IconTitleDiv[${lang}]" value="${data.linkTitle?.[lang] || ''}">
+        </div>
+      </div>
+      `;
+    }).join('');
+
+    IconTitleDiv.innerHTML = `
+      <ul class="nav nav-tabs" id="myTab" role="tablist">${navtabs}</ul>
+      <div id="ButtonTitleTabContent" class="tab-content mt-1">${titlesTabs}</div>
+    `;
+  }
+
   // icon color section 
   // icon selection section
   const sizes = [

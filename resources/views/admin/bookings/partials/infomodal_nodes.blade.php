@@ -24,7 +24,7 @@
 </div>
 
 <!-- Edit Info Modal -->
-<div class="modal fade" id="editInfoModal" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="editInfoModal" tabindex="-2">
     <div class="modal-dialog modal-xl">
         <div class="modal-content">
             <div class="modal-header sticky-top bg-white border-bottom">
@@ -64,6 +64,11 @@
                                 <label class="form-check-label" for="typeButton">Button</label>
                             </div>
                         </div>
+                    </div>
+
+                    <!-- Button action type section -->
+                    <div class="mb-4 p-3 bg-light rounded" id="buttonActionTypeContainer">
+                        <!-- JS inject 💉 -->
                     </div>
 
                     <div id="tooltipSection" class="mb-4 p-3 border rounded d-none">
@@ -132,7 +137,7 @@
                         </div>
                     </div>
 
-                    <!-- Button Styling Section -->
+                    <!-- Button Icon Section -->
                     <div id="buttonIconSection" class="mb-4 p-3 border rounded d-none">
                         <h6 class="mb-3 fw-semibold">Button / icon Section</h6>
                         <div class="mb-3 w-50" id="buttonTypeDiv">
@@ -179,6 +184,9 @@
                         </div>
                         <!-- icon section -->
                         <div class="row g-3 mb-3 d-none" id="iconDetailsDiv">
+                            <div class="" id="IconTitleDiv">
+                                <!-- js fill injection 💉 -->
+                            </div>
                             <div class="col-md-4">
                                 <label class="form-label" for="">icon colors</label>
                                 <div class="input-group">
