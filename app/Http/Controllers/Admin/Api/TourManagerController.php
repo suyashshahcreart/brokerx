@@ -318,8 +318,8 @@ class TourManagerController extends Controller
     /**
      * Smart upload file - automatically handles simple or chunked upload based on file size
      * Single POST API endpoint that manages everything based on ZIP file size
-     * Files < 100MB: Simple upload
-     * Files >= 100MB: Chunked upload (handled internally)
+     * Files at or below zip_chunk_threshold_mb (default 30): Simple upload
+     * Files above threshold: Chunked upload (handled internally)
      * Requires: tour_code, slug, location, and file
      */
     public function uploadFile(Request $request)
@@ -331,8 +331,8 @@ class TourManagerController extends Controller
         // Get valid location values from FTP configurations
         $validLocations = FtpConfiguration::active()->pluck('category_name')->toArray();
         
-        // File size threshold: 100MB (104857600 bytes)
-        $fileSizeThreshold = 100 * 1024 * 1024; // 100MB
+        $thresholdMb = max(1, (int) config('tour.zip_chunk_threshold_mb', 30));
+        $fileSizeThreshold = $thresholdMb * 1024 * 1024;
         
         $request->validate([
             'tour_code' => 'required|string|exists:bookings,tour_code',
@@ -383,8 +383,8 @@ class TourManagerController extends Controller
                 ], 422);
             }
 
-            // Determine upload method based on file size
-            $useChunkedUpload = $fileSize >= $fileSizeThreshold;
+            // Determine upload method based on file size (same threshold as admin web: config tour.zip_chunk_threshold_mb)
+            $useChunkedUpload = $fileSize > $fileSizeThreshold;
             $uploadMethod = $useChunkedUpload ? 'chunked' : 'simple';
 
             \Log::info("ZIP file upload via API. Booking ID: {$booking->id}, File size: {$fileSize} bytes ({$uploadMethod})");
@@ -408,7 +408,7 @@ class TourManagerController extends Controller
     }
 
     /**
-     * Handle simple upload for files < 100MB
+     * Handle simple upload for files at or below zip_chunk_threshold_mb
      */
     private function handleSimpleUploadInternal($file, $booking, $tour, $slug, $location, $filename, $fileSize)
     {
@@ -458,7 +458,7 @@ class TourManagerController extends Controller
     }
 
     /**
-     * Handle chunked upload for files >= 100MB
+     * Handle chunked upload for files above zip_chunk_threshold_mb
      * Internally splits the file and processes it
      */
     private function handleChunkedUploadInternal($file, $booking, $tour, $slug, $location, $filename, $fileSize)

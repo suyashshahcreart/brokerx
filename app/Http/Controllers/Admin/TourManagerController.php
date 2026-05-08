@@ -401,10 +401,12 @@ class TourManagerController extends Controller
                 // Reload tour to get latest slug and location if they were updated
                 $tour->refresh();
 
-                // Check file size - use background processing for files > 50MB
+                // Check file size - use background processing above config threshold (default 30MB)
                 $fileSize = $file->getSize();
                 $fileSizeMB = round($fileSize / (1024 * 1024), 2);
-                $useBackgroundProcessing = $fileSize > (50 * 1024 * 1024); // 50MB
+                $chunkThresholdMb = max(1, (int) config('tour.zip_chunk_threshold_mb', 30));
+                $chunkThresholdBytes = $chunkThresholdMb * 1024 * 1024;
+                $useBackgroundProcessing = $fileSize > $chunkThresholdBytes;
 
                 \Log::info("File upload check: {$file->getClientOriginalName()} - Size: {$fileSize} bytes ({$fileSizeMB} MB) - Use background: " . ($useBackgroundProcessing ? 'YES' : 'NO'));
 
