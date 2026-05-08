@@ -67,7 +67,7 @@
                     </div>
 
                     <!-- Button action type section -->
-                    <div class="mb-4 p-3 bg-light rounded" id="buttonActionTypeContainer">
+                    <div class="mb-4 p-3 bg-light rounded d-none" id="buttonActionTypeContainer">
                         <!-- JS inject 💉 -->
                     </div>
 
@@ -139,7 +139,7 @@
 
                     <!-- Button Icon Section -->
                     <div id="buttonIconSection" class="mb-4 p-3 border rounded d-none">
-                        <h6 class="mb-3 fw-semibold">Button / icon Section</h6>
+                        <h6 class="mb-3 fw-semibold">Button Section</h6>
                         <div class="mb-3 w-50" id="buttonTypeDiv">
                             <label for="buttonType" class="form-label">Button Type</label>
                             <select class="form-select" id="buttonTypeSelect">
@@ -182,7 +182,10 @@
                                 </select>
                             </div>
                         </div>
-                        <!-- icon section -->
+                    </div>
+                    <!-- Icon Section -->
+                    <div id="IconSection" class="mb-4 p-3 border rounded d-none">
+                        <h6 class="mb-3 fw-semibold">icon Section</h6>
                         <div class="row g-3 mb-3 d-none" id="iconDetailsDiv">
                             <div class="" id="IconTitleDiv">
                                 <!-- js fill injection 💉 -->
@@ -229,54 +232,11 @@
                             </div>
                         </div>
                     </div>
-
-                    <!-- Button Action Section -->
-                    <div id="buttonActionSection" class="mb-4 p-3 border rounded d-none">
-                        <h6 class="mb-3 fw-semibold">Button Actions</h6>
-                        <div class="mb-3">
-                            <label for="buttonActionType" class="form-label">Action Type</label>
-                            <select class="form-select" id="buttonActionType">
-                                <option value="">Select action...</option>
-                                <option value="redirectToLink">Redirect to Link</option>
-                                <option value="openModal">Open Modal</option>
-                                <option value="navigate">Navigate to Node</option>
-                                <option value="openImage">Open Image</option>
-                                <option value="openVideo">Open Video</option>
-                                <option value="openDocument">Open Document</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label for="buttonNodeId" class="form-label">Target Node ID</label>
-                            <input type="text" class="form-control" id="buttonNodeId"
-                                placeholder="Node ID for navigation">
-                        </div>
-                    </div>
-
-                    <!-- Button Preview Section -->
-                    <div id="buttonPreviewSection" class="mb-4 p-3 bg-light rounded d-none">
-                        <h6 class="mb-3 fw-semibold">Button Preview</h6>
-                        <button type="button" id="buttonPreview" class="btn btn-primary" disabled>Preview
-                            Button</button>
-                    </div>
-
-                    <!-- Behavior Section -->
-                    <div id="behaviorSection" class="mb-4 p-3 border rounded d-none">
-                        <h6 class="mb-3 fw-semibold">Behavior</h6>
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <label class="form-label">Show on Load</label>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="showOnLoad">
-                                    <label class="form-check-label" for="showOnLoad">Auto-show this modal on page
-                                        load</label>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="showOnLoadDelayMs" class="form-label">Delay (milliseconds)</label>
-                                <input type="number" class="form-control" id="showOnLoadDelayMs" placeholder="0"
-                                    min="0">
-                            </div>
-                        </div>
+                    <!-- Link URL section -->
+                    <div class="mb-4 p-3 border rounded" id="buttonLinkContainer">
+                        <label for="buttonSize" class="form-label">Link URL *</label>
+                        <input type="text" class="form-control" id="LinkUrlInput"
+                            placeholder="e.g, http://www.google.com" value="">
                     </div>
 
                 </div>

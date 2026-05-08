@@ -49,27 +49,27 @@ const EDIT_MODAL_VISIBILITY = {
 const BUTTON_ACTION_TYPES = [
   {
     label: 'Redirect to Link',
-    value: 'redirect_link'
+    value: 'redirectToLink'
   },
   {
     label: 'Open Info Modal',
-    value: 'info_modal'
+    value: 'openInfoModal'
   },
   {
     label: 'Navigate to Node',
-    value: 'navigate_node'
+    value: 'navigateToNode'
   },
   {
     label: 'Open Image',
-    value: 'open_image'
+    value: 'openImage'
   },
   {
     label: 'Open Video',
-    value: 'open_video'
+    value: 'openVideo'
   },
   {
     label: 'Open Document',
-    value: 'open_document'
+    value: 'openDocument'
   }
 ];
 
@@ -406,6 +406,8 @@ let EditModalState = {
     this.currentNode = null;
     this.currentModalIndex = null;
     this.currentTitleField = null;
+    let LinURLRest = updateLinkContainer('');
+    LinURLRest()
   }
 };
 
@@ -427,6 +429,47 @@ function hasValidTranslations(obj) {
     typeof obj === 'object' &&
     Object.keys(obj).length > 0 &&
     Object.values(obj).some(val => val && val.trim() !== '');
+}
+
+function renderButtonActionTypes(containerId, selectedValue = '') {
+  const container = document.getElementById(containerId);
+  if (!container) {
+    console.error(`Container not found: ${containerId}`);
+    return;
+  }
+  const radios = BUTTON_ACTION_TYPES.map((type, index) => {
+    const radioId = `${containerId}_${index}`;
+    return `
+            <div class="form-check form-check-inline">
+                <input
+                    class="form-check-input"
+                    type="radio"
+                    name="buttonActionType"
+                    id="${radioId}"
+                    value="${type.value}"
+                    disabled
+                    ${selectedValue === type.value ? 'checked' : ''}
+                >
+                <label
+                    class="form-check-label"
+                    for="${radioId}"
+                >
+                    ${type.label}
+                </label>
+            </div>
+        `;
+  }).join('');
+  container.innerHTML = `
+        <label class="form-label fw-semibold d-block mb-3">
+            Button Action Type
+            <span class="text-danger">*</span>
+        </label>
+
+        <div>
+            ${radios}
+        </div>
+    `;
+  container.classList.remove('d-none');
 }
 
 // tooltip section Update function in modal
@@ -722,6 +765,7 @@ function renderButtonSettingsEditor({
         optionEl.selected = true;
       }
       buttonTypeSelect.appendChild(optionEl);
+      buttonTypeSelect.disabled = false;
     })
   };
   // button size select populete
@@ -861,6 +905,19 @@ function hideAndResetButtonSettings() {
   });
 }
 
+function updateLinkContainer(url = '') {
+    // Get elements
+    const container = document.getElementById('buttonLinkContainer');
+    const input = document.getElementById('LinkUrlInput');
+    // Update input value
+    input.value = url;
+    // Show container
+    container.style.display = 'block';
+    return function(){
+      container.classList.add('d-none');
+      input.value = '';
+    }
+}
 /**
  * openEditModal(infoModal, node, modalIndex)
  * 
@@ -984,22 +1041,9 @@ function openEditModal(infoModal, node, modalIndex) {
       .classList.remove('d-none');
   }
 
-  // SET TYPE & POSITION IN FORM
-  const typeInput = document.querySelector(`input[name="infoType"][value="${modalType}"]`);
-  if (typeInput) typeInput.checked = true;
-
-  const position = infoModal.tooltipPosition || 'down';
-  const posInput = document.querySelector(`input[name="tooltipPosition"][value="${position}"]`);
-  if (posInput) posInput.checked = true;
-
-  // MODAL SIZE MAPPING
-  const sizeEl = document.getElementById('infoModalSize');
-  if (sizeEl) {
-    const val = infoModal.infoModalWidth || infoModal.infoModalSize || infoModal.infoModalWidth || 'modal-md';
-    Array.from(sizeEl.options).forEach((opt) => opt.selected = (opt.value === val));
-  }
-
-
+  // button settings section updating
+  if (isNonEmptyString(infoModal.buttonActionType) || infoModal.isButtonOnly) renderButtonActionTypes('buttonActionTypeContainer', infoModal.buttonActionType);
+  if (isNonEmptyString(infoModal.link)) updateLinkContainer(infoModal.link);
   // SMART VISIBILITY - SHOW ONLY SECTIONS WITH DATA
   const modal = window.bootstrap?.Modal.getOrCreateInstance(modalEl);
   modal.show();
