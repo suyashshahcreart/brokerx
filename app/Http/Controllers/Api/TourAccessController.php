@@ -575,7 +575,14 @@ class TourAccessController extends Controller{
         }
 
         // Get bookings with basic information
-        $bookings = Booking::with(['customer:id,firstname,lastname,email,mobile'])
+        $bookings = Booking::with([
+            'customer:id,firstname,lastname,email,mobile',
+            'tours' => function ($query) {
+                $query->select('id', 'booking_id', 'name', 'title', 'slug')
+                    ->latest()
+                    ->limit(1);
+            },
+        ])
             ->select([
                 'id',
                 'customer_id',
@@ -590,9 +597,14 @@ class TourAccessController extends Controller{
             ->orderBy('created_at', 'desc')
             ->get()
             ->map(function ($booking) {
+                $latestTour = $booking->tours->first();
+
                 return [
                     'booking_id' => $booking->id,
                     'tour_code' => $booking->tour_code,
+                    'tour_name' => $latestTour->name ?? null,
+                    'tour_title' => $latestTour->title ?? null,
+                    'tour_slug' => $latestTour->slug ?? null,
                     'status' => $booking->status,
                     'payment_status' => $booking->payment_status,
                     'booking_date' => $booking->booking_date ? $booking->booking_date->format('Y-m-d') : null,
