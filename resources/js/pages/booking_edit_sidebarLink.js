@@ -54,6 +54,8 @@ function addSidebarLinkRow(linkData = {}) {
     const order = linkData.order || rowIndex + 1;
     const link = linkData.link || '';
 
+    console.log(`sidebar link row with data of ${type}:`, linkData);
+
     const enabledLanguages = getEnabledLanguages();
     const allLanguages = [
         { code: 'en', label: 'English' },
@@ -140,8 +142,11 @@ function addSidebarLinkRow(linkData = {}) {
                 <select id="typeSelect_${rowIndex}" name="sidebar_links[${rowIndex}][type]" class="form-select" required>
                     <option value="">Select Type</option>
                     <option value="link" ${type === 'link' ? 'selected' : ''}>Link</option>
-                    <option value="infoModal" ${type === 'infoModal' ? 'selected' : ''}>Information Modal</option>
-                    <option value="content" ${type === 'content' ? 'selected' : ''}>Content</option>
+                    <option value="infoModal" ${type === 'infoModal' ? 'selected' : ''}>Info Modal</option>
+                    <option value="link" ${type === 'link' ? 'selected' : ''}>Link</option>
+                    <option value="image" ${type === 'image' ? 'selected' : ''}>Image</option>
+                    <option value="video" ${type === 'video' ? 'selected' : ''}>Video</option>
+                    <option value="document" ${type === 'document' ? 'selected' : ''}>Document</option>
                 </select>
             </div>
 
@@ -155,6 +160,10 @@ function addSidebarLinkRow(linkData = {}) {
                 <label class="form-label">Link <span class="text-danger">*</span></label>
                 <input type="url" name="sidebar_links[${rowIndex}][link]"
                     class="form-control" placeholder="e.g, https://example.com" value="${link}" ${type === 'link' ? 'required' : ''}>
+            </div>
+
+            <div class="col-md-3" id="linkInputContainer_${rowIndex}" style="display: ${['image', 'video', 'document'].includes(type) ? 'block' : 'none'};">
+                <p class="m-0">This feature is currently unavailable.<span class="text-danger">We are working on it!</span></p>
             </div>
 
             <div class="col-md-12 mt-2" id="contentInputContainer_${rowIndex}" style="display: ${type === 'content' || type === 'infoModal' ? 'block' : 'none'};">
@@ -206,9 +215,7 @@ function addSidebarLinkRow(linkData = {}) {
                 const langCode = input.name.match(/\[content\]\[(\w+)\]/)?.[1];
                 input.required = langCode === firstEnabledCode;
             });
-
             titleEnInput.required = true;
-            initQuillForRow(rowIndex, linkData.content || {});
         } else {
             linkContainer.style.display = 'none';
             contentContainer.style.display = 'none';
@@ -227,7 +234,6 @@ function addSidebarLinkRow(linkData = {}) {
             const langCode = input.name.match(/\[content\]\[(\w+)\]/)?.[1];
             input.required = langCode === firstEnabledCode;
         });
-        initQuillForRow(rowIndex, linkData.content || {});
     }
 
     // Attach event listeners to the new row
