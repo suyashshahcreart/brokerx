@@ -13,6 +13,7 @@ use App\Models\Booking;
 use App\Models\Tour;
 use App\Models\QR;
 use App\Services\TourService;
+use App\Services\TourAssetJsonPersistenceService;
 use ZipArchive;
 
 class ProcessTourZipFile implements ShouldQueue
@@ -173,6 +174,9 @@ class ProcessTourZipFile implements ShouldQueue
             }
             $this->updateBookingStatus('processing', 80, 'ZIP processed, saving results');
 
+            // Snapshot ZIP JSON assets before array_merge/sync mutates nested refs shared with $result['data']
+            $zipPayloadForHistory = TourAssetJsonPersistenceService::snapshotZipPayloadForHistory($result);
+
             // Update tour data
             $tourData = $result['data'];
 
@@ -245,11 +249,14 @@ class ProcessTourZipFile implements ShouldQueue
             // This ensures individual DB columns are synchronized with the JSON data
             $this->tourService->syncTourFieldsFromJson($tour, $tour->final_json, [], true);
 
+            app(TourAssetJsonPersistenceService::class)->recordFromZipResult(
+                $tour,
+                $zipPayloadForHistory,
+                auth()->id() ?? 1
+            );
+
             $booking->base_url = $result['s3_url'];
             $booking->save();
-
-            $tour->updated_by = auth()->id() ?? 1;
-            $tour->save();
 
             Log::info("Successfully processed ZIP file for booking #{$this->bookingId}");
             $this->updateBookingStatus('done', 100, 'Processing completed');

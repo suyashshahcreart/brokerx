@@ -9,6 +9,7 @@ use App\Models\QR;
 use App\Models\Setting;
 use App\Models\State;
 use App\Models\Tour;
+use App\Models\TourJsonHistory;
 use App\Models\FtpConfiguration;
 use App\Jobs\UploadTourAssetsToS3;
 use App\Jobs\ProcessTourZipFile;
@@ -21,6 +22,7 @@ use ZipArchive;
 use Aws\S3\Exception\S3Exception;
 use App\Http\Controllers\Admin\TourController;
 use App\Services\TourService;
+use App\Services\TourAssetJsonPersistenceService;
 
 class TourManagerController extends Controller
 {
@@ -378,6 +380,7 @@ class TourManagerController extends Controller
 
         $tourData = [];
         $uploadedFiles = [];
+        $zipResultForHistory = null;
 
         // Handle single ZIP file upload only
         if ($request->hasFile('files')) {
@@ -465,6 +468,7 @@ class TourManagerController extends Controller
 
                     $result = $this->processZipFile($file, $tour, $qrCode->code);
                     if ($result['success']) {
+                        $zipResultForHistory = TourAssetJsonPersistenceService::snapshotZipPayloadForHistory($result);
                         $tourData = $result['data'];
                         $uploadedFiles[] = [
                             'name' => $file->getClientOriginalName(),
@@ -537,8 +541,16 @@ class TourManagerController extends Controller
         // Sync tour fields from final_json without overwriting existing tour fields that are not in final_json
         $this->tourService->syncTourFieldsFromJson($tour, $tour->final_json, [], true);
 
-        $tour->updated_by = auth()->id();
-        $tour->save();
+        if ($zipResultForHistory) {
+            app(TourAssetJsonPersistenceService::class)->recordFromZipResult(
+                $tour,
+                $zipResultForHistory,
+                auth()->id()
+            );
+        } else {
+            $tour->updated_by = auth()->id();
+            $tour->save();
+        }
 
         if ($request->expectsJson()) {
             return response()->json([
@@ -580,8 +592,11 @@ class TourManagerController extends Controller
                 ];
             }
 
+            // First ZIP upload for this tour must include index.html (full tour package).
+            $isFirstTourZipUpload = ! TourJsonHistory::where('tour_id', $tour->id)->exists();
+
             // Validate required files
-            $validation = $this->validateZipStructure($zip);
+            $validation = $this->validateZipStructure($zip, $isFirstTourZipUpload);
             if (!$validation['valid']) {
                 $zip->close();
                 return [
@@ -634,6 +649,8 @@ class TourManagerController extends Controller
             $indexHtmlPath = null;
             $swJsPath = null;
             $jsonPath = null;
+            $tourDataJsonPath = null;
+            $s3TourDataJsPath = null;
             $totalFiles = $zip->numFiles;
 
             \Log::info("Analyzing ZIP structure for tour code: {$uniqueCode} ({$totalFiles} files)");
@@ -676,6 +693,14 @@ class TourManagerController extends Controller
                         $jsonPath = $filename;
                     }
                 }
+
+                $normLower = str_replace('\\', '/', strtolower($filename));
+                if (str_ends_with($normLower, 'assets/js/tour-data.json')) {
+                    $tourDataJsonPath = $filename;
+                }
+                if (str_ends_with($normLower, 'assets/js/tour-data.js')) {
+                    $s3TourDataJsPath = $filename;
+                }
             }
 
             if (!$indexHtmlPath) {
@@ -707,6 +732,8 @@ class TourManagerController extends Controller
             $swJsContent = null;
             $jsonContent = null;
             $jsonFilename = null;
+            $tourDataJsonDecoded = null;
+            $s3ConfigJsContent = null;
 
             // Process each file in ZIP and upload directly to S3
             $batchSize = 50; // Process in batches for memory management
@@ -782,6 +809,59 @@ class TourManagerController extends Controller
                     \Log::info("Saved sw.js content in memory for FTP upload (size: " . strlen($swJsContent) . " bytes)");
                     unset($fileContent);
                     continue; // Will process later for FTP upload
+                }
+
+                $normEntry = str_replace('\\', '/', $filename);
+                if ($tourDataJsonPath && $normEntry === str_replace('\\', '/', $tourDataJsonPath)) {
+                    $s3TdPath = $s3TourPath . '/' . $filename;
+                    try {
+                        $uploaded = Storage::disk('s3')->put(
+                            $s3TdPath,
+                            $fileContent,
+                            ['ContentType' => 'application/json']
+                        );
+                        if ($uploaded) {
+                            try {
+                                Storage::disk('s3')->setVisibility($s3TdPath, 'public');
+                            } catch (\Exception $e) {
+                                // Visibility failure is not critical
+                            }
+                            $uploadedFiles[] = $filename;
+                        }
+                    } catch (\Exception $e) {
+                        \Log::error('Error uploading tour-data.json to S3: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
+                    }
+                    $tourDataJsonDecoded = json_decode($fileContent, true);
+                    if (json_last_error() !== JSON_ERROR_NONE) {
+                        \Log::warning('tour-data.json invalid JSON in ZIP: ' . json_last_error_msg());
+                        $tourDataJsonDecoded = null;
+                    }
+                    unset($fileContent);
+                    continue;
+                }
+
+                if ($s3TourDataJsPath && $normEntry === str_replace('\\', '/', $s3TourDataJsPath)) {
+                    $s3JsPath = $s3TourPath . '/' . $filename;
+                    try {
+                        $uploaded = Storage::disk('s3')->put(
+                            $s3JsPath,
+                            $fileContent,
+                            ['ContentType' => 'application/javascript']
+                        );
+                        if ($uploaded) {
+                            try {
+                                Storage::disk('s3')->setVisibility($s3JsPath, 'public');
+                            } catch (\Exception $e) {
+                                // Visibility failure is not critical
+                            }
+                            $uploadedFiles[] = $filename;
+                        }
+                    } catch (\Exception $e) {
+                        \Log::error('Error uploading tour-data.js to S3: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
+                    }
+                    $s3ConfigJsContent = $fileContent;
+                    unset($fileContent);
+                    continue;
                 }
 
                 if ($filename === $jsonPath || (pathinfo($lowerFilename, PATHINFO_EXTENSION) === 'json' && stripos($filename, 'virtual-tour-nodes') !== false)) {
@@ -1185,12 +1265,12 @@ class TourManagerController extends Controller
             // No temp directory cleanup needed - we never created one!
             // Files were uploaded directly from ZIP to S3
 
-            // STEP 8: Validate that we got the required files
-            if (!$indexHtmlContent) {
-                \Log::error("index.html not found in ZIP file in " . __FILE__ . ":" . __LINE__);
+            // STEP 8: index.html is mandatory on the first tour ZIP upload only
+            if (! $indexHtmlContent && $isFirstTourZipUpload) {
+                \Log::error("index.html not found in ZIP file (first tour upload) in " . __FILE__ . ":" . __LINE__);
                 return [
                     'success' => false,
-                    'message' => 'index.html file not found in ZIP file. Please ensure your ZIP contains an index.html file.'
+                    'message' => 'Zip file must contain index.html. The first tour upload requires a complete ZIP including index.html.',
                 ];
             }
 
@@ -1216,6 +1296,14 @@ class TourManagerController extends Controller
             $returnData = [
                 'success' => true,
                 'data' => $jsonData,
+                'virtual_tour_nodes_json' => $jsonData,
+                'tour_data_json' => $tourDataJsonDecoded,
+                's3_config_js' => $s3ConfigJsContent,
+                '_asset_presence' => [
+                    'virtual_tour_nodes' => $jsonPath !== null,
+                    'tour_data_json' => $tourDataJsonPath !== null,
+                    's3_config_js' => $s3TourDataJsPath !== null,
+                ],
                 'tour_path' => $rootTourPath,
                 'tour_url' => url('/' . $rootTourPath . '/index.php'),
                 's3_path' => $s3TourPath,
@@ -1600,8 +1688,10 @@ class TourManagerController extends Controller
     /**
      * Validate zip file structure
      * Updated to check for folders at any level (handles root folder structure)
+     *
+     * @param  bool  $requireIndexHtml  When true (first tour ZIP upload), index.html must be present.
      */
-    private function validateZipStructure(ZipArchive $zip)
+    private function validateZipStructure(ZipArchive $zip, bool $requireIndexHtml = true)
     {
         $hasIndexHtml = false;
         $hasJsonFile = false;
@@ -1659,7 +1749,7 @@ class TourManagerController extends Controller
 
         $missingFolders = array_diff($requiredFolders, $foundFolders);
 
-        if (!$hasIndexHtml) {
+        if ($requireIndexHtml && ! $hasIndexHtml) {
             return ['valid' => false, 'message' => 'Zip file must contain index.html'];
         }
 

@@ -194,9 +194,17 @@
                             @enderror
                         </div>
 
+                        
+
+                        <div class="d-grid gap-2 mt-3">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="ri-upload-cloud-2-line me-1"></i> Upload Tour Files
+                            </button>
+                        </div>
+
                         <!-- Existing Files -->
                         @if($tour->final_json && isset($tour->final_json['files']))
-                        <div class="mb-3">
+                        <div class="mt-3">
                             <label class="form-label">Existing Files</label>
                             <div class="list-group">
                                 @foreach($tour->final_json['files'] as $file)
@@ -211,12 +219,6 @@
                             </div>
                         </div>
                         @endif
-
-                        <div class="d-grid gap-2 mt-3">
-                            <button type="submit" class="btn btn-primary btn-lg">
-                                <i class="ri-upload-cloud-2-line me-1"></i> Upload Tour Files
-                            </button>
-                        </div>
                     </div>
                 </div>
             </form>
