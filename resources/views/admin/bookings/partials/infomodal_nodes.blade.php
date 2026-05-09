@@ -71,38 +71,71 @@
                         <!-- JS inject 💉 -->
                     </div>
 
+                    <!-- Image Media Container -->
+                    <div id="imageSection" class="mb-4 p-3 border rounded d-none">
+                        <label class="form-label fw-semibold mb-3">
+                            Image Preview
+                        </label>
+                        <div id="imagePreview" class="d-flex flex-wrap gap-2">
+
+                        </div>
+                    </div>
+
+                    <div id="audioSection" class="mb-4 p-3 border rounded">
+                        <label class="form-label" for="audioUrl">Audio Preview</label>
+                        <audio src="https://proppik.s3.ap-south-1.amazonaws.com/tours/jx5KpRo8/info/kisnamusic.mp3"
+                            controls id="audioPreview" class="w-100">
+                            Your browser does not support the audio element.
+                        </audio>
+                    </div>
+
+                    <!-- tool tip -->
                     <div id="tooltipSection" class="mb-4 p-3 border rounded d-none">
                         <!-- js fille this tool tip section Update -->
                     </div>
 
                     <!-- Icon Section -->
-                    <div id="iconSection" class="mb-4 p-3 border rounded d-none">
-                        <h6 class="mb-3 fw-semibold">Icon Settings</h6>
-                        <div class="row g-3">
-                            <div class="col-md-3">
-                                <label for="infoPointIcon" class="form-label">Icon Name</label>
-                                <input type="text" class="form-control" id="infoPointIcon"
-                                    placeholder="Material icon name (e.g., info)">
-                            </div>
-                            <div class="col-md-3">
-                                <label for="infoPointIconColor" class="form-label">Icon Color</label>
-                                <input type="color" class="form-control form-control-color" id="infoPointIconColor"
-                                    value="#3a3abb">
-                            </div>
-                            <div class="col-md-3">
-                                <label for="infoPointIconSize" class="form-label">Icon Size</label>
-                                <select class="form-select" id="infoPointIconSize">
-                                    <option value="small">Small</option>
-                                    <option value="medium" selected>Medium</option>
-                                    <option value="large">Large</option>
-                                </select>
-                            </div>
-                            <div class="mt-3">
-                                <small class="text-muted">Preview:</small>
-                                <div id="icoPreview" style="font-size: 32px; margin-top: 8px;">
-                                    <span id="infoPointIconPreview" class="material-icons-outlined"
-                                        style="color: #3a3abb;">info</span>
+                    <div id="IconSection" class="mb-4 p-3 border rounded d-none">
+                        <h6 class="mb-3 fw-semibold">icon Section</h6>
+                        <div class="row g-3 mb-3" id="iconDetailsDiv">
+                            <div class="col-md-4">
+                                <label class="form-label" for="">icon colors</label>
+                                <div class="input-group">
+                                    <span class="input-group-text p-0">
+                                        <input type="color" class="form-control form-control-color" value="#1A237E"
+                                            onchange="this.parentElement.nextElementSibling.value = this.value"
+                                            id="buttonColorPreview">
+                                    </span>
+                                    <input type="text" name="buttonColor" class="form-control" placeholder="#1A237E"
+                                        value="#1A237E" id="buttonColorInput"
+                                        oninput="this.previousElementSibling.querySelector('input').value = this.value">
                                 </div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label" for="iconInput">
+                                    Icon
+                                </label>
+                                <div class="input-group">
+                                    <!-- Preview -->
+                                    <span class="input-group-text bg-white" id="iconPreview">
+                                        <span class="material-icons-outlined">
+                                            home
+                                        </span>
+                                    </span>
+                                    <!-- Input -->
+                                    <input type="text" class="form-control" name="icon" id="iconInput" value="home"
+                                        placeholder="e.g. home">
+                                </div>
+                                <small class="text-muted">
+                                    Enter material icon name
+                                </small>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label" for="iconSize">Icon Size</label>
+                                <select id="iconSizeSelect" name="IconSize" class="form-select">
+                                    <!-- js 💉 -->
+                                </select>
                             </div>
                         </div>
                     </div>
@@ -183,62 +216,13 @@
                             </div>
                         </div>
                     </div>
-                    <!-- Icon Section -->
-                    <div id="IconSection" class="mb-4 p-3 border rounded d-none">
-                        <h6 class="mb-3 fw-semibold">icon Section</h6>
-                        <div class="row g-3 mb-3 d-none" id="iconDetailsDiv">
-                            <div class="" id="IconTitleDiv">
-                                <!-- js fill injection 💉 -->
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label" for="">icon colors</label>
-                                <div class="input-group">
-                                    <span class="input-group-text p-0">
-                                        <input type="color" class="form-control form-control-color" value="#1A237E"
-                                            onchange="this.parentElement.nextElementSibling.value = this.value"
-                                            id="buttonColorPreview">
-                                    </span>
-                                    <input type="text" name="buttonColor" class="form-control" placeholder="#1A237E"
-                                        value="#1A237E" id="buttonColorInput"
-                                        oninput="this.previousElementSibling.querySelector('input').value = this.value">
-                                </div>
-                            </div>
 
-                            <div class="col-md-4">
-                                <label class="form-label" for="iconInput">
-                                    Icon
-                                </label>
-                                <div class="input-group">
-                                    <!-- Preview -->
-                                    <span class="input-group-text bg-white" id="iconPreview">
-                                        <span class="material-icons-outlined">
-                                            home
-                                        </span>
-                                    </span>
-                                    <!-- Input -->
-                                    <input type="text" class="form-control" name="icon" id="iconInput" value="home"
-                                        placeholder="e.g. home">
-                                </div>
-                                <small class="text-muted">
-                                    Enter material icon name
-                                </small>
-                            </div>
-
-                            <div class="col-md-4">
-                                <label class="form-label" for="iconSize">Icon Size</label>
-                                <select id="iconSizeSelect" name="IconSize" class="form-select">
-                                    <!-- js 💉 -->
-                                </select>
-                            </div>
-                        </div>
-                    </div>
                     <!-- Link URL section -->
                     <div class="mb-4 p-3 border rounded" id="buttonLinkContainer">
                         <label for="buttonSize" class="form-label">Link URL *</label>
                         <input type="text" class="form-control" id="LinkUrlInput"
                             placeholder="e.g, http://www.google.com" value="">
                     </div>
-
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>

@@ -17,6 +17,7 @@ const EDIT_MODAL_TEXT_FIELD_IDS = [
 ];
 
 const EDIT_MODAL_MEDIA_FIELD_IDS = [];
+const finalJson = window.tourFinalJson || {};
 
 const modalEl = document.getElementById('editInfoModal');
 modalEl.addEventListener('hidden.bs.modal', () => {
@@ -407,7 +408,7 @@ let EditModalState = {
     this.currentModalIndex = null;
     this.currentTitleField = null;
     let LinURLRest = updateLinkContainer('');
-    LinURLRest()
+    LinURLRest() // reset link url
   }
 };
 
@@ -431,6 +432,7 @@ function hasValidTranslations(obj) {
     Object.values(obj).some(val => val && val.trim() !== '');
 }
 
+// render button actions
 function renderButtonActionTypes(containerId, selectedValue = '') {
   const container = document.getElementById(containerId);
   if (!container) {
@@ -796,28 +798,23 @@ function renderButtonSettingsEditor({
 
 } // end function
 
-
-
-
 // icon reander function
-function renderIconSettingEditor({
-  container,
-  data = EditModalState.currentInfoModal || {},
-  name = 'Icon Settings'
-}) {
+function renderIconSettingEditor() {
+  let container = document.getElementById('IconSection');
+  let data = EditModalState.currentInfoModal || {};
+  let iconPreview = document.getElementById('iconPreview');
+  let name = 'Icon Settings';
   if (!container) throw new Error('Container is required');
-  hideAndResetButtonSettings();
   // main icon selection section
   let iconInput = document.getElementById('iconInput');
-  let iconPreview = document.getElementById('iconPreview');
   iconInput.onclick = function () {
     iconLib.open($('iconInput'), $('iconPreview'));
   }
   // icon title 
   let IconTitleDiv = document.getElementById('IconTitleDiv');
-  if (IconTitleDiv && !isNonEmptyString(data.linkTitle)) {
-    console.log('rendering icon title editor with data:', data.linkTitle);
-    let navtabs = Object.keys(data.linkTitle).map((lang, i) => {
+  if (IconTitleDiv && !isNonEmptyString(data?.linkTitle)) {
+    console.log('rendering icon title editor with data:', data?.linkTitle);
+    let navtabs = Object.keys(data?.linkTitle).map((lang, i) => {
       return `
             <li class="nav-item">
                 <button 
@@ -831,7 +828,7 @@ function renderIconSettingEditor({
         `;
     }).join('');
 
-    let titlesTabs = Object.keys(data.linkTitle).map((lang, i) => {
+    let titlesTabs = Object.keys(data?.linkTitle).map((lang, i) => {
       return `
       <div class="tab-pane fade show ${i === 0 ? 'active' : ''}" id="IconTitleDiv-modal-${lang}" role="tabpanel" aria-labelledby="IconTitleDiv-modal-${lang}-tab">
         <div class="mb-3">
@@ -841,14 +838,16 @@ function renderIconSettingEditor({
       </div>
       `;
     }).join('');
-
-    IconTitleDiv.innerHTML = `
-      <ul class="nav nav-tabs" id="myTab" role="tablist">${navtabs}</ul>
-      <div id="ButtonTitleTabContent" class="tab-content mt-1">${titlesTabs}</div>
-    `;
+    // IconTitleDiv.innerHTML = `
+    //   <ul class="nav nav-tabs" id="myTab" role="tablist">${navtabs}</ul>
+    //   <div id="ButtonTitleTabContent" class="tab-content mt-1">${titlesTabs}</div>
+    // `;
   }
 
-  // icon color section 
+  // icon preview section
+  if (iconPreview)
+    if (data.icon) iconInput.value = data.icon; iconPreview.innerHTML = `<span class="material-icons-outlined">${data.icon}</span>`;
+
   // icon selection section
   const sizes = [
     { label: 'Small', value: 'small' },
@@ -859,7 +858,7 @@ function renderIconSettingEditor({
     return `
         <option 
             value="${size.value}" 
-            ${data.iconSize === size.value ? 'selected' : ''}
+            ${data?.iconSize === size.value ? 'selected' : ''}
         >
             ${size.label}
         </option>
@@ -870,7 +869,6 @@ function renderIconSettingEditor({
 }
 
 // reset form function to helper function to reset form fields when modal is closed or when needed
-
 function hideAndResetButtonSettings() {
   // Main wrappers
   const buttonTitleDiv = document.getElementById('buttonTitleDiv');
@@ -905,19 +903,56 @@ function hideAndResetButtonSettings() {
   });
 }
 
+// Updateing the Link section
 function updateLinkContainer(url = '') {
-    // Get elements
-    const container = document.getElementById('buttonLinkContainer');
-    const input = document.getElementById('LinkUrlInput');
-    // Update input value
-    input.value = url;
-    // Show container
-    container.style.display = 'block';
-    return function(){
-      container.classList.add('d-none');
-      input.value = '';
-    }
+  // Get elements
+  const container = document.getElementById('buttonLinkContainer');
+  const input = document.getElementById('LinkUrlInput');
+  // Update input value
+  input.value = url;
+  // Show container
+  container.style.display = 'block';
+  return function () {
+    container.classList.add('d-none');
+    input.value = '';
+  }
 }
+
+// render this Images 
+function renderImagePreview(images = []) {
+  const imageSection = document.getElementById('imageSection');
+  const imagePreview = document.getElementById('imagePreview');
+  if (!imageSection || !imagePreview) {
+    console.error('Image preview container not found');
+    return;
+  }
+  // Hide section if no images
+  if (!Array.isArray(images) || images.length === 0) {
+    imagePreview.innerHTML = '';
+    return;
+  }
+  // Show section
+  imageSection.classList.remove('d-none');
+  // Render previews
+  imagePreview.innerHTML = images.map((image, index) => {
+    return `
+            <div class="position-relative">
+                <img
+                    src="${finalJson.s3_link}${image}"
+                    alt="Preview ${index}"
+                    class="img-thumbnail"
+                    style="
+                        width: 120px;
+                        height: 120px;
+                        object-fit: cover;
+                        border-radius: 10px;
+                    "
+                >
+            </div>
+        `;
+  }).join('');
+}
+
 /**
  * openEditModal(infoModal, node, modalIndex)
  * 
@@ -1015,21 +1050,8 @@ function openEditModal(infoModal, node, modalIndex) {
     reinitalizeEditors(); // re-apply rich text editors after dynamic render
   }
 
-  // icon settings
-  // if (isNonEmptyString(infoModal.buttonActionType)) {
-  //   renderIconSettingEditor({
-  //     container: document.getElementById('iconSection'),
-  //     data: {
-  //       icon: infoModal.icon,
-  //       iconColor: infoModal.iconColor,
-  //       iconSize: infoModal.iconSize
-  //     }
-  //   });
-  //   document
-  //     .getElementById('iconSection')
-  //     .classList.remove('d-none');  
-  // }
-
+  // icon settings section updating
+  if (isNonEmptyString(infoModal.icon)) renderIconSettingEditor();
   // button settings
   if (isNonEmptyString(infoModal.buttonActionType) || infoModal.isButtonOnly || isNonEmptyString(infoModal.buttonType)) {
     renderButtonSettingsEditor({
@@ -1043,7 +1065,15 @@ function openEditModal(infoModal, node, modalIndex) {
 
   // button settings section updating
   if (isNonEmptyString(infoModal.buttonActionType) || infoModal.isButtonOnly) renderButtonActionTypes('buttonActionTypeContainer', infoModal.buttonActionType);
+
+  // link URL field
   if (isNonEmptyString(infoModal.link)) updateLinkContainer(infoModal.link);
+
+  // images rendering 
+  if (infoModal?.image?.length > 0) renderImagePreview(infoModal.image);
+
+  if(infoModal?.audio) console.log('Audio URL:', infoModal.audioUrl || infoModal.audio);
+
   // SMART VISIBILITY - SHOW ONLY SECTIONS WITH DATA
   const modal = window.bootstrap?.Modal.getOrCreateInstance(modalEl);
   modal.show();
