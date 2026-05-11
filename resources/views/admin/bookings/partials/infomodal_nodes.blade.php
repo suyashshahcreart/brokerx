@@ -81,7 +81,23 @@
                         </div>
                         <div class="mb-3">
                             <label for="imageUrls" class="form-label">Images </label>
-                            <input type="file" class="form-control" multiple name="images[]" id="imageInput" accept="image/*" placeholder="e.g, Upload images">
+                            <input type="file" class="form-control" multiple name="images[]" id="imageInput"
+                                accept="image/*" placeholder="e.g, Upload images">
+                        </div>
+                    </div>
+
+                    <!-- video section -->
+                    <div id="videoSection" class="mb-4 p-3 border rounded ">
+                        <div class="mb-3">
+                            <label class="form-label" for="youtubePreview">YouTube Video Preview</label>
+                            <div class="ratio ratio-16x9">
+                                <iframe id="youtubePreview" src="" title="YouTube video preview"
+                                    allowfullscreen></iframe>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="form-label" for="youtubeUrl">Video URL</label>
+                            <input type="url" name="youtubeUrl" id="youtubeUrlInput" placeholder="e.g, https://www.youtube.com/watch?v=..." class="form-control">
                         </div>
                     </div>
 

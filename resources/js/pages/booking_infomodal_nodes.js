@@ -223,7 +223,7 @@ function findTheType(node) {
     return 'Info Modal';
   }
   if (node?.buttonActionType) return 'Redirect Button';
-  if (isNonEmptyString(node?.youtubeUrl) || isNonEmptyString(node?.videoUrl)) return 'YouTube Modal';
+  if (isNonEmptyString(node?.youtubeUrl)) return 'YouTube Modal';
   if (isNonEmptyString(node?.audioUrl) || isNonEmptyString(node?.audio)) return 'Audio Modal';
   if (Array.isArray(node?.image) ? node.image.length > 0 : isNonEmptyString(node?.image)) return 'Images Modal';
   if (hasLocalizedValue(node?.infoModalDescription) || hasLocalizedValue(node?.description)) return 'Info Modal';
@@ -922,6 +922,55 @@ function updateLinkContainer(url = '') {
 // Stores newly uploaded image files
 let uploadedImageFiles = [];
 
+function extractVideoUrl(modal = {}, inputValue = '') {
+  const candidate = isNonEmptyString(inputValue)
+    ? inputValue
+    : modal?.youtubeUrl || modal?.infoModalIframeUrl || modal?.iframeUrl || '';
+
+  if (!isNonEmptyString(candidate)) return '';
+
+  const trimmed = candidate.trim();
+  const iframeMatch = trimmed.match(/src=["']([^"']+)["']/i);
+  if (iframeMatch?.[1]) return iframeMatch[1];
+
+  return trimmed;
+}
+
+function toEmbedVideoUrl(url) {
+  if (!isNonEmptyString(url)) return '';
+
+  const trimmed = url.trim();
+  if (/youtube\.com\/embed\//i.test(trimmed) || /player\.vimeo\.com\/video\//i.test(trimmed)) {
+    return trimmed;
+  }
+
+  const youtubeMatch = trimmed.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/shorts\/)([A-Za-z0-9_-]{6,})/i);
+  if (youtubeMatch?.[1]) {
+    return `https://www.youtube.com/embed/${youtubeMatch[1]}`;
+  }
+
+  return trimmed;
+}
+
+function buildVideoPreviewHtml(videoUrl) {
+  const embedUrl = toEmbedVideoUrl(videoUrl);
+  if (!isNonEmptyString(embedUrl)) return '';
+
+  return `
+    <div class="w-100 mt-3">
+      <div class="fw-semibold mb-2">Video Preview</div>
+      <div class="ratio ratio-16x9 border rounded overflow-hidden bg-dark">
+        <iframe
+          src="${escapeHtml(embedUrl)}"
+          title="Info point video preview"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          loading="lazy"
+        ></iframe>
+      </div>
+    </div>
+  `;
+}
+
 // Render image preview with existing and newly uploaded images
 function renderImagePreview(images = []) {
   const imageSection = document.getElementById('imageSection');
@@ -936,6 +985,8 @@ function renderImagePreview(images = []) {
   const hasImages = (Array.isArray(images) && images.length > 0) || uploadedImageFiles.length > 0;
   if (hasImages) {
     imageSection.classList.remove('d-none');
+  } else {
+    imageSection.classList.add('d-none');
   }
   
   // Render existing images from modal
@@ -1031,6 +1082,42 @@ function renderImagePreview(images = []) {
   } else {
     imagePreview.innerHTML = existingImagesHtml;
   }
+}
+
+function setupVideoPreviewHandler() {
+  renderVideoPreview(getInputValue('youtubeUrlInput'));
+
+  const youtubeUrlInput = document.getElementById('youtubeUrlInput');
+  if (!youtubeUrlInput) return;
+
+  youtubeUrlInput.oninput = () => {
+    renderVideoPreview(youtubeUrlInput.value);
+  };
+  youtubeUrlInput.onchange = () => {
+    renderVideoPreview(youtubeUrlInput.value);
+  };
+}
+
+function renderVideoPreview(videoUrl = '') {
+  const videoSection = document.getElementById('videoSection');
+  const youtubePreview = document.getElementById('youtubePreview');
+
+  if (!videoSection || !youtubePreview) {
+    console.error('Video preview container not found');
+    return;
+  }
+
+  const embedUrl = toEmbedVideoUrl(extractVideoUrl(EditModalState.currentInfoModal, videoUrl));
+
+  if (isNonEmptyString(embedUrl)) {
+    youtubePreview.src = embedUrl;
+    videoSection.classList.remove('d-none');
+    return;
+  }
+
+  youtubePreview.removeAttribute('src');
+  youtubePreview.src = 'about:blank';
+  videoSection.classList.add('d-none');
 }
 
 // Remove existing image from modal
@@ -1167,7 +1254,7 @@ function openEditModal(infoModal, node, modalIndex) {
   if (!infoModal.type) {
     if (infoModal.buttonActionType || infoModal.isButtonOnly || isNonEmptyString(infoModal.buttonType)) {
       modalType = 'button';
-    } else if (isNonEmptyString(infoModal.youtubeUrl) || isNonEmptyString(infoModal.videoUrl)) {
+    } else if (isNonEmptyString(infoModal.youtubeUrl)) {
       modalType = 'youtube';
     } else if (isNonEmptyString(infoModal.audioUrl) || isNonEmptyString(infoModal.audio)) {
       modalType = 'audio';
@@ -1237,6 +1324,9 @@ function openEditModal(infoModal, node, modalIndex) {
   // link URL field
   if (isNonEmptyString(infoModal.link)) updateLinkContainer(infoModal.link);
 
+  const videoUrl = extractVideoUrl(infoModal);
+  setInputValue('youtubeUrlInput', videoUrl);
+
   // images rendering 
   uploadedImageFiles = []; // Reset uploaded images for this modal
   if (infoModal?.image?.length > 0) {
@@ -1245,6 +1335,7 @@ function openEditModal(infoModal, node, modalIndex) {
     renderImagePreview([]);
   }
   setupImageUploadHandler(); // Initialize image upload handler
+  setupVideoPreviewHandler();
 
   // audio file rendering
   if(infoModal?.audio) audioPreview();
@@ -1428,7 +1519,7 @@ function getFormState() {
     infoModalIframeUrl: getInputValue('infoModalIframeUrl'),
     infoModalSize: getInputValue('infoModalSize') || (document.getElementById('infoModalSize')?.value || ''),
     imageUrls: parseMultiValueLines(getInputValue('imageUrls')),
-    youtubeUrl: getInputValue('youtubeUrl'),
+    youtubeUrl: getInputValue('youtubeUrlInput'),
     audioUrl: getInputValue('audioUrl'),
   };
 }
