@@ -18,6 +18,7 @@ const EDIT_MODAL_MEDIA_FIELD_IDS = [];
 const finalJson = window.tourFinalJson || {};
 
 const modalEl = document.getElementById('editInfoModal');
+// modal close handler - resets form and state when modal is closed to ensure clean slate for next edit
 modalEl.addEventListener('hidden.bs.modal', () => {
   const form = modalEl.querySelector('editInfoForm');
   if (form) form.reset();
@@ -975,12 +976,12 @@ function buildVideoPreviewHtml(videoUrl) {
 function renderImagePreview(images = []) {
   const imageSection = document.getElementById('imageSection');
   const imagePreview = document.getElementById('imagePreview');
-  
+
   if (!imageSection || !imagePreview) {
     console.error('Image preview container not found');
     return;
   }
-  
+
   // Show section if there are any images (existing or new)
   const hasImages = (Array.isArray(images) && images.length > 0) || uploadedImageFiles.length > 0;
   if (hasImages) {
@@ -988,13 +989,13 @@ function renderImagePreview(images = []) {
   } else {
     imageSection.classList.add('d-none');
   }
-  
+
   // Render existing images from modal
   const existingImagesHtml = (images || []).map((image, index) => {
-    const imageUrl = typeof image === 'string' && image.startsWith('http') 
-      ? image 
+    const imageUrl = typeof image === 'string' && image.startsWith('http')
+      ? image
       : `${finalJson.s3_link}${image}`;
-    
+
     return `
       <div class="position-relative" style="width: fit-content;">
         <img
@@ -1022,7 +1023,7 @@ function renderImagePreview(images = []) {
       </div>
     `;
   }).join('');
-  
+
   // Render newly uploaded images with FileReader promises
   const uploadedImagePromises = uploadedImageFiles.map((file, index) => {
     return new Promise((resolve) => {
@@ -1031,7 +1032,7 @@ function renderImagePreview(images = []) {
         resolve('');
         return;
       }
-      
+
       const reader = new FileReader();
       reader.onload = (e) => {
         const html = `
@@ -1063,16 +1064,16 @@ function renderImagePreview(images = []) {
         `;
         resolve(html);
       };
-      
+
       reader.onerror = () => {
         console.error(`Failed to read file: ${file.name}`);
         resolve('');
       };
-      
+
       reader.readAsDataURL(file);
     });
   });
-  
+
   // Combine and render all images
   if (uploadedImagePromises.length > 0) {
     Promise.all(uploadedImagePromises).then((uploadedHtmlArray) => {
@@ -1144,21 +1145,21 @@ window.renderImagePreview = renderImagePreview;
 function setupImageUploadHandler() {
   const imageInput = document.getElementById('imageInput');
   const imageSection = document.getElementById('imageSection');
-  
+
   if (!imageInput) {
     console.warn('Image input element not found');
     return;
   }
-  
+
   // Remove any existing listeners to prevent duplicates
   const newImageInput = imageInput.cloneNode(true);
   imageInput.parentNode?.replaceChild(newImageInput, imageInput);
-  
-  newImageInput.addEventListener('change', function(e) {
+
+  newImageInput.addEventListener('change', function (e) {
     const files = Array.from(e.target.files || []);
-    
+
     if (files.length === 0) return;
-    
+
     // Validate files (max size 5MB per file)
     const maxSize = 5 * 1024 * 1024; // 5MB
     const validFiles = files.filter((file) => {
@@ -1172,20 +1173,20 @@ function setupImageUploadHandler() {
       }
       return true;
     });
-    
+
     if (validFiles.length > 0) {
       // Add valid files to upload list
       uploadedImageFiles.push(...validFiles);
-      
+
       // Show image section
       if (imageSection) {
         imageSection.classList.remove('d-none');
       }
-      
+
       // Re-render previews
       renderImagePreview(EditModalState.currentInfoModal?.image || []);
     }
-    
+
     // Clear input for next selection
     this.value = '';
   });
@@ -1195,7 +1196,7 @@ function audioPreview() {
   const audioSection = document.getElementById('audioSection');
   const audioPreview = document.getElementById('audioPreview');
   const audioInput = document.getElementById('audioInput');
-  if (!audioSection || !audioPreview){console.error('Audio preview container not found');return;}
+  if (!audioSection || !audioPreview) { console.error('Audio preview container not found'); return; }
   audioPreview.src = `${finalJson.s3_link}${EditModalState.currentInfoModal.audio}`;
   audioInput.onchange = function (e) {
     const file = e.target.files[0];
@@ -1338,7 +1339,7 @@ function openEditModal(infoModal, node, modalIndex) {
   setupVideoPreviewHandler();
 
   // audio file rendering
-  if(infoModal?.audio) audioPreview();
+  if (infoModal?.audio) audioPreview();
 
   // SMART VISIBILITY - SHOW ONLY SECTIONS WITH DATA
   const modal = window.bootstrap?.Modal.getOrCreateInstance(modalEl);
@@ -1457,19 +1458,6 @@ function updateButtonPreview() {
   }
 }
 
-function validateFormData() {
-  const selectedType = getCheckedValue('infoType', 'none');
-  const hasTooltipTitle = isNonEmptyString(getInputValue('tooltipTitleEN')) || isNonEmptyString(getInputValue('tooltipTitleGU'));
-
-  // Require tooltip title only when editing the simplified 'none' type
-  if (selectedType === 'none' && !hasTooltipTitle) {
-    alert('Please enter at least one tooltip title');
-    return false;
-  }
-
-  return true;
-}
-
 function getFormState() {
   const selectedType = getCheckedValue('infoType', 'none');
 
@@ -1539,8 +1527,6 @@ function setupEditModalEvents() {
   });
 
   document.getElementById('editInfoSaveBtn')?.addEventListener('click', () => {
-    if (!validateFormData()) return;
-
     const state = getFormState();
     const success = updateNodeWithEditedModal(
       EditModalState.currentNode,
@@ -1556,6 +1542,80 @@ function setupEditModalEvents() {
     }
   });
 }
+
+// Form submit and form action handler
+const infoPointForm = document.getElementById('editInfoForm');
+infoPointForm?.addEventListener('submit', (e) => {
+  e.preventDefault();
+  let currentInfoPoint = EditModalState.currentInfoModal;
+  let form = new FormData(infoPointForm);
+  console.log('Form data entries:', Array.from(form.entries()));
+  console.log('Current info point before update:', form.get('title'));
+  let UpdatedInfoPoint = {
+    "id": currentInfoPoint.id || generateUniqueId(),
+    "nodeId": currentInfoPoint.nodeId || null,
+    "image": form.get('images') || [],
+    "title": form.get('title') || { en: '', gu: '' },
+    "titleTooltipPosition": currentInfoPoint.titleTooltipPosition || 'up',
+    "description": {
+      "en": "",
+      "gu": ""
+    },
+    "link": "https://www.sheryians.com/",
+    "linkTitle": {
+      "en": "This is a Buttton Button Text",
+      "gu": "બટન ક્લિક કરો"
+    },
+    "infoModalLink": {
+      "en": "",
+      "gu": ""
+    },
+    "infoModalTitle": {
+      "en": "",
+      "gu": ""
+    },
+    "infoModalDescription": {
+      "en": "",
+      "gu": ""
+    },
+    "infoModalIframeUrl": "",
+    "infoModalWidth": "",
+    "infoModalFooterButtonTitle": {
+      "en": "",
+      "gu": ""
+    },
+    "infoModalFooterButtonLink": "",
+    "infoModalFooterText": {
+      "en": "",
+      "gu": ""
+    },
+    "youtubeUrl": "",
+    "audio": "",
+    "audioFileName": "",
+    "_originalAudio": "",
+    "icon": "10k",
+    "iconColor": "#074a92",
+    "isButtonOnly": true,
+    "buttonType": "text",
+    "buttonActionType": "redirectToLink",
+    "buttonColor": "#3a3abb",
+    "buttonTextColor": "#ffffff",
+    "buttonSize": "medium",
+    "buttonNodeId": null,
+    "buttonNodeView": null,
+    "buttonOpenImageUrls": null,
+    "buttonOpenImageFileNames": null,
+    "buttonOpenVideoUrl": null,
+    "buttonOpenVideo": null,
+    "buttonOpenDocumentUrl": null,
+    "buttonOpenDocument": null,
+    "showOnLoad": false,
+    "showOnLoadDelayMs": 0,
+    "position": currentInfoPoint.position || { x: 0, y: 0 },
+  };
+  console.log('Submitting form with current state:', UpdatedInfoPoint);
+  
+});
 
 function init() {
   const searchEl = document.getElementById('infomodalNodesSearch');
