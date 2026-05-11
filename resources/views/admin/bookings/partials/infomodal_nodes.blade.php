@@ -76,20 +76,31 @@
                         <label class="form-label fw-semibold mb-3">
                             Image Preview
                         </label>
-                        <div id="imagePreview" class="d-flex flex-wrap gap-2">
-
+                        <div id="imagePreview" class="d-flex flex-wrap gap-2 mb-3">
+                            <!-- filled by js -->
+                        </div>
+                        <div class="mb-3">
+                            <label for="imageUrls" class="form-label">Images </label>
+                            <input type="file" class="form-control" multiple name="images[]" id="imageInput" accept="image/*" placeholder="e.g, Upload images">
                         </div>
                     </div>
 
-                    <div id="audioSection" class="mb-4 p-3 border rounded">
-                        <label class="form-label" for="audioUrl">Audio Preview</label>
-                        <audio src="https://proppik.s3.ap-south-1.amazonaws.com/tours/jx5KpRo8/info/kisnamusic.mp3"
-                            controls id="audioPreview" class="w-100">
-                            Your browser does not support the audio element.
-                        </audio>
+                    <!-- audio section -->
+                    <div id="audioSection" class="mb-4 p-3 border rounded d-none">
+                        <div class="mb-3">
+                            <label class="form-label" for="audioPreview">Audio Preview</label>
+                            <audio id="audioPreview" controls class="w-100">
+                                Your browser does not support the audio element.
+                            </audio>
+                        </div>
+                        <div class="mb-3">
+                            <label for="audioUrl" class="form-label">Audio URL</label>
+                            <input type="file" accept="audio/*" name="audioFile" class="form-control" id="audioInput"
+                                placeholder="e.g, File.pm3">
+                        </div>
                     </div>
 
-                    <!-- tool tip -->
+                    <!-- tool-tip -->
                     <div id="tooltipSection" class="mb-4 p-3 border rounded d-none">
                         <!-- js fille this tool tip section Update -->
                     </div>
@@ -140,10 +151,12 @@
                         </div>
                     </div>
 
+                    <!-- modal conternt section -->
                     <div id="modalContentSection" class="mb-4 p-3 border rounded d-none">
                         <!-- js filled it -->
                     </div>
 
+                    <!-- button only section -->
                     <div id="buttonOnlySection" class="mb-4 p-3 border rounded d-none">
                         <!-- js fille this button only section Update -->
                     </div>
@@ -218,11 +231,12 @@
                     </div>
 
                     <!-- Link URL section -->
-                    <div class="mb-4 p-3 border rounded" id="buttonLinkContainer">
+                    <div class="mb-4 p-3 border rounded d-none" id="buttonLinkContainer">
                         <label for="buttonSize" class="form-label">Link URL *</label>
                         <input type="text" class="form-control" id="LinkUrlInput"
                             placeholder="e.g, http://www.google.com" value="">
                     </div>
+
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>

@@ -5,11 +5,9 @@ import iconLib from './booking_tour_iconLib';
 import reinitalizeEditors from '../tinyEditor';
 
 /* global window, document */
-
 // ============================================================================
 // CONFIGURATION & CONSTANTS
 // ============================================================================
-
 /** Fields that track character count in the UI */
 
 const EDIT_MODAL_TEXT_FIELD_IDS = [
@@ -24,6 +22,7 @@ modalEl.addEventListener('hidden.bs.modal', () => {
   const form = modalEl.querySelector('editInfoForm');
   if (form) form.reset();
   EditModalState.reset();
+  document.getElementById('audioPreview')?.pause();
 });
 
 /**
@@ -212,7 +211,7 @@ function normalizeNodes(finalJson) {
         infoModals: safeArray(infoModals),
       };
     })
-    .filter((n) => n.showInSideMenu && n.infoModals.length > 0);
+    .filter((n) => n.infoModals.length > 0);
 }
 
 function findTheType(node) {
@@ -407,6 +406,7 @@ let EditModalState = {
     this.currentNode = null;
     this.currentModalIndex = null;
     this.currentTitleField = null;
+    uploadedImageFiles = []; // Clear uploaded images
     let LinURLRest = updateLinkContainer('');
     LinURLRest() // reset link url
   }
@@ -912,45 +912,213 @@ function updateLinkContainer(url = '') {
   input.value = url;
   // Show container
   container.style.display = 'block';
+  container.classList.remove('d-none');
   return function () {
     container.classList.add('d-none');
     input.value = '';
   }
 }
 
-// render this Images 
+// Stores newly uploaded image files
+let uploadedImageFiles = [];
+
+// Render image preview with existing and newly uploaded images
 function renderImagePreview(images = []) {
   const imageSection = document.getElementById('imageSection');
   const imagePreview = document.getElementById('imagePreview');
+  
   if (!imageSection || !imagePreview) {
     console.error('Image preview container not found');
     return;
   }
-  // Hide section if no images
-  if (!Array.isArray(images) || images.length === 0) {
-    imagePreview.innerHTML = '';
+  
+  // Show section if there are any images (existing or new)
+  const hasImages = (Array.isArray(images) && images.length > 0) || uploadedImageFiles.length > 0;
+  if (hasImages) {
+    imageSection.classList.remove('d-none');
+  }
+  
+  // Render existing images from modal
+  const existingImagesHtml = (images || []).map((image, index) => {
+    const imageUrl = typeof image === 'string' && image.startsWith('http') 
+      ? image 
+      : `${finalJson.s3_link}${image}`;
+    
+    return `
+      <div class="position-relative" style="width: fit-content;">
+        <img
+          src="${imageUrl}"
+          alt="Existing Image ${index + 1}"
+          class="img-thumbnail"
+          style="
+            width: 120px;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 8px;
+          "
+          loading="lazy"
+        >
+        <span class="badge bg-secondary position-absolute bottom-0 start-50 translate-middle-x" style="font-size: 10px;">Existing</span>
+        <button 
+          type="button"
+          class="btn btn-sm btn-danger position-absolute top-0 end-0"
+          style="transform: translate(5px, -5px); padding: 2px 6px; font-size: 12px;"
+          onclick="removeExistingImage(event, ${index})"
+          title="Remove existing image"
+        >
+          <i class="ri-close-line"></i>
+        </button>
+      </div>
+    `;
+  }).join('');
+  
+  // Render newly uploaded images with FileReader promises
+  const uploadedImagePromises = uploadedImageFiles.map((file, index) => {
+    return new Promise((resolve) => {
+      // Validate file
+      if (!file.type.startsWith('image/')) {
+        resolve('');
+        return;
+      }
+      
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const html = `
+          <div class="position-relative" style="width: fit-content;">
+            <img
+              src="${e.target.result}"
+              alt="New Upload ${index + 1}"
+              class="img-thumbnail border-success"
+              style="
+                width: 120px;
+                height: 120px;
+                object-fit: cover;
+                border-radius: 8px;
+                border: 2px solid #28a745 !important;
+              "
+              loading="lazy"
+            >
+            <span class="badge bg-success position-absolute top-0 start-0" style="font-size: 10px;">New</span>
+            <button 
+              type="button"
+              class="btn btn-sm btn-danger position-absolute top-0 end-0"
+              style="transform: translate(5px, -5px); padding: 2px 6px; font-size: 12px;"
+              onclick="removeUploadedImage(${index})"
+              title="Remove new image"
+            >
+              <i class="ri-close-line"></i>
+            </button>
+          </div>
+        `;
+        resolve(html);
+      };
+      
+      reader.onerror = () => {
+        console.error(`Failed to read file: ${file.name}`);
+        resolve('');
+      };
+      
+      reader.readAsDataURL(file);
+    });
+  });
+  
+  // Combine and render all images
+  if (uploadedImagePromises.length > 0) {
+    Promise.all(uploadedImagePromises).then((uploadedHtmlArray) => {
+      const uploadedHtml = uploadedHtmlArray.filter(Boolean).join('');
+      imagePreview.innerHTML = existingImagesHtml + uploadedHtml;
+    });
+  } else {
+    imagePreview.innerHTML = existingImagesHtml;
+  }
+}
+
+// Remove existing image from modal
+function removeExistingImage(event, index) {
+  event.preventDefault();
+  if (EditModalState.currentInfoModal && Array.isArray(EditModalState.currentInfoModal.image)) {
+    EditModalState.currentInfoModal.image.splice(index, 1);
+    renderImagePreview(EditModalState.currentInfoModal.image);
+  }
+}
+
+// Remove newly uploaded image
+function removeUploadedImage(index) {
+  uploadedImageFiles.splice(index, 1);
+  renderImagePreview(EditModalState.currentInfoModal?.image || []);
+}
+
+// Expose to global window for inline event handlers
+window.removeExistingImage = removeExistingImage;
+window.removeUploadedImage = removeUploadedImage;
+window.renderImagePreview = renderImagePreview;
+
+// Setup image upload handler for multiple files
+function setupImageUploadHandler() {
+  const imageInput = document.getElementById('imageInput');
+  const imageSection = document.getElementById('imageSection');
+  
+  if (!imageInput) {
+    console.warn('Image input element not found');
     return;
   }
-  // Show section
-  imageSection.classList.remove('d-none');
-  // Render previews
-  imagePreview.innerHTML = images.map((image, index) => {
-    return `
-            <div class="position-relative">
-                <img
-                    src="${finalJson.s3_link}${image}"
-                    alt="Preview ${index}"
-                    class="img-thumbnail"
-                    style="
-                        width: 120px;
-                        height: 120px;
-                        object-fit: cover;
-                        border-radius: 10px;
-                    "
-                >
-            </div>
-        `;
-  }).join('');
+  
+  // Remove any existing listeners to prevent duplicates
+  const newImageInput = imageInput.cloneNode(true);
+  imageInput.parentNode?.replaceChild(newImageInput, imageInput);
+  
+  newImageInput.addEventListener('change', function(e) {
+    const files = Array.from(e.target.files || []);
+    
+    if (files.length === 0) return;
+    
+    // Validate files (max size 5MB per file)
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    const validFiles = files.filter((file) => {
+      if (!file.type.startsWith('image/')) {
+        console.warn(`Skipped non-image file: ${file.name}`);
+        return false;
+      }
+      if (file.size > maxSize) {
+        console.warn(`File too large (${file.name}): ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+        return false;
+      }
+      return true;
+    });
+    
+    if (validFiles.length > 0) {
+      // Add valid files to upload list
+      uploadedImageFiles.push(...validFiles);
+      
+      // Show image section
+      if (imageSection) {
+        imageSection.classList.remove('d-none');
+      }
+      
+      // Re-render previews
+      renderImagePreview(EditModalState.currentInfoModal?.image || []);
+    }
+    
+    // Clear input for next selection
+    this.value = '';
+  });
+}
+
+function audioPreview() {
+  const audioSection = document.getElementById('audioSection');
+  const audioPreview = document.getElementById('audioPreview');
+  const audioInput = document.getElementById('audioInput');
+  if (!audioSection || !audioPreview){console.error('Audio preview container not found');return;}
+  audioPreview.src = `${finalJson.s3_link}${EditModalState.currentInfoModal.audio}`;
+  audioInput.onchange = function (e) {
+    const file = e.target.files[0];
+    if (file) {
+      const url = URL.createObjectURL(file);
+      audioPreview.src = url;
+    }
+  }
+  // display the audio section 
+  audioSection.classList.remove('d-none');
 }
 
 /**
@@ -1070,9 +1238,16 @@ function openEditModal(infoModal, node, modalIndex) {
   if (isNonEmptyString(infoModal.link)) updateLinkContainer(infoModal.link);
 
   // images rendering 
-  if (infoModal?.image?.length > 0) renderImagePreview(infoModal.image);
+  uploadedImageFiles = []; // Reset uploaded images for this modal
+  if (infoModal?.image?.length > 0) {
+    renderImagePreview(infoModal.image);
+  } else {
+    renderImagePreview([]);
+  }
+  setupImageUploadHandler(); // Initialize image upload handler
 
-  if(infoModal?.audio) console.log('Audio URL:', infoModal.audioUrl || infoModal.audio);
+  // audio file rendering
+  if(infoModal?.audio) audioPreview();
 
   // SMART VISIBILITY - SHOW ONLY SECTIONS WITH DATA
   const modal = window.bootstrap?.Modal.getOrCreateInstance(modalEl);
