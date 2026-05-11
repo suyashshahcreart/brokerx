@@ -97,7 +97,8 @@
                         </div>
                         <div>
                             <label class="form-label" for="youtubeUrl">Video URL</label>
-                            <input type="url" name="youtubeUrl" id="youtubeUrlInput" placeholder="e.g, https://www.youtube.com/watch?v=..." class="form-control">
+                            <input type="url" name="youtubeUrl" id="youtubeUrlInput"
+                                placeholder="e.g, https://www.youtube.com/watch?v=..." class="form-control">
                         </div>
                     </div>
 
@@ -133,7 +134,7 @@
                                             onchange="this.parentElement.nextElementSibling.value = this.value"
                                             id="buttonColorPreview">
                                     </span>
-                                    <input type="text" name="buttonColor" class="form-control" placeholder="#1A237E"
+                                    <input type="text" name="iconColor" class="form-control" placeholder="#1A237E"
                                         value="#1A237E" id="buttonColorInput"
                                         oninput="this.previousElementSibling.querySelector('input').value = this.value">
                                 </div>
@@ -167,44 +168,12 @@
                         </div>
                     </div>
 
-                    <!-- modal conternt section -->
-                    <div id="modalContentSection" class="mb-4 p-3 border rounded d-none">
-                        <!-- js filled it -->
-                    </div>
-
-                    <!-- button only section -->
-                    <div id="buttonOnlySection" class="mb-4 p-3 border rounded d-none">
-                        <!-- js fille this button only section Update -->
-                    </div>
-
-                    <!-- Media Section -->
-                    <div id="mediaSection" class="mb-4 p-3 border rounded d-none">
-                        <h6 class="mb-3 fw-semibold">Media & URLs</h6>
-                        <div class="mb-3" id="imageSection">
-                            <label for="imageUrls" class="form-label">Image URLs</label>
-                            <textarea class="form-control" id="imageUrls" rows="3"
-                                placeholder="One image URL per line"></textarea>
-                        </div>
-                        <div class="row g-3 mb-3">
-                            <div class="col-md-6">
-                                <label for="youtubeUrl" class="form-label">YouTube Video URL</label>
-                                <input type="url" class="form-control" id="youtubeUrl"
-                                    placeholder="https://www.youtube.com/watch?v=...">
-                            </div>
-                            <div class="col-md-6">
-                                <label for="audioUrl" class="form-label">Audio URL</label>
-                                <input type="url" class="form-control" id="audioUrl"
-                                    placeholder="https://example.com/audio.mp3">
-                            </div>
-                        </div>
-                    </div>
-
                     <!-- Button Icon Section -->
                     <div id="buttonIconSection" class="mb-4 p-3 border rounded d-none">
                         <h6 class="mb-3 fw-semibold">Button Section</h6>
                         <div class="mb-3 w-50" id="buttonTypeDiv">
                             <label for="buttonType" class="form-label">Button Type</label>
-                            <select class="form-select" id="buttonTypeSelect">
+                            <select class="form-select" name="buttonType" id="buttonTypeSelect">
                                 <!-- js fill -->
                             </select>
                         </div>
@@ -239,42 +208,35 @@
                             </div>
                             <div class="col-md-4">
                                 <label for="buttonSize" class="form-label">Button Size</label>
-                                <select id="buttonSizeSelect" class="form-select">
+                                <select id="buttonSizeSelect" name="buttonSize" class="form-select">
                                     <!-- js inject 💉 -->
                                 </select>
                             </div>
                         </div>
                     </div>
 
+                    <!-- modal conternt section -->
+                    <div id="modalContentSection" class="mb-4 p-3 border rounded d-none">
+                        <!-- js filled it -->
+                    </div>
+
+                    <!-- button only section -->
+                    <div id="buttonOnlySection" class="mb-4 p-3 border rounded d-none">
+                        <!-- js fille this button only section Update -->
+                    </div>
+
                     <!-- Link URL section -->
                     <div class="mb-4 p-3 border rounded d-none" id="buttonLinkContainer">
                         <label for="buttonSize" class="form-label">Link URL *</label>
-                        <input type="text" class="form-control" id="LinkUrlInput"
+                        <input type="text" name="link" class="form-control" id="LinkUrlInput"
                             placeholder="e.g, http://www.google.com" value="">
                     </div>
-
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="submit" class="btn btn-primary" id="editInfoSaveBtn">Save Changes</button>
                 </div>
             </form>
-        </div>
-    </div>
-</div>
-
-<!-- Material Icon Picker Modal -->
-<div class="modal fade w-100" id="materialIconModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Select Icon</h5>
-                <button class="btn-close" id="materialIconModalClose" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <input type="text" id="materialIconSearch" class="form-control mb-3" placeholder="Search icon...">
-                <div id="iconContainer" class="icon-grid"></div>
-            </div>
         </div>
     </div>
 </div>

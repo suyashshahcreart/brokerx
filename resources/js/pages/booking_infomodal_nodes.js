@@ -564,7 +564,7 @@ function renderToottipSection({
                         <input
                             class="form-check-input"
                             type="radio"
-                            name="${name}[titleTooltipPosition]"
+                            name="titleTooltipPosition"
                             id="${name}-pos-${pos}"
                             value="${pos}"
                             ${tooltipPosition === pos ? 'checked' : ''}
@@ -1549,8 +1549,7 @@ infoPointForm?.addEventListener('submit', (e) => {
   e.preventDefault();
   let currentInfoPoint = EditModalState.currentInfoModal;
   let form = new FormData(infoPointForm);
-  console.log('Form data entries:', Array.from(form.entries()));
-  console.log('Current info point before update:', form.get('title'));
+  console.log('Form data entries:', form.entries());
   let UpdatedInfoPoint = {
     "id": currentInfoPoint.id || generateUniqueId(),
     "nodeId": currentInfoPoint.nodeId || null,
@@ -1614,7 +1613,7 @@ infoPointForm?.addEventListener('submit', (e) => {
     "position": currentInfoPoint.position || { x: 0, y: 0 },
   };
   console.log('Submitting form with current state:', UpdatedInfoPoint);
-  
+
 });
 
 function init() {
