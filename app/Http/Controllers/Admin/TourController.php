@@ -3174,12 +3174,79 @@ class TourController extends Controller
         $validated = $request->validate([
             'info_points' => ['nullable', 'array'],
         ]);
-        dd($request->all());
+
+        $finalJson = $this->normalizeFinalJsonPayload($tour);
+        $infoPoints = $validated['info_points'] ?? [];
+
+        // Group incoming info points by nodeId, then by id, so only matching items are replaced.
+        $infoPointsByNode = [];
+        foreach ($infoPoints as $infoPoint) {
+            if (!is_array($infoPoint) || !isset($infoPoint['nodeId'], $infoPoint['id'])) {
+                continue;
+            }
+            $nodeId = (string) $infoPoint['nodeId'];
+            $infoPointId = (string) $infoPoint['id'];
+            $infoPointsByNode[$nodeId][$infoPointId] = $infoPoint;
+        }
+
+        $updatedInfoPoints = 0;
+
+        if (isset($finalJson['nodes']) && is_array($finalJson['nodes'])) {
+            foreach ($finalJson['nodes'] as &$node) {
+                if (!isset($node['id'])) {
+                    continue;
+                }
+                $nodeId = (string) $node['id'];
+                if (!isset($infoPointsByNode[$nodeId])) {
+                    continue;
+                }
+                $existingInfoPoints = $node['infoPoints'] ?? [];
+                if (!is_array($existingInfoPoints)) {
+                    $existingInfoPoints = [];
+                }
+                foreach ($existingInfoPoints as $index => $existingInfoPoint) {
+                    if (!is_array($existingInfoPoint) || !isset($existingInfoPoint['id'])) {
+                        continue;
+                    }
+                    $existingInfoPointId = (string) $existingInfoPoint['id'];
+                    if (!isset($infoPointsByNode[$nodeId][$existingInfoPointId])) {
+                        continue;
+                    }
+                    $existingInfoPoints[$index] = array_merge(
+                        $existingInfoPoint,
+                        $infoPointsByNode[$nodeId][$existingInfoPointId]
+                    );
+                    $updatedInfoPoints++;
+                }
+
+                $node['infoPoints'] = array_values($existingInfoPoints);
+            }
+            unset($node);
+        }
+
+        $tour->update(['final_json' => $finalJson]);
+        $UPLOAD_RESULT = $this->updateTourJsonAndJsFilesInS3($tour, $finalJson);
+
+        activity('tours')
+            ->performedOn($tour)
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'updated_info_points_count' => $updatedInfoPoints,
+            ])
+            ->log('Tour info points updated');
+
+        // Return JSON response for AJAX requests
+        if (true) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Info points updated successfully.',
+                'tour' => $tour->fresh(),
+                'UPLOAD STATUS'=>$UPLOAD_RESULT,
+            ]);
+        }
+
         return redirect()->back()->with([
-            'success' => 'Info points updated successfully.'
+            'success' => 'Info points updated successfully.',
         ]);
-        // $statuses = ['draft', 'published', 'archived'];
-        // $structuredDataTypes = ['Article', 'Place', 'Event', 'Product', 'TouristAttraction'];
-        // return view('admin.tours.edit', compact('tour', 'statuses', 'structuredDataTypes'));
     }
 }

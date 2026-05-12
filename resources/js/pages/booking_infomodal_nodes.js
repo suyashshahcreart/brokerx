@@ -414,6 +414,7 @@ let EditModalState = {
     uploadedImageFiles = []; // Clear uploaded images
     let LinURLRest = updateLinkContainer('');
     LinURLRest() // reset link url
+    window.bootstrap?.Modal.getInstance(modalEl)?.hide();
   }
 };
 
@@ -1579,7 +1580,7 @@ UpdateNodesButton?.addEventListener('click', async () => {
           'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
         },
         body: JSON.stringify({
-          updatedInfoPoints: Array.from(UpdatedInfoPoint.values())
+          info_points: Array.from(UpdatedInfoPoint.values())
         })
       })
         .then(response => response.json())
@@ -1694,6 +1695,7 @@ infoPointForm?.addEventListener('submit', async (e) => {
   console.log('Submitting form with current state:', UpdatedInfoPoint);
   pushUpdatedInfoPoint(UpdatedInfoPoint);
   UpdatedInfoPoint = {} // set nothing in the field
+  EditModalState.reset(); // reset the edit modal state after pushing the updated info point
 });
 
 function init() {
