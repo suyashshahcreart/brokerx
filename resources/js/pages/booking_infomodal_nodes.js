@@ -2,6 +2,7 @@ import $, { map } from 'jquery';
 window.$ = window.jQuery = $;
 import '../../css/pages/materialIconLiberaryStyles.css';
 import iconLib from './booking_tour_iconLib';
+import Swal from 'sweetalert2';
 import reinitalizeEditors from '../tinyEditor';
 
 /* global window, document */
@@ -1559,6 +1560,42 @@ function pushUpdatedInfoPoint(infoPoint) {
 
 // Form submit and form action handler
 const infoPointForm = document.getElementById('editInfoForm');
+const UpdateNodesButton = document.getElementById('UpdateNodesButton');
+
+UpdateNodesButton?.addEventListener('click', async () => {
+  let URL = infoPointForm.dataset.route;
+  Swal.fire({
+    title: "Do you want to save the changes?",
+    showDenyButton: true,
+    confirmButtonText: "Save",
+    denyButtonText: `Don't save`
+  }).then((result) => {
+    /* Read more about isConfirmed, isDenied below */
+    if (result.isConfirmed) {
+      fetch(URL, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        },
+        body: JSON.stringify({
+          updatedInfoPoints: Array.from(UpdatedInfoPoint.values())
+        })
+      })
+        .then(response => response.json())
+        .then(data => {
+          console.log('Success:', data);
+          Swal.fire("Saved!", "", "success");
+          UpdatedInfoPoint.clear(); // Clear the map after successful update
+        })
+        .catch((error) => {
+          console.error('Error:', error);
+          Swal.fire("An error occurred while saving changes.", "", "error");
+        });
+    }
+    else if (result.isDenied) Swal.fire("Changes are not saved", "", "info");
+  });
+})
 
 infoPointForm?.addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -1656,32 +1693,8 @@ infoPointForm?.addEventListener('submit', async (e) => {
   };
   console.log('Submitting form with current state:', UpdatedInfoPoint);
   pushUpdatedInfoPoint(UpdatedInfoPoint);
-  UpdatedInfoPoint = [] // set nothing in the field
+  UpdatedInfoPoint = {} // set nothing in the field
 });
-
-// function to Update the nodes in the data
-async function postInfoPointToRoute() {
-  if (!route) {
-    throw new Error('Info point post route is not configured.');
-  }
-
-  const response = await fetch(route, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Requested-With': 'XMLHttpRequest',
-    },
-    credentials: 'same-origin',
-    body: JSON.stringify(infoPoint),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(errorText || 'Failed to post info point.');
-  }
-
-  return response.json().catch(() => null);
-}
 
 function init() {
   const searchEl = document.getElementById('infomodalNodesSearch');
@@ -1710,4 +1723,3 @@ if (document.readyState === 'loading') {
 } else {
   init();
 }
-

@@ -1245,7 +1245,7 @@ class TourController extends Controller
             'node' => ['nullable'],
         ]);
 
-        $nodeIndex = (int)$request->input('node_index');
+        $nodeIndex = (int) $request->input('node_index');
 
         // Resolve incoming node payload (may be JSON string or array)
         $incoming = $request->input('node');
@@ -1261,7 +1261,7 @@ class TourController extends Controller
         } else {
             // Build payload from flat form fields when 'node' is not provided
             $nodePayload = [];
-            $possible = ['id','title','description','icon','youtubeUrl','videoUrl','iframeUrl','audio','imageUrl','imageUrls','buttonTitle','buttonLink','yaw','pitch','position'];
+            $possible = ['id', 'title', 'description', 'icon', 'youtubeUrl', 'videoUrl', 'iframeUrl', 'audio', 'imageUrl', 'imageUrls', 'buttonTitle', 'buttonLink', 'yaw', 'pitch', 'position'];
             foreach ($possible as $key) {
                 if ($request->has($key)) {
                     $nodePayload[$key] = $request->input($key);
@@ -1286,7 +1286,8 @@ class TourController extends Controller
                 if (is_array($fileOrArray)) {
                     $uploadedUrls = [];
                     foreach ($fileOrArray as $f) {
-                        if (!$f) continue;
+                        if (!$f)
+                            continue;
                         $ext = $f->getClientOriginalExtension();
                         $filename = $inputName . '_' . time() . '_' . Str::random(8) . '.' . $ext;
                         $path = 'tours/' . $qrCode . '/assets/' . $filename;
@@ -1304,7 +1305,8 @@ class TourController extends Controller
                     }
                 } else {
                     $f = $fileOrArray;
-                    if (!$f) continue;
+                    if (!$f)
+                        continue;
                     $ext = $f->getClientOriginalExtension();
                     $filename = $inputName . '_' . time() . '_' . Str::random(8) . '.' . $ext;
                     $path = 'tours/' . $qrCode . '/assets/' . $filename;
@@ -1360,8 +1362,10 @@ class TourController extends Controller
             $vtNodes = $existingVirtual['nodes'] ?? $existingVirtual;
             $tdNodes = $existingTourData['nodes'] ?? $existingTourData;
 
-            if (!is_array($vtNodes)) $vtNodes = [];
-            if (!is_array($tdNodes)) $tdNodes = [];
+            if (!is_array($vtNodes))
+                $vtNodes = [];
+            if (!is_array($tdNodes))
+                $tdNodes = [];
 
             $vtNodes[$nodeIndex] = array_merge($vtNodes[$nodeIndex] ?? [], $updatedNode);
             $tdNodes[$nodeIndex] = array_merge($tdNodes[$nodeIndex] ?? [], $updatedNode);
@@ -3158,6 +3162,24 @@ class TourController extends Controller
         ]);
     }
 
+
+    /**
+     * Update Info Point on Tour Nodes.
+     * @param Request $request
+     * @param Tour $tour
+     * @return JsonResponse|RedirectResponse
+     */
+    public function updateInfoPoint(Request $request, Tour $tour): JsonResponse|RedirectResponse
+    {
+        $validated = $request->validate([
+            'info_points' => ['nullable', 'array'],
+        ]);
+        dd($request->all());
+        return redirect()->back()->with([
+            'success' => 'Info points updated successfully.'
+        ]);
+        // $statuses = ['draft', 'published', 'archived'];
+        // $structuredDataTypes = ['Article', 'Place', 'Event', 'Product', 'TouristAttraction'];
+        // return view('admin.tours.edit', compact('tour', 'statuses', 'structuredDataTypes'));
+    }
 }
-
-

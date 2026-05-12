@@ -225,6 +225,7 @@ Route::group(['prefix' => 'ppadmlog', 'as' => 'admin.', 'middleware' => ['web', 
     Route::put('admin/tours/{tour}/update-user-details', [TourController::class, 'updateUserDetails'])->name('tours.updateUserDetails');
     Route::put('admin/tours/{tour}/update-bookmark-fields', [TourController::class, 'updateBookmarkFields'])->name('tours.updateBookmarkFields');
     Route::put('admin/tours/{tour}/update-user-star', [TourController::class, 'updateUserStar'])->name('tours.updateUserStar');
+    Route::patch('admin/tours/{tour}/update-tour-infopoint', [TourController::class, 'updateInfoPoint'])->name('tours.updateInfoPoint');
 
     // AJAX Tour routes
     Route::post('tours/{tour}/update-ajax', [TourController::class, 'updateAjax'])->name('admin.tours.update-ajax');

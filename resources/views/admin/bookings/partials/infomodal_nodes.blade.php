@@ -20,6 +20,9 @@
         <div id="infomodalNodesEmpty" class="text-muted d-none">
             No nodes found with info modals and <code>showInSideMenu = true</code>.
         </div>
+        <div class="d-flex justify-content-end pt-3">
+            <button type="button" class="btn btn-primary" id="UpdateNodesButton">Update Nodes</button>
+        </div>
     </div>
 </div>
 
@@ -31,7 +34,7 @@
                 <h5 class="modal-title">Edit Info Modal</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form id="editInfoForm" method="POST">
+            <form id="editInfoForm" method="POST" data-route="{{ route('admin.tours.updateInfoPoint', $tour) }}">
                 <div class="modal-body" style="max-height: calc(100vh - 200px); overflow-y: auto;">
                     <!-- Type Selection -->
                     <div class="mb-4 p-3 bg-light rounded">
