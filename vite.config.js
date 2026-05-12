@@ -4,7 +4,7 @@ import {
 import laravel from 'laravel-vite-plugin';
 
 export default defineConfig({
-    base: '/',
+    base: '/propik_main/',
     plugins: [
         laravel({
             input: [

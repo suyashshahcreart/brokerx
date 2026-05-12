@@ -13,9 +13,9 @@ import reinitalizeEditors from '../tinyEditor';
 const EDIT_MODAL_TEXT_FIELD_IDS = [
   'tooltipTitleEN', 'tooltipTitleGU', 'tooltipDescriptionEN', 'tooltipDescriptionGU'
 ];
-
+const enabledLanguages = window?.enabledLanguages || ['en', 'gu', 'hi'];
 const EDIT_MODAL_MEDIA_FIELD_IDS = [];
-const finalJson = window.tourFinalJson || {};
+const finalJson = window?.tourFinalJson || {};
 
 const modalEl = document.getElementById('editInfoModal');
 // modal close handler - resets form and state when modal is closed to ensure clean slate for next edit
@@ -25,6 +25,9 @@ modalEl.addEventListener('hidden.bs.modal', () => {
   EditModalState.reset();
   document.getElementById('audioPreview')?.pause();
 });
+
+// global variable to store uploaded image files for the current editing session
+let UpdatedInfoPoint = new Map(); // global variable to store the updated info point data
 
 /**
  * EDIT_MODAL_VISIBILITY
@@ -533,19 +536,20 @@ function renderToottipSection({
                             ${capitalize(fieldName)} (${lang})*
                         </label>
                         ${fieldName.toLowerCase().includes('description') ? `
-                          <textarea
-                              class="form-control"
-                              name="${name}[${fieldName}][${lang}]"
-                              rows="3"
-                              required
-                          >${fieldData?.[lang] || ''}</textarea>
+                        <textarea
+                            class="form-control"
+                            name="${fieldName}[${lang}]"
+                            rows="3"
+                            required
+                        >${fieldData?.[lang] || ''}</textarea>
                         `
         : `<input
-                              type="text"
-                              class="form-control" required
-                              name="${name}[${fieldName}][${lang}]"
-                              value="${fieldData?.[lang] || ''}"
-                          >`}
+                            type="text"
+                            class="form-control" required
+                            name="${fieldName}[${lang}]"
+                            value="${fieldData?.[lang] || ''}"
+                            required
+                        >`}
                     </div>
                 `).join('')}
             </div>
@@ -663,11 +667,11 @@ function renderInfoModalEditor({
                             </label>
                             ${config.type === 'textarea'
           ? `<textarea class="form-control editor" 
-                                  name="${name}[${field}][${lang}]"
+                                  name="${field}[${lang}]"
                                   rows="4">${value}</textarea>`
           : `<input type="text" 
                                   class="form-control"
-                                  name="${name}[${field}][${lang}]"
+                                  name="${field}[${lang}]"
                                   value="${value}">`}
                         </div>
                     `;
@@ -739,7 +743,7 @@ function renderButtonSettingsEditor({
       <div class="tab-pane fade show ${i === 0 ? 'active' : ''}" id="ButtonTitle-modal-${lang}" role="tabpanel" aria-labelledby="ButtonTitle-modal-${lang}-tab">
         <div class="mb-3">
             <label class="form-label">Button title (${lang})*</label>
-            <input type="text" class="form-control" name="buttonLink[${lang}]" value="${data.linkTitle?.[lang] || ''}">
+            <input type="text" class="form-control" name="linkTitle[${lang}]" value="${data.linkTitle?.[lang] || ''}">
         </div>
       </div>
       `;
@@ -1542,79 +1546,142 @@ function setupEditModalEvents() {
     }
   });
 }
+// Update the noda in the internal data structure with the edited modal data
+function pushUpdatedInfoPoint(infoPoint) {
+  if (UpdatedInfoPoint.has(infoPoint.id)) {
+    console.warn(`Info point with id ${infoPoint.id} already exists in UpdatedInfoPoint. Overwriting with new data.`);
+    UpdatedInfoPoint.set(infoPoint.id, infoPoint);
+  }
+  else {
+    UpdatedInfoPoint.set(infoPoint.id, infoPoint);
+  }
+}
 
 // Form submit and form action handler
 const infoPointForm = document.getElementById('editInfoForm');
-infoPointForm?.addEventListener('submit', (e) => {
+
+infoPointForm?.addEventListener('submit', async (e) => {
   e.preventDefault();
   let currentInfoPoint = EditModalState.currentInfoModal;
   let form = new FormData(infoPointForm);
-  console.log('Form data entries:', form.entries());
+  console.log('Form data entries:', Array.from(form.entries()));
   let UpdatedInfoPoint = {
     "id": currentInfoPoint.id || generateUniqueId(),
     "nodeId": currentInfoPoint.nodeId || null,
     "image": form.get('images') || [],
-    "title": form.get('title') || { en: '', gu: '' },
+    "title": (() => {
+      let obj = {};
+      enabledLanguages.forEach(lang => {
+        obj[lang] = form.get(`title[${lang}]`) || '';
+      })
+      return obj;
+    })(),
     "titleTooltipPosition": currentInfoPoint.titleTooltipPosition || 'up',
-    "description": {
-      "en": "",
-      "gu": ""
-    },
-    "link": "https://www.sheryians.com/",
-    "linkTitle": {
-      "en": "This is a Buttton Button Text",
-      "gu": "બટન ક્લિક કરો"
-    },
-    "infoModalLink": {
-      "en": "",
-      "gu": ""
-    },
-    "infoModalTitle": {
-      "en": "",
-      "gu": ""
-    },
-    "infoModalDescription": {
-      "en": "",
-      "gu": ""
-    },
-    "infoModalIframeUrl": "",
-    "infoModalWidth": "",
-    "infoModalFooterButtonTitle": {
-      "en": "",
-      "gu": ""
-    },
-    "infoModalFooterButtonLink": "",
-    "infoModalFooterText": {
-      "en": "",
-      "gu": ""
-    },
-    "youtubeUrl": "",
-    "audio": "",
-    "audioFileName": "",
-    "_originalAudio": "",
-    "icon": "10k",
-    "iconColor": "#074a92",
-    "isButtonOnly": true,
-    "buttonType": "text",
-    "buttonActionType": "redirectToLink",
-    "buttonColor": "#3a3abb",
-    "buttonTextColor": "#ffffff",
-    "buttonSize": "medium",
-    "buttonNodeId": null,
-    "buttonNodeView": null,
-    "buttonOpenImageUrls": null,
-    "buttonOpenImageFileNames": null,
-    "buttonOpenVideoUrl": null,
-    "buttonOpenVideo": null,
-    "buttonOpenDocumentUrl": null,
-    "buttonOpenDocument": null,
-    "showOnLoad": false,
-    "showOnLoadDelayMs": 0,
+    "description": (() => {
+      let obj = {};
+      enabledLanguages.forEach(lang => {
+        obj[lang] = form.get(`description[${lang}]`) || '';
+      })
+      return obj;
+    })(),
+    "link": form.get('link') || '',
+    "linkTitle": (() => {
+      let obj = {};
+      enabledLanguages.forEach(lang => {
+        obj[lang] = form.get(`linkTitle[${lang}]`) || '';
+      })
+      return obj;
+    })(),
+    "infoModalLink": (() => {
+      let obj = {};
+      enabledLanguages.forEach(lang => {
+        obj[lang] = form.get(`infoModalFooterButtonTitle[${lang}]`) || '';
+      })
+      return obj;
+    })(),
+    "infoModalTitle": (() => {
+      let obj = {};
+      enabledLanguages.forEach(lang => {
+        obj[lang] = form.get(`infoModalTitle[${lang}]`) || '';
+      })
+      return obj;
+    })(),
+    "infoModalDescription": (() => {
+      let obj = {};
+      enabledLanguages.forEach(lang => {
+        obj[lang] = form.get(`infoModalDescription[${lang}]`) || '';
+      })
+      return obj;
+    })(),
+    "infoModalIframeUrl": form.get('infoModalIframeUrl') || '',
+    "infoModalWidth": form.get('infoModalWidth') || 'modal-md',
+    "infoModalFooterButtonTitle": (() => {
+      let obj = {};
+      enabledLanguages.forEach(lang => {
+        obj[lang] = form.get(`infoModalFooterButtonTitle[${lang}]`) || '';
+      })
+      return obj;
+    })(),
+    "infoModalFooterButtonLink": form.get('infoModalFooterButtonLink') || '',
+    "infoModalFooterText": (() => {
+      let obj = {};
+      enabledLanguages.forEach(lang => {
+        obj[lang] = form.get(`infoModalFooterText[${lang}]`) || '';
+      })
+      return obj;
+    })(),
+    "youtubeUrl": form.get('youtubeUrl') || '',
+    "audio": form.get('audio') || '',
+    "audioFileName": form.get('audio') ? form.get('audio').name : '',
+    "_originalAudio": currentInfoPoint.audio || '',
+    "icon": form.get('icon') || '',
+    "iconColor": form.get('iconColor') || '#3a3abb',
+    "isButtonOnly": currentInfoPoint.isButtonOnly || false,
+    "buttonType": form.get('buttonType') || 'text',
+    "buttonActionType": currentInfoPoint.buttonActionType || '',
+    "buttonColor": form.get('buttonColor') || '#000000',
+    "buttonTextColor": form.get('buttonTextColor') || '#ffffff',
+    "buttonSize": form.get('buttonSize') || 'medium',
+    "buttonNodeId": currentInfoPoint.buttonNodeId || null,
+    "buttonNodeView": currentInfoPoint.buttonNodeView || null,
+    "buttonOpenImageUrls": form.get('buttonOpenImageUrls') ? parseMultiValueLines(form.get('buttonOpenImageUrls')) : [],
+    "buttonOpenImageFileNames": uploadedImageFiles.map(file => file.name) || [],
+    "buttonOpenVideoUrl": form.get('buttonOpenVideoUrl') || '',
+    "buttonOpenVideo": null, // Placeholder for video file handling
+    "buttonOpenDocumentUrl": form.get('buttonOpenDocumentUrl') || '',
+    "buttonOpenDocument": null, // Placeholder for document file handling
+    "showOnLoad": currentInfoPoint.showOnLoad || false,
+    "showOnLoadDelayMs": currentInfoPoint.showOnLoadDelayMs || 0,
     "position": currentInfoPoint.position || { x: 0, y: 0 },
   };
   console.log('Submitting form with current state:', UpdatedInfoPoint);
-
+  pushUpdatedInfoPoint(UpdatedInfoPoint);
+  UpdatedInfoPoint = [] // set nothing in the field
 });
+
+// function to Update the nodes in the data
+async function postInfoPointToRoute() {
+  if (!route) {
+    throw new Error('Info point post route is not configured.');
+  }
+
+  const response = await fetch(route, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Requested-With': 'XMLHttpRequest',
+    },
+    credentials: 'same-origin',
+    body: JSON.stringify(infoPoint),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(errorText || 'Failed to post info point.');
+  }
+
+  return response.json().catch(() => null);
+}
 
 function init() {
   const searchEl = document.getElementById('infomodalNodesSearch');

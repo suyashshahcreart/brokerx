@@ -117,7 +117,7 @@
                         </div>
                     </div>
 
-                    <!-- tool-tip -->
+                    <!-- tooltip -->
                     <div id="tooltipSection" class="mb-4 p-3 border rounded d-none">
                         <!-- js fille this tool tip section Update -->
                     </div>
@@ -173,7 +173,7 @@
                         <h6 class="mb-3 fw-semibold">Button Section</h6>
                         <div class="mb-3 w-50" id="buttonTypeDiv">
                             <label for="buttonType" class="form-label">Button Type</label>
-                            <select class="form-select" name="buttonType" id="buttonTypeSelect">
+                            <select class="form-select" name="buttonType" id="buttonTypeSelect" disabled>
                                 <!-- js fill -->
                             </select>
                         </div>
