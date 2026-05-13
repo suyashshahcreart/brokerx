@@ -531,7 +531,7 @@ class TourManagerController extends Controller
                 'updated_at' => now()->toDateTimeString()
             ]
         );
-        
+
         // Sync tour fields from final_json without overwriting existing tour fields that are not in final_json
         $this->tourService->syncTourFieldsFromJson($tour, $tour->final_json, [], true);
 
@@ -666,9 +666,15 @@ class TourManagerController extends Controller
                     $swJsPath = $filename;
                 }
                 if (pathinfo($lowerName, PATHINFO_EXTENSION) === 'json') {
-                    // Prefer virtual-tour-nodes.json
-                    if (stripos($filename, 'virtual-tour-nodes') !== false) {
+                    // Prefer specific tour-data.json placed at assets/js/tour-data.json
+                    if (stripos($filename, 'assets/js/tour-data.json') !== false) {
                         $jsonPath = $filename;
+                        // Next prefer virtual-tour-nodes files
+                    } elseif (stripos($filename, 'virtual-tour-nodes') !== false) {
+                        // only set if we haven't found the preferred tour-data.json
+                        if (!$jsonPath || stripos($jsonPath, 'assets/js/tour-data.json') === false) {
+                            $jsonPath = $filename;
+                        }
                     } elseif (!$jsonPath) {
                         // Use first JSON found as fallback
                         $jsonPath = $filename;
@@ -782,7 +788,7 @@ class TourManagerController extends Controller
                     continue; // Will process later for FTP upload
                 }
 
-                if ($filename === $jsonPath || (pathinfo($lowerFilename, PATHINFO_EXTENSION) === 'json' && stripos($filename, 'virtual-tour-nodes') !== false)) {
+                if ($filename === $jsonPath || (pathinfo($lowerFilename, PATHINFO_EXTENSION) === 'json' && (stripos($filename, 'assets/js/tour-data.json') !== false))) {
                     // Upload original JSON to S3
                     $s3JsonPath = $s3TourPath . '/' . $filename;
                     try {
@@ -802,10 +808,15 @@ class TourManagerController extends Controller
                     } catch (\Exception $e) {
                         \Log::error("Error uploading JSON to S3: " . $e->getMessage() . " in " . $e->getFile() . ":" . $e->getLine());
                     }
-
                     // Save in memory for local processing
                     $jsonContent = $fileContent;
-                    $jsonFilename = basename($filename);
+                    // If this JSON is the tour-data.js replacement, normalize filename to virtual-tour-nodes.json
+                    if (stripos($filename, 'assets/js/tour-data.json') !== false) {
+                        // Normalize to tour-data.json for return and also keep compatibility key
+                        $jsonFilename = 'tour-data.json';
+                    } else {
+                        $jsonFilename = basename($filename);
+                    }
                     unset($fileContent);
                     continue; // Will process later for local save
                 }
@@ -1145,7 +1156,7 @@ class TourManagerController extends Controller
                 \Log::info("sw.js content not found, skipping FTP upload");
             }
 
-            // STEP 6: Process JSON file - Save locally
+            // STEP 6: Process JSON file - Save locally and prepare data payload for DB
             if ($jsonContent && $jsonFilename) {
                 try {
                     $jsonData = json_decode($jsonContent, true);
@@ -1211,9 +1222,20 @@ class TourManagerController extends Controller
             }
 
             // Build return data
+            // Put parsed JSON into an associative payload keyed by filename so update() can merge into final_json
+            $dataPayload = null;
+            if (!empty($jsonData)) {
+                // Provide both keys for compatibility: 'tour-data.json' and 'virtual-tour-nodes.json'
+                $keyPrimary = $jsonFilename ?? 'tour-data.json';
+                $dataPayload = [
+                    $keyPrimary => $jsonData,
+                    'virtual-tour-nodes.json' => $jsonData
+                ];
+            }
+
             $returnData = [
                 'success' => true,
-                'data' => $jsonData,
+                'data' => $dataPayload,
                 'tour_path' => $rootTourPath,
                 'tour_url' => url('/' . $rootTourPath . '/index.php'),
                 's3_path' => $s3TourPath,
