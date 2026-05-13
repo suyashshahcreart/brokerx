@@ -232,8 +232,7 @@ class ProcessTourZipFile implements ShouldQueue
             }
 
             $tour->final_json = array_merge(
-                $existingTourData,
-                $tourData,
+                $tourData['tour-data.json'] ?? [],
                 [
                     'files' => $existingFiles,
                     'qr_code' => $qrCode->code,
