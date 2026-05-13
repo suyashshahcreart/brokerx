@@ -15,8 +15,8 @@ return new class extends Migration
             $table->string('bookmark_title')->nullable();
             $table->string('bookmark_ribbon_background_color')->nullable();
             $table->string('bookmark_ribbon_text_color')->nullable();
-            $table->boolean('bookmark_show_on_tour_load')->default(false);
-            $table->integer('bookmark_show_on_tour_load_delay_ms')->default(0);
+            $table->boolean('bookmark_show_on_tour_load')->default(false)->nullable();
+            $table->integer('bookmark_show_on_tour_load_delay_ms')->default(0)->nullable();
             $table->string('bookmark_action')->nullable();
             $table->json('bookmark_modal_title')->nullable();
             $table->json('bookmark_modal_description')->nullable();
