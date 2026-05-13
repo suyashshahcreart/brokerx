@@ -632,6 +632,7 @@ class TourManagerController extends Controller
             $indexHtmlPath = null;
             $swJsPath = null;
             $jsonPath = null;
+            $tourDataAssetPath = null;
             $totalFiles = $zip->numFiles;
 
             \Log::info("Analyzing ZIP structure for tour code: {$uniqueCode} ({$totalFiles} files)");
@@ -659,15 +660,23 @@ class TourManagerController extends Controller
 
                 // Find index.html, sw.js, and JSON files
                 $lowerName = strtolower($filename);
+                $normalizedLowerName = str_replace('\\', '/', trim($lowerName, '/'));
                 if (basename($lowerName) === 'index.html') {
                     $indexHtmlPath = $filename;
                 }
                 if (basename($lowerName) === 'sw.js') {
                     $swJsPath = $filename;
                 }
+                if (in_array($normalizedLowerName, ['assets/js/tour-data.json', 'assets/js/tour-data.sjon'], true)) {
+                    // Explicitly track tour data asset path so it can be handled with priority
+                    $tourDataAssetPath = $filename;
+                }
                 if (pathinfo($lowerName, PATHINFO_EXTENSION) === 'json') {
                     // Prefer virtual-tour-nodes.json
                     if (stripos($filename, 'virtual-tour-nodes') !== false) {
+                        $jsonPath = $filename;
+                    } elseif ($tourDataAssetPath && $filename === $tourDataAssetPath) {
+                        // Prefer assets/js/tour-data.json when virtual-tour-nodes.json is not present
                         $jsonPath = $filename;
                     } elseif (!$jsonPath) {
                         // Use first JSON found as fallback
@@ -723,6 +732,8 @@ class TourManagerController extends Controller
                 // Handle special files (index.html, sw.js, JSON) - upload to S3 first, then save in memory for processing
                 $lowerFilename = strtolower($filename);
                 $basenameLower = basename($lowerFilename);
+                $normalizedLowerFilename = str_replace('\\', '/', trim($lowerFilename, '/'));
+                $isTourDataAsset = in_array($normalizedLowerFilename, ['assets/js/tour-data.json', 'assets/js/tour-data.sjon'], true);
 
                 if ($filename === $indexHtmlPath || $basenameLower === 'index.html') {
                     // Upload original index.html to S3
@@ -780,6 +791,42 @@ class TourManagerController extends Controller
                     \Log::info("Saved sw.js content in memory for FTP upload (size: " . strlen($swJsContent) . " bytes)");
                     unset($fileContent);
                     continue; // Will process later for FTP upload
+                }
+
+                if ($isTourDataAsset) {
+                    // Upload explicit tour-data asset path to S3 with correct content type
+                    $s3TourDataPath = $s3TourPath . '/' . $filename;
+                    $tourDataContentType = 'application/json';
+
+                    try {
+                        $uploaded = Storage::disk('s3')->put(
+                            $s3TourDataPath,
+                            $fileContent,
+                            ['ContentType' => $tourDataContentType]
+                        );
+
+                        if ($uploaded) {
+                            try {
+                                Storage::disk('s3')->setVisibility($s3TourDataPath, 'public');
+                            } catch (\Exception $e) {
+                                // Visibility failure is not critical
+                            }
+                            $uploadedFiles[] = $filename;
+                            \Log::info("Successfully uploaded tour-data asset to S3: {$s3TourDataPath}");
+                        }
+                    } catch (\Exception $e) {
+                        \Log::error("Error uploading tour-data asset to S3: " . $e->getMessage() . " in " . $e->getFile() . ":" . $e->getLine());
+                    }
+
+                    // If this is JSON-like data and no JSON content has been selected yet,
+                    // keep it in memory for local JSON save/processing fallback.
+                    if (($basenameLower === 'tour-data.json' || $basenameLower === 'tour-data.sjon') && !$jsonContent) {
+                        $jsonContent = $fileContent;
+                        $jsonFilename = basename($filename);
+                    }
+
+                    unset($fileContent);
+                    continue;
                 }
 
                 if ($filename === $jsonPath || (pathinfo($lowerFilename, PATHINFO_EXTENSION) === 'json' && stripos($filename, 'virtual-tour-nodes') !== false)) {
