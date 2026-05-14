@@ -929,7 +929,6 @@ function renderIconSettingEditor() {
   // icon title 
   let IconTitleDiv = document.getElementById('IconTitleDiv');
   if (IconTitleDiv && !isNonEmptyString(data?.linkTitle)) {
-    console.log('rendering icon title editor with data:', data?.linkTitle);
     let navtabs = Object.keys(data?.linkTitle).map((lang, i) => {
       return `
             <li class="nav-item">
@@ -954,15 +953,10 @@ function renderIconSettingEditor() {
       </div>
       `;
     }).join('');
-    // IconTitleDiv.innerHTML = `
-    //   <ul class="nav nav-tabs" id="myTab" role="tablist">${navtabs}</ul>
-    //   <div id="ButtonTitleTabContent" class="tab-content mt-1">${titlesTabs}</div>
-    // `;
   }
 
   // icon preview section
-  if (iconPreview)
-    if (data.icon) iconInput.value = data.icon; iconPreview.innerHTML = `<span class="material-icons-outlined">${data.icon}</span>`;
+  if (data.icon) iconInput.value = data.icon; iconPreview.innerHTML = `<span class="material-icons-outlined">${data.icon}</span>`;
 
   // icon selection section
   const sizes = [
