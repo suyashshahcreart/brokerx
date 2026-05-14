@@ -3178,11 +3178,15 @@ class TourController extends Controller
         $finalJson = $this->normalizeFinalJsonPayload($tour);
         $infoPoints = $validated['info_points'] ?? [];
 
-        // Group incoming info points by nodeId, then by id, so only matching items are replaced.
+        // Group incoming info points by nodeId, then by id. If id is missing, generate one so it can be added.
         $infoPointsByNode = [];
         foreach ($infoPoints as $infoPoint) {
-            if (!is_array($infoPoint) || !isset($infoPoint['nodeId'], $infoPoint['id'])) {
+            if (!is_array($infoPoint) || !isset($infoPoint['nodeId'])) {
                 continue;
+            }
+            // ensure id exists for upsert
+            if (!isset($infoPoint['id']) || $infoPoint['id'] === '') {
+                $infoPoint['id'] = 'ip_' . Str::random(8);
             }
             $nodeId = (string) $infoPoint['nodeId'];
             $infoPointId = (string) $infoPoint['id'];
@@ -3204,21 +3208,36 @@ class TourController extends Controller
                 if (!is_array($existingInfoPoints)) {
                     $existingInfoPoints = [];
                 }
-                foreach ($existingInfoPoints as $index => $existingInfoPoint) {
-                    if (!is_array($existingInfoPoint) || !isset($existingInfoPoint['id'])) {
-                        continue;
+
+                // Build map of existing info points by id for quick lookup
+                $existingById = [];
+                foreach ($existingInfoPoints as $idx => $eip) {
+                    if (is_array($eip) && isset($eip['id'])) {
+                        $existingById[(string)$eip['id']] = $idx;
                     }
-                    $existingInfoPointId = (string) $existingInfoPoint['id'];
-                    if (!isset($infoPointsByNode[$nodeId][$existingInfoPointId])) {
-                        continue;
-                    }
-                    $existingInfoPoints[$index] = array_merge(
-                        $existingInfoPoint,
-                        $infoPointsByNode[$nodeId][$existingInfoPointId]
-                    );
-                    $updatedInfoPoints++;
                 }
 
+                // Upsert incoming info points for this node
+                foreach ($infoPointsByNode[$nodeId] as $incomingId => $incomingInfoPoint) {
+                    if (isset($existingById[$incomingId])) {
+                        // update existing (deep merge)
+                        $idx = $existingById[$incomingId];
+                        $existingInfoPoints[$idx] = array_replace_recursive(
+                            is_array($existingInfoPoints[$idx]) ? $existingInfoPoints[$idx] : [],
+                            is_array($incomingInfoPoint) ? $incomingInfoPoint : []
+                        );
+                        $updatedInfoPoints++;
+                    } else {
+                        // add new info point
+                        $new = is_array($incomingInfoPoint) ? $incomingInfoPoint : [];
+                        // ensure nodeId is set on new item
+                        $new['nodeId'] = $nodeId;
+                        $existingInfoPoints[] = $new;
+                        $updatedInfoPoints++;
+                    }
+                }
+
+                // Reindex
                 $node['infoPoints'] = array_values($existingInfoPoints);
             }
             unset($node);

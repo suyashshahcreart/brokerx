@@ -19,13 +19,118 @@ const EDIT_MODAL_MEDIA_FIELD_IDS = [];
 const finalJson = window?.tourFinalJson || {};
 
 const modalEl = document.getElementById('editInfoModal');
+const infoPointForm = document.getElementById('editInfoForm');
+const ORIGINAL_EDIT_INFO_FORM_HTML = infoPointForm?.innerHTML || '';
+let editModalEventsBound = false;
+
+function clearEditModalState() {
+  uploadedImageFiles = [];
+  EditModalState.currentInfoModal = null;
+  EditModalState.currentNode = null;
+  EditModalState.currentModalIndex = null;
+  EditModalState.currentTitleField = null;
+}
+
+// Restore the modal form to its original rendered markup.
+function restoreEditModalForm() {
+  if (!infoPointForm || !ORIGINAL_EDIT_INFO_FORM_HTML) return false;
+
+  infoPointForm.innerHTML = ORIGINAL_EDIT_INFO_FORM_HTML;
+  clearEditModalState();
+  return true;
+}
+
+// Build the selected info point into the modal form.
+function renderSelectedInfoPointForm(infoModal, node, modalIndex) {
+  restoreEditModalForm();
+
+  const modal = document.getElementById('editInfoModal');
+  if (!modal) return;
+
+  EditModalState.currentInfoModal = JSON.parse(JSON.stringify(infoModal));
+  EditModalState.currentNode = node;
+  EditModalState.currentModalIndex = modalIndex;
+  EditModalState.currentTitleField = getEditableTitleField(infoModal);
+
+  let modalType = infoModal.type || 'none';
+  if (!infoModal.type) {
+    if (infoModal.buttonActionType || infoModal.isButtonOnly || isNonEmptyString(infoModal.buttonType)) {
+      modalType = 'button';
+    } else if (isNonEmptyString(infoModal.youtubeUrl)) {
+      modalType = 'youtube';
+    } else if (isNonEmptyString(infoModal.audioUrl) || isNonEmptyString(infoModal.audio)) {
+      modalType = 'audio';
+    } else if (Array.isArray(infoModal.image) ? infoModal.image.length > 0 : isNonEmptyString(infoModal.image)) {
+      modalType = 'image';
+    }
+  }
+
+  if (hasValidTranslations(infoModal.title) && hasValidTranslations(infoModal.description)) {
+    renderToottipSection({
+      container: document.getElementById('tooltipSection'),
+      fields: {
+        title: infoModal.title,
+        description: infoModal.description
+      },
+      tooltipPosition: infoModal.titleTooltipPosition
+    });
+    document.getElementById('tooltipSection')?.classList.remove('d-none');
+  }
+
+  if (hasValidTranslations(infoModal.infoModalTitle) && hasValidTranslations(infoModal.infoModalDescription)) {
+    renderInfoModalEditor({
+      container: document.getElementById('modalContentSection'),
+      data: {
+        infoModalTitle: infoModal.infoModalTitle,
+        infoModalDescription: infoModal.infoModalDescription,
+        infoModalLink: infoModal.infoModalLink,
+        infoModalFooterButtonTitle: infoModal.infoModalFooterButtonTitle,
+        infoModalFooterText: infoModal.infoModalFooterText,
+        infoModalFooterButtonLink: infoModal.infoModalFooterButtonLink,
+        infoModalIframeUrl: infoModal.infoModalIframeUrl,
+        infoModalWidth: infoModal.infoModalWidth || infoModal.infoModalSize
+      }
+    });
+    document.getElementById('modalContentSection')?.classList.remove('d-none');
+    reinitalizeEditors();
+  }
+
+  if (isNonEmptyString(infoModal.icon)) renderIconSettingEditor();
+
+  if (isNonEmptyString(infoModal.buttonActionType) || infoModal.isButtonOnly || isNonEmptyString(infoModal.buttonType)) {
+    renderButtonSettingsEditor({
+      container: document.getElementById('buttonIconSection'),
+      data: infoModal
+    });
+    document.getElementById('buttonIconSection')?.classList.remove('d-none');
+  }
+
+  if (isNonEmptyString(infoModal.buttonActionType) || infoModal.isButtonOnly) {
+    renderButtonActionTypes('buttonActionTypeContainer', infoModal.buttonActionType);
+  }
+
+  if (isNonEmptyString(infoModal.link)) updateLinkContainer(infoModal.link);
+
+  const videoUrl = extractVideoUrl(infoModal);
+  setInputValue('youtubeUrlInput', videoUrl);
+
+  uploadedImageFiles = [];
+  renderImagePreview(infoModal?.image?.length > 0 ? infoModal.image : []);
+  setupImageUploadHandler();
+  setupVideoPreviewHandler();
+
+  if (infoModal?.audio) audioPreview();
+
+  window.bootstrap?.Modal.getOrCreateInstance(modal).show();
+}
+window.resetEditModalForm = restoreEditModalForm;
+
 // modal close handler - resets form and state when modal is closed to ensure clean slate for next edit
-modalEl.addEventListener('hidden.bs.modal', () => {
-  const form = modalEl.querySelector('editInfoForm');
-  if (form) form.reset();
-  EditModalState.reset();
-  document.getElementById('audioPreview')?.pause();
-});
+if (modalEl) {
+  modalEl.addEventListener('hidden.bs.modal', () => {
+    restoreEditModalForm();
+  });
+}
 
 // global variable to store uploaded image files for the current editing session
 let UpdatedInfoPoint = new Map(); // global variable to store the updated info point data
@@ -407,14 +512,7 @@ let EditModalState = {
   currentTitleField: null,
 
   reset() {
-    this.currentInfoModal = null;
-    this.currentNode = null;
-    this.currentModalIndex = null;
-    this.currentTitleField = null;
-    uploadedImageFiles = []; // Clear uploaded images
-    let LinURLRest = updateLinkContainer('');
-    LinURLRest() // reset link url
-    window.bootstrap?.Modal.getInstance(modalEl)?.hide();
+    clearEditModalState();
   }
 };
 
@@ -1244,112 +1342,7 @@ function audioPreview() {
  *   Modal appears ready to edit
  */
 function openEditModal(infoModal, node, modalIndex) {
-  const modalEl = document.getElementById('editInfoModal');
-  if (!modalEl) return;
-
-  // STORE STATE - so we know what to update when user saves
-  EditModalState.currentInfoModal = JSON.parse(JSON.stringify(infoModal));
-  EditModalState.currentNode = node;
-  EditModalState.currentModalIndex = modalIndex;
-  EditModalState.currentTitleField = getEditableTitleField(infoModal);
-
-  console.log('Editing modal:', EditModalState);
-
-  // DETECT MODAL TYPE
-  // If no explicit type, try to detect from content
-  let modalType = infoModal.type || 'none';
-  if (!infoModal.type) {
-    if (infoModal.buttonActionType || infoModal.isButtonOnly || isNonEmptyString(infoModal.buttonType)) {
-      modalType = 'button';
-    } else if (isNonEmptyString(infoModal.youtubeUrl)) {
-      modalType = 'youtube';
-    } else if (isNonEmptyString(infoModal.audioUrl) || isNonEmptyString(infoModal.audio)) {
-      modalType = 'audio';
-    } else if (Array.isArray(infoModal.image) ? infoModal.image.length > 0 : isNonEmptyString(infoModal.image)) {
-      modalType = 'image';
-    }
-  }
-
-
-  //  tooltip section updating
-  if (
-    hasValidTranslations(infoModal.title) &&
-    hasValidTranslations(infoModal.description)
-  ) {
-    renderToottipSection({
-      container: document.getElementById('tooltipSection'),
-      fields: {
-        title: infoModal.title,
-        description: infoModal.description
-      },
-      tooltipPosition: infoModal.titleTooltipPosition
-    });
-    document
-      .getElementById('tooltipSection')
-      .classList.remove('d-none');
-  }
-  // modal content section updating
-  if (
-    hasValidTranslations(infoModal.infoModalTitle) &&
-    hasValidTranslations(infoModal.infoModalDescription)
-  ) {
-    renderInfoModalEditor({
-      container: document.getElementById('modalContentSection'),
-      data: {
-        infoModalTitle: infoModal.infoModalTitle,
-        infoModalDescription: infoModal.infoModalDescription,
-        infoModalLink: infoModal.infoModalLink,
-        infoModalFooterButtonTitle: infoModal.infoModalFooterButtonTitle,
-        infoModalFooterText: infoModal.infoModalFooterText,
-        infoModalFooterButtonLink: infoModal.infoModalFooterButtonLink,
-        infoModalIframeUrl: infoModal.infoModalIframeUrl,
-        infoModalWidth: infoModal.infoModalWidth || infoModal.infoModalSize
-      }
-    });
-    document
-      .getElementById('modalContentSection')
-      .classList.remove('d-none');
-    reinitalizeEditors(); // re-apply rich text editors after dynamic render
-  }
-
-  // icon settings section updating
-  if (isNonEmptyString(infoModal.icon)) renderIconSettingEditor();
-  // button settings
-  if (isNonEmptyString(infoModal.buttonActionType) || infoModal.isButtonOnly || isNonEmptyString(infoModal.buttonType)) {
-    renderButtonSettingsEditor({
-      container: document.getElementById('buttonIconSection'),
-      data: infoModal
-    });
-    document
-      .getElementById('buttonIconSection')
-      .classList.remove('d-none');
-  }
-
-  // button settings section updating
-  if (isNonEmptyString(infoModal.buttonActionType) || infoModal.isButtonOnly) renderButtonActionTypes('buttonActionTypeContainer', infoModal.buttonActionType);
-
-  // link URL field
-  if (isNonEmptyString(infoModal.link)) updateLinkContainer(infoModal.link);
-
-  const videoUrl = extractVideoUrl(infoModal);
-  setInputValue('youtubeUrlInput', videoUrl);
-
-  // images rendering 
-  uploadedImageFiles = []; // Reset uploaded images for this modal
-  if (infoModal?.image?.length > 0) {
-    renderImagePreview(infoModal.image);
-  } else {
-    renderImagePreview([]);
-  }
-  setupImageUploadHandler(); // Initialize image upload handler
-  setupVideoPreviewHandler();
-
-  // audio file rendering
-  if (infoModal?.audio) audioPreview();
-
-  // SMART VISIBILITY - SHOW ONLY SECTIONS WITH DATA
-  const modal = window.bootstrap?.Modal.getOrCreateInstance(modalEl);
-  modal.show();
+  renderSelectedInfoPointForm(infoModal, node, modalIndex);
 }
 
 /**
@@ -1519,32 +1512,42 @@ function getFormState() {
 }
 
 function setupEditModalEvents() {
-  const modal = document.getElementById('editInfoModal');
-  if (!modal) return;
-  // Text inputs (tooltip fields) — only wire text inputs
+  if (!infoPointForm || editModalEventsBound) return;
 
-  EDIT_MODAL_TEXT_FIELD_IDS.forEach((fieldId) => {
-    const field = document.getElementById(fieldId);
-    if (field) {
-      field.addEventListener('input', () => {
-        updateCharacterCount(fieldId);
-      });
+  editModalEventsBound = true;
+
+  infoPointForm.addEventListener('input', (e) => {
+    const target = e.target;
+    if (!target || !target.id) return;
+
+    if (EDIT_MODAL_TEXT_FIELD_IDS.includes(target.id)) {
+      updateCharacterCount(target.id);
+    }
+
+    if (target.id === 'infoPointIcon') {
+      updateIconPreview();
+    }
+
+    if (target.id === 'infoPointIconColor' || target.id === 'buttonColorInput' || target.id === 'buttonTextColor') {
+      updateButtonPreview();
     }
   });
 
-  document.getElementById('editInfoSaveBtn')?.addEventListener('click', () => {
-    const state = getFormState();
-    const success = updateNodeWithEditedModal(
-      EditModalState.currentNode,
-      EditModalState.currentModalIndex,
-      state
-    );
+  infoPointForm.addEventListener('change', (e) => {
+    const target = e.target;
+    if (!target || !target.id) return;
 
-    if (success) {
-      const modalEl = document.getElementById('editInfoModal');
-      window.bootstrap?.Modal.getInstance(modalEl)?.hide();
-      document.getElementById('infomodalNodesRefreshBtn')?.click();
-      EditModalState.reset();
+    if (target.id === 'buttonTypeSelect') {
+      if (target.value === 'icon') renderIconSettingEditor();
+      updateButtonPreview();
+    }
+
+    if (target.id === 'imageInput') {
+      setupImageUploadHandler();
+    }
+
+    if (target.id === 'youtubeUrlInput') {
+      setupVideoPreviewHandler();
     }
   });
 }
@@ -1560,7 +1563,6 @@ function pushUpdatedInfoPoint(infoPoint) {
 }
 
 // Form submit and form action handler
-const infoPointForm = document.getElementById('editInfoForm');
 const UpdateNodesButton = document.getElementById('UpdateNodesButton');
 
 UpdateNodesButton?.addEventListener('click', async () => {
@@ -1695,7 +1697,8 @@ infoPointForm?.addEventListener('submit', async (e) => {
   console.log('Submitting form with current state:', UpdatedInfoPoint);
   pushUpdatedInfoPoint(UpdatedInfoPoint);
   UpdatedInfoPoint = {} // set nothing in the field
-  EditModalState.reset(); // reset the edit modal state after pushing the updated info point
+  window.bootstrap?.Modal.getInstance(modalEl)?.hide();
+  restoreEditModalForm();
 });
 
 function init() {

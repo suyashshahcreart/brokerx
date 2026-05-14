@@ -27,7 +27,7 @@
 </div>
 
 <!-- Edit Info Modal -->
-<div class="modal fade" id="editInfoModal" tabindex="-2">
+<div class="modal fade" id="editInfoModal" tabindex="-2" data-reset-on-close="true">
     <div class="modal-dialog modal-xl">
         <div class="modal-content">
             <div class="modal-header sticky-top bg-white border-bottom">
