@@ -948,12 +948,10 @@ class TourController extends Controller
     /**
      * Update tour JSON and JS files in S3 storage
      *
-     * Updates 3 files in order:
-     * 1. virtual-tour-nodes.json - other data from $finalJson, nodes preserved from S3
-     * 2. tour-data.json - other data from $finalJson, nodes preserved from S3
-     * 3. tour-data.js - same content as tour-data.json, wrapped in JS and obfuscated
-     *
-     * Nodes are NEVER overwritten with $finalJson['nodes']. Only nodes from existing S3 files are used.
+    * Updates 3 files in order:
+    * 1. virtual-tour-nodes.json - current payload, with nodes coming from $finalJson when present
+    * 2. tour-data.json - current payload, with nodes coming from $finalJson when present
+    * 3. tour-data.js - same content as tour-data.json, wrapped in JS and obfuscated
      *
      * @param Tour $tour The tour model
      * @param array $finalJson The final JSON data to save (userInfo, bottomMarker, etc.)
@@ -987,9 +985,14 @@ class TourController extends Controller
             $tourDataJsonPath = 'tours/' . $qrCode . '/assets/js/tour-data.json';
             $tourDataJsPath = 'tours/' . $qrCode . '/assets/js/tour-data.js';
 
-            // Fetch existing nodes from S3 - NEVER use $finalJson['nodes'], only S3
+            // Use nodes from the current payload when available; otherwise fall back to S3 content.
             $existingVirtualTourNodes = [];
             $existingTourDataJsonNodes = [];
+            $finalJsonNodes = null;
+
+            if (array_key_exists('nodes', $finalJson) && is_array($finalJson['nodes'])) {
+                $finalJsonNodes = array_values($finalJson['nodes']);
+            }
 
             if (Storage::disk('s3')->exists($virtualTourNodesPath)) {
                 $content = Storage::disk('s3')->get($virtualTourNodesPath);
@@ -1007,12 +1010,12 @@ class TourController extends Controller
                 }
             }
 
-            // Merge: our updates (userInfo, etc.) + nodes from S3 only (never $finalJson['nodes'])
+            // Merge: our updates (userInfo, etc.) + nodes from the latest payload when present.
             $virtualTourNodesContent = $finalJson;
-            $virtualTourNodesContent['nodes'] = $existingVirtualTourNodes;
+            $virtualTourNodesContent['nodes'] = $finalJsonNodes !== null ? $finalJsonNodes : $existingVirtualTourNodes;
 
             $tourDataJsonContent = $finalJson;
-            $tourDataJsonContent['nodes'] = $existingTourDataJsonNodes;
+            $tourDataJsonContent['nodes'] = $finalJsonNodes !== null ? $finalJsonNodes : $existingTourDataJsonNodes;
 
             // Upload 1: virtual-tour-nodes.json (first)
             $virtualTourNodesString = json_encode(

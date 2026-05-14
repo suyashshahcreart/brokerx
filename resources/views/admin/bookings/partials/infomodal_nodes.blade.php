@@ -133,12 +133,12 @@
                                 <label class="form-label" for="">icon colors</label>
                                 <div class="input-group">
                                     <span class="input-group-text p-0">
-                                        <input type="color" class="form-control form-control-color" value="#1A237E"
+                                        <input type="color" class="form-control form-control-color" value=""
                                             onchange="this.parentElement.nextElementSibling.value = this.value"
-                                            id="buttonColorPreview">
+                                            id="iconColorPreview">
                                     </span>
-                                    <input type="text" name="iconColor" class="form-control" placeholder="#1A237E"
-                                        value="#1A237E" id="buttonColorInput"
+                                    <input type="text" name="iconColor" class="form-control" placeholder="e.g, #1A237E"
+                                        value="" id="iconColorInput"
                                         oninput="this.previousElementSibling.querySelector('input').value = this.value">
                                 </div>
                             </div>
@@ -188,12 +188,12 @@
                                 <label class="form-label" for="">Button colors</label>
                                 <div class="input-group">
                                     <span class="input-group-text p-0">
-                                        <input type="color" class="form-control form-control-color" value="#1A237E"
+                                        <input type="color" class="form-control form-control-color" value=""
                                             onchange="this.parentElement.nextElementSibling.value = this.value"
                                             id="buttonColorPreview">
                                     </span>
-                                    <input type="text" name="buttonColor" class="form-control" placeholder="#1A237E"
-                                        value="#1A237E" id="buttonColorInput"
+                                    <input type="text" name="buttonColor" class="form-control" placeholder="e.g, #1A237E"
+                                        value="" id="buttonColorInput"
                                         oninput="this.previousElementSibling.querySelector('input').value = this.value">
                                 </div>
                             </div>
@@ -201,11 +201,13 @@
                                 <label for="buttonTextColor" class="form-label">Button Text Color</label>
                                 <div class="input-group">
                                     <span class="input-group-text p-0">
-                                        <input type="color" class="form-control form-control-color" value="#ffffff"
-                                            onchange="this.parentElement.nextElementSibling.value = this.value">
+                                        <input type="color" class="form-control form-control-color" value=""
+                                            onchange="this.parentElement.nextElementSibling.value = this.value"
+                                            id="buttonTextColorPreview">
                                     </span>
-                                    <input type="text" name="buttonTextColor" class="form-control" placeholder="#ffffff"
+                                    <input type="text" name="buttonTextColor" class="form-control" placeholder="e.g, #ffffff"
                                         value="#ffffff"
+                                        id="buttonTextColorInput"
                                         oninput="this.previousElementSibling.querySelector('input').value = this.value">
                                 </div>
                             </div>

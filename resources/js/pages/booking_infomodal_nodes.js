@@ -900,6 +900,12 @@ function renderButtonSettingsEditor({
     buttonColorPreview.value = data.buttonColor || '#000000';
     buttonColorInput.value = data.buttonColor || '#000000';
   }
+  let buttonTextColorPreview = document.getElementById('buttonTextColorPreview');
+  let buttonTextColorInput = document.getElementById('buttonTextColorInput');
+  if (buttonTextColorPreview && buttonTextColorInput) {
+    buttonTextColorPreview.value = data.buttonTextColor || '#ffffff';
+    buttonTextColorInput.value = data.buttonTextColor || '#ffffff';
+  }
 
 } // end function
 
@@ -914,6 +920,11 @@ function renderIconSettingEditor() {
   let iconInput = document.getElementById('iconInput');
   iconInput.onclick = function () {
     iconLib.open($('iconInput'), $('iconPreview'));
+  }
+  // icon color preview
+  if (data.iconColor) {
+    document.getElementById('iconColorInput').value = data.iconColor;
+    document.getElementById('iconColorPreview').value = data.iconColor;
   }
   // icon title 
   let IconTitleDiv = document.getElementById('IconTitleDiv');
@@ -1342,6 +1353,7 @@ function audioPreview() {
  *   Modal appears ready to edit
  */
 function openEditModal(infoModal, node, modalIndex) {
+  console.log('Opening edit modal with data:', { infoModal, node, modalIndex });
   renderSelectedInfoPointForm(infoModal, node, modalIndex);
 }
 
