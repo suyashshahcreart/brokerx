@@ -159,7 +159,7 @@ class TourService
             $bookingCode = QR::where('booking_id', $tour->booking_id ?? null)->value('code');
             $logo = $bottomMarker['topImage'] ?? null;
             $path = $bookingCode && $logo ? "tours/$bookingCode/$logo" : null;
-            $tour->footer_logo = Storage::disk('s3')->url($path) ?? null;
+            $tour->footer_logo = $path ? Storage::disk('s3')->url($path) : null;
         }
         if ($forceSync || Arr::has($diffJson, 'bottomMarker.topTitle')) {
             $tour->footer_title = $bottomMarker['topTitle'] ?? null;
