@@ -80,16 +80,7 @@ function renderSelectedInfoPointForm(infoModal, node, modalIndex) {
   if (hasValidTranslations(infoModal.infoModalTitle) && hasValidTranslations(infoModal.infoModalDescription)) {
     renderInfoModalEditor({
       container: document.getElementById('modalContentSection'),
-      data: {
-        infoModalTitle: infoModal.infoModalTitle,
-        infoModalDescription: infoModal.infoModalDescription,
-        infoModalLink: infoModal.infoModalLink,
-        infoModalFooterButtonTitle: infoModal.infoModalFooterButtonTitle,
-        infoModalFooterText: infoModal.infoModalFooterText,
-        infoModalFooterButtonLink: infoModal.infoModalFooterButtonLink,
-        infoModalIframeUrl: infoModal.infoModalIframeUrl,
-        infoModalWidth: infoModal.infoModalWidth || infoModal.infoModalSize
-      }
+      data:infoModal
     });
     document.getElementById('modalContentSection')?.classList.remove('d-none');
     reinitalizeEditors();
@@ -523,9 +514,11 @@ let EditModalState = {
  * @param {Object} newData - New modal data
  */
 function updateNodeWithEditedModal(node, modalIndex, newData) {
-  if (!node || typeof node !== 'object') return;
-  alert('running update function')
-  return false;
+  if (!node || typeof node !== 'object') return false;
+  if (!node.infoModals || !node.infoModals[modalIndex]) return false;
+
+  node.infoModals[modalIndex] = { ...node.infoModals[modalIndex], ...newData };
+  return true;
 }
 
 //  Clean utility and object check
@@ -1611,7 +1604,7 @@ infoPointForm?.addEventListener('submit', async (e) => {
   let currentInfoPoint = EditModalState.currentInfoModal;
   let form = new FormData(infoPointForm);
   console.log('Form data entries:', Array.from(form.entries()));
-  let UpdatedInfoPoint = {
+  let formDataObj = {
     "id": currentInfoPoint.id || generateUniqueId(),
     "nodeId": currentInfoPoint.nodeId || null,
     "image": form.get('images') || [],
@@ -1641,7 +1634,7 @@ infoPointForm?.addEventListener('submit', async (e) => {
     "infoModalLink": (() => {
       let obj = {};
       enabledLanguages.forEach(lang => {
-        obj[lang] = form.get(`infoModalFooterButtonTitle[${lang}]`) || '';
+        obj[lang] = form.get(`infoModalLink[${lang}]`) || '';
       })
       return obj;
     })(),
@@ -1700,9 +1693,8 @@ infoPointForm?.addEventListener('submit', async (e) => {
     "showOnLoadDelayMs": currentInfoPoint.showOnLoadDelayMs || 0,
     "position": currentInfoPoint.position || { x: 0, y: 0 },
   };
-  console.log('Submitting form with current state:', UpdatedInfoPoint);
-  pushUpdatedInfoPoint(UpdatedInfoPoint);
-  UpdatedInfoPoint = {} // set nothing in the field
+  console.log('Submitting form with current state:', formDataObj);
+  pushUpdatedInfoPoint(formDataObj);
   window.bootstrap?.Modal.getInstance(modalEl)?.hide();
   restoreEditModalForm();
 });
