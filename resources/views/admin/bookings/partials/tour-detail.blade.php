@@ -38,6 +38,13 @@
                     <i class="ri-star-line me-2"></i>
                     <span>User Stars</span>
                 </a>
+                <a class="nav-link {{ ($firstActiveTab === 'vl-pills-infomodal-nodes') ? 'active show' : '' }}"
+                    id="vl-pills-infomodal-nodes-tab" data-bs-toggle="pill" href="#vl-pills-infomodal-nodes" role="tab"
+                    aria-controls="vl-pills-infomodal-nodes"
+                    aria-selected="{{ ($firstActiveTab === 'vl-pills-infomodal-nodes') ? 'true' : 'false' }}">
+                    <i class="ri-information-line me-2"></i>
+                    <span>Info Modal Nodes</span>
+                </a>
                 <a class="nav-link {{ ($firstActiveTab === 'vl-pills-attachments') ? 'active show' : '' }}"
                     id="vl-pills-attachments-tab" data-bs-toggle="pill" href="#vl-pills-attachments" role="tab"
                     aria-controls="vl-pills-attachments"
@@ -80,13 +87,6 @@
                     <i class="ri-cash-line me-2"></i>
                     <span>Bottom Mark: Mark Property</span>
                 </a>
-            <a class="nav-link {{ ($firstActiveTab === 'vl-pills-infomodal-nodes') ? 'active show' : '' }}"
-                id="vl-pills-infomodal-nodes-tab" data-bs-toggle="pill" href="#vl-pills-infomodal-nodes" role="tab"
-                aria-controls="vl-pills-infomodal-nodes"
-                aria-selected="{{ ($firstActiveTab === 'vl-pills-infomodal-nodes') ? 'true' : 'false' }}">
-                <i class="ri-information-line me-2"></i>
-                <span>Info Modal Nodes</span>
-            </a>
         </div>
     </div>
     <div class="col-md-9">
@@ -957,9 +957,11 @@
                                                             </button>
                                                         </div>
                                                     @endforeach
-                                                    @error('bookmark_image_url')<div class="text-danger">{{ $message }}</div>@enderror
+                                                    @error('bookmark_image_url')<div class="text-danger">{{ $message }}
+                                                    </div>@enderror
                                                 @else
-                                                <small class="text-muted d-block mb-2"> NO IMAGES SET (UPLOAD IMAGES)</small>
+                                                <small class="text-muted d-block mb-2"> NO IMAGES SET (UPLOAD
+                                                    IMAGES)</small>
                                                 @endauth
                                             </div>
                                         </div>

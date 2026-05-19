@@ -85,7 +85,7 @@ function renderSelectedInfoPointForm(infoModal, node, modalIndex) {
   if (hasValidTranslations(infoModal.infoModalTitle) && hasValidTranslations(infoModal.infoModalDescription)) {
     renderInfoModalEditor({
       container: document.getElementById('modalContentSection'),
-      data:infoModal
+      data: infoModal
     });
     document.getElementById('modalContentSection')?.classList.remove('d-none');
     reinitalizeEditors();
@@ -766,6 +766,7 @@ function renderInfoModalEditor({
                             ${config.type === 'textarea'
           ? `<textarea class="form-control editor" 
                                   name="${field}[${lang}]"
+                                  id="${field}_${lang}"
                                   rows="4">${value}</textarea>`
           : `<input type="text" 
                                   class="form-control"
@@ -1653,7 +1654,8 @@ infoPointForm?.addEventListener('submit', async (e) => {
     "infoModalDescription": (() => {
       let obj = {};
       enabledLanguages.forEach(lang => {
-        obj[lang] = form.get(`infoModalDescription[${lang}]`) || '';
+        // obj[lang] = form.get(`infoModalDescription[${lang}]`) || '';
+        obj[lang] = getEditorValue(`infoModalDescription_${lang}`) || '';
       })
       return obj;
     })(),
