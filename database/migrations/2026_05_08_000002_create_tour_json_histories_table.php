@@ -14,11 +14,11 @@ return new class extends Migration {
 
             $table->json('virtual_tour_nodes_json')->nullable();
             $table->json('tour_data_json')->nullable();
-            $table->longText('s3_config_js')->nullable();
+            $table->longText('tour_data_js')->nullable();
 
             $table->json('virtual_tour_nodes_json_diff')->nullable();
             $table->json('tour_data_json_diff')->nullable();
-            $table->json('s3_config_js_diff')->nullable();
+            $table->json('tour_data_js_diff')->nullable();
 
             $table->string('type', 64)->default('zip_upload');
             $table->text('notes')->nullable();

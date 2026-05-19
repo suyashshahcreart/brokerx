@@ -18,7 +18,7 @@ class TourAssetJsonPersistenceService
         $slice = [
             'virtual_tour_nodes_json' => $result['virtual_tour_nodes_json'] ?? null,
             'tour_data_json' => $result['tour_data_json'] ?? null,
-            's3_config_js' => $result['s3_config_js'] ?? null,
+            'tour_data_js' => $result['tour_data_js'] ?? null,
             '_asset_presence' => $result['_asset_presence'] ?? [],
         ];
 
@@ -38,11 +38,11 @@ class TourAssetJsonPersistenceService
         // Reload from DB so "before" state is not affected by in-memory merges on the Tour instance.
         $prior = Tour::query()
             ->whereKey($tour->id)
-            ->first(['virtual_tour_nodes_json', 'tour_data_json', 's3_config_js']);
+            ->first(['virtual_tour_nodes_json', 'tour_data_json', 'tour_data_js']);
 
         $prevVtn = $prior?->virtual_tour_nodes_json;
         $prevTd = $prior?->tour_data_json;
-        $prevJs = $prior?->s3_config_js;
+        $prevJs = $prior?->tour_data_js;
 
         $presence = $zipResult['_asset_presence'] ?? [];
         $newVtn = ! empty($presence['virtual_tour_nodes'])
@@ -51,8 +51,8 @@ class TourAssetJsonPersistenceService
         $newTd = ! empty($presence['tour_data_json'])
             ? ($zipResult['tour_data_json'] ?? null)
             : $prevTd;
-        $newJs = ! empty($presence['s3_config_js'])
-            ? ($zipResult['s3_config_js'] ?? null)
+        $newJs = ! empty($presence['tour_data_js'])
+            ? ($zipResult['tour_data_js'] ?? null)
             : $prevJs;
 
         $lastVersion = (int) TourJsonHistory::where('tour_id', $tour->id)->max('version');
@@ -69,7 +69,7 @@ class TourAssetJsonPersistenceService
         } else {
             $diffVtn = $this->buildRfc6902Patch($prevVtn, $newVtn, 'virtual_tour_nodes');
             $diffTd = $this->buildRfc6902Patch($prevTd, $newTd, 'tour_data_json');
-            $diffJs = $this->buildRfc6902Patch($prevJs, $newJs, 's3_config_js');
+            $diffJs = $this->buildRfc6902Patch($prevJs, $newJs, 'tour_data_js');
         }
 
         DB::transaction(function () use (
@@ -90,10 +90,10 @@ class TourAssetJsonPersistenceService
                 'version' => $version,
                 'virtual_tour_nodes_json' => $newVtn,
                 'tour_data_json' => $newTd,
-                's3_config_js' => $newJs,
+                'tour_data_js' => $newJs,
                 'virtual_tour_nodes_json_diff' => $diffVtn,
                 'tour_data_json_diff' => $diffTd,
-                's3_config_js_diff' => $diffJs,
+                'tour_data_js_diff' => $diffJs,
                 'type' => $resolvedType,
                 'notes' => $resolvedNotes,
                 'updated_by' => $userId,
@@ -101,7 +101,7 @@ class TourAssetJsonPersistenceService
 
             $tour->virtual_tour_nodes_json = $newVtn;
             $tour->tour_data_json = $newTd;
-            $tour->s3_config_js = $newJs;
+            $tour->tour_data_js = $newJs;
             $tour->updated_by = $userId;
             $tour->save();
         });

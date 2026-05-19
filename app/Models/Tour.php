@@ -37,7 +37,7 @@ class Tour extends Model
         'final_json',
         'virtual_tour_nodes_json',
         'tour_data_json',
-        's3_config_js',
+        'tour_data_js',
         'sidebar_links',
         'working_json',
         'working_json_last_update_user',

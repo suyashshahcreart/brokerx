@@ -16,6 +16,12 @@ use App\Services\TourService;
 use App\Services\TourAssetJsonPersistenceService;
 use ZipArchive;
 
+/**
+ * Background processing of uploaded tour ZIP archives.
+ *
+ * Queue workers cache loaded PHP; after changing DB columns or related services, run `php artisan queue:restart`
+ * (or stop and start `queue:work`) so jobs pick up the new code.
+ */
 class ProcessTourZipFile implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;

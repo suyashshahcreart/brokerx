@@ -671,7 +671,7 @@ class TourManagerController extends Controller
             $swJsPath = null;
             $jsonPath = null;
             $tourDataJsonPath = null;
-            $s3TourDataJsPath = null;
+            $tourDataJsPath = null;
             $totalFiles = $zip->numFiles;
 
             \Log::info("Analyzing ZIP structure for tour code: {$uniqueCode} ({$totalFiles} files)");
@@ -720,7 +720,7 @@ class TourManagerController extends Controller
                     $tourDataJsonPath = $filename;
                 }
                 if (str_ends_with($normLower, 'assets/js/tour-data.js')) {
-                    $s3TourDataJsPath = $filename;
+                    $tourDataJsPath = $filename;
                 }
             }
 
@@ -755,7 +755,7 @@ class TourManagerController extends Controller
             $jsonContent = null;
             $jsonFilename = null;
             $tourDataJsonDecoded = null;
-            $s3ConfigJsContent = null;
+            $tourDataJsContent = null;
 
             // Process each file in ZIP and upload directly to S3
             $batchSize = 50; // Process in batches for memory management
@@ -864,7 +864,7 @@ class TourManagerController extends Controller
                     continue;
                 }
 
-                if ($s3TourDataJsPath && $normEntry === str_replace('\\', '/', $s3TourDataJsPath)) {
+                if ($tourDataJsPath && $normEntry === str_replace('\\', '/', $tourDataJsPath)) {
                     $s3JsPath = $s3TourPath . '/' . $filename;
                     try {
                         $uploaded = Storage::disk('s3')->put(
@@ -883,7 +883,7 @@ class TourManagerController extends Controller
                     } catch (\Exception $e) {
                         \Log::error('Error uploading tour-data.js to S3: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
                     }
-                    $s3ConfigJsContent = $fileContent;
+                    $tourDataJsContent = $fileContent;
                     unset($fileContent);
                     continue;
                 }
@@ -1339,11 +1339,11 @@ class TourManagerController extends Controller
                 'data' => $jsonData,
                 'virtual_tour_nodes_json' => $jsonData,
                 'tour_data_json' => $tourDataJsonDecoded,
-                's3_config_js' => $s3ConfigJsContent,
+                'tour_data_js' => $tourDataJsContent,
                 '_asset_presence' => [
                     'virtual_tour_nodes' => $jsonPath !== null,
                     'tour_data_json' => $tourDataJsonPath !== null,
-                    's3_config_js' => $s3TourDataJsPath !== null,
+                    'tour_data_js' => $tourDataJsPath !== null,
                 ],
                 'tour_path' => $rootTourPath,
                 'tour_url' => url('/'.$rootTourPath.'/index.php'),
