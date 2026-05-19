@@ -19,6 +19,11 @@ const EDIT_MODAL_MEDIA_FIELD_IDS = [];
 const finalJson = window?.tourFinalJson || {};
 
 const modalEl = document.getElementById('editInfoModal');
+function getEditInfoModalInstance() {
+  if (!modalEl || !window.bootstrap?.Modal) return null;
+  return window.bootstrap.Modal.getOrCreateInstance(modalEl, { focus: false });
+}
+
 const infoPointForm = document.getElementById('editInfoForm');
 const ORIGINAL_EDIT_INFO_FORM_HTML = infoPointForm?.innerHTML || '';
 let editModalEventsBound = false;
@@ -112,7 +117,7 @@ function renderSelectedInfoPointForm(infoModal, node, modalIndex) {
 
   if (infoModal?.audio) audioPreview();
 
-  window.bootstrap?.Modal.getOrCreateInstance(modal).show();
+  getEditInfoModalInstance()?.show();
 }
 window.resetEditModalForm = restoreEditModalForm;
 
@@ -912,7 +917,7 @@ function renderIconSettingEditor() {
   // main icon selection section
   let iconInput = document.getElementById('iconInput');
   iconInput.onclick = function () {
-    iconLib.open($('iconInput'), $('iconPreview'));
+    iconLib.open($('#iconInput'), $('#iconPreview'));
   }
   // icon color preview
   if (data.iconColor) {
@@ -1695,7 +1700,7 @@ infoPointForm?.addEventListener('submit', async (e) => {
   };
   console.log('Submitting form with current state:', formDataObj);
   pushUpdatedInfoPoint(formDataObj);
-  window.bootstrap?.Modal.getInstance(modalEl)?.hide();
+  getEditInfoModalInstance()?.hide();
   restoreEditModalForm();
 });
 

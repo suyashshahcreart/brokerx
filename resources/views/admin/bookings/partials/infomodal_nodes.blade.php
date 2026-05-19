@@ -169,7 +169,7 @@
                                     </span>
                                     <!-- Input -->
                                     <input type="text" class="form-control" name="icon" id="iconInput" value="home"
-                                        placeholder="e.g. home">
+                                        placeholder="e.g. home" readonly style="cursor: pointer;">
                                 </div>
                                 <small class="text-muted">
                                     Enter material icon name
