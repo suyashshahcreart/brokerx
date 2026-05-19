@@ -327,7 +327,15 @@ class TourManagerController extends Controller
         $statuses = ['draft', 'published', 'archived'];
         $structuredDataTypes = ['Article', 'Event', 'Product', 'Organization', 'Person', 'Place'];
 
-        return view('admin.tour-manager.edit', compact('booking', 'tour', 'statuses', 'structuredDataTypes'));
+        $tourRequiresFullZipPackage = ! TourJsonHistory::where('tour_id', $tour->id)->exists();
+
+        return view('admin.tour-manager.edit', compact(
+            'booking',
+            'tour',
+            'statuses',
+            'structuredDataTypes',
+            'tourRequiresFullZipPackage'
+        ));
     }
 
     /**
@@ -604,7 +612,7 @@ class TourManagerController extends Controller
                 ];
             }
 
-            // First ZIP upload for this tour must include index.html (full tour package).
+            // First tour ZIP (no TourJsonHistory): validate full package. Later ZIPs: partial overlay (see validateZipStructure).
             $isFirstTourZipUpload = ! TourJsonHistory::where('tour_id', $tour->id)->exists();
 
             // Validate required files
@@ -1724,17 +1732,24 @@ class TourManagerController extends Controller
     }
 
     /**
-     * Validate zip file structure
-     * Updated to check for folders at any level (handles root folder structure)
+     * Validate zip file structure.
      *
-     * @param  bool  $requireIndexHtml  When true (first tour ZIP upload), index.html must be present.
+     * First tour ZIP (no {@see TourJsonHistory} yet): full package — index.html, a JSON file, and path segments
+     * images, assets, gallery, tiles (at any depth).
+     *
+     * Subsequent ZIPs: partial overlay — only require at least one real file entry. index.html, JSON, and those
+     * folders are optional; files upload to S3 with overwrite. DB tour JSON columns are left unchanged when
+     * corresponding assets are absent in the ZIP ({@see TourAssetJsonPersistenceService::recordFromZipResult}).
+     *
+     * @param  bool  $isFirstTourZipUpload  true when this tour has no JSON history rows yet.
      */
-    private function validateZipStructure(ZipArchive $zip, bool $requireIndexHtml = true)
+    private function validateZipStructure(ZipArchive $zip, bool $isFirstTourZipUpload = true)
     {
         $hasIndexHtml = false;
         $hasJsonFile = false;
         $requiredFolders = ['images', 'assets', 'gallery', 'tiles'];
         $foundFolders = [];
+        $fileEntryCount = 0;
 
         for ($i = 0; $i < $zip->numFiles; $i++) {
             $filename = $zip->getNameIndex($i);
@@ -1754,6 +1769,11 @@ class TourManagerController extends Controller
             // Skip empty entries after normalization
             if (empty($filename)) {
                 continue;
+            }
+
+            // Directory-only ZIP entries end with /
+            if (substr($filename, -1) !== '/') {
+                $fileEntryCount++;
             }
 
             // Split path into parts
@@ -1785,9 +1805,20 @@ class TourManagerController extends Controller
             }
         }
 
+        if (! $isFirstTourZipUpload) {
+            if ($fileEntryCount < 1) {
+                return [
+                    'valid' => false,
+                    'message' => 'Zip must contain at least one file. Empty archives are not allowed.',
+                ];
+            }
+
+            return ['valid' => true];
+        }
+
         $missingFolders = array_diff($requiredFolders, $foundFolders);
 
-        if ($requireIndexHtml && ! $hasIndexHtml) {
+        if (! $hasIndexHtml) {
             return ['valid' => false, 'message' => 'Zip file must contain index.html'];
         }
 

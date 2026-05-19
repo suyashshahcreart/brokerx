@@ -58,7 +58,7 @@ class ProcessTourZipFile implements ShouldQueue
             $this->updateBookingStatus('processing', 5, 'Job started');
             $this->workerLog('RUNNING', 5, 'Starting background ZIP processing');
 
-            // Get booking and tour first for idempotency check
+            // Get booking and tour (every queued upload runs the full pipeline; no duplicate skip)
             $booking = Booking::findOrFail($this->bookingId);
             $this->updateBookingStatus('processing', 10, 'Loaded booking');
             $tour = $booking->tours()->first();
@@ -68,54 +68,12 @@ class ProcessTourZipFile implements ShouldQueue
             }
             $this->updateBookingStatus('processing', 15, 'Loaded tour');
 
-            // Get file size and hash immediately (file might be deleted during processing)
-            $fileSize = 0;
-            $fileHash = null;
-            if (file_exists($this->zipFilePath)) {
-                $fileSize = filesize($this->zipFilePath);
-                $fileHash = md5_file($this->zipFilePath);
-
-                // IDEMPOTENCY CHECK: Prevent duplicate processing of the SAME file
-                // Only skip if the exact same file (by hash and size) was already processed successfully
-                // This allows re-uploading the same filename (new version) to be processed
-                if (isset($tour->final_json['files']) && is_array($tour->final_json['files'])) {
-                    $existingFiles = $tour->final_json['files'];
-                    foreach ($existingFiles as $file) {
-                        // Check if same file (by hash and size) was already processed
-                        if (
-                            isset($file['name']) && $file['name'] === $this->originalFilename
-                            && isset($file['processed']) && $file['processed'] === true
-                            && isset($file['file_hash']) && $file['file_hash'] === $fileHash
-                            && isset($file['size']) && $file['size'] === $fileSize
-                        ) {
-                            Log::info("ZIP file '{$this->originalFilename}' (hash: {$fileHash}) already processed for booking #{$this->bookingId}. Skipping duplicate processing.");
-                            $this->updateBookingStatus('done', 100, 'Already processed (duplicate upload)');
-                            $this->workerLog('DONE', 100, 'Already processed (duplicate upload)');
-                            return; // Exit early - same file already processed successfully
-                        }
-                    }
-                }
-            } else {
-                // File doesn't exist - check if it was already processed
-                if (isset($tour->final_json['files']) && is_array($tour->final_json['files'])) {
-                    $existingFiles = $tour->final_json['files'];
-                    foreach ($existingFiles as $file) {
-                        if (
-                            isset($file['name']) && $file['name'] === $this->originalFilename
-                            && isset($file['processed']) && $file['processed'] === true
-                            && isset($file['file_hash']) && isset($file['size'])
-                        ) {
-                            // If we have hash info, only skip if it matches (same file)
-                            // Otherwise, it's a new file with same name - process it
-                            Log::info("ZIP file '{$this->originalFilename}' already processed for booking #{$this->bookingId}. File deleted but processing was successful. Skipping.");
-                            $this->updateBookingStatus('done', 100, 'Already processed (file cleaned)');
-                            $this->workerLog('DONE', 100, 'Already processed (file cleaned)');
-                            return; // Exit early - already processed, file was cleaned up
-                        }
-                    }
-                }
+            // Resolve size/hash before processing; temp path must still exist (no "fake done" if cleaned early)
+            if (!file_exists($this->zipFilePath)) {
                 throw new \Exception("ZIP file not found: {$this->zipFilePath}");
             }
+            $fileSize = filesize($this->zipFilePath);
+            $fileHash = md5_file($this->zipFilePath);
             $this->updateBookingStatus('processing', 20, 'ZIP file validated');
 
             // Update tour slug and location if provided
