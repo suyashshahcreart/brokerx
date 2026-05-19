@@ -12,7 +12,35 @@ class TourService
     public function syncTourFieldsFromJson(Tour $tour, array $finalJson, array $diffJson = [], bool $forceSync = false): void
     {
         \Log::info("Tour Details sync started for tour_id={$tour->id}, force_sync={$forceSync}");
-        $userInfo = $finalJson['userInfo'] ?? [];
+
+        // PP9 exports wrap settings under `branding` and `tour`. Prefer those over legacy flat root keys (same key → PP9 wins).
+        $userInfo = array_merge(
+            (array) ($finalJson['userInfo'] ?? []),
+            (array) (Arr::get($finalJson, 'branding.userInfo') ?? [])
+        );
+        $localeConfig = array_merge(
+            (array) ($finalJson['localeConfig'] ?? []),
+            (array) (Arr::get($finalJson, 'tour.localeConfig') ?? [])
+        );
+        $loaderConfig = array_merge(
+            (array) ($finalJson['loaderConfig'] ?? []),
+            (array) (Arr::get($finalJson, 'branding.loaderConfig') ?? [])
+        );
+        $sidebarConfig = array_merge(
+            (array) ($finalJson['sidebarConfig'] ?? []),
+            (array) (Arr::get($finalJson, 'branding.sidebarConfig') ?? [])
+        );
+        $bottomMarker = array_merge(
+            (array) ($finalJson['bottomMarker'] ?? []),
+            (array) (Arr::get($finalJson, 'branding.bottomMarker') ?? [])
+        );
+        $bookmark = array_merge(
+            (array) ($finalJson['bookmark'] ?? []),
+            (array) (Arr::get($finalJson, 'branding.bookmark') ?? [])
+        );
+        $sidebarLinks = Arr::has($finalJson, 'branding.sidebarLinks')
+            ? (array) Arr::get($finalJson, 'branding.sidebarLinks', [])
+            : ($finalJson['sidebarLinks'] ?? []);
         // user related fields
         if ($forceSync || Arr::has($diffJson, 'userInfo.userName')) {
             $tour->contact_user_name = $userInfo['userName'] ?? null;
@@ -97,7 +125,6 @@ class TourService
         }
 
 
-        $localeConfig = $finalJson['localeConfig'] ?? [];
         if ($forceSync || Arr::has($diffJson, 'localeConfig.defaultLanguage')) {
             $tour->default_language = $localeConfig['defaultLanguage'] ?? 'en';
         }
@@ -105,7 +132,6 @@ class TourService
             $tour->enable_language = $localeConfig['enabledLanguages'] ?? ['en', 'hi'];
         }
 
-        $loaderConfig = $finalJson['loaderConfig'] ?? [];
         if ($forceSync || Arr::has($diffJson, 'loaderConfig')) {
             $tour->loader_text = $loaderConfig['loadingText'] ?? "It's Prop Pik, It's Real";
             $tour->overlay_bg_color = $loaderConfig['overlayBackgroundColor'] ?? '#3949AB';
@@ -127,7 +153,6 @@ class TourService
             ];
         }
 
-        $sidebarConfig = $finalJson['sidebarConfig'] ?? [];
         $footerButton = $sidebarConfig['footerButton'] ?? [];
 
         if ($forceSync || Arr::has($diffJson, 'sidebarConfig.logo')) {
@@ -150,11 +175,10 @@ class TourService
         }
 
         if ($forceSync || Arr::has($diffJson, 'sidebarLinks')) {
-            $tour->sidebar_links = $finalJson['sidebarLinks'] ?? [];
+            $tour->sidebar_links = $sidebarLinks;
         }
 
         // bottom mark fields
-        $bottomMarker = $finalJson['bottomMarker'] ?? [];
         if ($forceSync || Arr::has($diffJson, 'bottomMarker.topImage')) {
             $bookingCode = QR::where('booking_id', $tour->booking_id ?? null)->value('code');
             $logo = $bottomMarker['topImage'] ?? null;
@@ -186,7 +210,6 @@ class TourService
             $tour->footer_email = $bottomMarker['contactEmail'] ?? null;
         }
         // Bookmark fields add
-        $bookmark = $finalJson['bookmark'] ?? [];
         if ($forceSync || Arr::has($diffJson, 'bookmark.showBookmarkButton')) {
             $bookmarkTitle = $bookmark['bookmarkTitle'] ?? null;
             if (is_array($bookmarkTitle)) {
