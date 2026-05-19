@@ -1,3 +1,17 @@
+<style>
+    #editModal {
+        z-index: 1055;
+    }
+
+    #materialIconModal {
+        z-index: 1065;
+        border: 3px solid rgba(0, 0, 0, 0.2);
+    }
+
+    #materialIconModal+.modal-backdrop {
+        z-index: 1060;
+    }
+</style>
 <div class="card border-1 shadow-sm">
     <div class="card-header">
         <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
@@ -27,7 +41,7 @@
 </div>
 
 <!-- Edit Info Modal -->
-<div class="modal fade" id="editInfoModal" tabindex="-2" data-reset-on-close="true">
+<div class="modal fade" id="editInfoModal" tabindex="-10" data-reset-on-close="true">
     <div class="modal-dialog modal-xl">
         <div class="modal-content">
             <div class="modal-header sticky-top bg-white border-bottom">
@@ -192,8 +206,8 @@
                                             onchange="this.parentElement.nextElementSibling.value = this.value"
                                             id="buttonColorPreview">
                                     </span>
-                                    <input type="text" name="buttonColor" class="form-control" placeholder="e.g, #1A237E"
-                                        value="" id="buttonColorInput"
+                                    <input type="text" name="buttonColor" class="form-control"
+                                        placeholder="e.g, #1A237E" value="" id="buttonColorInput"
                                         oninput="this.previousElementSibling.querySelector('input').value = this.value">
                                 </div>
                             </div>
@@ -205,9 +219,8 @@
                                             onchange="this.parentElement.nextElementSibling.value = this.value"
                                             id="buttonTextColorPreview">
                                     </span>
-                                    <input type="text" name="buttonTextColor" class="form-control" placeholder="e.g, #ffffff"
-                                        value="#ffffff"
-                                        id="buttonTextColorInput"
+                                    <input type="text" name="buttonTextColor" class="form-control"
+                                        placeholder="e.g, #ffffff" value="#ffffff" id="buttonTextColorInput"
                                         oninput="this.previousElementSibling.querySelector('input').value = this.value">
                                 </div>
                             </div>

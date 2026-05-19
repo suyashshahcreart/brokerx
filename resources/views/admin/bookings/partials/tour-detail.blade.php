@@ -1595,7 +1595,7 @@
 
             <!-- icon modal of the material icon -->
             <!-- Modal -->
-            <div class="modal fade w-100" id="materialIconModal">
+            <div class="modal fade w-100" id="materialIconModal" aria-hidden="true">
                 <div class="modal-dialog modal-xl">
                     <div class="modal-content">
                         <div class="modal-header">
