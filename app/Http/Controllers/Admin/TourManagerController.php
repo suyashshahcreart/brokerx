@@ -3,30 +3,32 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\ProcessTourZipFile;
 use App\Models\Booking;
 use App\Models\City;
+use App\Models\FtpConfiguration;
 use App\Models\QR;
 use App\Models\Setting;
 use App\Models\State;
 use App\Models\Tour;
 use App\Models\TourJsonHistory;
-use App\Models\FtpConfiguration;
 use App\Jobs\UploadTourAssetsToS3;
-use App\Jobs\ProcessTourZipFile;
+use App\Services\TourService;
 use GrahamCampbell\ResultType\Success;
+use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 use Yajra\DataTables\Facades\DataTables;
 use ZipArchive;
 use Aws\S3\Exception\S3Exception;
 use App\Http\Controllers\Admin\TourController;
-use App\Services\TourService;
 use App\Services\TourAssetJsonPersistenceService;
 
 class TourManagerController extends Controller
 {
     protected $tourService;
+
     public function __construct(TourService $tourService)
     {
         $this->tourService = $tourService;
@@ -115,7 +117,7 @@ class TourManagerController extends Controller
                     $query->where('qr_code.code', 'like', "%{$keyword}%");
                 })
                 ->addColumn('booking_id', function (Booking $booking) {
-                    return '<strong>#' . $booking->id . '</strong>';
+                    return '<strong>#'.$booking->id.'</strong>';
                 })
                 ->addColumn('booking_info', function (Booking $booking) {
                     $propertyType = $booking->propertyType?->name ?? 'N/A';
@@ -134,58 +136,66 @@ class TourManagerController extends Controller
                     }
 
                     $info = '';
-                    $info .= '<p>' . $propertyType;
-                    if ($subType)
-                        $info .= ' - ' . $subType;
-                    if ($bhk)
-                        $info .= ' - ' . $bhk;
+                    $info .= '<p>'.$propertyType;
+                    if ($subType) {
+                        $info .= ' - '.$subType;
+                    }
+                    if ($bhk) {
+                        $info .= ' - '.$bhk;
+                    }
                     $info .= '</br>';
                     if ($tourName) {
-                        $info .= e($tourName) . '</p>';
+                        $info .= e($tourName).'</p>';
                     }
+
                     return $info;
                 })
                 ->addColumn('customer', function (Booking $booking) {
-                    $name = $booking->customer ? $booking->customer->firstname . ' ' . $booking->customer->lastname : '-';
-                    return '<strong>' . e($name) . '</strong><br>' .
-                        '<small class="text-muted">' . e($booking->customer->base_mobile ?? '') . '</small>';
+                    $name = $booking->customer ? $booking->customer->firstname.' '.$booking->customer->lastname : '-';
+
+                    return '<strong>'.e($name).'</strong><br>'.
+                        '<small class="text-muted">'.e($booking->customer->base_mobile ?? '').'</small>';
                 })
                 ->addColumn('location', function (Booking $booking) {
                     $location = [];
-                    if ($booking->society_name)
+                    if ($booking->society_name) {
                         $location[] = $booking->society_name;
-                    if ($booking->address_area)
+                    }
+                    if ($booking->address_area) {
                         $location[] = $booking->address_area;
-                    if ($booking->city)
+                    }
+                    if ($booking->city) {
                         $location[] = $booking->city->name;
+                    }
 
                     return implode(', ', $location) ?: 'N/A';
                 })
                 ->addColumn('city_state', function (Booking $booking) {
-                    return ($booking->city?->name ?? '-') . '<div class="text-muted small">' . ($booking->state?->name ?? '-') . '</div>';
+                    return ($booking->city?->name ?? '-').'<div class="text-muted small">'.($booking->state?->name ?? '-').'</div>';
                 })
                 ->addColumn('qr_code', function (Booking $booking) {
                     if ($booking->qr && $booking->qr->code) {
                         $qrBaseUrl = rtrim(Setting::where('name', 'qr_link_base')->value('value') ?? '', '/');
-                        $qrUrl = $booking->qr->qr_link ?: ($qrBaseUrl ? $qrBaseUrl . '/' . $booking->qr->code : null);
+                        $qrUrl = $booking->qr->qr_link ?: ($qrBaseUrl ? $qrBaseUrl.'/'.$booking->qr->code : null);
 
                         // Fallback to plain code when we cannot build a URL
-                        if (!$qrUrl) {
+                        if (! $qrUrl) {
                             $safeCode = htmlspecialchars($booking->qr->code, ENT_QUOTES, 'UTF-8');
-                            return '<span class="text-muted dblclick-copy" data-copy-text="' . $safeCode . '" title="Double click to copy">' . $safeCode . '</span>';
+
+                            return '<span class="text-muted dblclick-copy" data-copy-text="'.$safeCode.'" title="Double click to copy">'.$safeCode.'</span>';
                         }
 
                         $safeUrl = htmlspecialchars($qrUrl, ENT_QUOTES, 'UTF-8');
                         $safeCode = htmlspecialchars($booking->qr->code, ENT_QUOTES, 'UTF-8');
 
-                        return '<a href="' . $safeUrl . '" target="_blank" rel="noopener" data-bs-toggle="tooltip" data-bs-placement="top" title="Open QR link" class="dblclick-copy" data-copy-text="' . $safeCode . '">' . $safeCode . '</a>';
+                        return '<a href="'.$safeUrl.'" target="_blank" rel="noopener" data-bs-toggle="tooltip" data-bs-placement="top" title="Open QR link" class="dblclick-copy" data-copy-text="'.$safeCode.'">'.$safeCode.'</a>';
                     }
 
                     return '<span class="text-muted">N/A</span>';
                 })
                 ->addColumn('created_at', function (Booking $booking) {
-                    return \Carbon\Carbon::parse($booking->created_at)->format('d M Y') . '<br>' .
-                        '<small class="text-muted">' . \Carbon\Carbon::parse($booking->created_at)->format('h:i A') . '</small>';
+                    return \Carbon\Carbon::parse($booking->created_at)->format('d M Y').'<br>'.
+                        '<small class="text-muted">'.\Carbon\Carbon::parse($booking->created_at)->format('h:i A').'</small>';
                 })
                 ->addColumn('status', function (Booking $booking) {
                     $badges = [
@@ -193,41 +203,44 @@ class TourManagerController extends Controller
                         'confirmed' => 'primary',
                         'scheduled' => 'info',
                         'completed' => 'success',
-                        'cancelled' => 'danger'
+                        'cancelled' => 'danger',
                     ];
                     $color = $badges[$booking->status] ?? 'secondary';
-                    return '<span class="badge bg-' . $color . '">' . ucfirst($booking->status) . '</span>';
+
+                    return '<span class="badge bg-'.$color.'">'.ucfirst($booking->status).'</span>';
                 })
                 ->addColumn('payment_status', function (Booking $booking) {
                     $badges = [
                         'pending' => 'warning',
                         'paid' => 'success',
                         'failed' => 'danger',
-                        'refunded' => 'info'
+                        'refunded' => 'info',
                     ];
                     $color = $badges[$booking->payment_status] ?? 'secondary';
-                    return '<span class="badge bg-' . $color . '">' . ucfirst($booking->payment_status) . '</span>';
+
+                    return '<span class="badge bg-'.$color.'">'.ucfirst($booking->payment_status).'</span>';
                 })
                 ->addColumn('price', function (Booking $booking) {
-                    return '₹' . number_format($booking->price, 2);
+                    return '₹'.number_format($booking->price, 2);
                 })
                 ->addColumn('actions', function (Booking $booking) use ($request) {
                     $actions = '<div class="d-flex gap-1">';
 
                     // View button
-                    $actions .= '<a href="' . route('admin.tour-manager.show', $booking) . '" class="btn btn-sm btn-soft-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="View Tour Public Page"><iconify-icon icon="solar:eye-broken" class="align-middle fs-18"></iconify-icon></a>';
+                    $actions .= '<a href="'.route('admin.tour-manager.show', $booking).'" class="btn btn-sm btn-soft-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="View Tour Public Page"><iconify-icon icon="solar:eye-broken" class="align-middle fs-18"></iconify-icon></a>';
 
                     // Edit booking button (Main booking edit)
                     if ($request->user()->can('booking_edit')) {
-                        $actions .= ' <a href="' . route('admin.bookings.edit', $booking->id) . '" class="btn btn-sm btn-soft-info" data-bs-toggle="tooltip" data-bs-placement="top" title="Edit Booking Info"><iconify-icon icon="solar:pen-new-square-broken" class="align-middle fs-18"></iconify-icon></a>';
+                        $actions .= ' <a href="'.route('admin.bookings.edit', $booking->id).'" class="btn btn-sm btn-soft-info" data-bs-toggle="tooltip" data-bs-placement="top" title="Edit Booking Info"><iconify-icon icon="solar:pen-new-square-broken" class="align-middle fs-18"></iconify-icon></a>';
                     }
 
                     // Edit tour button (Upload Tour)
                     if ($booking->tours()->exists() && $request->user()->can('tour_manager_edit')) {
-                        $actions .= ' <a href="' . route('admin.tour-manager.upload', $booking) . '" class="btn btn-sm btn-soft-warning" data-bs-toggle="tooltip" data-bs-placement="top" title="Upload & Manage Tour Assets"><iconify-icon icon="solar:upload-minimalistic-broken" class="align-middle fs-18"></iconify-icon></a>';
+                        $actions .= ' <a href="'.route('admin.tour-manager.upload', $booking).'" class="btn btn-sm btn-soft-warning" data-bs-toggle="tooltip" data-bs-placement="top" title="Upload & Manage Tour Assets"><iconify-icon icon="solar:upload-minimalistic-broken" class="align-middle fs-18"></iconify-icon></a>';
                     }
 
                     $actions .= '</div>';
+
                     return $actions;
                 })
                 ->rawColumns(['booking_id', 'booking_info', 'customer', 'location', 'city_state', 'qr_code', 'created_at', 'status', 'payment_status', 'actions'])
@@ -256,7 +269,7 @@ class TourManagerController extends Controller
             'city',
             'state',
             'tours',
-            'qr'
+            'qr',
         ]);
 
         // Get the tour for this booking
@@ -275,7 +288,7 @@ class TourManagerController extends Controller
         $booking->load(['tours', 'qr']);
 
         $tourLiveUrl = $booking->getTourLiveUrl();
-        $hasLiveLink = !empty($booking->qr?->qr_link) && $tourLiveUrl !== '#';
+        $hasLiveLink = ! empty($booking->qr?->qr_link) && $tourLiveUrl !== '#';
 
         return response()->json([
             'booking_id' => $booking->id,
@@ -296,14 +309,14 @@ class TourManagerController extends Controller
     public function edit(Booking $booking)
     {
         // Permission check is handled by middleware, but verify again
-        if (!auth()->user()->can('tour_manager_edit')) {
+        if (! auth()->user()->can('tour_manager_edit')) {
             abort(403, 'You do not have permission to edit tours.');
         }
 
         // Get the tour for this booking
         $tour = $booking->tours()->first();
 
-        if (!$tour) {
+        if (! $tour) {
             return redirect()->route('admin.tour-manager.show', $booking)
                 ->withErrors(['error' => 'No tour found for this booking.']);
         }
@@ -337,7 +350,7 @@ class TourManagerController extends Controller
 
         // Get the tour for this booking
         $tour = $booking->tours()->first();
-        if (!$tour) {
+        if (! $tour) {
             return back()->withErrors(['error' => 'No tour found for this booking.']);
         }
 
@@ -361,11 +374,11 @@ class TourManagerController extends Controller
 
         // Get or assign QR code to booking
         $qrCode = $booking->qr;
-        if (!$qrCode) {
+        if (! $qrCode) {
             // Find an available QR code (one without a booking)
             $qrCode = QR::whereNull('booking_id')->first();
 
-            if (!$qrCode) {
+            if (! $qrCode) {
                 return back()->withErrors(['error' => 'No available QR codes. Please generate a new QR code first.']);
             }
 
@@ -411,12 +424,12 @@ class TourManagerController extends Controller
                 $chunkThresholdBytes = $chunkThresholdMb * 1024 * 1024;
                 $useBackgroundProcessing = $fileSize > $chunkThresholdBytes;
 
-                \Log::info("File upload check: {$file->getClientOriginalName()} - Size: {$fileSize} bytes ({$fileSizeMB} MB) - Use background: " . ($useBackgroundProcessing ? 'YES' : 'NO'));
+                \Log::info("File upload check: {$file->getClientOriginalName()} - Size: {$fileSize} bytes ({$fileSizeMB} MB) - Use background: ".($useBackgroundProcessing ? 'YES' : 'NO'));
 
                 if ($useBackgroundProcessing) {
                     // Save file temporarily and dispatch background job
-                    $tempPath = $file->storeAs('temp_uploads', 'tour_' . $booking->id . '_' . time() . '.zip', 'local');
-                    $fullTempPath = storage_path('app/' . $tempPath);
+                    $tempPath = $file->storeAs('temp_uploads', 'tour_'.$booking->id.'_'.time().'.zip', 'local');
+                    $fullTempPath = storage_path('app/'.$tempPath);
 
                     \Log::info("Large file detected ({$fileSize} bytes), using background processing. Booking ID: {$booking->id}");
 
@@ -430,7 +443,7 @@ class TourManagerController extends Controller
 
                     // Dispatch background job
                     // Use unique identifier to prevent duplicate jobs
-                    $jobUniqueId = 'tour-processing-' . $booking->id . '-' . md5($file->getClientOriginalName() . $fullTempPath);
+                    $jobUniqueId = 'tour-processing-'.$booking->id.'-'.md5($file->getClientOriginalName().$fullTempPath);
                     ProcessTourZipFile::dispatch(
                         $booking->id,
                         $fullTempPath,
@@ -451,7 +464,7 @@ class TourManagerController extends Controller
                             'tour_zip_status' => $booking->tour_zip_status,
                             'tour_zip_progress' => $booking->tour_zip_progress,
                             'tour_zip_message' => $booking->tour_zip_message,
-                            'redirect' => route('admin.tour-manager.show', $booking)
+                            'redirect' => route('admin.tour-manager.show', $booking),
                         ]);
                     }
 
@@ -479,7 +492,7 @@ class TourManagerController extends Controller
                             's3_path' => $result['s3_path'],
                             's3_url' => $result['s3_url'],
                             'size' => $file->getSize(),
-                            'uploaded_at' => now()->toDateTimeString()
+                            'uploaded_at' => now()->toDateTimeString(),
                         ];
 
                         // Save the S3 base URL of the storage folder to booking
@@ -496,13 +509,13 @@ class TourManagerController extends Controller
                     }
                 }
             } catch (\Exception $e) {
-                \Log::error('File upload error: ' . $e->getMessage() . " in " . $e->getFile() . ":" . $e->getLine());
+                \Log::error('File upload error: '.$e->getMessage().' in '.$e->getFile().':'.$e->getLine());
 
                 // Track error for UI
                 try {
                     $booking->tour_zip_status = 'failed';
                     $booking->tour_zip_progress = 0;
-                    $booking->tour_zip_message = 'Processing failed: ' . $e->getMessage();
+                    $booking->tour_zip_message = 'Processing failed: '.$e->getMessage();
                     $booking->tour_zip_finished_at = now();
                     $booking->save();
                 } catch (\Exception $inner) {
@@ -512,11 +525,11 @@ class TourManagerController extends Controller
                 if ($request->expectsJson()) {
                     return response()->json([
                         'success' => false,
-                        'message' => 'File processing error: ' . $e->getMessage()
+                        'message' => 'File processing error: '.$e->getMessage(),
                     ], 422);
                 }
 
-                return back()->withErrors(['files' => 'File processing error: ' . $e->getMessage()]);
+                return back()->withErrors(['files' => 'File processing error: '.$e->getMessage()]);
             }
         } else {
             // No file uploaded
@@ -534,10 +547,10 @@ class TourManagerController extends Controller
             [
                 'files' => array_merge($existingFiles, $uploadedFiles),
                 'qr_code' => $qrCode->code,
-                'updated_at' => now()->toDateTimeString()
+                'updated_at' => now()->toDateTimeString(),
             ]
         );
-        
+
         // Sync tour fields from final_json without overwriting existing tour fields that are not in final_json
         $this->tourService->syncTourFieldsFromJson($tour, $tour->final_json, [], true);
 
@@ -557,14 +570,13 @@ class TourManagerController extends Controller
                 'success' => true,
                 'message' => 'Tour updated successfully!',
                 'booking_id' => $booking->id,
-                'redirect' => route('admin.tour-manager.show', $booking)
+                'redirect' => route('admin.tour-manager.show', $booking),
             ]);
         }
 
         return redirect()->route('admin.tour-manager.show', $booking)
             ->with('success', 'Tour updated successfully!');
     }
-
 
     /**
      * Process and validate zip file containing tour assets
@@ -582,13 +594,13 @@ class TourManagerController extends Controller
 
             // Load booking relationship to get customer_id
             $tour->load('booking');
-            $zip = new ZipArchive();
+            $zip = new ZipArchive;
             $tempPath = $zipFile->getPathname();
 
             if ($zip->open($tempPath) !== true) {
                 return [
                     'success' => false,
-                    'message' => 'Failed to open zip file'
+                    'message' => 'Failed to open zip file',
                 ];
             }
 
@@ -599,37 +611,38 @@ class TourManagerController extends Controller
             $validation = $this->validateZipStructure($zip, $isFirstTourZipUpload);
             if (!$validation['valid']) {
                 $zip->close();
+
                 return [
                     'success' => false,
-                    'message' => $validation['message']
+                    'message' => $validation['message'],
                 ];
             }
 
             // Create directories:
             // 1. Local tours/{code}/ for index.php (kept locally)
-            $rootTourPath = 'tours/' . $uniqueCode;
+            $rootTourPath = 'tours/'.$uniqueCode;
             $rootTourDirectory = base_path($rootTourPath);
 
             // 2. S3 path for tour assets (images, assets, gallery, tiles)
-            $s3TourPath = 'tours/' . $uniqueCode;
+            $s3TourPath = 'tours/'.$uniqueCode;
 
             // STEP 1: Upload the original ZIP file to S3
             try {
                 $zipContent = file_get_contents($tempPath);
                 if ($zipContent !== false) {
                     Storage::disk('s3')->put(
-                        $s3TourPath . '/tour.zip',
+                        $s3TourPath.'/tour.zip',
                         $zipContent,
                         ['ContentType' => 'application/zip']
                     );
                     try {
-                        Storage::disk('s3')->setVisibility($s3TourPath . '/tour.zip', 'public');
+                        Storage::disk('s3')->setVisibility($s3TourPath.'/tour.zip', 'public');
                     } catch (\Exception $e) {
                         // Visibility failure is not critical
                     }
                 }
             } catch (\Exception $zipUploadException) {
-                \Log::warning("Error uploading ZIP to S3 (continuing): " . $zipUploadException->getMessage() . " in " . $zipUploadException->getFile() . ":" . $zipUploadException->getLine());
+                \Log::warning('Error uploading ZIP to S3 (continuing): '.$zipUploadException->getMessage().' in '.$zipUploadException->getFile().':'.$zipUploadException->getLine());
             }
 
             // Delete old tour files if they exist locally
@@ -638,7 +651,7 @@ class TourManagerController extends Controller
             }
 
             // Create local directory for index.php only
-            if (!\File::exists($rootTourDirectory)) {
+            if (! \File::exists($rootTourDirectory)) {
                 \File::makeDirectory($rootTourDirectory, 0755, true);
             }
 
@@ -673,7 +686,7 @@ class TourManagerController extends Controller
                 $zipStructure[] = [
                     'index' => $i,
                     'name' => $filename,
-                    'size' => $fileInfo['size'] ?? 0
+                    'size' => $fileInfo['size'] ?? 0,
                 ];
 
                 // Find index.html, sw.js, and JSON files
@@ -688,7 +701,7 @@ class TourManagerController extends Controller
                     // Prefer virtual-tour-nodes.json
                     if (stripos($filename, 'virtual-tour-nodes') !== false) {
                         $jsonPath = $filename;
-                    } elseif (!$jsonPath) {
+                    } elseif (! $jsonPath) {
                         // Use first JSON found as fallback
                         $jsonPath = $filename;
                     }
@@ -703,23 +716,24 @@ class TourManagerController extends Controller
                 }
             }
 
-            if (!$indexHtmlPath) {
-                \Log::warning("index.html not found in ZIP structure in " . __FILE__ . ":" . __LINE__);
+            if (! $indexHtmlPath) {
+                \Log::warning('index.html not found in ZIP structure in '.__FILE__.':'.__LINE__);
             }
 
             if ($swJsPath) {
                 \Log::info("sw.js file detected in ZIP: {$swJsPath}");
             } else {
-                \Log::info("sw.js file not found in ZIP structure");
+                \Log::info('sw.js file not found in ZIP structure');
             }
 
             // STEP 3: Verify S3 configuration before processing
-            if (!$this->verifyS3Configuration()) {
+            if (! $this->verifyS3Configuration()) {
                 $zip->close();
-                \Log::error("S3 configuration verification failed. Cannot upload files to S3 in " . __FILE__ . ":" . __LINE__);
+                \Log::error('S3 configuration verification failed. Cannot upload files to S3 in '.__FILE__.':'.__LINE__);
+
                 return [
                     'success' => false,
-                    'message' => 'S3 configuration error. Please check AWS credentials in .env file.'
+                    'message' => 'S3 configuration error. Please check AWS credentials in .env file.',
                 ];
             }
 
@@ -755,7 +769,7 @@ class TourManagerController extends Controller
 
                 if ($filename === $indexHtmlPath || $basenameLower === 'index.html') {
                     // Upload original index.html to S3
-                    $s3IndexPath = $s3TourPath . '/' . $filename;
+                    $s3IndexPath = $s3TourPath.'/'.$filename;
                     try {
                         $uploaded = Storage::disk('s3')->put(
                             $s3IndexPath,
@@ -771,12 +785,13 @@ class TourManagerController extends Controller
                             $uploadedFiles[] = $filename;
                         }
                     } catch (\Exception $e) {
-                        \Log::error("Error uploading index.html to S3: " . $e->getMessage() . " in " . $e->getFile() . ":" . $e->getLine());
+                        \Log::error('Error uploading index.html to S3: '.$e->getMessage().' in '.$e->getFile().':'.$e->getLine());
                     }
 
                     // Save in memory for local processing (will be converted to index.php)
                     $indexHtmlContent = $fileContent;
                     unset($fileContent);
+
                     continue; // Will process later for local index.php
                 }
 
@@ -784,7 +799,7 @@ class TourManagerController extends Controller
                 if ($swJsPath && ($filename === $swJsPath || $basenameLower === 'sw.js')) {
                     \Log::info("Processing sw.js file: {$filename} (detected path: {$swJsPath})");
                     // Upload sw.js to S3
-                    $s3SwJsPath = $s3TourPath . '/' . $filename;
+                    $s3SwJsPath = $s3TourPath.'/'.$filename;
                     try {
                         $uploaded = Storage::disk('s3')->put(
                             $s3SwJsPath,
@@ -801,13 +816,14 @@ class TourManagerController extends Controller
                             \Log::info("Successfully uploaded sw.js to S3: {$s3SwJsPath}");
                         }
                     } catch (\Exception $e) {
-                        \Log::error("Error uploading sw.js to S3: " . $e->getMessage() . " in " . $e->getFile() . ":" . $e->getLine());
+                        \Log::error('Error uploading sw.js to S3: '.$e->getMessage().' in '.$e->getFile().':'.$e->getLine());
                     }
 
                     // Save in memory for FTP upload (will be uploaded without changes)
                     $swJsContent = $fileContent;
-                    \Log::info("Saved sw.js content in memory for FTP upload (size: " . strlen($swJsContent) . " bytes)");
+                    \Log::info('Saved sw.js content in memory for FTP upload (size: '.strlen($swJsContent).' bytes)');
                     unset($fileContent);
+
                     continue; // Will process later for FTP upload
                 }
 
@@ -866,7 +882,7 @@ class TourManagerController extends Controller
 
                 if ($filename === $jsonPath || (pathinfo($lowerFilename, PATHINFO_EXTENSION) === 'json' && stripos($filename, 'virtual-tour-nodes') !== false)) {
                     // Upload original JSON to S3
-                    $s3JsonPath = $s3TourPath . '/' . $filename;
+                    $s3JsonPath = $s3TourPath.'/'.$filename;
                     try {
                         $uploaded = Storage::disk('s3')->put(
                             $s3JsonPath,
@@ -882,18 +898,19 @@ class TourManagerController extends Controller
                             $uploadedFiles[] = $filename;
                         }
                     } catch (\Exception $e) {
-                        \Log::error("Error uploading JSON to S3: " . $e->getMessage() . " in " . $e->getFile() . ":" . $e->getLine());
+                        \Log::error('Error uploading JSON to S3: '.$e->getMessage().' in '.$e->getFile().':'.$e->getLine());
                     }
 
                     // Save in memory for local processing
                     $jsonContent = $fileContent;
                     $jsonFilename = basename($filename);
                     unset($fileContent);
+
                     continue; // Will process later for local save
                 }
 
                 // For all other files: Upload directly to S3
-                $s3FilePath = $s3TourPath . '/' . $filename;
+                $s3FilePath = $s3TourPath.'/'.$filename;
 
                 try {
                     // Determine MIME type
@@ -920,12 +937,12 @@ class TourManagerController extends Controller
                     } else {
                         $errorMsg = "Failed to upload {$filename} to S3";
                         $uploadErrors[] = $errorMsg;
-                        \Log::error($errorMsg . " in " . __FILE__ . ":" . __LINE__);
+                        \Log::error($errorMsg.' in '.__FILE__.':'.__LINE__);
                     }
                 } catch (\Exception $e) {
-                    $errorMsg = "Error uploading {$filename}: " . $e->getMessage();
+                    $errorMsg = "Error uploading {$filename}: ".$e->getMessage();
                     $uploadErrors[] = $errorMsg;
-                    \Log::error($errorMsg . " in " . $e->getFile() . ":" . $e->getLine());
+                    \Log::error($errorMsg.' in '.$e->getFile().':'.$e->getLine());
                 }
 
                 // Free memory
@@ -958,24 +975,27 @@ class TourManagerController extends Controller
                         $found = false;
                         $callback = function ($matches) use ($phpVarName, &$found) {
                             $found = true;
-                            $prefix = $matches[1] . $matches[2];
+                            $prefix = $matches[1].$matches[2];
                             $originalValue = $matches[3];
-                            $suffix = $matches[2] . $matches[4];
+                            $suffix = $matches[2].$matches[4];
                             $fallback = var_export($originalValue, true);
-                            return $prefix . '<?php echo (!empty($' . $phpVarName . ') ? escAttr($' . $phpVarName . ') : ' . $fallback . '); ?>' . $suffix;
+
+                            return $prefix.'<?php echo (!empty($'.$phpVarName.') ? escAttr($'.$phpVarName.') : '.$fallback.'); ?>'.$suffix;
                         };
 
                         // Match meta tag regardless of attribute order
-                        $pattern = '/(<meta[^>]*?' . $attrName . '\s*=\s*["\']' . preg_quote($attrValue, '/') . '["\'][^>]*?content\s*=\s*)(["\'])(.*?)\2([^>]*?>)/is';
-                        $patternAlt = '/(<meta[^>]*?content\s*=\s*)(["\'])(.*?)\2([^>]*?' . $attrName . '\s*=\s*["\']' . preg_quote($attrValue, '/') . '["\'][^>]*?>)/is';
+                        $pattern = '/(<meta[^>]*?'.$attrName.'\s*=\s*["\']'.preg_quote($attrValue, '/').'["\'][^>]*?content\s*=\s*)(["\'])(.*?)\2([^>]*?>)/is';
+                        $patternAlt = '/(<meta[^>]*?content\s*=\s*)(["\'])(.*?)\2([^>]*?'.$attrName.'\s*=\s*["\']'.preg_quote($attrValue, '/').'["\'][^>]*?>)/is';
 
                         $indexHtmlContent = preg_replace_callback($pattern, $callback, $indexHtmlContent, 1, $count);
                         if ($count === 0) {
                             $indexHtmlContent = preg_replace_callback($patternAlt, $callback, $indexHtmlContent, 1, $count);
                         }
 
-                        if ($found)
+                        if ($found) {
                             $replacedTags[$key] = true;
+                        }
+
                         return $found;
                     };
 
@@ -984,23 +1004,26 @@ class TourManagerController extends Controller
                         $found = false;
                         $callback = function ($matches) use ($phpVarName, &$found) {
                             $found = true;
-                            $prefix = $matches[1] . $matches[2];
+                            $prefix = $matches[1].$matches[2];
                             $originalValue = $matches[3];
-                            $suffix = $matches[2] . $matches[4];
+                            $suffix = $matches[2].$matches[4];
                             $fallback = var_export($originalValue, true);
-                            return $prefix . '<?php echo (!empty($' . $phpVarName . ') ? escAttr($' . $phpVarName . ') : ' . $fallback . '); ?>' . $suffix;
+
+                            return $prefix.'<?php echo (!empty($'.$phpVarName.') ? escAttr($'.$phpVarName.') : '.$fallback.'); ?>'.$suffix;
                         };
 
-                        $pattern = '/(<link[^>]*?rel\s*=\s*["\']' . preg_quote($relValue, '/') . '["\'][^>]*?href\s*=\s*)(["\'])(.*?)\2([^>]*?>)/is';
-                        $patternAlt = '/(<link[^>]*?href\s*=\s*)(["\'])(.*?)\2([^>]*?rel\s*=\s*["\']' . preg_quote($relValue, '/') . '["\'][^>]*?>)/is';
+                        $pattern = '/(<link[^>]*?rel\s*=\s*["\']'.preg_quote($relValue, '/').'["\'][^>]*?href\s*=\s*)(["\'])(.*?)\2([^>]*?>)/is';
+                        $patternAlt = '/(<link[^>]*?href\s*=\s*)(["\'])(.*?)\2([^>]*?rel\s*=\s*["\']'.preg_quote($relValue, '/').'["\'][^>]*?>)/is';
 
                         $indexHtmlContent = preg_replace_callback($pattern, $callback, $indexHtmlContent, 1, $count);
                         if ($count === 0) {
                             $indexHtmlContent = preg_replace_callback($patternAlt, $callback, $indexHtmlContent, 1, $count);
                         }
 
-                        if ($found)
+                        if ($found) {
                             $replacedTags[$key] = true;
+                        }
+
                         return $found;
                     };
 
@@ -1008,7 +1031,8 @@ class TourManagerController extends Controller
                     $indexHtmlContent = preg_replace_callback('/(<title[^>]*>)(.*?)(<\/title>)/is', function ($matches) use (&$replacedTags) {
                         $replacedTags['title'] = true;
                         $fallback = var_export($matches[2], true);
-                        return $matches[1] . '<?php echo (!empty($metaTitle) ? escAttr($metaTitle) : ' . $fallback . '); ?>' . $matches[3];
+
+                        return $matches[1].'<?php echo (!empty($metaTitle) ? escAttr($metaTitle) : '.$fallback.'); ?>'.$matches[3];
                     }, $indexHtmlContent, 1);
 
                     // 2. Canonical
@@ -1035,17 +1059,17 @@ class TourManagerController extends Controller
                     // 6. Replace Google Tag Manager occurrences with dynamic GTM code (All occurrences)
                     $indexHtmlContent = preg_replace(
                         '/https:\/\/www\.googletagmanager\.com\/gtm\.js\?id=[^"\'\s)]+/i',
-                        'https://www.googletagmanager.com/gtm.js?id=' . $gtmPhpEcho,
+                        'https://www.googletagmanager.com/gtm.js?id='.$gtmPhpEcho,
                         $indexHtmlContent
                     );
                     $indexHtmlContent = preg_replace(
                         '/https:\/\/www\.googletagmanager\.com\/ns\.html\?id=[^"\'\s)]+/i',
-                        'https://www.googletagmanager.com/ns.html?id=' . $gtmPhpEcho,
+                        'https://www.googletagmanager.com/ns.html?id='.$gtmPhpEcho,
                         $indexHtmlContent
                     );
                     $indexHtmlContent = preg_replace(
                         '/["\']GTM-[A-Z0-9]+["\']/i',
-                        '"' . $gtmPhpEcho . '"',
+                        '"'.$gtmPhpEcho.'"',
                         $indexHtmlContent
                     );
 
@@ -1061,7 +1085,8 @@ class TourManagerController extends Controller
                         '/(<div[^>]*class=["\'][^"\']*viewer-loading-text[^"\']*["\'][^>]*>)(.*?)(<\/div>)/is',
                         function ($m) use ($loaderTextPhp) {
                             $fallback = var_export($m[2], true);
-                            return $m[1] . $loaderTextPhp . $fallback . '); ?>' . $m[3];
+
+                            return $m[1].$loaderTextPhp.$fallback.'); ?>'.$m[3];
                         },
                         $indexHtmlContent,
                         1
@@ -1076,7 +1101,8 @@ class TourManagerController extends Controller
                                 '/(background-color\s*:\s*)([^;]+)(;?)/i',
                                 function ($sm) use ($overlayBgPhp) {
                                     $fallback = var_export(trim($sm[2]), true);
-                                    return $sm[1] . $overlayBgPhp . $fallback . '); ?>' . ($sm[3] ?: ';');
+
+                                    return $sm[1].$overlayBgPhp.$fallback.'); ?>'.($sm[3] ?: ';');
                                 },
                                 $style,
                                 1,
@@ -1086,11 +1112,13 @@ class TourManagerController extends Controller
                             if (empty($count)) {
                                 $fallback = var_export('rgb(0, 0, 64)', true);
                                 $style = rtrim($style);
-                                if ($style !== '' && substr($style, -1) !== ';')
+                                if ($style !== '' && substr($style, -1) !== ';') {
                                     $style .= ';';
-                                $style .= 'background-color:' . $overlayBgPhp . $fallback . '); ?>;';
+                                }
+                                $style .= 'background-color:'.$overlayBgPhp.$fallback.'); ?>;';
                             }
-                            return $m[1] . $style . $m[3];
+
+                            return $m[1].$style.$m[3];
                         },
                         $indexHtmlContent,
                         1
@@ -1099,14 +1127,15 @@ class TourManagerController extends Controller
                     // Helper: replace stop-color for a given gradient id using an array var ($loaderColors / $spinnerColors)
                     $replaceGradientStops = function (string $gradientId, string $phpArrayVar) use (&$indexHtmlContent) {
                         $indexHtmlContent = preg_replace_callback(
-                            '/(<linearGradient[^>]*\bid=["\']' . preg_quote($gradientId, '/') . '["\'][^>]*>)(.*?)(<\/linearGradient>)/is',
+                            '/(<linearGradient[^>]*\bid=["\']'.preg_quote($gradientId, '/').'["\'][^>]*>)(.*?)(<\/linearGradient>)/is',
                             function ($m) use ($phpArrayVar) {
                                 $inner = $m[2];
                                 $inner = preg_replace_callback(
                                     '/(<stop[^>]*\boffset=["\']0%["\'][^>]*\bstyle=["\'][^"\']*stop-color\s*:\s*)([^;"\']+)([^"\']*["\'][^>]*>)/is',
                                     function ($sm) use ($phpArrayVar) {
                                         $fallback = var_export(trim($sm[2]), true);
-                                        return $sm[1] . '<?php echo escAttr($' . $phpArrayVar . '[0] ?? ' . $fallback . '); ?>' . $sm[3];
+
+                                        return $sm[1].'<?php echo escAttr($'.$phpArrayVar.'[0] ?? '.$fallback.'); ?>'.$sm[3];
                                     },
                                     $inner,
                                     1
@@ -1115,7 +1144,8 @@ class TourManagerController extends Controller
                                     '/(<stop[^>]*\boffset=["\']50%["\'][^>]*\bstyle=["\'][^"\']*stop-color\s*:\s*)([^;"\']+)([^"\']*["\'][^>]*>)/is',
                                     function ($sm) use ($phpArrayVar) {
                                         $fallback = var_export(trim($sm[2]), true);
-                                        return $sm[1] . '<?php echo escAttr($' . $phpArrayVar . '[1] ?? ' . $fallback . '); ?>' . $sm[3];
+
+                                        return $sm[1].'<?php echo escAttr($'.$phpArrayVar.'[1] ?? '.$fallback.'); ?>'.$sm[3];
                                     },
                                     $inner,
                                     1
@@ -1124,12 +1154,14 @@ class TourManagerController extends Controller
                                     '/(<stop[^>]*\boffset=["\']100%["\'][^>]*\bstyle=["\'][^"\']*stop-color\s*:\s*)([^;"\']+)([^"\']*["\'][^>]*>)/is',
                                     function ($sm) use ($phpArrayVar) {
                                         $fallback = var_export(trim($sm[2]), true);
-                                        return $sm[1] . '<?php echo escAttr($' . $phpArrayVar . '[2] ?? ' . $fallback . '); ?>' . $sm[3];
+
+                                        return $sm[1].'<?php echo escAttr($'.$phpArrayVar.'[2] ?? '.$fallback.'); ?>'.$sm[3];
                                     },
                                     $inner,
                                     1
                                 );
-                                return $m[1] . $inner . $m[3];
+
+                                return $m[1].$inner.$m[3];
                             },
                             $indexHtmlContent,
                             1
@@ -1141,15 +1173,15 @@ class TourManagerController extends Controller
                     $replaceGradientStops('innerGradient', 'spinnerColors');
                     // Prepend flags and fetch script to the content
                     $phpScript = $this->generateDatabaseFetchScript($tour);
-                    $flagsScript = "<?php \$replacedTags = " . var_export($replacedTags, true) . "; ?>";
-                    $indexPhpContent = $flagsScript . "\n" . $phpScript . "\n" . $indexHtmlContent;
+                    $flagsScript = '<?php $replacedTags = '.var_export($replacedTags, true).'; ?>';
+                    $indexPhpContent = $flagsScript."\n".$phpScript."\n".$indexHtmlContent;
 
                     // Inject JavaScript, SEO meta tags, and header code before </head>
                     if (preg_match('/<\/head>/i', $indexPhpContent)) {
                         $jsDataScript = $this->generateJavaScriptDataScript();
                         $indexPhpContent = preg_replace(
                             '/<\/head>/i',
-                            $jsDataScript . "\n</head>",
+                            $jsDataScript."\n</head>",
                             $indexPhpContent,
                             1
                         );
@@ -1160,52 +1192,52 @@ class TourManagerController extends Controller
                         $footerScript = $this->generateFooterCodeScript();
                         $indexPhpContent = preg_replace(
                             '/<\/body>/i',
-                            $footerScript . "\n</body>",
+                            $footerScript."\n</body>",
                             $indexPhpContent,
                             1
                         );
                     }
                     // Save index.php LOCALLY
                     // Ensure directory exists and is writable
-                    if (!is_dir($rootTourDirectory)) {
+                    if (! is_dir($rootTourDirectory)) {
                         \File::makeDirectory($rootTourDirectory, 0775, true);
                         @chmod($rootTourDirectory, 0775);
                     }
 
-                    $indexPhpPath = $rootTourDirectory . '/index.php';
+                    $indexPhpPath = $rootTourDirectory.'/index.php';
                     if (file_put_contents($indexPhpPath, $indexPhpContent) === false) {
                         throw new \Exception("Failed to write index.php to {$indexPhpPath}. Please check directory permissions.");
                     }
                     @chmod($indexPhpPath, 0664);
-                    \Log::info("Successfully created index.php from index.html");
+                    \Log::info('Successfully created index.php from index.html');
 
                     // Upload index.php to FTP server based on tour location
                     $ftpUploadResult = $this->uploadIndexPhpToFtp(
-                        $rootTourDirectory . '/index.php',
+                        $rootTourDirectory.'/index.php',
                         $tour
                     );
 
                 } catch (\Exception $e) {
-                    \Log::error("Error processing index.html: " . $e->getMessage() . " in " . $e->getFile() . ":" . $e->getLine());
+                    \Log::error('Error processing index.html: '.$e->getMessage().' in '.$e->getFile().':'.$e->getLine());
                     $indexHtmlContent = null;
                 }
             } else {
-                \Log::error("index.html file not found in ZIP in " . __FILE__ . ":" . __LINE__);
+                \Log::error('index.html file not found in ZIP in '.__FILE__.':'.__LINE__);
             }
 
             // STEP 5.5: Upload sw.js to FTP if it exists (same path as index.php)
             // Do this outside index.html processing so it works even if index.html fails
             if ($swJsContent) {
                 try {
-                    \Log::info("Preparing to upload sw.js to FTP (content size: " . strlen($swJsContent) . " bytes)");
+                    \Log::info('Preparing to upload sw.js to FTP (content size: '.strlen($swJsContent).' bytes)');
                     // Ensure directory exists
-                    if (!is_dir($rootTourDirectory)) {
+                    if (! is_dir($rootTourDirectory)) {
                         \File::makeDirectory($rootTourDirectory, 0775, true);
                         @chmod($rootTourDirectory, 0775);
                     }
 
                     // Save sw.js locally first
-                    $swJsLocalPath = $rootTourDirectory . '/sw.js';
+                    $swJsLocalPath = $rootTourDirectory.'/sw.js';
                     if (file_put_contents($swJsLocalPath, $swJsContent) === false) {
                         throw new \Exception("Failed to write sw.js to {$swJsLocalPath}. Please check directory permissions.");
                     }
@@ -1215,16 +1247,16 @@ class TourManagerController extends Controller
                     // Upload sw.js to FTP (same directory as index.php)
                     $swJsFtpResult = $this->uploadSwJsToFtp($swJsLocalPath, $tour);
                     if ($swJsFtpResult['success']) {
-                        \Log::info("✓ Successfully uploaded sw.js to FTP: " . ($swJsFtpResult['ftp_path'] ?? 'N/A'));
+                        \Log::info('✓ Successfully uploaded sw.js to FTP: '.($swJsFtpResult['ftp_path'] ?? 'N/A'));
                     } else {
-                        \Log::warning("Failed to upload sw.js to FTP: " . ($swJsFtpResult['message'] ?? 'Unknown error'));
+                        \Log::warning('Failed to upload sw.js to FTP: '.($swJsFtpResult['message'] ?? 'Unknown error'));
                     }
                 } catch (\Exception $e) {
-                    \Log::error("Error processing sw.js: " . $e->getMessage() . " in " . $e->getFile() . ":" . $e->getLine());
-                    \Log::error("Stack trace: " . $e->getTraceAsString());
+                    \Log::error('Error processing sw.js: '.$e->getMessage().' in '.$e->getFile().':'.$e->getLine());
+                    \Log::error('Stack trace: '.$e->getTraceAsString());
                 }
             } else {
-                \Log::info("sw.js content not found, skipping FTP upload");
+                \Log::info('sw.js content not found, skipping FTP upload');
             }
 
             // STEP 6: Process JSON file - Save locally
@@ -1233,33 +1265,33 @@ class TourManagerController extends Controller
                     $jsonData = json_decode($jsonContent, true);
 
                     // Ensure directory exists
-                    if (!is_dir($rootTourDirectory)) {
+                    if (! is_dir($rootTourDirectory)) {
                         \File::makeDirectory($rootTourDirectory, 0775, true);
                         @chmod($rootTourDirectory, 0775);
                     }
 
-                    $jsonLocalPath = $rootTourDirectory . '/' . $jsonFilename;
+                    $jsonLocalPath = $rootTourDirectory.'/'.$jsonFilename;
                     if (file_put_contents($jsonLocalPath, $jsonContent) === false) {
                         throw new \Exception("Failed to write JSON file to {$jsonLocalPath}. Please check directory permissions.");
                     }
                     @chmod($jsonLocalPath, 0664);
                 } catch (\Exception $e) {
-                    \Log::error("Error processing JSON file: " . $e->getMessage() . " in " . $e->getFile() . ":" . $e->getLine());
+                    \Log::error('Error processing JSON file: '.$e->getMessage().' in '.$e->getFile().':'.$e->getLine());
                 }
             } else {
-                \Log::warning("JSON file not found in ZIP in " . __FILE__ . ":" . __LINE__);
+                \Log::warning('JSON file not found in ZIP in '.__FILE__.':'.__LINE__);
             }
 
             // STEP 7: Final summary and cleanup
             $totalUploaded = count($uploadedFiles);
 
             if ($totalUploaded === 0) {
-                \Log::error("No files were uploaded to S3 in " . __FILE__ . ":" . __LINE__);
-                if (!empty($uploadErrors)) {
-                    \Log::error("Upload errors: " . implode(' | ', array_slice($uploadErrors, 0, 5)));
+                \Log::error('No files were uploaded to S3 in '.__FILE__.':'.__LINE__);
+                if (! empty($uploadErrors)) {
+                    \Log::error('Upload errors: '.implode(' | ', array_slice($uploadErrors, 0, 5)));
                 }
-            } else if (!empty($uploadErrors)) {
-                \Log::warning("Some upload errors occurred: " . count($uploadErrors) . " error(s) in " . __FILE__ . ":" . __LINE__);
+            } elseif (! empty($uploadErrors)) {
+                \Log::warning('Some upload errors occurred: '.count($uploadErrors).' error(s) in '.__FILE__.':'.__LINE__);
             }
 
             // No temp directory cleanup needed - we never created one!
@@ -1271,19 +1303,20 @@ class TourManagerController extends Controller
                 return [
                     'success' => false,
                     'message' => 'Zip file must contain index.html. The first tour upload requires a complete ZIP including index.html.',
+
                 ];
             }
 
-            if (!$jsonData) {
-                \Log::warning("JSON file not found, but continuing as it's not critical for basic functionality in " . __FILE__ . ":" . __LINE__);
+            if (! $jsonData) {
+                \Log::warning("JSON file not found, but continuing as it's not critical for basic functionality in ".__FILE__.':'.__LINE__);
                 // JSON is not critical - we can continue without it
             }
 
             // Generate base URL for S3 assets
             $s3BaseUrl = config('filesystems.disks.s3.url') ?:
-                'https://' . config('filesystems.disks.s3.bucket') . '.s3.' .
-                config('filesystems.disks.s3.region') . '.amazonaws.com';
-            $s3Url = rtrim($s3BaseUrl, '/') . '/' . $s3TourPath;
+                'https://'.config('filesystems.disks.s3.bucket').'.s3.'.
+                config('filesystems.disks.s3.region').'.amazonaws.com';
+            $s3Url = rtrim($s3BaseUrl, '/').'/'.$s3TourPath;
 
             // Update booking with S3 base URL for assets
             $booking = $tour->booking;
@@ -1305,10 +1338,10 @@ class TourManagerController extends Controller
                     's3_config_js' => $s3TourDataJsPath !== null,
                 ],
                 'tour_path' => $rootTourPath,
-                'tour_url' => url('/' . $rootTourPath . '/index.php'),
+                'tour_url' => url('/'.$rootTourPath.'/index.php'),
                 's3_path' => $s3TourPath,
                 's3_url' => $s3Url,
-                'message' => 'Zip file processed successfully - index.php stored locally, assets uploaded to S3'
+                'message' => 'Zip file processed successfully - index.php stored locally, assets uploaded to S3',
             ];
 
             // Add FTP upload result if available
@@ -1318,17 +1351,18 @@ class TourManagerController extends Controller
                     $returnData['ftp_path'] = $ftpUploadResult['ftp_path'] ?? null;
                     $returnData['message'] .= ' and uploaded to FTP';
                 } else {
-                    \Log::warning("FTP upload failed: " . ($ftpUploadResult['message'] ?? 'Unknown error'));
+                    \Log::warning('FTP upload failed: '.($ftpUploadResult['message'] ?? 'Unknown error'));
                 }
             }
 
             return $returnData;
 
         } catch (\Exception $e) {
-            \Log::error('Zip processing error: ' . $e->getMessage() . " in " . $e->getFile() . ":" . $e->getLine());
+            \Log::error('Zip processing error: '.$e->getMessage().' in '.$e->getFile().':'.$e->getLine());
+
             return [
                 'success' => false,
-                'message' => 'Error processing zip file: ' . $e->getMessage()
+                'message' => 'Error processing zip file: '.$e->getMessage(),
             ];
         }
     }
@@ -1338,8 +1372,8 @@ class TourManagerController extends Controller
      */
     /**
      * Get proper MIME type based on file extension
-     * 
-     * @param string $filePath File path or filename
+     *
+     * @param  string  $filePath  File path or filename
      * @return string MIME type
      */
     private function getMimeType($filePath)
@@ -1445,23 +1479,25 @@ class TourManagerController extends Controller
     private function uploadDirectoryToS3($localPath, $s3Path, $excludeFiles = [])
     {
         // First, verify S3 configuration
-        if (!$this->verifyS3Configuration()) {
-            \Log::error("S3 configuration is missing or invalid. Check AWS credentials in .env file in " . __FILE__ . ":" . __LINE__);
+        if (! $this->verifyS3Configuration()) {
+            \Log::error('S3 configuration is missing or invalid. Check AWS credentials in .env file in '.__FILE__.':'.__LINE__);
+
             return [
                 'success' => false,
                 'message' => 'S3 configuration error. Please check AWS credentials in .env file.',
                 'files_count' => 0,
-                'total_size' => 0
+                'total_size' => 0,
             ];
         }
 
-        if (!is_dir($localPath)) {
+        if (! is_dir($localPath)) {
             \Log::warning("Directory not found for S3 upload: {$localPath}");
+
             return [
                 'success' => false,
                 'message' => 'Directory not found',
                 'files_count' => 0,
-                'total_size' => 0
+                'total_size' => 0,
             ];
         }
 
@@ -1474,12 +1510,12 @@ class TourManagerController extends Controller
 
         // Collect all files first
         foreach ($files as $file) {
-            if (!$file->isFile()) {
+            if (! $file->isFile()) {
                 continue;
             }
 
             $filePath = $file->getPathname();
-            $relativePath = str_replace($localPath . DIRECTORY_SEPARATOR, '', $filePath);
+            $relativePath = str_replace($localPath.DIRECTORY_SEPARATOR, '', $filePath);
             $relativePath = str_replace('\\', '/', $relativePath);
 
             // Skip excluded files
@@ -1498,24 +1534,25 @@ class TourManagerController extends Controller
             }
 
             // Normalize S3 path (remove leading slashes)
-            $s3FilePath = ltrim($s3Path . '/' . $relativePath, '/');
+            $s3FilePath = ltrim($s3Path.'/'.$relativePath, '/');
             $filesToUpload[] = [
                 'local' => $filePath,
                 's3' => $s3FilePath,
-                'size' => filesize($filePath)
+                'size' => filesize($filePath),
             ];
         }
 
         // Log summary of files to upload
-        \Log::info("Found " . count($filesToUpload) . " files to upload from: {$localPath} to S3 path: {$s3Path}");
+        \Log::info('Found '.count($filesToUpload)." files to upload from: {$localPath} to S3 path: {$s3Path}");
 
         if (empty($filesToUpload)) {
             \Log::warning("No files found to upload in directory: {$localPath}");
+
             return [
                 'success' => false,
                 'message' => 'No files found in directory',
                 'files_count' => 0,
-                'total_size' => 0
+                'total_size' => 0,
             ];
         }
 
@@ -1530,13 +1567,13 @@ class TourManagerController extends Controller
             foreach ($batch as $fileData) {
                 try {
                     // Verify file exists before reading
-                    if (!file_exists($fileData['local'])) {
+                    if (! file_exists($fileData['local'])) {
                         throw new \Exception("Local file not found: {$fileData['local']}");
                     }
 
                     $fileContent = file_get_contents($fileData['local']);
                     if ($fileContent === false) {
-                        throw new \Exception("Failed to read file content");
+                        throw new \Exception('Failed to read file content');
                     }
 
                     // Get proper MIME type based on file extension
@@ -1553,7 +1590,7 @@ class TourManagerController extends Controller
                         $key = config('filesystems.disks.s3.key');
 
                         if (empty($bucket) || empty($region) || empty($key)) {
-                            throw new \Exception("S3 configuration incomplete. Check AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION, and AWS_BUCKET in .env");
+                            throw new \Exception('S3 configuration incomplete. Check AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION, and AWS_BUCKET in .env');
                         }
 
                         // Try to upload using Laravel Storage facade
@@ -1562,7 +1599,7 @@ class TourManagerController extends Controller
                             $fileData['s3'],
                             $fileContent,
                             [
-                                'ContentType' => $mimeType
+                                'ContentType' => $mimeType,
                             ]
                         );
 
@@ -1608,17 +1645,15 @@ class TourManagerController extends Controller
                     $totalSize += $fileData['size'];
                     $uploadedCount++;
 
-
                 } catch (\Exception $e) {
                     $failedCount++;
-                    $errorMsg = "Failed to upload {$fileData['s3']}: " . $e->getMessage();
+                    $errorMsg = "Failed to upload {$fileData['s3']}: ".$e->getMessage();
                     $errors[] = $errorMsg;
-                    \Log::error($errorMsg . " | File: {$fileData['local']} in " . __FILE__ . ":" . __LINE__);
-
+                    \Log::error($errorMsg." | File: {$fileData['local']} in ".__FILE__.':'.__LINE__);
 
                     // If too many failures, stop and report
                     if ($failedCount > 10) {
-                        \Log::error("Too many upload failures ({$failedCount}). Stopping upload process in " . __FILE__ . ":" . __LINE__);
+                        \Log::error("Too many upload failures ({$failedCount}). Stopping upload process in ".__FILE__.':'.__LINE__);
                         break 2;
                     }
                 }
@@ -1629,8 +1664,8 @@ class TourManagerController extends Controller
         $totalFiles = count($filesToUpload);
 
         if ($failedCount > 0) {
-            \Log::error("Upload completed with errors: {$uploadedCount}/{$totalFiles} files uploaded ({$sizeMB} MB), {$failedCount} failed to S3 path: {$s3Path} in " . __FILE__ . ":" . __LINE__);
-            \Log::error("Upload errors: " . implode(' | ', array_slice($errors, 0, 5)));
+            \Log::error("Upload completed with errors: {$uploadedCount}/{$totalFiles} files uploaded ({$sizeMB} MB), {$failedCount} failed to S3 path: {$s3Path} in ".__FILE__.':'.__LINE__);
+            \Log::error('Upload errors: '.implode(' | ', array_slice($errors, 0, 5)));
         }
 
         return [
@@ -1641,7 +1676,7 @@ class TourManagerController extends Controller
             'files_count' => $uploadedCount,
             'total_size' => $sizeMB,
             'failed_count' => $failedCount,
-            'errors' => $errors
+            'errors' => $errors,
         ];
     }
 
@@ -1654,13 +1689,14 @@ class TourManagerController extends Controller
             'AWS_ACCESS_KEY_ID',
             'AWS_SECRET_ACCESS_KEY',
             'AWS_DEFAULT_REGION',
-            'AWS_BUCKET'
+            'AWS_BUCKET',
         ];
 
         foreach ($required as $key) {
             $value = env($key);
             if (empty($value)) {
-                \Log::error("Missing S3 configuration: {$key} in " . __FILE__ . ":" . __LINE__);
+                \Log::error("Missing S3 configuration: {$key} in ".__FILE__.':'.__LINE__);
+
                 return false;
             }
         }
@@ -1672,7 +1708,8 @@ class TourManagerController extends Controller
             $region = config('filesystems.disks.s3.region');
 
             if (empty($bucket)) {
-                \Log::error("S3 bucket name is not configured in " . __FILE__ . ":" . __LINE__);
+                \Log::error('S3 bucket name is not configured in '.__FILE__.':'.__LINE__);
+
                 return false;
             }
 
@@ -1680,7 +1717,8 @@ class TourManagerController extends Controller
             // This is a lightweight test that doesn't require listing
             return true;
         } catch (\Exception $e) {
-            \Log::error("S3 configuration test failed: " . $e->getMessage() . " in " . $e->getFile() . ":" . $e->getLine());
+            \Log::error('S3 configuration test failed: '.$e->getMessage().' in '.$e->getFile().':'.$e->getLine());
+
             return false;
         }
     }
@@ -1720,7 +1758,7 @@ class TourManagerController extends Controller
 
             // Split path into parts
             $parts = array_filter(explode('/', $filename), function ($part) {
-                return !empty($part) && $part !== '.';
+                return ! empty($part) && $part !== '.';
             });
             $parts = array_values($parts); // Re-index array
 
@@ -1741,7 +1779,7 @@ class TourManagerController extends Controller
             // This handles both: "images/file.jpg" and "rootFolder/images/file.jpg"
             foreach ($parts as $part) {
                 $partLower = strtolower($part);
-                if (in_array($partLower, $requiredFolders) && !in_array($partLower, $foundFolders)) {
+                if (in_array($partLower, $requiredFolders) && ! in_array($partLower, $foundFolders)) {
                     $foundFolders[] = $partLower;
                 }
             }
@@ -1753,14 +1791,14 @@ class TourManagerController extends Controller
             return ['valid' => false, 'message' => 'Zip file must contain index.html'];
         }
 
-        if (!$hasJsonFile) {
+        if (! $hasJsonFile) {
             return ['valid' => false, 'message' => 'Zip file must contain a JSON configuration file'];
         }
 
-        if (!empty($missingFolders)) {
+        if (! empty($missingFolders)) {
             return [
                 'valid' => false,
-                'message' => 'Zip file missing required folders: ' . implode(', ', $missingFolders)
+                'message' => 'Zip file missing required folders: '.implode(', ', $missingFolders),
             ];
         }
 
@@ -1780,7 +1818,7 @@ class TourManagerController extends Controller
     private function generateDatabaseFetchScript(Tour $tour)
     {
         $apiUrlBase = url('/api/tour/page_data');
-        $token = md5($tour->slug . $tour->created_at . 'tour_secret_2026');
+        $token = md5($tour->slug.$tour->created_at.'tour_secret_2026');
 
         return <<<PHP
         <?php
@@ -2049,19 +2087,19 @@ PHP;
 
         try {
             $file = $request->file('file');
-            $filename = time() . '_' . $file->getClientOriginalName();
+            $filename = time().'_'.$file->getClientOriginalName();
             $path = $file->storeAs('tours', $filename, 'public');
 
             return response()->json([
                 'success' => true,
                 'path' => $path,
-                'url' => asset('storage/' . $path),
-                'message' => 'File uploaded successfully'
+                'url' => asset('storage/'.$path),
+                'message' => 'File uploaded successfully',
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 500);
         }
     }
@@ -2082,19 +2120,20 @@ PHP;
         $bookingId = $request->input('booking_id');
 
         // Generate unique upload ID
-        $uploadId = md5($filename . $totalSize . $bookingId . time());
+        $uploadId = md5($filename.$totalSize.$bookingId.time());
 
         // Create temporary directory for chunks
-        $chunkDir = storage_path('app/chunks/' . $uploadId);
+        $chunkDir = storage_path('app/chunks/'.$uploadId);
 
         // Ensure parent chunks directory exists and has correct permissions
         $chunksBaseDir = storage_path('app/chunks');
-        if (!is_dir($chunksBaseDir)) {
-            if (!mkdir($chunksBaseDir, 0775, true)) {
-                \Log::error("Failed to create chunks base directory: {$chunksBaseDir} in " . __FILE__ . ":" . __LINE__);
+        if (! is_dir($chunksBaseDir)) {
+            if (! mkdir($chunksBaseDir, 0775, true)) {
+                \Log::error("Failed to create chunks base directory: {$chunksBaseDir} in ".__FILE__.':'.__LINE__);
+
                 return response()->json([
                     'success' => false,
-                    'message' => 'Failed to create upload directory. Please check server permissions.'
+                    'message' => 'Failed to create upload directory. Please check server permissions.',
                 ], 500);
             }
             // Set ownership if possible
@@ -2102,12 +2141,13 @@ PHP;
         }
 
         // Create upload-specific directory
-        if (!is_dir($chunkDir)) {
-            if (!mkdir($chunkDir, 0775, true)) {
-                \Log::error("Failed to create chunk directory: {$chunkDir} in " . __FILE__ . ":" . __LINE__);
+        if (! is_dir($chunkDir)) {
+            if (! mkdir($chunkDir, 0775, true)) {
+                \Log::error("Failed to create chunk directory: {$chunkDir} in ".__FILE__.':'.__LINE__);
+
                 return response()->json([
                     'success' => false,
-                    'message' => 'Failed to create upload directory. Please check server permissions.'
+                    'message' => 'Failed to create upload directory. Please check server permissions.',
                 ], 500);
             }
             @chmod($chunkDir, 0775);
@@ -2124,7 +2164,7 @@ PHP;
             'created_at' => now()->toDateTimeString(),
         ];
 
-        file_put_contents($chunkDir . '/metadata.json', json_encode($metadata));
+        file_put_contents($chunkDir.'/metadata.json', json_encode($metadata));
 
         return response()->json([
             'success' => true,
@@ -2149,29 +2189,29 @@ PHP;
         $chunkNumber = $request->input('chunk_number');
         $chunkFile = $request->file('chunk');
 
-        $chunkDir = storage_path('app/chunks/' . $uploadId);
+        $chunkDir = storage_path('app/chunks/'.$uploadId);
 
-        if (!is_dir($chunkDir)) {
+        if (! is_dir($chunkDir)) {
             return response()->json([
                 'success' => false,
-                'message' => 'Upload session not found. Please restart the upload.'
+                'message' => 'Upload session not found. Please restart the upload.',
             ], 404);
         }
 
         // Load metadata
-        $metadataPath = $chunkDir . '/metadata.json';
-        if (!file_exists($metadataPath)) {
+        $metadataPath = $chunkDir.'/metadata.json';
+        if (! file_exists($metadataPath)) {
             return response()->json([
                 'success' => false,
-                'message' => 'Upload metadata not found.'
+                'message' => 'Upload metadata not found.',
             ], 404);
         }
 
         $metadata = json_decode(file_get_contents($metadataPath), true);
 
         // Save chunk
-        $chunkPath = $chunkDir . '/chunk_' . $chunkNumber;
-        $chunkFile->move($chunkDir, 'chunk_' . $chunkNumber);
+        $chunkPath = $chunkDir.'/chunk_'.$chunkNumber;
+        $chunkFile->move($chunkDir, 'chunk_'.$chunkNumber);
 
         // Update metadata
         $metadata['chunks_uploaded'] = max($metadata['chunks_uploaded'], $chunkNumber + 1);
@@ -2205,21 +2245,21 @@ PHP;
         ]);
 
         $uploadId = $request->input('upload_id');
-        $chunkDir = storage_path('app/chunks/' . $uploadId);
+        $chunkDir = storage_path('app/chunks/'.$uploadId);
 
-        if (!is_dir($chunkDir)) {
+        if (! is_dir($chunkDir)) {
             return response()->json([
                 'success' => false,
-                'message' => 'Upload session not found.'
+                'message' => 'Upload session not found.',
             ], 404);
         }
 
         // Load metadata
-        $metadataPath = $chunkDir . '/metadata.json';
-        if (!file_exists($metadataPath)) {
+        $metadataPath = $chunkDir.'/metadata.json';
+        if (! file_exists($metadataPath)) {
             return response()->json([
                 'success' => false,
-                'message' => 'Upload metadata not found.'
+                'message' => 'Upload metadata not found.',
             ], 404);
         }
 
@@ -2229,7 +2269,7 @@ PHP;
         $expectedChunks = $metadata['total_chunks'];
         $uploadedChunks = 0;
         for ($i = 0; $i < $expectedChunks; $i++) {
-            if (file_exists($chunkDir . '/chunk_' . $i)) {
+            if (file_exists($chunkDir.'/chunk_'.$i)) {
                 $uploadedChunks++;
             }
         }
@@ -2237,23 +2277,23 @@ PHP;
         if ($uploadedChunks < $expectedChunks) {
             return response()->json([
                 'success' => false,
-                'message' => "Not all chunks uploaded. Expected: {$expectedChunks}, Uploaded: {$uploadedChunks}"
+                'message' => "Not all chunks uploaded. Expected: {$expectedChunks}, Uploaded: {$uploadedChunks}",
             ], 400);
         }
 
         // Combine chunks into single file
-        $finalPath = $chunkDir . '/final.zip';
+        $finalPath = $chunkDir.'/final.zip';
         $finalFile = fopen($finalPath, 'wb');
 
-        if (!$finalFile) {
+        if (! $finalFile) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to create final file.'
+                'message' => 'Failed to create final file.',
             ], 500);
         }
 
         for ($i = 0; $i < $expectedChunks; $i++) {
-            $chunkPath = $chunkDir . '/chunk_' . $i;
+            $chunkPath = $chunkDir.'/chunk_'.$i;
             $chunkContent = file_get_contents($chunkPath);
             fwrite($finalFile, $chunkContent);
             unlink($chunkPath); // Clean up chunk
@@ -2275,7 +2315,7 @@ PHP;
 
             // Dispatch background job to process the ZIP file
             // Use unique identifier to prevent duplicate jobs
-            $jobUniqueId = 'tour-processing-' . $booking->id . '-' . md5($metadata['filename'] . $finalPath);
+            $jobUniqueId = 'tour-processing-'.$booking->id.'-'.md5($metadata['filename'].$finalPath);
             \App\Jobs\ProcessTourZipFile::dispatch(
                 $booking->id,
                 $finalPath,
@@ -2300,17 +2340,17 @@ PHP;
                 'tour_zip_status' => $booking->tour_zip_status,
                 'tour_zip_progress' => $booking->tour_zip_progress,
                 'tour_zip_message' => $booking->tour_zip_message,
-                'redirect' => route('admin.tour-manager.show', $booking)
+                'redirect' => route('admin.tour-manager.show', $booking),
             ]);
 
         } catch (\Exception $e) {
-            \Log::error('Chunked upload finalization error: ' . $e->getMessage() . " in " . $e->getFile() . ":" . $e->getLine());
+            \Log::error('Chunked upload finalization error: '.$e->getMessage().' in '.$e->getFile().':'.$e->getLine());
 
             // Track error for UI
             try {
                 $booking->tour_zip_status = 'failed';
                 $booking->tour_zip_progress = 0;
-                $booking->tour_zip_message = 'Failed to queue processing: ' . $e->getMessage();
+                $booking->tour_zip_message = 'Failed to queue processing: '.$e->getMessage();
                 $booking->tour_zip_finished_at = now();
                 $booking->save();
             } catch (\Exception $inner) {
@@ -2325,13 +2365,13 @@ PHP;
                 @unlink($metadataPath);
             }
             if (is_dir($chunkDir)) {
-                @array_map('unlink', glob($chunkDir . '/*'));
+                @array_map('unlink', glob($chunkDir.'/*'));
                 @rmdir($chunkDir);
             }
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to queue processing: ' . $e->getMessage()
+                'message' => 'Failed to queue processing: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -2359,10 +2399,10 @@ PHP;
 
             // Create or update tour record
             $tour = Tour::firstOrNew(['booking_id' => $booking->id]);
-            if (!$tour->exists) {
-                $tour->name = 'Tour for Booking #' . $booking->id;
-                $tour->title = 'Property Tour - ' . ($booking->propertyType?->name ?? 'Property');
-                $tour->slug = 'tour-' . $booking->id . '-' . time();
+            if (! $tour->exists) {
+                $tour->name = 'Tour for Booking #'.$booking->id;
+                $tour->title = 'Property Tour - '.($booking->propertyType?->name ?? 'Property');
+                $tour->slug = 'tour-'.$booking->id.'-'.time();
                 $tour->status = 'draft';
                 $tour->revision = 1;
             }
@@ -2374,22 +2414,91 @@ PHP;
                 'success' => true,
                 'message' => 'Tour scheduled successfully!',
                 'tour' => $tour,
-                'booking' => $booking
+                'booking' => $booking,
             ]);
         } catch (\Exception $e) {
-            \Log::error('Schedule tour error: ' . $e->getMessage());
+            \Log::error('Schedule tour error: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to schedule tour: ' . $e->getMessage()
+                'message' => 'Failed to schedule tour: '.$e->getMessage(),
             ], 422);
         }
     }
 
     /**
+     * Ensure the remote parent directory exists for an SFTP file upload and apply public visibility when possible.
+     * Avoids redundant mkdir when the path already exists (common on re-uploads).
+     */
+    private function prepareSftpTourRemotePath(Filesystem $ftpDisk, string $remoteFilePath, string $contextLogLabel = 'SFTP'): void
+    {
+        $remoteDir = trim(dirname($remoteFilePath), '/');
+        if ($remoteDir === '' || $remoteDir === '.') {
+            return;
+        }
+
+        try {
+            if ($ftpDisk->directoryExists($remoteDir)) {
+                \Log::info("[{$contextLogLabel}] Remote directory already exists: {$remoteDir}");
+                try {
+                    $ftpDisk->setVisibility($remoteDir, 'public');
+                } catch (\Throwable $e) {
+                    \Log::debug("[{$contextLogLabel}] Optional directory chmod skipped: {$remoteDir} — {$e->getMessage()}");
+                }
+
+                return;
+            }
+        } catch (\Throwable $e) {
+            \Log::warning("[{$contextLogLabel}] Could not verify remote directory '{$remoteDir}': {$e->getMessage()}");
+        }
+
+        try {
+            if ($ftpDisk->makeDirectory($remoteDir)) {
+                \Log::info("[{$contextLogLabel}] Created remote directory: {$remoteDir}");
+            } else {
+                \Log::warning("[{$contextLogLabel}] makeDirectory returned false for '{$remoteDir}' (Flysystem may still create parents on write).");
+            }
+        } catch (\Throwable $e) {
+            \Log::warning("[{$contextLogLabel}] Could not create remote directory '{$remoteDir}': {$e->getMessage()}");
+        }
+
+        try {
+            if ($ftpDisk->directoryExists($remoteDir)) {
+                $ftpDisk->setVisibility($remoteDir, 'public');
+            }
+        } catch (\Throwable $e) {
+            \Log::debug("[{$contextLogLabel}] Post-mkdir directory chmod: {$e->getMessage()}");
+        }
+    }
+
+    /**
+     * If the remote file already exists, try public visibility (chmod) so overwrite is more likely to succeed.
+     */
+    private function tryChmodExistingSftpFile(Filesystem $ftpDisk, string $remoteFilePath, string $contextLogLabel = 'SFTP'): void
+    {
+        try {
+            if (! $ftpDisk->fileExists($remoteFilePath)) {
+                return;
+            }
+        } catch (\Throwable $e) {
+            \Log::debug("[{$contextLogLabel}] Could not stat remote file before upload: {$remoteFilePath} — {$e->getMessage()}");
+
+            return;
+        }
+
+        try {
+            $ftpDisk->setVisibility($remoteFilePath, 'public');
+            \Log::info("[{$contextLogLabel}] Normalized permissions on existing remote file: {$remoteFilePath}");
+        } catch (\Throwable $e) {
+            \Log::info("[{$contextLogLabel}] Optional chmod on existing file skipped: {$remoteFilePath} — {$e->getMessage()}");
+        }
+    }
+
+    /**
      * Upload index.php to FTP server using dynamic FTP configuration
-     * 
-     * @param string $localIndexPhpPath Local path to index.php file
-     * @param Tour $tour Tour object containing location, slug, and booking relationship
+     *
+     * @param  string  $localIndexPhpPath  Local path to index.php file
+     * @param  Tour  $tour  Tour object containing location, slug, and booking relationship
      * @return array Result with success status and FTP URL
      */
     private function uploadIndexPhpToFtp($localIndexPhpPath, Tour $tour)
@@ -2402,19 +2511,21 @@ PHP;
 
             // Validate location
             if (empty($location)) {
-                \Log::warning("Location is missing. Skipping FTP upload.");
+                \Log::warning('Location is missing. Skipping FTP upload.');
+
                 return [
                     'success' => false,
-                    'message' => 'Tour location is required for FTP upload'
+                    'message' => 'Tour location is required for FTP upload',
                 ];
             }
 
             // Validate tour slug
             if (empty($tourSlug)) {
-                \Log::warning("Tour slug is missing. Skipping FTP upload.");
+                \Log::warning('Tour slug is missing. Skipping FTP upload.');
+
                 return [
                     'success' => false,
-                    'message' => 'Tour slug is required for FTP upload'
+                    'message' => 'Tour slug is required for FTP upload',
                 ];
             }
 
@@ -2425,10 +2536,11 @@ PHP;
             }
 
             if (empty($customerId)) {
-                \Log::warning("Customer ID is missing. Skipping FTP upload.");
+                \Log::warning('Customer ID is missing. Skipping FTP upload.');
+
                 return [
                     'success' => false,
-                    'message' => 'Customer ID is required for FTP upload. Tour must be associated with a booking.'
+                    'message' => 'Customer ID is required for FTP upload. Tour must be associated with a booking.',
                 ];
             }
 
@@ -2437,20 +2549,22 @@ PHP;
                 ->active()
                 ->first();
 
-            if (!$ftpConfig) {
+            if (! $ftpConfig) {
                 \Log::error("FTP configuration not found for location: {$location}");
+
                 return [
                     'success' => false,
-                    'message' => "FTP configuration not found for location: {$location}"
+                    'message' => "FTP configuration not found for location: {$location}",
                 ];
             }
 
             // Verify local file exists
-            if (!file_exists($localIndexPhpPath)) {
+            if (! file_exists($localIndexPhpPath)) {
                 \Log::error("Local index.php file not found: {$localIndexPhpPath}");
+
                 return [
                     'success' => false,
-                    'message' => 'Local index.php file not found'
+                    'message' => 'Local index.php file not found',
                 ];
             }
 
@@ -2458,7 +2572,7 @@ PHP;
             $ftpRemotePath = $ftpConfig->getRemotePathForTour($tourSlug, $customerId);
             $ftpUrl = $ftpConfig->getUrlForTour($tourSlug, $customerId);
 
-            \Log::info("FTP Upload Details:");
+            \Log::info('FTP Upload Details:');
             \Log::info("  Category: {$ftpConfig->category_name}");
             \Log::info("  Display Name: {$ftpConfig->display_name}");
             \Log::info("  Main URL: {$ftpConfig->main_url}");
@@ -2470,57 +2584,57 @@ PHP;
             \Log::info("  Remote path: {$ftpRemotePath}");
             \Log::info("  Final URL: {$ftpUrl}");
 
-            // Create a temporary disk config for this FTP configuration
-            $diskName = 'ftp_temp_' . $ftpConfig->id;
-            config(["filesystems.disks.{$diskName}" => $ftpConfig->storage_config]);
+            $diskName = 'ftp_temp_'.$ftpConfig->id;
 
             // Use SFTP driver if configured
             if ($ftpConfig->driver === 'sftp') {
-                \Log::info("Using Storage SFTP driver for upload...");
+                \Log::info('Using Storage SFTP driver for upload...');
+
+                config([
+                    "filesystems.disks.{$diskName}" => array_merge(
+                        $ftpConfig->storage_config,
+                        ['throw' => true]
+                    ),
+                ]);
+                Storage::forgetDisk($diskName);
 
                 $ftpDisk = Storage::disk($diskName);
                 $fileContent = file_get_contents($localIndexPhpPath);
 
                 if ($fileContent === false) {
-                    throw new \Exception("Failed to read local index.php file");
+                    throw new \Exception('Failed to read local index.php file');
                 }
 
-                // Ensure remote directory exists (create customer_id folder and tour slug folder)
-                $remoteDir = trim(dirname($ftpRemotePath), '/');
-                if (!empty($remoteDir) && $remoteDir !== '.') {
-                    try {
-                        $ftpDisk->makeDirectory($remoteDir);
-                        \Log::info("Ensured remote directory exists: {$remoteDir}");
-                    } catch (\Exception $dirEx) {
-                        \Log::warning("Could not create remote directory '{$remoteDir}': " . $dirEx->getMessage());
-                    }
-                }
+                $this->prepareSftpTourRemotePath($ftpDisk, $ftpRemotePath, 'SFTP index.php');
+                $this->tryChmodExistingSftpFile($ftpDisk, $ftpRemotePath, 'SFTP index.php');
 
-                // Upload with explicit visibility so Flysystem maps to 0777 per config
+                // Upload with explicit visibility so Flysystem maps to 0777 per FtpConfiguration
                 $uploaded = $ftpDisk->put($ftpRemotePath, $fileContent, ['visibility' => 'public']);
 
-                if (!$uploaded) {
+                if (! $uploaded) {
                     throw new \Exception("SFTP put() returned false for {$ftpRemotePath}");
                 }
 
-                // Verify upload
-                if (!$ftpDisk->exists($ftpRemotePath)) {
+                if (! $ftpDisk->fileExists($ftpRemotePath)) {
                     throw new \Exception("SFTP upload verification failed; file not found at {$ftpRemotePath}");
                 }
 
-                // Set permissions
+                $remoteDir = trim(dirname($ftpRemotePath), '/');
                 try {
                     $ftpDisk->setVisibility($ftpRemotePath, 'public');
-                    if (!empty($remoteDir) && $remoteDir !== '.') {
+                    if ($remoteDir !== '' && $remoteDir !== '.') {
                         $ftpDisk->setVisibility($remoteDir, 'public');
                     }
                 } catch (\Exception $visEx) {
-                    \Log::warning("Could not set visibility: " . $visEx->getMessage());
+                    \Log::warning('Could not set visibility: '.$visEx->getMessage());
                 }
 
             } else {
+                config(["filesystems.disks.{$diskName}" => $ftpConfig->storage_config]);
+                Storage::forgetDisk($diskName);
+
                 // Use native PHP FTP functions for FTP (more reliable for directory creation)
-                \Log::info("Using native PHP FTP functions for upload...");
+                \Log::info('Using native PHP FTP functions for upload...');
                 try {
                     $host = preg_replace('#^ftps?://#', '', $ftpConfig->host);
 
@@ -2528,8 +2642,8 @@ PHP;
                     // Note: root is relative to FTP user's home directory (chroot)
                     $root = trim($ftpConfig->root ?? '', '/');
                     $remotePathWithRoot = $ftpRemotePath;
-                    if (!empty($root)) {
-                        $remotePathWithRoot = $root . '/' . ltrim($ftpRemotePath, '/');
+                    if (! empty($root)) {
+                        $remotePathWithRoot = $root.'/'.ltrim($ftpRemotePath, '/');
                     }
 
                     \Log::info("FTP upload path with root: {$remotePathWithRoot}");
@@ -2544,35 +2658,35 @@ PHP;
                         $ftpConfig->passive
                     );
                 } catch (\Exception $nativeException) {
-                    \Log::error("Native FTP upload failed: " . $nativeException->getMessage());
+                    \Log::error('Native FTP upload failed: '.$nativeException->getMessage());
 
                     // Try Laravel Storage as fallback
-                    \Log::info("Trying Laravel Storage FTP driver as fallback...");
+                    \Log::info('Trying Laravel Storage FTP driver as fallback...');
                     try {
                         $ftpDisk = Storage::disk($diskName);
 
                         // Read local file content
                         $fileContent = file_get_contents($localIndexPhpPath);
                         if ($fileContent === false) {
-                            throw new \Exception("Failed to read local index.php file");
+                            throw new \Exception('Failed to read local index.php file');
                         }
 
                         // Ensure remote directory exists
                         $remoteDir = trim(dirname($ftpRemotePath), '/');
-                        if (!empty($remoteDir) && $remoteDir !== '.') {
+                        if (! empty($remoteDir) && $remoteDir !== '.') {
                             try {
                                 $ftpDisk->makeDirectory($remoteDir);
                             } catch (\Exception $dirEx) {
-                                \Log::warning("Could not create remote directory: " . $dirEx->getMessage());
+                                \Log::warning('Could not create remote directory: '.$dirEx->getMessage());
                             }
                         }
 
                         // Upload file to FTP using Storage facade
-                        \Log::info("Uploading index.php to FTP using Storage facade...");
+                        \Log::info('Uploading index.php to FTP using Storage facade...');
                         $uploaded = $ftpDisk->put($ftpRemotePath, $fileContent);
                     } catch (\Exception $storageException) {
-                        \Log::error("Storage FTP driver also failed: " . $storageException->getMessage());
-                        throw new \Exception("FTP upload failed: " . $nativeException->getMessage() . " | Storage: " . $storageException->getMessage());
+                        \Log::error('Storage FTP driver also failed: '.$storageException->getMessage());
+                        throw new \Exception('FTP upload failed: '.$nativeException->getMessage().' | Storage: '.$storageException->getMessage());
                     }
                 }
             }
@@ -2588,31 +2702,33 @@ PHP;
                     'ftp_url' => $ftpUrl,
                     'ftp_host' => $ftpConfig->host,
                     'location' => $ftpConfig->category_name,
-                    'customer_id' => $customerId
+                    'customer_id' => $customerId,
                 ];
             } else {
                 \Log::error("FTP upload returned false for: {$ftpRemotePath}");
+
                 return [
                     'success' => false,
-                    'message' => 'FTP upload failed (returned false)'
+                    'message' => 'FTP upload failed (returned false)',
                 ];
             }
 
         } catch (\Exception $e) {
-            \Log::error("FTP upload error: " . $e->getMessage());
-            \Log::error("Stack trace: " . $e->getTraceAsString());
+            \Log::error('FTP upload error: '.$e->getMessage());
+            \Log::error('Stack trace: '.$e->getTraceAsString());
+
             return [
                 'success' => false,
-                'message' => 'FTP upload error: ' . $e->getMessage()
+                'message' => 'FTP upload error: '.$e->getMessage(),
             ];
         }
     }
 
     /**
      * Upload sw.js to FTP server using dynamic FTP configuration
-     * 
-     * @param string $localSwJsPath Local path to sw.js file
-     * @param Tour $tour Tour object containing location, slug, and booking relationship
+     *
+     * @param  string  $localSwJsPath  Local path to sw.js file
+     * @param  Tour  $tour  Tour object containing location, slug, and booking relationship
      * @return array Result with success status and FTP URL
      */
     private function uploadSwJsToFtp($localSwJsPath, Tour $tour)
@@ -2625,19 +2741,21 @@ PHP;
 
             // Validate location
             if (empty($location)) {
-                \Log::warning("Location is missing. Skipping sw.js FTP upload.");
+                \Log::warning('Location is missing. Skipping sw.js FTP upload.');
+
                 return [
                     'success' => false,
-                    'message' => 'Tour location is required for FTP upload'
+                    'message' => 'Tour location is required for FTP upload',
                 ];
             }
 
             // Validate tour slug
             if (empty($tourSlug)) {
-                \Log::warning("Tour slug is missing. Skipping sw.js FTP upload.");
+                \Log::warning('Tour slug is missing. Skipping sw.js FTP upload.');
+
                 return [
                     'success' => false,
-                    'message' => 'Tour slug is required for FTP upload'
+                    'message' => 'Tour slug is required for FTP upload',
                 ];
             }
 
@@ -2648,10 +2766,11 @@ PHP;
             }
 
             if (empty($customerId)) {
-                \Log::warning("Customer ID is missing. Skipping sw.js FTP upload.");
+                \Log::warning('Customer ID is missing. Skipping sw.js FTP upload.');
+
                 return [
                     'success' => false,
-                    'message' => 'Customer ID is required for FTP upload. Tour must be associated with a booking.'
+                    'message' => 'Customer ID is required for FTP upload. Tour must be associated with a booking.',
                 ];
             }
 
@@ -2660,20 +2779,22 @@ PHP;
                 ->active()
                 ->first();
 
-            if (!$ftpConfig) {
+            if (! $ftpConfig) {
                 \Log::error("FTP configuration not found for location: {$location}");
+
                 return [
                     'success' => false,
-                    'message' => "FTP configuration not found for location: {$location}"
+                    'message' => "FTP configuration not found for location: {$location}",
                 ];
             }
 
             // Verify local file exists
-            if (!file_exists($localSwJsPath)) {
+            if (! file_exists($localSwJsPath)) {
                 \Log::error("Local sw.js file not found: {$localSwJsPath}");
+
                 return [
                     'success' => false,
-                    'message' => 'Local sw.js file not found'
+                    'message' => 'Local sw.js file not found',
                 ];
             }
 
@@ -2685,7 +2806,7 @@ PHP;
             $ftpUrl = $ftpConfig->getUrlForTour($tourSlug, $customerId);
             $ftpUrl = str_replace('index.php', 'sw.js', $ftpUrl);
 
-            \Log::info("sw.js FTP Upload Details:");
+            \Log::info('sw.js FTP Upload Details:');
             \Log::info("  Category: {$ftpConfig->category_name}");
             \Log::info("  Display Name: {$ftpConfig->display_name}");
             \Log::info("  Main URL: {$ftpConfig->main_url}");
@@ -2697,54 +2818,56 @@ PHP;
             \Log::info("  Remote path: {$ftpRemotePath}");
             \Log::info("  Final URL: {$ftpUrl}");
 
-            // Create a temporary disk config for this FTP configuration
-            $diskName = 'ftp_temp_' . $ftpConfig->id;
-            config(["filesystems.disks.{$diskName}" => $ftpConfig->storage_config]);
+            $diskName = 'ftp_temp_'.$ftpConfig->id;
 
             // Use SFTP driver if configured
             if ($ftpConfig->driver === 'sftp') {
-                \Log::info("Using Storage SFTP driver for sw.js upload...");
+                \Log::info('Using Storage SFTP driver for sw.js upload...');
+
+                config([
+                    "filesystems.disks.{$diskName}" => array_merge(
+                        $ftpConfig->storage_config,
+                        ['throw' => true]
+                    ),
+                ]);
+                Storage::forgetDisk($diskName);
 
                 $ftpDisk = Storage::disk($diskName);
                 $fileContent = file_get_contents($localSwJsPath);
 
                 if ($fileContent === false) {
-                    throw new \Exception("Failed to read local sw.js file");
+                    throw new \Exception('Failed to read local sw.js file');
                 }
 
-                // Ensure remote directory exists (same as index.php)
-                $remoteDir = trim(dirname($ftpRemotePath), '/');
-                if (!empty($remoteDir) && $remoteDir !== '.') {
-                    try {
-                        $ftpDisk->makeDirectory($remoteDir);
-                        \Log::info("Ensured remote directory exists: {$remoteDir}");
-                    } catch (\Exception $dirEx) {
-                        \Log::warning("Could not create remote directory '{$remoteDir}': " . $dirEx->getMessage());
-                    }
-                }
+                $this->prepareSftpTourRemotePath($ftpDisk, $ftpRemotePath, 'SFTP sw.js');
+                $this->tryChmodExistingSftpFile($ftpDisk, $ftpRemotePath, 'SFTP sw.js');
 
-                // Upload with explicit visibility
                 $uploaded = $ftpDisk->put($ftpRemotePath, $fileContent, ['visibility' => 'public']);
 
-                if (!$uploaded) {
+                if (! $uploaded) {
                     throw new \Exception("SFTP put() returned false for {$ftpRemotePath}");
                 }
 
-                // Verify upload
-                if (!$ftpDisk->exists($ftpRemotePath)) {
+                if (! $ftpDisk->fileExists($ftpRemotePath)) {
                     throw new \Exception("SFTP upload verification failed; file not found at {$ftpRemotePath}");
                 }
 
-                // Set permissions
+                $remoteDir = trim(dirname($ftpRemotePath), '/');
                 try {
                     $ftpDisk->setVisibility($ftpRemotePath, 'public');
+                    if ($remoteDir !== '' && $remoteDir !== '.') {
+                        $ftpDisk->setVisibility($remoteDir, 'public');
+                    }
                 } catch (\Exception $visEx) {
-                    \Log::warning("Could not set visibility: " . $visEx->getMessage());
+                    \Log::warning('Could not set visibility: '.$visEx->getMessage());
                 }
 
             } else {
+                config(["filesystems.disks.{$diskName}" => $ftpConfig->storage_config]);
+                Storage::forgetDisk($diskName);
+
                 // Use native PHP FTP functions for FTP
-                \Log::info("Using native PHP FTP functions for sw.js upload...");
+                \Log::info('Using native PHP FTP functions for sw.js upload...');
                 try {
                     $host = preg_replace('#^ftps?://#', '', $ftpConfig->host);
 
@@ -2752,8 +2875,8 @@ PHP;
                     // Note: root is relative to FTP user's home directory (chroot)
                     $root = trim($ftpConfig->root ?? '', '/');
                     $remotePathWithRoot = $ftpRemotePath;
-                    if (!empty($root)) {
-                        $remotePathWithRoot = $root . '/' . ltrim($ftpRemotePath, '/');
+                    if (! empty($root)) {
+                        $remotePathWithRoot = $root.'/'.ltrim($ftpRemotePath, '/');
                     }
 
                     \Log::info("sw.js FTP upload path with root: {$remotePathWithRoot}");
@@ -2768,35 +2891,35 @@ PHP;
                         $ftpConfig->passive
                     );
                 } catch (\Exception $nativeException) {
-                    \Log::error("Native FTP upload failed for sw.js: " . $nativeException->getMessage());
+                    \Log::error('Native FTP upload failed for sw.js: '.$nativeException->getMessage());
 
                     // Try Laravel Storage as fallback
-                    \Log::info("Trying Laravel Storage FTP driver as fallback for sw.js...");
+                    \Log::info('Trying Laravel Storage FTP driver as fallback for sw.js...');
                     try {
                         $ftpDisk = Storage::disk($diskName);
 
                         // Read local file content
                         $fileContent = file_get_contents($localSwJsPath);
                         if ($fileContent === false) {
-                            throw new \Exception("Failed to read local sw.js file");
+                            throw new \Exception('Failed to read local sw.js file');
                         }
 
                         // Ensure remote directory exists
                         $remoteDir = trim(dirname($ftpRemotePath), '/');
-                        if (!empty($remoteDir) && $remoteDir !== '.') {
+                        if (! empty($remoteDir) && $remoteDir !== '.') {
                             try {
                                 $ftpDisk->makeDirectory($remoteDir);
                             } catch (\Exception $dirEx) {
-                                \Log::warning("Could not create remote directory: " . $dirEx->getMessage());
+                                \Log::warning('Could not create remote directory: '.$dirEx->getMessage());
                             }
                         }
 
                         // Upload file to FTP using Storage facade
-                        \Log::info("Uploading sw.js to FTP using Storage facade...");
+                        \Log::info('Uploading sw.js to FTP using Storage facade...');
                         $uploaded = $ftpDisk->put($ftpRemotePath, $fileContent);
                     } catch (\Exception $storageException) {
-                        \Log::error("Storage FTP driver also failed for sw.js: " . $storageException->getMessage());
-                        throw new \Exception("FTP upload failed: " . $nativeException->getMessage() . " | Storage: " . $storageException->getMessage());
+                        \Log::error('Storage FTP driver also failed for sw.js: '.$storageException->getMessage());
+                        throw new \Exception('FTP upload failed: '.$nativeException->getMessage().' | Storage: '.$storageException->getMessage());
                     }
                 }
             }
@@ -2812,42 +2935,44 @@ PHP;
                     'ftp_url' => $ftpUrl,
                     'ftp_host' => $ftpConfig->host,
                     'location' => $ftpConfig->category_name,
-                    'customer_id' => $customerId
+                    'customer_id' => $customerId,
                 ];
             } else {
                 \Log::error("FTP upload returned false for sw.js: {$ftpRemotePath}");
+
                 return [
                     'success' => false,
-                    'message' => 'FTP upload failed (returned false)'
+                    'message' => 'FTP upload failed (returned false)',
                 ];
             }
 
         } catch (\Exception $e) {
-            \Log::error("sw.js FTP upload error: " . $e->getMessage());
-            \Log::error("Stack trace: " . $e->getTraceAsString());
+            \Log::error('sw.js FTP upload error: '.$e->getMessage());
+            \Log::error('Stack trace: '.$e->getTraceAsString());
+
             return [
                 'success' => false,
-                'message' => 'FTP upload error: ' . $e->getMessage()
+                'message' => 'FTP upload error: '.$e->getMessage(),
             ];
         }
     }
 
     /**
      * Upload file to FTP using native PHP FTP functions (fallback method)
-     * 
-     * @param string $host FTP host
-     * @param int $port FTP port
-     * @param string $username FTP username
-     * @param string $password FTP password
-     * @param string $remotePath Remote path on FTP server
-     * @param string $localPath Local file path
-     * @param bool $passive Whether to use passive mode (default: true)
+     *
+     * @param  string  $host  FTP host
+     * @param  int  $port  FTP port
+     * @param  string  $username  FTP username
+     * @param  string  $password  FTP password
+     * @param  string  $remotePath  Remote path on FTP server
+     * @param  string  $localPath  Local file path
+     * @param  bool  $passive  Whether to use passive mode (default: true)
      * @return bool Success status
      */
     private function uploadToFtpNative($host, $port, $username, $password, $remotePath, $localPath, $passive = true)
     {
-        if (!function_exists('ftp_connect')) {
-            throw new \Exception("PHP FTP extension is not enabled");
+        if (! function_exists('ftp_connect')) {
+            throw new \Exception('PHP FTP extension is not enabled');
         }
 
         \Log::info("Connecting to FTP server using native PHP functions: {$host}:{$port}");
@@ -2855,26 +2980,26 @@ PHP;
 
         // Connect to FTP server
         $connection = @ftp_connect($host, $port, 30);
-        if (!$connection) {
+        if (! $connection) {
             $error = error_get_last();
-            throw new \Exception("Failed to connect to FTP server: {$host}:{$port}. Error: " . ($error['message'] ?? 'Unknown error'));
+            throw new \Exception("Failed to connect to FTP server: {$host}:{$port}. Error: ".($error['message'] ?? 'Unknown error'));
         }
 
-        \Log::info("✓ FTP connection established");
+        \Log::info('✓ FTP connection established');
 
         // Login
         $login = @ftp_login($connection, $username, $password);
-        if (!$login) {
+        if (! $login) {
             $error = error_get_last();
             ftp_close($connection);
-            throw new \Exception("Failed to login to FTP server with username: {$username}. Error: " . ($error['message'] ?? 'Invalid credentials'));
+            throw new \Exception("Failed to login to FTP server with username: {$username}. Error: ".($error['message'] ?? 'Invalid credentials'));
         }
 
-        \Log::info("✓ FTP login successful");
+        \Log::info('✓ FTP login successful');
 
         // Set passive mode
         ftp_pasv($connection, $passive);
-        \Log::info("✓ Passive mode " . ($passive ? "enabled" : "disabled"));
+        \Log::info('✓ Passive mode '.($passive ? 'enabled' : 'disabled'));
 
         try {
             // Create directory structure if needed
@@ -2885,18 +3010,19 @@ PHP;
                 // For chrooted FTP users, we start from current directory (home directory)
                 // Don't use ftp_chdir('/') as it won't work with chroot
                 $currentDir = @ftp_pwd($connection);
-                \Log::info("Current FTP directory: " . ($currentDir ?: 'unknown'));
+                \Log::info('Current FTP directory: '.($currentDir ?: 'unknown'));
 
                 $pathParts = explode('/', ltrim($directoryPath, '/'));
                 $currentPath = '';
                 foreach ($pathParts as $part) {
-                    if (empty($part))
+                    if (empty($part)) {
                         continue;
-                    $currentPath .= ($currentPath ? '/' : '') . $part;
+                    }
+                    $currentPath .= ($currentPath ? '/' : '').$part;
 
                     // Check if directory exists by trying to change into it
                     $exists = @ftp_chdir($connection, $currentPath);
-                    if (!$exists) {
+                    if (! $exists) {
                         // Directory doesn't exist, create it
                         $created = @ftp_mkdir($connection, $currentPath);
                         if ($created) {
@@ -2906,7 +3032,7 @@ PHP;
                         } else {
                             $error = error_get_last();
                             $ftpError = @ftp_get_option($connection, FTP_TIMEOUT_SEC);
-                            \Log::warning("Failed to create directory {$currentPath}: " . ($error['message'] ?? 'Unknown error'));
+                            \Log::warning("Failed to create directory {$currentPath}: ".($error['message'] ?? 'Unknown error'));
                             // Try to continue anyway - directory might exist but chdir failed
                         }
                     } else {
@@ -2930,7 +3056,7 @@ PHP;
             $uploaded = @ftp_put($connection, $remotePath, $localPath, FTP_BINARY);
 
             if ($uploaded) {
-                \Log::info("✓ File uploaded successfully using native FTP");
+                \Log::info('✓ File uploaded successfully using native FTP');
                 // Try to chmod file to 0777
                 if (function_exists('ftp_chmod')) {
                     $chmodResult = @ftp_chmod($connection, 0777, $remotePath);
@@ -2944,10 +3070,11 @@ PHP;
                 }
             } else {
                 $error = error_get_last();
-                throw new \Exception("FTP upload failed - ftp_put returned false. Error: " . ($error['message'] ?? 'Unknown error'));
+                throw new \Exception('FTP upload failed - ftp_put returned false. Error: '.($error['message'] ?? 'Unknown error'));
             }
 
             ftp_close($connection);
+
             return true;
 
         } catch (\Exception $e) {
