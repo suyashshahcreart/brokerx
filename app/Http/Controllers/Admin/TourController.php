@@ -985,7 +985,7 @@ class TourController extends Controller
             // Build S3 paths
             $virtualTourNodesPath = 'tours/' . $qrCode . '/virtual-tour-nodes.json';
             $tourDataJsonPath = 'tours/' . $qrCode . '/assets/js/tour-data.json';
-            $tourDataJsPath = 'tours/' . $qrCode . '/assets/js/tour-data.js';
+            // $tourDataJsPath = 'tours/' . $qrCode . '/assets/js/tour-data.js';
 
             // Fetch existing nodes from S3 - NEVER use $finalJson['nodes'], only S3
             $existingVirtualTourNodes = [];
@@ -1029,48 +1029,48 @@ class TourController extends Controller
             Storage::disk('s3')->put($tourDataJsonPath, $tourDataJsonString, ['ContentType' => 'application/json']);
 
             // Upload 3: tour-data.js (third) - based on tour-data.json content
-            $jsFileContent = '
-        window.EMBEDDED_TOUR_DATA= ' . $tourDataJsonString . '
-        // Helper function to extract YouTube video ID from URL
-        window.extractYouTubeVideoId = function(url) {
-        if (!url) return null;
-        const patterns = [
-            /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
-            /youtube\.com\/watch\?.*v=([^&\n?#]+)/,
-        ];
-        for (const pattern of patterns) {
-            const match = url.match(pattern);
-            if (match && match[1]) {
-            return match[1];
-            }
-        }
-        return null;
-        };
+            //     $jsFileContent = '
+            // window.EMBEDDED_TOUR_DATA= ' . $tourDataJsonString . '
+            // // Helper function to extract YouTube video ID from URL
+            // window.extractYouTubeVideoId = function(url) {
+            // if (!url) return null;
+            // const patterns = [
+            //     /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
+            //     /youtube\.com\/watch\?.*v=([^&\n?#]+)/,
+            // ];
+            // for (const pattern of patterns) {
+            //     const match = url.match(pattern);
+            //     if (match && match[1]) {
+            //     return match[1];
+            //     }
+            // }
+            // return null;
+            // };
 
-        // Helper function to create YouTube iframe element
-        window.createYouTubeIframe = function(videoId, width, height) {
-        if (!videoId) return null;
-        const iframe = document.createElement("iframe");
-        iframe.src = `https://www.youtube.com/embed/${videoId}`;
-        iframe.width = String(width || 640);
-        iframe.height = String(height || 360);
-        iframe.style.width = `${width || 640}px`;
-        iframe.style.height = `${height || 360}px`;
-        iframe.style.border = "none";
-        iframe.style.display = "block";
-        iframe.allow = "fullscreen";
-        iframe.setAttribute("allowfullscreen", "true");
-        return iframe;
-        };';
+            // // Helper function to create YouTube iframe element
+            // window.createYouTubeIframe = function(videoId, width, height) {
+            // if (!videoId) return null;
+            // const iframe = document.createElement("iframe");
+            // iframe.src = `https://www.youtube.com/embed/${videoId}`;
+            // iframe.width = String(width || 640);
+            // iframe.height = String(height || 360);
+            // iframe.style.width = `${width || 640}px`;
+            // iframe.style.height = `${height || 360}px`;
+            // iframe.style.border = "none";
+            // iframe.style.display = "block";
+            // iframe.allow = "fullscreen";
+            // iframe.setAttribute("allowfullscreen", "true");
+            // return iframe;
+            // };';
 
-            $obfuscatedJs = obfuscateJs($jsFileContent);
-            Storage::disk('s3')->put($tourDataJsPath, $obfuscatedJs, ['ContentType' => 'application/javascript']);
+            // $obfuscatedJs = obfuscateJs($jsFileContent);
+            // Storage::disk('s3')->put($tourDataJsPath, $obfuscatedJs, ['ContentType' => 'application/javascript']);
             \Log::info('Tour JSON and JS files updated successfully in S3', [
                 'tour_id' => $tour->id,
                 'qr_code' => $qrCode,
                 'virtual_tour_nodes_path' => $virtualTourNodesPath,
                 'tour_data_json_path' => $tourDataJsonPath,
-                'tour_data_js_path' => $tourDataJsPath,
+                // 'tour_data_js_path' => $tourDataJsPath,
             ]);
 
             return true;
@@ -2093,7 +2093,7 @@ class TourController extends Controller
     {
         $validated = $request->validate([
             'sidebar_logo' => ['nullable', 'file', 'image', 'max:5120'],
-            'sidebar_tag_text' => ['nullable', 'string', 'max:255'],
+            'sidebar_tag_text' => ['nullable', 'string'],
             'sidebar_tag_color' => ['nullable', 'string', 'max:255'],
             'sidebar_tag_bg_color' => ['nullable', 'string', 'max:255'],
             'sidebar_footer_text' => ['nullable', 'string'],
@@ -2102,11 +2102,11 @@ class TourController extends Controller
 
         $oldData = $tour->toArray();
         $finalJson = $this->normalizeFinalJsonPayload($tour);
-        $finalJson['sidebarConfig'] = $finalJson['sidebarConfig'] ?? [];
-        $finalJson['sidebarConfig']['footerButton'] = $finalJson['sidebarConfig']['footerButton'] ?? [];
-        $finalJson['sidebarConfig']['sidebarTag'] = $finalJson['sidebarConfig']['sidebarTag'] ?? [];
+        $finalJson['branding']['sidebarConfig'] = $finalJson['branding']['sidebarConfig'] ?? [];
+        $finalJson['branding']['sidebarConfig']['footerButton'] = $finalJson['branding']['sidebarConfig']['footerButton'] ?? [];
+        $finalJson['branding']['sidebarConfig']['sidebarTag'] = $finalJson['branding']['sidebarConfig']['sidebarTag'] ?? [];
 
-        $existingFooterButtonText = $finalJson['sidebarConfig']['footerButton']['text'] ?? [];
+        $existingFooterButtonText = $finalJson['branding']['sidebarConfig']['footerButton']['text'] ?? [];
         if (!is_array($existingFooterButtonText)) {
             $existingFooterButtonText = ['en' => $existingFooterButtonText];
         }
@@ -2114,19 +2114,19 @@ class TourController extends Controller
         if (array_key_exists('sidebar_footer_text', $validated)) {
             $existingFooterButtonText['en'] = $validated['sidebar_footer_text'];
         }
-        $finalJson['sidebarConfig']['footerButton']['text'] = $existingFooterButtonText;
+        $finalJson['branding']['sidebarConfig']['footerButton']['text'] = $existingFooterButtonText;
 
         if (array_key_exists('sidebar_footer_link', $validated)) {
-            $finalJson['sidebarConfig']['footerButton']['link'] = $validated['sidebar_footer_link'];
+            $finalJson['branding']['sidebarConfig']['footerButton']['link'] = $validated['sidebar_footer_link'];
         }
         if (array_key_exists('sidebar_tag_text', $validated)) {
-            $finalJson['sidebarConfig']['sidebarTag']['text'] = $validated['sidebar_tag_text'];
+            $finalJson['branding']['sidebarConfig']['sidebarTag']['text'] = $validated['sidebar_tag_text'];
         }
         if (array_key_exists('sidebar_tag_color', $validated)) {
-            $finalJson['sidebarConfig']['sidebarTag']['textColor'] = $validated['sidebar_tag_color'];
+            $finalJson['branding']['sidebarConfig']['sidebarTag']['textColor'] = $validated['sidebar_tag_color'];
         }
         if (array_key_exists('sidebar_tag_bg_color', $validated)) {
-            $finalJson['sidebarConfig']['sidebarTag']['backgroundColor'] = $validated['sidebar_tag_bg_color'];
+            $finalJson['branding']['sidebarConfig']['sidebarTag']['backgroundColor'] = $validated['sidebar_tag_bg_color'];
         }
 
         $updateData = $validated;
@@ -2139,7 +2139,7 @@ class TourController extends Controller
             $sidebarContent = file_get_contents($logoSidebarFile->getRealPath());
             $sidebarMime = $logoSidebarFile->getMimeType();
             $uploaded = Storage::disk('s3')->put($sidebarPath, $sidebarContent, ['ContentType' => $sidebarMime]);
-            $finalJson['sidebarConfig']['logo'] = 'assets/' . $sidebarFilename;
+            $finalJson['branding']['sidebarConfig']['logo'] = 'assets/' . $sidebarFilename;
 
             if ($uploaded) {
                 $updateData['sidebar_logo'] = Storage::disk('s3')->url($sidebarPath);
@@ -2219,7 +2219,7 @@ class TourController extends Controller
         $finalJson = $this->normalizeFinalJsonPayload($tour);
 
         // Ensure sidebarConfig structure exists
-        $finalJson['sidebarLinks'] = $sidebarLinks;
+        $finalJson['branding']['sidebarLinks'] = $sidebarLinks;
 
         // Persist both DB column and final_json for consistency
         $updateData = [
