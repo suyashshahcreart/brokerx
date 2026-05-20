@@ -126,7 +126,6 @@ class TourService
                 $loaderConfig['textGradientColor3'] ?? '#FF5F5F',
             ];
         }
-        f
         $branding = $finalJson['branding'] ?? [];
         $sidebarConfig = $branding['sidebarConfig'] ?? [];
         $tourNode = $finalJson['tour'] ?? [];
@@ -151,7 +150,7 @@ class TourService
             $tour->sidebar_tag_bg_color = $sidebarTag['backgroundColor'] ?? null;
         }
 
-        if ($forceSync || Arr::has($diffJson, '')) {
+        if ($forceSync || Arr::has($diffJson, 'sidebarLinks')) {
             $tour->sidebar_links = $branding['sidebarLinks'] ?? null;
         }
 
