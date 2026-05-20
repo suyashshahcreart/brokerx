@@ -35,6 +35,9 @@ class Tour extends Model
         'max_participants',
         'status',
         'final_json',
+        'virtual_tour_nodes_json',
+        'tour_data_json',
+        'tour_data_js',
         'sidebar_links',
         'working_json',
         'working_json_last_update_user',
@@ -153,6 +156,8 @@ class Tour extends Model
             'price' => 'decimal:2',
             'structured_data' => 'array',
             'final_json' => 'array',
+            'virtual_tour_nodes_json' => 'array',
+            'tour_data_json' => 'array',
             'sidebar_links' => 'array',
             'working_json' => 'array',
             'created_at' => 'datetime',
@@ -219,6 +224,11 @@ class Tour extends Model
     public function validationHistories()
     {
         return $this->hasMany(TourMobileValidationHistory::class);
+    }
+
+    public function jsonHistories()
+    {
+        return $this->hasMany(TourJsonHistory::class)->orderByDesc('version');
     }
 
 

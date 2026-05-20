@@ -139,7 +139,6 @@ function addSidebarLinkRow(linkData = {}) {
                 <label class="form-label">Type <span class="text-danger">*</span></label>
                 <select id="typeSelect_${rowIndex}" name="sidebar_links[${rowIndex}][type]" class="form-select" required>
                     <option value="">Select Type</option>
-                    <option value="link" ${type === 'link' ? 'selected' : ''}>Link</option>
                     <option value="infoModal" ${type === 'infoModal' ? 'selected' : ''}>Info Modal</option>
                     <option value="link" ${type === 'link' ? 'selected' : ''}>Link</option>
                     <option value="image" ${type === 'image' ? 'selected' : ''}>Image</option>
