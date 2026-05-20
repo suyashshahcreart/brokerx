@@ -1547,7 +1547,7 @@ class TourController extends Controller
             }
         }
 
-        $userInfo = $final_json['userInfo'] ?? [];
+        $userInfo = $final_json['branding']['userInfo'] ?? [];
 
         // Update the contact info of the user.
         $userInfo['googleLocation'] = $validated['contact_google_location'] ?? null;
@@ -1585,7 +1585,7 @@ class TourController extends Controller
             $validated['attachment_file'] = null;
         }
 
-        $final_json['userInfo'] = $userInfo;
+        $final_json['branding']['userInfo'] = $userInfo;
 
         // Add final_json to validated data to save in DB
         $validated['final_json'] = $final_json;
@@ -2623,10 +2623,10 @@ class TourController extends Controller
         $finalJson = $tour->final_json ?? [];
 
         // Update user details array in final_json
-        $finalJson['userInfo']['userDetails'] = $validated['user_details'] ?? [];
-        $finalJson['userInfo']['showUserDetailsButton'] = $request->has('show_user_details_button');
-        $finalJson['userInfo']['userDetailsButtonIcon'] = $validated['user_details_button_icon'] ?? '';
-        $finalJson['userInfo']['userDetailsButtonTooltip'] = $validated['user_details_button_tooltip'] ?? '';
+        $finalJson['branding']['userInfo']['userDetails'] = $validated['user_details'] ?? [];
+        $finalJson['branding']['userInfo']['showUserDetailsButton'] = $request->has('show_user_details_button');
+        $finalJson['branding']['userInfo']['userDetailsButtonIcon'] = $validated['user_details_button_icon'] ?? '';
+        $finalJson['branding']['userInfo']['userDetailsButtonTooltip'] = $validated['user_details_button_tooltip'] ?? '';
 
         // Update the tour with final_json
         $tour->update(['final_json' => $finalJson]);
@@ -2965,7 +2965,7 @@ class TourController extends Controller
         ];
 
         $finalJson = $this->normalizeFinalJsonPayload($tour);
-        $finalJson['bottomMarker']['userStars'] = $userStar;
+        $finalJson['branding']['bottomMarker']['userStars'] = $userStar;
 
         $tour->update([
             'user_star' => $userStar,
@@ -2989,5 +2989,3 @@ class TourController extends Controller
     }
 
 }
-
-
