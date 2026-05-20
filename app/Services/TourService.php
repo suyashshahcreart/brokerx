@@ -12,7 +12,7 @@ class TourService
     public function syncTourFieldsFromJson(Tour $tour, array $finalJson, array $diffJson = [], bool $forceSync = false): void
     {
         \Log::info("Tour Details sync started for tour_id={$tour->id}, force_sync={$forceSync}");
-        $userInfo = $finalJson['userInfo'] ?? [];
+        $userInfo = $finalJson['branding']['userInfo'] ?? [];
         // user related fields
         if ($forceSync || Arr::has($diffJson, 'userInfo.userName')) {
             $tour->contact_user_name = $userInfo['userName'] ?? null;
@@ -56,7 +56,7 @@ class TourService
         if ($forceSync || Arr::has($diffJson, 'userInfo.showDocumentUrl')) {
             $tour->show_document_url = $userInfo['showDocumentUrl'] ?? false;
         }
-        if ($forceSync || Arr::has($diffJson, 'userInfo.showDocumentUr2')) {
+        if ($forceSync || Arr::has($diffJson, 'userInfo.showDocumentUrl2')) {
             $tour->show_document_url2 = $userInfo['showDocumentUrl2'] ?? false;
         }
         if ($forceSync || Arr::has($diffJson, 'userInfo.documentAuthRequired')) {
@@ -78,26 +78,26 @@ class TourService
         }
 
 
-        /* Attchment file sync */
-        if ($forceSync || Arr::has($diffJson, 'userInfo.documentAuthType')) {
+        /* Attachment file sync */
+        if ($forceSync || Arr::has($diffJson, 'userInfo.documentUrl') || Arr::has($diffJson, 'userInfo.documentUrl2')) {
             $tour->attachment_file = [
                 [
-                    "documentType" => $userInfo['documentType'] ?? 'image',
-                    "documentTooltip" => $userInfo['documentTooltip'] ?? 'Document_1',
-                    "documentAction" => $userInfo['documentAction'] ?? 'downloard',
-                    "documentUrl" => $userInfo['documentUrl'] ?? 'null'
+                    'documentType' => $userInfo['documentType'] ?? 'image',
+                    'documentTooltip' => $userInfo['documentTooltip'] ?? 'Document_1',
+                    'documentAction' => $userInfo['documentAction'] ?? 'download',
+                    'documentUrl' => $userInfo['documentUrl'] ?? null,
                 ],
                 [
-                    "documentType" => $userInfo['documentType2'] ?? 'image',
-                    "documentTooltip" => $userInfo['documentTooltip2'] ?? 'Document_2',
-                    "documentAction" => $userInfo['documentAction'] ?? 'downloard',
-                    "documentUrl" => $userInfo['documentUrl'] ?? 'null'
-                ]
-            ] ?? null;
+                    'documentType' => $userInfo['documentType2'] ?? 'image',
+                    'documentTooltip' => $userInfo['documentTooltip2'] ?? 'Document_2',
+                    'documentAction' => $userInfo['documentAction2'] ?? ($userInfo['documentAction'] ?? 'download'),
+                    'documentUrl' => $userInfo['documentUrl2'] ?? null,
+                ],
+            ];
         }
 
 
-        $localeConfig = $finalJson['localeConfig'] ?? [];
+        $localeConfig = $finalJson['tour']['localeConfig'] ?? [];
         if ($forceSync || Arr::has($diffJson, 'localeConfig.defaultLanguage')) {
             $tour->default_language = $localeConfig['defaultLanguage'] ?? 'en';
         }
@@ -105,7 +105,7 @@ class TourService
             $tour->enable_language = $localeConfig['enabledLanguages'] ?? ['en', 'hi'];
         }
 
-        $loaderConfig = $finalJson['loaderConfig'] ?? [];
+        $loaderConfig = $finalJson['branding']['loaderConfig'] ?? [];
         if ($forceSync || Arr::has($diffJson, 'loaderConfig')) {
             $tour->loader_text = $loaderConfig['loadingText'] ?? "It's Prop Pik, It's Real";
             $tour->overlay_bg_color = $loaderConfig['overlayBackgroundColor'] ?? '#3949AB';
@@ -126,8 +126,10 @@ class TourService
                 $loaderConfig['textGradientColor3'] ?? '#FF5F5F',
             ];
         }
-
-        $sidebarConfig = $finalJson['sidebarConfig'] ?? [];
+        f
+        $branding = $finalJson['branding'] ?? [];
+        $sidebarConfig = $branding['sidebarConfig'] ?? [];
+        $tourNode = $finalJson['tour'] ?? [];
         $footerButton = $sidebarConfig['footerButton'] ?? [];
 
         if ($forceSync || Arr::has($diffJson, 'sidebarConfig.logo')) {
@@ -145,16 +147,16 @@ class TourService
         if ($forceSync || Arr::has($diffJson, 'sidebarConfig.sidebarTag')) {
             $sidebarTag = $sidebarConfig['sidebarTag'] ?? [];
             $tour->sidebar_tag_text = $sidebarTag['text'] ?? null;
-            $tour->sidebar_tag_color = $sidebarTag['color'] ?? '#ffffff';
+            $tour->sidebar_tag_color = $sidebarTag['color'] ?? $sidebarTag['textColor'] ?? '#ffffff';
             $tour->sidebar_tag_bg_color = $sidebarTag['backgroundColor'] ?? null;
         }
 
-        if ($forceSync || Arr::has($diffJson, 'sidebarLinks')) {
-            $tour->sidebar_links = $finalJson['sidebarLinks'] ?? [];
+        if ($forceSync || Arr::has($diffJson, '')) {
+            $tour->sidebar_links = $branding['sidebarLinks'] ?? null;
         }
 
-        // bottom mark fields
-        $bottomMarker = $finalJson['bottomMarker'] ?? [];
+        // bottom mark fields (moved under branding in new JSON)
+        $bottomMarker = $branding['bottomMarker'] ?? [];
         if ($forceSync || Arr::has($diffJson, 'bottomMarker.topImage')) {
             $bookingCode = QR::where('booking_id', $tour->booking_id ?? null)->value('code');
             $logo = $bottomMarker['topImage'] ?? null;
@@ -186,8 +188,8 @@ class TourService
             $tour->footer_email = $bottomMarker['contactEmail'] ?? null;
         }
         // Bookmark fields add
-        $bookmark = $finalJson['bookmark'] ?? [];
-        if ($forceSync || Arr::has($diffJson, 'bookmark.showBookmarkButton')) {
+        $bookmark = $tourNode['bookmark'] ?? [];
+        if ($forceSync || Arr::has($diffJson, 'tour.bookmark') || Arr::has($diffJson, 'bookmark.showBookmarkButton')) {
             $bookmarkTitle = $bookmark['bookmarkTitle'] ?? null;
             if (is_array($bookmarkTitle)) {
                 $bookmarkTitle = array_filter($bookmarkTitle, static fn($value) => is_string($value) && trim($value) !== '');
@@ -222,7 +224,7 @@ class TourService
                 : ($bookmark['imageUrl'] ?? null);
         }
         /* User Star Rating sync function */
-        if($forceSync || Arr::has($diffJson, 'bottomMarker.userStars')) {
+        if ($forceSync || Arr::has($diffJson, 'branding.bottomMarker.userStars') || Arr::has($diffJson, 'bottomMarker.userStars')) {
             $tour->user_star = $bottomMarker['userStars'] ?? null;
         }
     }
