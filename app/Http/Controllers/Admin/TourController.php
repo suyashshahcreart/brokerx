@@ -2181,7 +2181,7 @@ class TourController extends Controller
             'sidebar_links.*.title.en' => ['nullable', 'string'],
             'sidebar_links.*.title.gu' => ['nullable', 'string'],
             'sidebar_links.*.title.hi' => ['nullable', 'string'],
-            'sidebar_links.*.type' => ['required', 'string', 'in:link,content,infoModal'],
+            'sidebar_links.*.type' => ['required', 'string', 'in:link,infoModal,image,video,document'],
             'sidebar_links.*.order' => ['required', 'integer', 'min:1'],
             'sidebar_links.*.link' => ['nullable', 'url', 'max:255'],
             'sidebar_links.*.content' => ['nullable', 'array'],
