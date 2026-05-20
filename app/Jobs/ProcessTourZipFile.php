@@ -162,7 +162,7 @@ class ProcessTourZipFile implements ShouldQueue
             ];
 
             $existingFiles = $tour->final_json['files'] ?? [];
-            $existingTourData = is_array($tour->final_json) ? $tour->final_json : [];
+            // $existingTourData = is_array($tour->final_json) ? $tour->final_json : [];
 
             // Prevent duplicate file entries - check if exact same file already exists (by hash)
             $fileAlreadyExists = false;
@@ -200,7 +200,7 @@ class ProcessTourZipFile implements ShouldQueue
             }
 
             $tour->final_json = array_merge(
-                $existingTourData,
+                // $existingTourData,
                 $tourData,
                 [
                     'files' => $existingFiles,
