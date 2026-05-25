@@ -183,7 +183,7 @@
                                     <i class="ri-upload-cloud-2-line fs-1 text-muted"></i>
                                     <h4>Drop tour ZIP file here or click to select</h4>
                                     <span class="text-muted">Upload a single ZIP file containing tour assets (images, assets, gallery, tiles, index.html, data.json)</span>
-                                    <span class="text-muted d-block mt-1"><small>Max 1.5GB | Single file only | Required: index.html + JSON file + folders (images, assets, gallery, tiles) | Files 75MB+ use chunked upload & background processing automatically</small></span>
+                                    <span class="text-muted d-block mt-1"><small>Max 1.5GB | Single file only | Required: index.html + JSON file + folders (images, assets, gallery, tiles) | Files over {{ config('tour.zip_chunk_threshold_mb', 30) }}MB use chunked upload & background processing automatically</small></span>
                                 </div>
                             </div>
                             <div id="file-count-display" class="mt-2 text-muted" style="display: none;">
@@ -194,9 +194,17 @@
                             @enderror
                         </div>
 
+                        
+
+                        <div class="d-grid gap-2 mt-3">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="ri-upload-cloud-2-line me-1"></i> Upload Tour Files
+                            </button>
+                        </div>
+
                         <!-- Existing Files -->
                         @if($tour->final_json && isset($tour->final_json['files']))
-                        <div class="mb-3">
+                        <div class="mt-3">
                             <label class="form-label">Existing Files</label>
                             <div class="list-group">
                                 @foreach($tour->final_json['files'] as $file)
@@ -211,12 +219,6 @@
                             </div>
                         </div>
                         @endif
-
-                        <div class="d-grid gap-2 mt-3">
-                            <button type="submit" class="btn btn-primary btn-lg">
-                                <i class="ri-upload-cloud-2-line me-1"></i> Upload Tour Files
-                            </button>
-                        </div>
                     </div>
                 </div>
             </form>
@@ -530,10 +532,14 @@
     const match = currentPath.match(/^\/([^\/]+)/);
     if (match && match[1]) {
         window.adminBasePath = '/' + match[1];
+
+        // in locahost run with folder that time 
+        // window.adminBasePath = '/' + match[1] + '/ppadmlog';
     } else {
         window.adminBasePath = '/ppadmlog';
     }
     console.log('Admin base path set to:', window.adminBasePath);
+    window.tourZipChunkThresholdBytes = {{ max(1, (int) config('tour.zip_chunk_threshold_mb', 30)) * 1024 * 1024 }};
 })();
 </script>
 

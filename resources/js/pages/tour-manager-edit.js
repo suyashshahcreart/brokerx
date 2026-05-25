@@ -554,8 +554,11 @@ if (document.getElementById('tour-dropzone') && !document.getElementById('tour-d
                             return;
                         }
                         
-                        // Check if we need chunked upload (files > 75MB)
-                        const CHUNKED_UPLOAD_THRESHOLD = 75 * 1024 * 1024; // 75MB
+                        // Chunked browser upload when file exceeds config tour.zip_chunk_threshold_mb (window.tourZipChunkThresholdBytes)
+                        const CHUNKED_UPLOAD_THRESHOLD =
+                            typeof window.tourZipChunkThresholdBytes === 'number'
+                                ? window.tourZipChunkThresholdBytes
+                                : 30 * 1024 * 1024;
                         let needsChunkedUpload = false;
                         let totalSize = 0;
                         

@@ -86,7 +86,7 @@ function addUserDetailsRow(detail = {}) {
     const idValue = escapeHtml(detail.id ?? uuidv4());
     const icon = escapeHtml(detail.icon ?? '');
     const title = escapeHtml(detail.title ?? '');
-    const summery = escapeHtml(detail.summery ?? '');
+    const summery = escapeHtml(detail.summary ?? '');
     const description = detail.description ?? '';
     const descraptionHiddenValue = escapeHtml(description);
 

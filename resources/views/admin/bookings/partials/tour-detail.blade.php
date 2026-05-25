@@ -492,7 +492,18 @@
                             @method('PUT')
                             <input type="hidden" name="booking_id" value="{{ $booking->id }}">
                             <div class="row">
-                                <div class="col-md-2">
+                                <div class="col-md-3">
+                                    <div class="mb-3">
+                                        <label class="form-label">Show Ribbon Content Pannel</label>
+                                        <div class="form-check form-switch mb-0">
+                                            <input class="form-check-input" type="checkbox"
+                                                name="user_star_show_ribbon_content_pannel" id="show_user_star_ribbon"
+                                                value="1"
+                                                {{ old('user_star_show_ribbon_content_pannel', data_get($tour->user_star, 'showRibbonInContactPanel', true)) ? 'checked' : '' }}>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
                                     <div class="mb-3">
                                         <label class="form-label">Show Ribbon</label>
                                         <div class="form-check form-switch mb-0">
@@ -523,7 +534,9 @@
                                         </div>
                                     </div>
                                 </div>
-                                <!-- CTA Button text -->
+                            </div>
+                            <!-- CTA Button text -->
+                            <div class="row">
                                 <div class="col-md-4">
                                     <div class="mb-3">
                                         <label class="form-label" for="user_star_cta_button_text">CTA Label
@@ -620,24 +633,14 @@
                             <div class="mb-3">
                                 <label class="form-label">Enabled languages</label>
                                 <div class="d-flex flex-wrap gap-3">
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" name="enable_language[]"
-                                            id="lang_english" value="en"
-                                            {{ (is_array($tour->enable_language) && in_array('en', $tour->enable_language)) || (is_null($tour->enable_language) && in_array('en', old('enable_language', []))) ? 'checked' : '' }}>
-                                        <label class="form-check-label" for="lang_english">English</label>
-                                    </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" name="enable_language[]"
-                                            id="lang_hindi" value="hi"
-                                            {{ (is_array($tour->enable_language) && in_array('hi', $tour->enable_language)) || in_array('hi', old('enable_language', [])) ? 'checked' : '' }}>
-                                        <label class="form-check-label" for="lang_hindi">Hindi</label>
-                                    </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" name="enable_language[]"
-                                            id="lang_gujarati" value="gu"
-                                            {{ (is_array($tour->enable_language) && in_array('gu', $tour->enable_language)) || in_array('gu', old('enable_language', [])) ? 'checked' : '' }}>
-                                        <label class="form-check-label" for="lang_gujarati">Gujarati</label>
-                                    </div>
+                                    @foreach ($tour->final_json['tour']['localeConfig']['languageDisplay'] as $code => $lang)
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="enable_language[]"
+                                                id="lang_english" value="{{$code}}"
+                                                {{ in_array($code, $tour->enable_language) ? 'checked' : '' }}>
+                                            <label class="form-check-label" for="lang_english">{{$lang['title']}}</label>
+                                        </div>
+                                    @endforeach
                                 </div>
                                 <small class="text-muted d-block mt-2">At least one language must be selected.</small>
                                 @error('enable_language')<div class="text-danger">{{ $message }}</div>@enderror
@@ -649,17 +652,12 @@
                                         <label class="form-label" for="default_language">Default language</label>
                                         <select name="default_language" id="default_language" class="form-select">
                                             <option value="">Select default language</option>
-                                            <option value="en"
-                                                {{ old('default_language', $tour->default_language) == 'en' ? 'selected' : '' }}>
-                                                English
-                                            </option>
-                                            <option value="hi"
-                                                {{ old('default_language', $tour->default_language) == 'hi' ? 'selected' : '' }}>
-                                                Hindi
-                                            </option>
-                                            <option value="gu"
-                                                {{ old('default_language', $tour->default_language) == 'gu' ? 'selected' : '' }}>
-                                                Gujarati</option>
+                                            @foreach($tour->final_json['tour']['localeConfig']['languageDisplay'] as $code => $lang)
+                                                <option value="{{ $code }}"
+                                                    {{ old('default_language', $tour->default_language) == strtolower($lang['short']) ? 'selected' : '' }}>
+                                                    {{ $lang['title'] }} ({{ $lang['short'] }})
+                                                </option>
+                                            @endforeach
                                         </select>
                                         @error('default_language')<div class="text-danger">{{ $message }}</div>@enderror
                                     </div>
@@ -1460,27 +1458,56 @@
                                                 <div class="mt-3">
                                                     <label class="form-label" for="sidebar_logo">Sidebar Logo</label>
                                                     <input type="file" name="sidebar_logo" id="sidebar_logo" @if (!$qr_code) disabled @endif class="form-control"
-                                                        accept="image/*" onchange="previewImage(event, 'sidebar_logo')">
+                                                        accept="image/webp"
+                                                        onchange="previewImage(event, 'sidebar_logo')">
                                                 </div>
                                                 @error('sidebar_logo')<div class="text-danger">{{ $message }}</div>
                                                 @enderror
                                             </div>
                                         </div>
-
                                         <div class="col-md-12">
                                             <h5 class="mb-3">Sidebar Tag <span class="text-muted">(optional)</span></h5>
                                             <p class="text-muted mb-3">Vertical tag on the right side of the sidebar.
                                                 Leave
                                                 empty to hide.</p>
                                         </div>
-
+                                        @php
+                                            $tagTitles = json_decode($tour->sidebar_tag_text ?? '{}', true);
+                                            if (empty($tagTitles)) {
+                                                $tagTitles = ['en' => ''];
+                                            }
+                                        @endphp
                                         <div class="col-md-4">
                                             <div class="mb-3">
-                                                <label for="sidebar_tag_text" class="form-label">Tag Title</label>
-                                                <input type="text" name="sidebar_tag_text" id="sidebar_tag_text"
-                                                    class="form-control" placeholder="e.g, sold out"
-                                                    value="{{ old('sidebar_tag_text', $tour->sidebar_tag_text ?? '') }}">
-                                                @error('sidebar_tag_text')<div class="text-danger">{{ $message }}</div>
+                                                <label class="form-label">Tag Title</label>
+                                                <!-- Language Tabs -->
+                                                <ul class="nav nav-tabs" role="tablist">
+                                                    @foreach($tagTitles as $lang => $value)
+                                                        <li class="nav-item" role="presentation">
+                                                            <button class="nav-link {{ $loop->first ? 'active' : '' }}"
+                                                                id="tab-{{ $lang }}" data-bs-toggle="tab"
+                                                                data-bs-target="#pane-{{ $lang }}" type="button" role="tab">
+                                                                {{ strtoupper($lang) }}
+                                                            </button>
+                                                        </li>
+                                                    @endforeach
+                                                </ul>
+                                                <!-- Input Fields -->
+                                                <div class="tab-content py-1">
+                                                    @foreach($tagTitles as $lang => $value)
+                                                        <div class="tab-pane m-0 fade {{ $loop->first ? 'show active' : '' }}"
+                                                            id="pane-{{ $lang }}" role="tabpanel">
+                                                            <input type="text" class="form-control"
+                                                                name="sidebar_tag_text[{{ $lang }}]"
+                                                                value="{{ old("sidebar_tag_text.$lang", $value) }}"
+                                                                placeholder="Enter {{ strtoupper($lang) }} title">
+                                                        </div>
+                                                    @endforeach
+                                                </div>
+                                                @error('sidebar_tag_text')
+                                                    <div class="text-danger mt-1">
+                                                        {{ $message }}
+                                                    </div>
                                                 @enderror
                                             </div>
                                         </div>
