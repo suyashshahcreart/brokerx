@@ -994,25 +994,25 @@ class TourController extends Controller
             if (Storage::disk('s3')->exists($virtualTourNodesPath)) {
                 $content = Storage::disk('s3')->get($virtualTourNodesPath);
                 $decoded = json_decode($content, true);
-                if (json_last_error() === JSON_ERROR_NONE && !empty($decoded['nodes'])) {
-                    $existingVirtualTourNodes = $decoded['nodes'];
+                if (json_last_error() === JSON_ERROR_NONE && !empty($decoded['tour']['nodes'])) {
+                    $existingVirtualTourNodes = $decoded['tour']['nodes'];
                 }
             }
 
             if (Storage::disk('s3')->exists($tourDataJsonPath)) {
                 $content = Storage::disk('s3')->get($tourDataJsonPath);
                 $decoded = json_decode($content, true);
-                if (json_last_error() === JSON_ERROR_NONE && !empty($decoded['nodes'])) {
-                    $existingTourDataJsonNodes = $decoded['nodes'];
+                if (json_last_error() === JSON_ERROR_NONE && !empty($decoded['tour']['nodes'])) {
+                    $existingTourDataJsonNodes = $decoded['tour']['nodes'];
                 }
             }
 
             // Merge: our updates (userInfo, etc.) + nodes from S3 only (never $finalJson['nodes'])
             $virtualTourNodesContent = $finalJson;
-            $virtualTourNodesContent['nodes'] = $existingVirtualTourNodes;
+            $virtualTourNodesContent['tour']['nodes'] = $existingVirtualTourNodes;
 
             $tourDataJsonContent = $finalJson;
-            $tourDataJsonContent['nodes'] = $existingTourDataJsonNodes;
+            $tourDataJsonContent['tour']['nodes'] = $existingTourDataJsonNodes;
 
             // Upload 1: virtual-tour-nodes.json (first)
             $virtualTourNodesString = json_encode(
