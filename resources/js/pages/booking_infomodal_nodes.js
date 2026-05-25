@@ -638,7 +638,6 @@ function renderToottipSection({
                             class="form-control"
                             name="${fieldName}[${lang}]"
                             rows="3"
-                            required
                         >${fieldData?.[lang] || ''}</textarea>
                         `
         : `<input
@@ -646,7 +645,6 @@ function renderToottipSection({
                             class="form-control" required
                             name="${fieldName}[${lang}]"
                             value="${fieldData?.[lang] || ''}"
-                            required
                         >`}
                     </div>
                 `).join('')}
