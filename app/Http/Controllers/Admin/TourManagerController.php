@@ -490,7 +490,8 @@ class TourManagerController extends Controller
                     $result = $this->processZipFile($file, $tour, $qrCode->code);
                     if ($result['success']) {
                         $zipResultForHistory = TourAssetJsonPersistenceService::snapshotZipPayloadForHistory($result);
-                        $tourData = $result['data'];
+                        // $tourData = $result['data']; // vertual tour data josn
+                        $tourData = $result['tour_data_json'] ?? [];
                         $uploadedFiles[] = [
                             'name' => $file->getClientOriginalName(),
                             'type' => 'zip',
@@ -546,11 +547,11 @@ class TourManagerController extends Controller
 
         // Merge with existing files or create new array
         $existingFiles = $tour->final_json['files'] ?? [];
-        $existingTourData = is_array($tour->final_json) ? $tour->final_json : [];
+        // $existingTourData = is_array($tour->final_json) ? $tour->final_json : [];
 
         // Only update final_json, not other tour fields
         $tour->final_json = array_merge(
-            $existingTourData,
+            // $existingTourData,
             $tourData,
             [
                 'files' => array_merge($existingFiles, $uploadedFiles),

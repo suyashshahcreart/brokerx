@@ -985,7 +985,7 @@ class TourController extends Controller
             // Build S3 paths
             $virtualTourNodesPath = 'tours/' . $qrCode . '/virtual-tour-nodes.json';
             $tourDataJsonPath = 'tours/' . $qrCode . '/assets/js/tour-data.json';
-            $tourDataJsPath = 'tours/' . $qrCode . '/assets/js/tour-data.js';
+            // $tourDataJsPath = 'tours/' . $qrCode . '/assets/js/tour-data.js';
 
             // Fetch existing nodes from S3 - NEVER use $finalJson['nodes'], only S3
             $existingVirtualTourNodes = [];
@@ -994,25 +994,25 @@ class TourController extends Controller
             if (Storage::disk('s3')->exists($virtualTourNodesPath)) {
                 $content = Storage::disk('s3')->get($virtualTourNodesPath);
                 $decoded = json_decode($content, true);
-                if (json_last_error() === JSON_ERROR_NONE && !empty($decoded['nodes'])) {
-                    $existingVirtualTourNodes = $decoded['nodes'];
+                if (json_last_error() === JSON_ERROR_NONE && !empty($decoded['tour']['nodes'])) {
+                    $existingVirtualTourNodes = $decoded['tour']['nodes'];
                 }
             }
 
             if (Storage::disk('s3')->exists($tourDataJsonPath)) {
                 $content = Storage::disk('s3')->get($tourDataJsonPath);
                 $decoded = json_decode($content, true);
-                if (json_last_error() === JSON_ERROR_NONE && !empty($decoded['nodes'])) {
-                    $existingTourDataJsonNodes = $decoded['nodes'];
+                if (json_last_error() === JSON_ERROR_NONE && !empty($decoded['tour']['nodes'])) {
+                    $existingTourDataJsonNodes = $decoded['tour']['nodes'];
                 }
             }
 
             // Merge: our updates (userInfo, etc.) + nodes from S3 only (never $finalJson['nodes'])
             $virtualTourNodesContent = $finalJson;
-            $virtualTourNodesContent['nodes'] = $existingVirtualTourNodes;
+            $virtualTourNodesContent['tour']['nodes'] = $existingVirtualTourNodes;
 
             $tourDataJsonContent = $finalJson;
-            $tourDataJsonContent['nodes'] = $existingTourDataJsonNodes;
+            $tourDataJsonContent['tour']['nodes'] = $existingTourDataJsonNodes;
 
             // Upload 1: virtual-tour-nodes.json (first)
             $virtualTourNodesString = json_encode(
@@ -1029,48 +1029,48 @@ class TourController extends Controller
             Storage::disk('s3')->put($tourDataJsonPath, $tourDataJsonString, ['ContentType' => 'application/json']);
 
             // Upload 3: tour-data.js (third) - based on tour-data.json content
-            $jsFileContent = '
-        window.EMBEDDED_TOUR_DATA= ' . $tourDataJsonString . '
-        // Helper function to extract YouTube video ID from URL
-        window.extractYouTubeVideoId = function(url) {
-        if (!url) return null;
-        const patterns = [
-            /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
-            /youtube\.com\/watch\?.*v=([^&\n?#]+)/,
-        ];
-        for (const pattern of patterns) {
-            const match = url.match(pattern);
-            if (match && match[1]) {
-            return match[1];
-            }
-        }
-        return null;
-        };
+            //     $jsFileContent = '
+            // window.EMBEDDED_TOUR_DATA= ' . $tourDataJsonString . '
+            // // Helper function to extract YouTube video ID from URL
+            // window.extractYouTubeVideoId = function(url) {
+            // if (!url) return null;
+            // const patterns = [
+            //     /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
+            //     /youtube\.com\/watch\?.*v=([^&\n?#]+)/,
+            // ];
+            // for (const pattern of patterns) {
+            //     const match = url.match(pattern);
+            //     if (match && match[1]) {
+            //     return match[1];
+            //     }
+            // }
+            // return null;
+            // };
 
-        // Helper function to create YouTube iframe element
-        window.createYouTubeIframe = function(videoId, width, height) {
-        if (!videoId) return null;
-        const iframe = document.createElement("iframe");
-        iframe.src = `https://www.youtube.com/embed/${videoId}`;
-        iframe.width = String(width || 640);
-        iframe.height = String(height || 360);
-        iframe.style.width = `${width || 640}px`;
-        iframe.style.height = `${height || 360}px`;
-        iframe.style.border = "none";
-        iframe.style.display = "block";
-        iframe.allow = "fullscreen";
-        iframe.setAttribute("allowfullscreen", "true");
-        return iframe;
-        };';
+            // // Helper function to create YouTube iframe element
+            // window.createYouTubeIframe = function(videoId, width, height) {
+            // if (!videoId) return null;
+            // const iframe = document.createElement("iframe");
+            // iframe.src = `https://www.youtube.com/embed/${videoId}`;
+            // iframe.width = String(width || 640);
+            // iframe.height = String(height || 360);
+            // iframe.style.width = `${width || 640}px`;
+            // iframe.style.height = `${height || 360}px`;
+            // iframe.style.border = "none";
+            // iframe.style.display = "block";
+            // iframe.allow = "fullscreen";
+            // iframe.setAttribute("allowfullscreen", "true");
+            // return iframe;
+            // };';
 
-            $obfuscatedJs = obfuscateJs($jsFileContent);
-            Storage::disk('s3')->put($tourDataJsPath, $obfuscatedJs, ['ContentType' => 'application/javascript']);
+            // $obfuscatedJs = obfuscateJs($jsFileContent);
+            // Storage::disk('s3')->put($tourDataJsPath, $obfuscatedJs, ['ContentType' => 'application/javascript']);
             \Log::info('Tour JSON and JS files updated successfully in S3', [
                 'tour_id' => $tour->id,
                 'qr_code' => $qrCode,
                 'virtual_tour_nodes_path' => $virtualTourNodesPath,
                 'tour_data_json_path' => $tourDataJsonPath,
-                'tour_data_js_path' => $tourDataJsPath,
+                // 'tour_data_js_path' => $tourDataJsPath,
             ]);
 
             return true;
@@ -1264,7 +1264,6 @@ class TourController extends Controller
      */
     public function updateTourSeo(Request $request, Tour $tour)
     {
-
         $validated = $request->validate([
             'meta_title' => ['nullable', 'string', 'max:255'],
             'meta_keywords' => ['nullable', 'string', 'max:255'],
@@ -1547,7 +1546,7 @@ class TourController extends Controller
             }
         }
 
-        $userInfo = $final_json['userInfo'] ?? [];
+        $userInfo = $final_json['branding']['userInfo'] ?? [];
 
         // Update the contact info of the user.
         $userInfo['googleLocation'] = $validated['contact_google_location'] ?? null;
@@ -1585,7 +1584,7 @@ class TourController extends Controller
             $validated['attachment_file'] = null;
         }
 
-        $final_json['userInfo'] = $userInfo;
+        $final_json['branding']['userInfo'] = $userInfo;
 
         // Add final_json to validated data to save in DB
         $validated['final_json'] = $final_json;
@@ -1646,7 +1645,7 @@ class TourController extends Controller
 
         $oldData = $tour->toArray();
         $finalJson = $this->normalizeFinalJsonPayload($tour);
-        $userInfo = $finalJson['userInfo'] ?? [];
+        $userInfo = $finalJson['branding']['userInfo'] ?? [];
         $qrCode = $tour->booking_id ? QR::where('booking_id', $tour->booking_id)->value('code') : null;
 
         $userInfo['userName'] = $validated['contact_user_name'] ?? null;
@@ -1662,7 +1661,7 @@ class TourController extends Controller
         $userInfo['whatsAppNumber'] = $validated['contact_whatsapp_no'] ?? null;
         $userInfo['showWhatsAppNumber'] = $validated['show_contact_whatsapp_no'];
 
-        $finalJson['userInfo'] = $userInfo;
+        $finalJson['branding']['userInfo'] = $userInfo;
 
         $updateData = $validated;
         $updateData['final_json'] = $finalJson;
@@ -1715,7 +1714,7 @@ class TourController extends Controller
 
         $oldData = $tour->toArray();
         $finalJson = $this->normalizeFinalJsonPayload($tour);
-        $userInfo = $finalJson['userInfo'] ?? [];
+        $userInfo = $finalJson['branding']['userInfo'] ?? [];
         $qrCode = $tour->booking_id ? QR::where('booking_id', $tour->booking_id)->value('code') : null;
 
         $attachmentFiles = [];
@@ -1792,7 +1791,7 @@ class TourController extends Controller
         $userInfo['documentAuthRequired'] = $validated['document_auth_required'];
         $userInfo['showDocumentUrl'] = $validated['show_document_url'];
         $userInfo['showDocumentUrl2'] = $validated['show_document_url2'];
-        $finalJson['userInfo'] = $userInfo;
+        $finalJson['branding']['userInfo'] = $userInfo;
 
         $updateData = [
             'document_auth_required' => $validated['document_auth_required'],
@@ -1884,41 +1883,41 @@ class TourController extends Controller
         }
 
         // Initialize or update loaderConfig in final_json
-        $finalJson['loaderConfig'] = $finalJson['loaderConfig'] ?? [];
+        $finalJson['branding']['loaderConfig'] = $finalJson['branding']['loaderConfig'] ?? [];
 
         // Update loader configuration in JSON
         if (!empty($validated['overlay_bg_color'])) {
-            $finalJson['loaderConfig']['overlayBackgroundColor'] = $validated['overlay_bg_color'];
+            $finalJson['branding']['loaderConfig']['overlayBackgroundColor'] = $validated['overlay_bg_color'];
         }
         if (!empty($validated['loader_text'])) {
-            $finalJson['loaderConfig']['loadingText'] = $validated['loader_text'];
+            $finalJson['branding']['loaderConfig']['loadingText'] = $validated['loader_text'];
         }
         if (!empty($validated['loader_color'])) {
             // Map array colors to gradient colors (assuming 3 colors for gradient)
-            $finalJson['loaderConfig']['spinnerGradientColor1'] = $validated['loader_color'][0] ?? null;
-            $finalJson['loaderConfig']['spinnerGradientColor2'] = $validated['loader_color'][1] ?? null;
-            $finalJson['loaderConfig']['spinnerGradientColor3'] = $validated['loader_color'][2] ?? null;
+            $finalJson['branding']['loaderConfig']['spinnerGradientColor1'] = $validated['loader_color'][0] ?? null;
+            $finalJson['branding']['loaderConfig']['spinnerGradientColor2'] = $validated['loader_color'][1] ?? null;
+            $finalJson['branding']['loaderConfig']['spinnerGradientColor3'] = $validated['loader_color'][2] ?? null;
 
-            $finalJson['loaderConfig']['textGradientColor1'] = $validated['loader_color'][0] ?? null;
-            $finalJson['loaderConfig']['textGradientColor2'] = $validated['loader_color'][1] ?? null;
-            $finalJson['loaderConfig']['textGradientColor3'] = $validated['loader_color'][2] ?? null;
+            $finalJson['branding']['loaderConfig']['textGradientColor1'] = $validated['loader_color'][0] ?? null;
+            $finalJson['branding']['loaderConfig']['textGradientColor2'] = $validated['loader_color'][1] ?? null;
+            $finalJson['branding']['loaderConfig']['textGradientColor3'] = $validated['loader_color'][2] ?? null;
         }
         if (!empty($validated['spinner_color'])) {
             // Map array colors to spinner gradient (assuming 3 colors for gradient)
-            $finalJson['loaderConfig']['spinnerGradientColor1'] = $validated['spinner_color'][0] ?? null;
-            $finalJson['loaderConfig']['spinnerGradientColor2'] = $validated['spinner_color'][1] ?? null;
-            $finalJson['loaderConfig']['spinnerGradientColor3'] = $validated['spinner_color'][2] ?? null;
+            $finalJson['branding']['loaderConfig']['spinnerGradientColor1'] = $validated['spinner_color'][0] ?? null;
+            $finalJson['branding']['loaderConfig']['spinnerGradientColor2'] = $validated['spinner_color'][1] ?? null;
+            $finalJson['branding']['loaderConfig']['spinnerGradientColor3'] = $validated['spinner_color'][2] ?? null;
         }
 
         // Initialize or update localeConfig in final_json
-        $finalJson['localeConfig'] = $finalJson['localeConfig'] ?? [];
+        $finalJson['tour']['localeConfig'] = $finalJson['tour']['localeConfig'] ?? [];
 
         // Update locale configuration in JSON
         if (!empty($validated['enable_language'])) {
-            $finalJson['localeConfig']['enabledLanguages'] = $validated['enable_language'];
+            $finalJson['tour']['localeConfig']['enabledLanguages'] = $validated['enable_language'];
         }
         if (!empty($validated['default_language'])) {
-            $finalJson['localeConfig']['defaultLanguage'] = $validated['default_language'];
+            $finalJson['tour']['localeConfig']['defaultLanguage'] = $validated['default_language'];
         }
 
         // Add final_json to validated data to save in DB
@@ -1976,25 +1975,25 @@ class TourController extends Controller
 
         $oldData = $tour->toArray();
         $finalJson = $this->normalizeFinalJsonPayload($tour);
-        $finalJson['loaderConfig'] = $finalJson['loaderConfig'] ?? [];
+        $finalJson['branding']['loaderConfig'] = $finalJson['branding']['loaderConfig'] ?? [];
 
         if (array_key_exists('overlay_bg_color', $validated)) {
-            $finalJson['loaderConfig']['overlayBackgroundColor'] = $validated['overlay_bg_color'];
+            $finalJson['branding']['loaderConfig']['overlayBackgroundColor'] = $validated['overlay_bg_color'];
         }
         if (array_key_exists('loader_text', $validated)) {
-            $finalJson['loaderConfig']['loadingText'] = $validated['loader_text'];
+            $finalJson['branding']['loaderConfig']['loadingText'] = $validated['loader_text'];
         }
 
         if (!empty($validated['loader_color'])) {
-            $finalJson['loaderConfig']['textGradientColor1'] = $validated['loader_color'][0] ?? null;
-            $finalJson['loaderConfig']['textGradientColor2'] = $validated['loader_color'][1] ?? null;
-            $finalJson['loaderConfig']['textGradientColor3'] = $validated['loader_color'][2] ?? null;
+            $finalJson['branding']['loaderConfig']['textGradientColor1'] = $validated['loader_color'][0] ?? null;
+            $finalJson['branding']['loaderConfig']['textGradientColor2'] = $validated['loader_color'][1] ?? null;
+            $finalJson['branding']['loaderConfig']['textGradientColor3'] = $validated['loader_color'][2] ?? null;
         }
 
         if (!empty($validated['spinner_color'])) {
-            $finalJson['loaderConfig']['spinnerGradientColor1'] = $validated['spinner_color'][0] ?? null;
-            $finalJson['loaderConfig']['spinnerGradientColor2'] = $validated['spinner_color'][1] ?? null;
-            $finalJson['loaderConfig']['spinnerGradientColor3'] = $validated['spinner_color'][2] ?? null;
+            $finalJson['branding']['loaderConfig']['spinnerGradientColor1'] = $validated['spinner_color'][0] ?? null;
+            $finalJson['branding']['loaderConfig']['spinnerGradientColor2'] = $validated['spinner_color'][1] ?? null;
+            $finalJson['branding']['loaderConfig']['spinnerGradientColor3'] = $validated['spinner_color'][2] ?? null;
         }
 
         $updateData = [
@@ -2048,11 +2047,11 @@ class TourController extends Controller
         $oldData = $tour->toArray();
         $finalJson = $this->normalizeFinalJsonPayload($tour);
 
-        $finalJson['localeConfig'] = $finalJson['localeConfig'] ?? [];
-        $finalJson['localeConfig']['enabledLanguages'] = $validated['enable_language'] ?? [];
+        $finalJson['tour']['localeConfig'] = $finalJson['tour']['localeConfig'] ?? [];
+        $finalJson['tour']['localeConfig']['enabledLanguages'] = $validated['enable_language'] ?? [];
 
         if (array_key_exists('default_language', $validated)) {
-            $finalJson['localeConfig']['defaultLanguage'] = $validated['default_language'];
+            $finalJson['tour']['localeConfig']['defaultLanguage'] = $validated['default_language'];
         }
 
         $updateData = [
@@ -2093,7 +2092,7 @@ class TourController extends Controller
     {
         $validated = $request->validate([
             'sidebar_logo' => ['nullable', 'file', 'image', 'max:5120'],
-            'sidebar_tag_text' => ['nullable', 'string', 'max:255'],
+            'sidebar_tag_text' => ['nullable', 'array'],
             'sidebar_tag_color' => ['nullable', 'string', 'max:255'],
             'sidebar_tag_bg_color' => ['nullable', 'string', 'max:255'],
             'sidebar_footer_text' => ['nullable', 'string'],
@@ -2102,11 +2101,11 @@ class TourController extends Controller
 
         $oldData = $tour->toArray();
         $finalJson = $this->normalizeFinalJsonPayload($tour);
-        $finalJson['sidebarConfig'] = $finalJson['sidebarConfig'] ?? [];
-        $finalJson['sidebarConfig']['footerButton'] = $finalJson['sidebarConfig']['footerButton'] ?? [];
-        $finalJson['sidebarConfig']['sidebarTag'] = $finalJson['sidebarConfig']['sidebarTag'] ?? [];
+        $finalJson['branding']['sidebarConfig'] = $finalJson['branding']['sidebarConfig'] ?? [];
+        $finalJson['branding']['sidebarConfig']['footerButton'] = $finalJson['branding']['sidebarConfig']['footerButton'] ?? [];
+        $finalJson['branding']['sidebarConfig']['sidebarTag'] = $finalJson['branding']['sidebarConfig']['sidebarTag'] ?? [];
 
-        $existingFooterButtonText = $finalJson['sidebarConfig']['footerButton']['text'] ?? [];
+        $existingFooterButtonText = $finalJson['branding']['sidebarConfig']['footerButton']['text'] ?? [];
         if (!is_array($existingFooterButtonText)) {
             $existingFooterButtonText = ['en' => $existingFooterButtonText];
         }
@@ -2114,19 +2113,19 @@ class TourController extends Controller
         if (array_key_exists('sidebar_footer_text', $validated)) {
             $existingFooterButtonText['en'] = $validated['sidebar_footer_text'];
         }
-        $finalJson['sidebarConfig']['footerButton']['text'] = $existingFooterButtonText;
+        $finalJson['branding']['sidebarConfig']['footerButton']['text'] = $existingFooterButtonText;
 
         if (array_key_exists('sidebar_footer_link', $validated)) {
-            $finalJson['sidebarConfig']['footerButton']['link'] = $validated['sidebar_footer_link'];
+            $finalJson['branding']['sidebarConfig']['footerButton']['link'] = $validated['sidebar_footer_link'];
         }
         if (array_key_exists('sidebar_tag_text', $validated)) {
-            $finalJson['sidebarConfig']['sidebarTag']['text'] = $validated['sidebar_tag_text'];
+            $finalJson['branding']['sidebarConfig']['sidebarTag']['text'] = json_encode($validated['sidebar_tag_text']);
         }
         if (array_key_exists('sidebar_tag_color', $validated)) {
-            $finalJson['sidebarConfig']['sidebarTag']['textColor'] = $validated['sidebar_tag_color'];
+            $finalJson['branding']['sidebarConfig']['sidebarTag']['textColor'] = $validated['sidebar_tag_color'];
         }
         if (array_key_exists('sidebar_tag_bg_color', $validated)) {
-            $finalJson['sidebarConfig']['sidebarTag']['backgroundColor'] = $validated['sidebar_tag_bg_color'];
+            $finalJson['branding']['sidebarConfig']['sidebarTag']['backgroundColor'] = $validated['sidebar_tag_bg_color'];
         }
 
         $updateData = $validated;
@@ -2139,7 +2138,7 @@ class TourController extends Controller
             $sidebarContent = file_get_contents($logoSidebarFile->getRealPath());
             $sidebarMime = $logoSidebarFile->getMimeType();
             $uploaded = Storage::disk('s3')->put($sidebarPath, $sidebarContent, ['ContentType' => $sidebarMime]);
-            $finalJson['sidebarConfig']['logo'] = 'assets/' . $sidebarFilename;
+            $finalJson['branding']['sidebarConfig']['logo'] = 'assets/' . $sidebarFilename;
 
             if ($uploaded) {
                 $updateData['sidebar_logo'] = Storage::disk('s3')->url($sidebarPath);
@@ -2219,7 +2218,7 @@ class TourController extends Controller
         $finalJson = $this->normalizeFinalJsonPayload($tour);
 
         // Ensure sidebarConfig structure exists
-        $finalJson['sidebarLinks'] = $sidebarLinks;
+        $finalJson['branding']['sidebarLinks'] = $sidebarLinks;
 
         // Persist both DB column and final_json for consistency
         $updateData = [
@@ -2278,13 +2277,13 @@ class TourController extends Controller
 
         $oldData = $tour->toArray();
         $finalJson = $this->normalizeFinalJsonPayload($tour);
-        $finalJson['bottomMarker'] = $finalJson['bottomMarker'] ?? [];
+        $finalJson['branding']['bottomMarker'] = $finalJson['branding']['bottomMarker'] ?? [];
 
         $resolvedFooterTitle = is_array($validated['footer_title'] ?? null) ? $validated['footer_title'] : [];
         $resolvedFooterSubtitle = is_array($validated['footer_subtitle'] ?? null) ? $validated['footer_subtitle'] : [];
         $resolvedFooterDescription = is_array($validated['footer_decription'] ?? null) ? $validated['footer_decription'] : [];
 
-        $existingTopTitle = $finalJson['bottomMarker']['topTitle'] ?? [];
+        $existingTopTitle = $finalJson['branding']['bottomMarker']['topTitle'] ?? [];
         if (!is_array($existingTopTitle)) {
             $existingTopTitle = ['en' => $existingTopTitle];
         }
@@ -2293,9 +2292,9 @@ class TourController extends Controller
                 $existingTopTitle[$lang] = $resolvedFooterTitle[$lang];
             }
         }
-        $finalJson['bottomMarker']['topTitle'] = $existingTopTitle;
+        $finalJson['branding']['bottomMarker']['topTitle'] = $existingTopTitle;
 
-        $existingTopSubTitle = $finalJson['bottomMarker']['topSubTitle'] ?? [];
+        $existingTopSubTitle = $finalJson['branding']['bottomMarker']['topSubTitle'] ?? [];
         if (!is_array($existingTopSubTitle)) {
             $existingTopSubTitle = ['en' => $existingTopSubTitle];
         }
@@ -2304,9 +2303,9 @@ class TourController extends Controller
                 $existingTopSubTitle[$lang] = $resolvedFooterSubtitle[$lang];
             }
         }
-        $finalJson['bottomMarker']['topSubTitle'] = $existingTopSubTitle;
+        $finalJson['branding']['bottomMarker']['topSubTitle'] = $existingTopSubTitle;
 
-        $existingTopDescription = $finalJson['bottomMarker']['topDescription'] ?? [];
+        $existingTopDescription = $finalJson['branding']['bottomMarker']['topDescription'] ?? [];
         if (!is_array($existingTopDescription)) {
             $existingTopDescription = ['en' => $existingTopDescription];
         }
@@ -2315,13 +2314,13 @@ class TourController extends Controller
                 $existingTopDescription[$lang] = $resolvedFooterDescription[$lang];
             }
         }
-        $finalJson['bottomMarker']['topDescription'] = $existingTopDescription;
+        $finalJson['branding']['bottomMarker']['topDescription'] = $existingTopDescription;
 
         if (array_key_exists('footer_mobile', $validated)) {
-            $finalJson['bottomMarker']['contactNumber'] = $validated['footer_mobile'];
+            $finalJson['branding']['bottomMarker']['contactNumber'] = $validated['footer_mobile'];
         }
         if (array_key_exists('footer_email', $validated)) {
-            $finalJson['bottomMarker']['contactEmail'] = $validated['footer_email'];
+            $finalJson['branding']['bottomMarker']['contactEmail'] = $validated['footer_email'];
         }
 
         $updateData = $validated;
@@ -2337,7 +2336,7 @@ class TourController extends Controller
             $footerContent = file_get_contents($logoFooterFile->getRealPath());
             $footerMime = $logoFooterFile->getMimeType();
             $uploaded = Storage::disk('s3')->put($footerPath, $footerContent, ['ContentType' => $footerMime]);
-            $finalJson['bottomMarker']['topImage'] = 'assets/' . $footerFilename;
+            $finalJson['branding']['bottomMarker']['topImage'] = 'assets/' . $footerFilename;
 
             if ($uploaded) {
                 $updateData['footer_logo'] = Storage::disk('s3')->url($footerPath);
@@ -2389,7 +2388,7 @@ class TourController extends Controller
 
         $oldData = $tour->toArray();
         $finalJson = $this->normalizeFinalJsonPayload($tour);
-        $finalJson['bottomMarker'] = $finalJson['bottomMarker'] ?? [];
+        $finalJson['branding']['bottomMarker'] = $finalJson['branding']['bottomMarker'] ?? [];
 
         $resolvedPropertyName = array_filter([
             'en' => $validated['bottommark_property_name_en'] ?? '',
@@ -2410,13 +2409,13 @@ class TourController extends Controller
         ], static fn($value) => !is_null($value));
 
         if (!empty($resolvedPropertyName)) {
-            $finalJson['bottomMarker']['propertyName'] = $resolvedPropertyName;
+            $finalJson['branding']['bottomMarker']['propertyName'] = $resolvedPropertyName;
         }
         if (!empty($resolvedRoomType)) {
-            $finalJson['bottomMarker']['roomType'] = $resolvedRoomType;
+            $finalJson['branding']['bottomMarker']['roomType'] = $resolvedRoomType;
         }
         if (!empty($resolvedDimensions)) {
-            $finalJson['bottomMarker']['dimensions'] = $resolvedDimensions;
+            $finalJson['branding']['bottomMarker']['dimensions'] = $resolvedDimensions;
         }
 
         $updateData = $validated;
@@ -2623,13 +2622,14 @@ class TourController extends Controller
         $finalJson = $tour->final_json ?? [];
 
         // Update user details array in final_json
-        $finalJson['userInfo']['userDetails'] = $validated['user_details'] ?? [];
-        $finalJson['userInfo']['showUserDetailsButton'] = $request->has('show_user_details_button');
-        $finalJson['userInfo']['userDetailsButtonIcon'] = $validated['user_details_button_icon'] ?? '';
-        $finalJson['userInfo']['userDetailsButtonTooltip'] = $validated['user_details_button_tooltip'] ?? '';
+        $finalJson['branding']['userInfo']['userDetails'] = $validated['user_details'] ?? [];
+        $finalJson['branding']['userInfo']['showUserDetailsButton'] = $request->has('show_user_details_button');
+        $finalJson['branding']['userInfo']['userDetailsButtonIcon'] = $validated['user_details_button_icon'] ?? '';
+        $finalJson['branding']['userInfo']['userDetailsButtonTooltip'] = $validated['user_details_button_tooltip'] ?? '';
 
         // Update the tour with final_json
         $tour->update(['final_json' => $finalJson]);
+        $tour->refresh();
 
         // Sync to S3
         $this->updateTourJsonAndJsFilesInS3($tour, $finalJson);
@@ -2638,7 +2638,7 @@ class TourController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'User details updated successfully.',
-                'tour' => $tour->fresh(),
+                'tour' => $tour->fresh()->toArray(),
             ]);
         }
 
@@ -2872,23 +2872,23 @@ class TourController extends Controller
         ];
 
         // Keep DB fields snake_case, but persist tour JSON inside bookmark object in camelCase.
-        $finalJson['bookmark'] = $finalJson['bookmark'] ?? [];
-        $finalJson['bookmark']['bookmarkTitle'] = empty($resolvedBookmarkTitle) ? [] : $resolvedBookmarkTitle;
-        $finalJson['bookmark']['ribbonBackgroundColor'] = $updateData['bookmark_ribbon_background_color'];
-        $finalJson['bookmark']['ribbonTextColor'] = $updateData['bookmark_ribbon_text_color'];
-        $finalJson['bookmark']['showOnTourLoad'] = $updateData['bookmark_show_on_tour_load'];
-        $finalJson['bookmark']['showOnTourLoadDelayMs'] = $updateData['bookmark_show_on_tour_load_delay_ms'];
-        $finalJson['bookmark']['action'] = $updateData['bookmark_action'];
-        $finalJson['bookmark']['modalTitle'] = $updateData['bookmark_modal_title'];
-        $finalJson['bookmark']['modalDescription'] = $updateData['bookmark_modal_description'];
-        $finalJson['bookmark']['infoModalFooterButtonTitle'] = $updateData['bookmark_info_modal_footer_button_title'];
-        $finalJson['bookmark']['infoModalFooterButtonLink'] = $updateData['bookmark_info_modal_footer_button_link'];
-        $finalJson['bookmark']['infoModalFooterText'] = $updateData['bookmark_info_modal_footer_text'];
-        $finalJson['bookmark']['openLinkUrl'] = $updateData['bookmark_open_link_url'];
-        $finalJson['bookmark']['documentUrl'] = $updateData['bookmark_document_url'];
-        $finalJson['bookmark']['videoUrl'] = $updateData['bookmark_video_url'];
-        $finalJson['bookmark']['imageUrl'] = $updateData['bookmark_image_url'];
-        $finalJson['bookmark']['imageUrls'] = $updateData['bookmark_images_url'] ?? [];
+        $finalJson['tour']['bookmark'] = $finalJson['bookmark'] ?? [];
+        $finalJson['tour']['bookmark']['bookmarkTitle'] = empty($resolvedBookmarkTitle) ? [] : $resolvedBookmarkTitle;
+        $finalJson['tour']['bookmark']['ribbonBackgroundColor'] = $updateData['bookmark_ribbon_background_color'];
+        $finalJson['tour']['bookmark']['ribbonTextColor'] = $updateData['bookmark_ribbon_text_color'];
+        $finalJson['tour']['bookmark']['showOnTourLoad'] = $updateData['bookmark_show_on_tour_load'];
+        $finalJson['tour']['bookmark']['showOnTourLoadDelayMs'] = $updateData['bookmark_show_on_tour_load_delay_ms'];
+        $finalJson['tour']['bookmark']['action'] = $updateData['bookmark_action'];
+        $finalJson['tour']['bookmark']['modalTitle'] = $updateData['bookmark_modal_title'];
+        $finalJson['tour']['bookmark']['modalDescription'] = $updateData['bookmark_modal_description'];
+        $finalJson['tour']['bookmark']['infoModalFooterButtonTitle'] = $updateData['bookmark_info_modal_footer_button_title'];
+        $finalJson['tour']['bookmark']['infoModalFooterButtonLink'] = $updateData['bookmark_info_modal_footer_button_link'];
+        $finalJson['tour']['bookmark']['infoModalFooterText'] = $updateData['bookmark_info_modal_footer_text'];
+        $finalJson['tour']['bookmark']['openLinkUrl'] = $updateData['bookmark_open_link_url'];
+        $finalJson['tour']['bookmark']['documentUrl'] = $updateData['bookmark_document_url'];
+        $finalJson['tour']['bookmark']['videoUrl'] = $updateData['bookmark_video_url'];
+        $finalJson['tour']['bookmark']['imageUrl'] = $updateData['bookmark_image_url'];
+        $finalJson['tour']['bookmark']['imageUrls'] = $updateData['bookmark_images_url'] ?? [];
 
         $updateData['final_json'] = $finalJson;
 
@@ -2927,6 +2927,7 @@ class TourController extends Controller
     {
         $validated = $request->validate([
             'user_star_show_ribbon' => ['nullable', 'boolean'],
+            'user_star_show_ribbon_content_pannel' => ['nullable', 'boolean'],
             'user_star_show_modal' => ['nullable', 'boolean'],
             'user_star_show_cta_button' => ['nullable', 'boolean'],
             'user_star_cta_button_text' => ['nullable', 'string'],
@@ -2956,6 +2957,7 @@ class TourController extends Controller
         $userStar = [
             'stars' => $stars,
             'showRibbon' => $request->has('user_star_show_ribbon'),
+            'showRibbonInContactPanel' => $request->has('user_star_show_ribbon_content_pannel'),
             'showModalOnLoad' => $request->has('user_star_show_modal'),
             'showCtaButton' => $request->has('user_star_show_cta_button'),
             'ctaLabel' => $validated['user_star_cta_button_text'] ?? 'Learn More',
@@ -2965,7 +2967,7 @@ class TourController extends Controller
         ];
 
         $finalJson = $this->normalizeFinalJsonPayload($tour);
-        $finalJson['bottomMarker']['userStars'] = $userStar;
+        $finalJson['branding']['bottomMarker']['userStars'] = $userStar;
 
         $tour->update([
             'user_star' => $userStar,
@@ -2989,5 +2991,3 @@ class TourController extends Controller
     }
 
 }
-
-
