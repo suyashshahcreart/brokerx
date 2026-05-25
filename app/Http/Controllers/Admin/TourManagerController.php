@@ -490,7 +490,8 @@ class TourManagerController extends Controller
                     $result = $this->processZipFile($file, $tour, $qrCode->code);
                     if ($result['success']) {
                         $zipResultForHistory = TourAssetJsonPersistenceService::snapshotZipPayloadForHistory($result);
-                        $tourData = $result['data'];
+                        $tourData = $result['data']; // vertual tour data josn
+                        // $tourData = $result['tour_data_json'] ?? [];
                         $uploadedFiles[] = [
                             'name' => $file->getClientOriginalName(),
                             'type' => 'zip',
