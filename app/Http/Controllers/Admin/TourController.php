@@ -2092,7 +2092,7 @@ class TourController extends Controller
     {
         $validated = $request->validate([
             'sidebar_logo' => ['nullable', 'file', 'image', 'max:5120'],
-            'sidebar_tag_text' => ['nullable', 'string'],
+            'sidebar_tag_text' => ['nullable', 'array'],
             'sidebar_tag_color' => ['nullable', 'string', 'max:255'],
             'sidebar_tag_bg_color' => ['nullable', 'string', 'max:255'],
             'sidebar_footer_text' => ['nullable', 'string'],
@@ -2119,7 +2119,7 @@ class TourController extends Controller
             $finalJson['branding']['sidebarConfig']['footerButton']['link'] = $validated['sidebar_footer_link'];
         }
         if (array_key_exists('sidebar_tag_text', $validated)) {
-            $finalJson['branding']['sidebarConfig']['sidebarTag']['text'] = $validated['sidebar_tag_text'];
+            $finalJson['branding']['sidebarConfig']['sidebarTag']['text'] = json_encode($validated['sidebar_tag_text']);
         }
         if (array_key_exists('sidebar_tag_color', $validated)) {
             $finalJson['branding']['sidebarConfig']['sidebarTag']['textColor'] = $validated['sidebar_tag_color'];
