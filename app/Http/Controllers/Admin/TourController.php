@@ -2957,6 +2957,7 @@ class TourController extends Controller
         $userStar = [
             'stars' => $stars,
             'showRibbon' => $request->has('user_star_show_ribbon'),
+            'showRibbonInContactPanel' => $request->has('user_star_show_ribbon_content_pannel'),
             'showModalOnLoad' => $request->has('user_star_show_modal'),
             'showCtaButton' => $request->has('user_star_show_cta_button'),
             'ctaLabel' => $validated['user_star_cta_button_text'] ?? 'Learn More',
