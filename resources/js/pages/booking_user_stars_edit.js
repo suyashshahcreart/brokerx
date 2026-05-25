@@ -51,7 +51,7 @@ function buildStarRow(index, star = {}) {
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">Count</label>
-                    <input type="number" min="0" max="5" name="stars[${index}][count]" class="form-control" value="${count}" placeholder="e.g, 3.5">
+                    <input type="number" step="0.1" min="0" max="5" name="stars[${index}][count]" class="form-control" value="${count}" placeholder="e.g, 3.5">
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">URL</label>

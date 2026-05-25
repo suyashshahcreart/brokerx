@@ -485,7 +485,18 @@
                             @method('PUT')
                             <input type="hidden" name="booking_id" value="{{ $booking->id }}">
                             <div class="row">
-                                <div class="col-md-2">
+                                <div class="col-md-3">
+                                    <div class="mb-3">
+                                        <label class="form-label">Show Ribbon Content Pannel</label>
+                                        <div class="form-check form-switch mb-0">
+                                            <input class="form-check-input" type="checkbox"
+                                                name="user_star_show_ribbon_content_pannel" id="show_user_star_ribbon"
+                                                value="1"
+                                                {{ old('user_star_show_ribbon_content_pannel', data_get($tour->user_star, 'showRibbonInContactPanel', true)) ? 'checked' : '' }}>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
                                     <div class="mb-3">
                                         <label class="form-label">Show Ribbon</label>
                                         <div class="form-check form-switch mb-0">
@@ -516,7 +527,9 @@
                                         </div>
                                     </div>
                                 </div>
-                                <!-- CTA Button text -->
+                            </div>
+                            <!-- CTA Button text -->
+                            <div class="row">
                                 <div class="col-md-4">
                                     <div class="mb-3">
                                         <label class="form-label" for="user_star_cta_button_text">CTA Label
@@ -950,9 +963,11 @@
                                                             </button>
                                                         </div>
                                                     @endforeach
-                                                    @error('bookmark_image_url')<div class="text-danger">{{ $message }}</div>@enderror
+                                                    @error('bookmark_image_url')<div class="text-danger">{{ $message }}
+                                                    </div>@enderror
                                                 @else
-                                                <small class="text-muted d-block mb-2"> NO IMAGES SET (UPLOAD IMAGES)</small>
+                                                <small class="text-muted d-block mb-2"> NO IMAGES SET (UPLOAD
+                                                    IMAGES)</small>
                                                 @endauth
                                             </div>
                                         </div>
@@ -1451,7 +1466,7 @@
                                                 <div class="mt-3">
                                                     <label class="form-label" for="sidebar_logo">Sidebar Logo</label>
                                                     <input type="file" name="sidebar_logo" id="sidebar_logo" @if (!$qr_code) disabled @endif class="form-control"
-                                                        accept="image/*" onchange="previewImage(event, 'sidebar_logo')">
+                                                        accept="image/webp" onchange="previewImage(event, 'sidebar_logo')">
                                                 </div>
                                                 @error('sidebar_logo')<div class="text-danger">{{ $message }}</div>
                                                 @enderror

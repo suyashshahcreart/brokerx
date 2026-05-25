@@ -2927,6 +2927,7 @@ class TourController extends Controller
     {
         $validated = $request->validate([
             'user_star_show_ribbon' => ['nullable', 'boolean'],
+            'user_star_show_ribbon_content_pannel' => ['nullable', 'boolean'],
             'user_star_show_modal' => ['nullable', 'boolean'],
             'user_star_show_cta_button' => ['nullable', 'boolean'],
             'user_star_cta_button_text' => ['nullable', 'string'],
