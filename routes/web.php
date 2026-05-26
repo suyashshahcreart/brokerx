@@ -22,6 +22,7 @@ use App\Http\Controllers\Admin\PhotographerVisitController;
 use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\TourController;
 use App\Http\Controllers\Admin\TourManagerController;
+use App\Http\Controllers\Admin\QueueMonitorController;
 use App\Http\Controllers\Admin\TourNotificationController;
 use App\Http\Controllers\Admin\QRAnalyticsController;
 use App\Http\Controllers\Admin\ProfileController;
@@ -136,6 +137,11 @@ Route::post('/login', [AuthenticatedSessionController::class, 'store'])->middlew
 
 Route::group(['prefix' => 'ppadmlog', 'as' => 'admin.', 'middleware' => ['web', 'auth', 'not.customer']], function () {
     Route::get('/', [AdminDashboardController::class, 'index'])->name('index');
+
+    Route::get('queue-monitor', [QueueMonitorController::class, 'index'])->name('queue-monitor.index');
+    Route::get('queue-monitor/data', [QueueMonitorController::class, 'data'])->name('queue-monitor.data');
+    Route::get('queue-monitor/filters', [QueueMonitorController::class, 'filters'])->name('queue-monitor.filters');
+    Route::get('dashboard/queue-monitor', [QueueMonitorController::class, 'data'])->name('dashboard.queue-monitor');
     
     
     

@@ -24,6 +24,7 @@ use ZipArchive;
 use Aws\S3\Exception\S3Exception;
 use App\Http\Controllers\Admin\TourController;
 use App\Services\TourAssetJsonPersistenceService;
+use App\Services\TourZipProgressService;
 
 class TourManagerController extends Controller
 {
@@ -293,7 +294,12 @@ class TourManagerController extends Controller
         return response()->json([
             'booking_id' => $booking->id,
             'tour_zip_status' => $booking->tour_zip_status ?? 'pending',
-            'tour_zip_progress' => (int) ($booking->tour_zip_progress ?? 0),
+            'tour_zip_progress' => (float) ($booking->tour_zip_progress ?? 0),
+            'tour_zip_phase' => $booking->tour_zip_phase,
+            'tour_zip_current_item' => $booking->tour_zip_current_item,
+            'tour_zip_items_done' => (int) ($booking->tour_zip_items_done ?? 0),
+            'tour_zip_items_total' => (int) ($booking->tour_zip_items_total ?? 0),
+            'tour_zip_eta_seconds' => $booking->tour_zip_eta_seconds !== null ? (int) $booking->tour_zip_eta_seconds : null,
             'tour_zip_message' => $booking->tour_zip_message,
             // Use ISO8601 so JS can parse timezone correctly
             'tour_zip_started_at' => optional($booking->tour_zip_started_at)->toIso8601String(),
@@ -441,13 +447,8 @@ class TourManagerController extends Controller
 
                     \Log::info("Large file detected ({$fileSize} bytes), using background processing. Booking ID: {$booking->id}");
 
-                    // Track status for UI
-                    $booking->tour_zip_status = 'processing';
-                    $booking->tour_zip_progress = 0;
-                    $booking->tour_zip_message = 'Queued for background processing';
-                    $booking->tour_zip_started_at = now();
-                    $booking->tour_zip_finished_at = null;
-                    $booking->save();
+                    app(TourZipProgressService::class)->initializeQueued($booking, 'Queued for background processing');
+                    $booking->refresh();
 
                     // Dispatch background job
                     // Use unique identifier to prevent duplicate jobs
@@ -480,18 +481,14 @@ class TourManagerController extends Controller
                         ->with('success', 'Large file uploaded! Processing will continue in the background.');
                 } else {
                     // Process zip file synchronously for smaller files
-                    $booking->tour_zip_status = 'processing';
-                    $booking->tour_zip_progress = 5;
-                    $booking->tour_zip_message = 'Processing ZIP (sync)';
-                    $booking->tour_zip_started_at = now();
-                    $booking->tour_zip_finished_at = null;
-                    $booking->save();
+                    $syncZipProgress = app(TourZipProgressService::class);
+                    $syncZipProgress->initializeQueued($booking, 'Processing ZIP (sync)');
 
-                    $result = $this->processZipFile($file, $tour, $qrCode->code);
+                    $result = $this->processZipFile($file, $tour, $qrCode->code, $syncZipProgress);
                     if ($result['success']) {
                         $zipResultForHistory = TourAssetJsonPersistenceService::snapshotZipPayloadForHistory($result);
-                        // $tourData = $result['data']; // vertual tour data josn
-                        $tourData = $result['tour_data_json'] ?? [];
+                        $tourData = $result['data']; // vertual tour data josn
+                        // $tourData = $result['tour_data_json'] ?? [];
                         $uploadedFiles[] = [
                             'name' => $file->getClientOriginalName(),
                             'type' => 'zip',
@@ -506,13 +503,8 @@ class TourManagerController extends Controller
 
                         // Save the S3 base URL of the storage folder to booking
                         $booking->base_url = $result['s3_url'];
-
-                        // Mark done for UI
-                        $booking->tour_zip_status = 'done';
-                        $booking->tour_zip_progress = 100;
-                        $booking->tour_zip_message = 'Processing completed';
-                        $booking->tour_zip_finished_at = now();
                         $booking->save();
+                        $syncZipProgress->markDone($booking->id);
                     } else {
                         throw new \Exception($result['message']);
                     }
@@ -522,11 +514,7 @@ class TourManagerController extends Controller
 
                 // Track error for UI
                 try {
-                    $booking->tour_zip_status = 'failed';
-                    $booking->tour_zip_progress = 0;
-                    $booking->tour_zip_message = 'Processing failed: '.$e->getMessage();
-                    $booking->tour_zip_finished_at = now();
-                    $booking->save();
+                    app(TourZipProgressService::class)->markFailed($booking->id, 'Processing failed: '.$e->getMessage());
                 } catch (\Exception $inner) {
                     // avoid masking original error
                 }
@@ -561,7 +549,7 @@ class TourManagerController extends Controller
         );
 
         // Sync tour fields from final_json without overwriting existing tour fields that are not in final_json
-        $this->tourService->syncTourFieldsFromJson($tour, $tour->final_json, [], true);
+        $this->tourService->syncTourFieldsFromJson($tour, $tour->tour_data_json, [], true);
 
         if ($zipResultForHistory) {
             app(TourAssetJsonPersistenceService::class)->recordFromZipResult(
@@ -590,7 +578,7 @@ class TourManagerController extends Controller
     /**
      * Process and validate zip file containing tour assets
      */
-    public function processZipFile($zipFile, Tour $tour, $uniqueCode)
+    public function processZipFile($zipFile, Tour $tour, $uniqueCode, ?TourZipProgressService $zipProgressService = null)
     {
         try {
             // Ensure sufficient execution time and memory for large ZIP processing (5 hours for files up to 1GB)
@@ -603,6 +591,7 @@ class TourManagerController extends Controller
 
             // Load booking relationship to get customer_id
             $tour->load('booking');
+            $bookingIdProgress = $tour->booking_id;
             $zip = new ZipArchive;
             $tempPath = $zipFile->getPathname();
 
@@ -649,6 +638,7 @@ class TourManagerController extends Controller
                     } catch (\Exception $e) {
                         // Visibility failure is not critical
                     }
+                    $this->reportTourZipProgress($zipProgressService, $bookingIdProgress, 11.25, 'zip_to_s3', 'Archive uploaded to cloud storage', [], true);
                 }
             } catch (\Exception $zipUploadException) {
                 \Log::warning('Error uploading ZIP to S3 (continuing): '.$zipUploadException->getMessage().' in '.$zipUploadException->getFile().':'.$zipUploadException->getLine());
@@ -761,10 +751,23 @@ class TourManagerController extends Controller
             // Process each file in ZIP and upload directly to S3
             $batchSize = 50; // Process in batches for memory management
             $processedCount = 0;
+            $totalZipEntries = max(1, count($zipStructure));
 
-            foreach ($zipStructure as $fileInfo) {
+            foreach ($zipStructure as $entryIndex => $fileInfo) {
                 $i = $fileInfo['index'];
                 $filename = $fileInfo['name'];
+
+                $s3Fraction = ($entryIndex + 1) / $totalZipEntries;
+                $s3Pct = round(12 + (66 * $s3Fraction), 2);
+                $this->reportTourZipProgress($zipProgressService, $bookingIdProgress, $s3Pct, 's3_upload', sprintf(
+                    'Uploading to cloud storage (%d of %d)',
+                    $entryIndex + 1,
+                    $totalZipEntries
+                ), [
+                    'current_item' => $filename,
+                    'items_done' => $entryIndex + 1,
+                    'items_total' => $totalZipEntries,
+                ]);
 
                 // Extract file content directly from ZIP
                 $fileContent = $zip->getFromIndex($i);
@@ -971,6 +974,10 @@ class TourManagerController extends Controller
 
             // STEP 5: Process index.html and save as index.php locally
             if ($indexHtmlContent) {
+                $this->reportTourZipProgress($zipProgressService, $bookingIdProgress, 77.8, 'index_local', 'Building index.php', [
+                    'items_done' => $totalZipEntries,
+                    'items_total' => $totalZipEntries,
+                ], true);
                 try {
 
                     // Prepare PHP echo snippet for GTM code replacement
@@ -1225,6 +1232,9 @@ class TourManagerController extends Controller
                         $rootTourDirectory.'/index.php',
                         $tour
                     );
+                    if (! empty($ftpUploadResult['success'])) {
+                        $this->reportTourZipProgress($zipProgressService, $bookingIdProgress, 86.8, 'ftp_upload', 'Published index.php to hosting', [], true);
+                    }
 
                 } catch (\Exception $e) {
                     \Log::error('Error processing index.html: '.$e->getMessage().' in '.$e->getFile().':'.$e->getLine());
@@ -1257,6 +1267,7 @@ class TourManagerController extends Controller
                     $swJsFtpResult = $this->uploadSwJsToFtp($swJsLocalPath, $tour);
                     if ($swJsFtpResult['success']) {
                         \Log::info('✓ Successfully uploaded sw.js to FTP: '.($swJsFtpResult['ftp_path'] ?? 'N/A'));
+                        $this->reportTourZipProgress($zipProgressService, $bookingIdProgress, 89.5, 'ftp_upload', 'Published sw.js to hosting', [], true);
                     } else {
                         \Log::warning('Failed to upload sw.js to FTP: '.($swJsFtpResult['message'] ?? 'Unknown error'));
                     }
@@ -1334,6 +1345,11 @@ class TourManagerController extends Controller
                 $booking->save();
             }
 
+            $this->reportTourZipProgress($zipProgressService, $bookingIdProgress, 91.2, 'finalize', 'Completing ZIP extraction', [
+                'items_done' => $totalZipEntries,
+                'items_total' => $totalZipEntries,
+            ], true);
+
             // Build return data
             $returnData = [
                 'success' => true,
@@ -1373,6 +1389,20 @@ class TourManagerController extends Controller
                 'success' => false,
                 'message' => 'Error processing zip file: '.$e->getMessage(),
             ];
+        }
+    }
+
+    protected function reportTourZipProgress(
+        ?TourZipProgressService $progress,
+        ?int $bookingId,
+        float $pct,
+        string $phase,
+        string $message,
+        array $meta = [],
+        bool $force = false
+    ): void {
+        if ($progress !== null && $bookingId !== null) {
+            $progress->report($bookingId, $pct, $phase, $message, $meta, $force);
         }
     }
 
@@ -2337,13 +2367,8 @@ PHP;
             $slug = $request->input('slug');
             $location = $request->input('location');
 
-            // Track status for UI
-            $booking->tour_zip_status = 'processing';
-            $booking->tour_zip_progress = 0;
-            $booking->tour_zip_message = 'Queued for background processing';
-            $booking->tour_zip_started_at = now();
-            $booking->tour_zip_finished_at = null;
-            $booking->save();
+            app(TourZipProgressService::class)->initializeQueued($booking, 'Queued for background processing');
+            $booking->refresh();
 
             // Dispatch background job to process the ZIP file
             // Use unique identifier to prevent duplicate jobs
@@ -2380,11 +2405,7 @@ PHP;
 
             // Track error for UI
             try {
-                $booking->tour_zip_status = 'failed';
-                $booking->tour_zip_progress = 0;
-                $booking->tour_zip_message = 'Failed to queue processing: '.$e->getMessage();
-                $booking->tour_zip_finished_at = now();
-                $booking->save();
+                app(TourZipProgressService::class)->markFailed($booking->id, 'Failed to queue processing: '.$e->getMessage());
             } catch (\Exception $inner) {
                 // ignore status update failure
             }
