@@ -3306,7 +3306,6 @@ class TourController extends Controller
         $validated = $request->validate([
             'info_points' => ['nullable', 'array'],
         ]);
-        dd($request->all());
 
         $finalJson = $this->normalizeFinalJsonPayload($tour);
         $tourDataJson = $this->normalizeTourDataJsonPayload($tour);
