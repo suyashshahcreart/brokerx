@@ -211,7 +211,7 @@ class ProcessTourZipFile implements ShouldQueue
 
             // Sync tour database fields from final_json BEFORE saving
             // This ensures individual DB columns are synchronized with the JSON data
-            $this->tourService->syncTourFieldsFromJson($tour, $tour->final_json, [], true);
+            $this->tourService->syncTourFieldsFromJson($tour, $tour->tour_data_json, [], true);
 
             app(TourAssetJsonPersistenceService::class)->recordFromZipResult(
                 $tour,
