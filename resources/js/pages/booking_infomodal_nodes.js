@@ -57,6 +57,13 @@ function renderSelectedInfoPointForm(infoModal, node, modalIndex) {
   EditModalState.currentModalIndex = modalIndex;
   EditModalState.currentTitleField = getEditableTitleField(infoModal);
 
+  const tooltipTitle = normalizeLocalizedField(
+    infoModal.title ?? infoModal.tooltipTitle ?? infoModal.infoModalTitle
+  );
+  const tooltipDescription = normalizeLocalizedField(
+    infoModal.description ?? infoModal.tooltipDescription ?? infoModal.infoModalDescription
+  );
+
   let modalType = infoModal.type || 'none';
   if (!infoModal.type) {
     if (infoModal.buttonActionType || infoModal.isButtonOnly || isNonEmptyString(infoModal.buttonType)) {
@@ -70,22 +77,33 @@ function renderSelectedInfoPointForm(infoModal, node, modalIndex) {
     }
   }
 
-  if (hasValidTranslations(infoModal.title) && hasValidTranslations(infoModal.description)) {
+  if (hasLocalizedContent(tooltipTitle) || hasLocalizedContent(tooltipDescription)) {
     renderToottipSection({
       container: document.getElementById('tooltipSection'),
       fields: {
-        title: infoModal.title,
-        description: infoModal.description
+        title: tooltipTitle,
+        description: tooltipDescription
       },
-      tooltipPosition: infoModal.titleTooltipPosition
+      tooltipPosition: infoModal.titleTooltipPosition || infoModal.tooltipPosition || 'down'
     });
     document.getElementById('tooltipSection')?.classList.remove('d-none');
   }
 
-  if (hasValidTranslations(infoModal.infoModalTitle) && hasValidTranslations(infoModal.infoModalDescription)) {
+  const modalContentTitle = normalizeLocalizedField(
+    infoModal.infoModalTitle ?? infoModal.title ?? infoModal.tooltipTitle
+  );
+  const modalContentDescription = normalizeLocalizedField(
+    infoModal.infoModalDescription ?? infoModal.description ?? infoModal.tooltipDescription
+  );
+
+  if (hasLocalizedContent(modalContentTitle) || hasLocalizedContent(modalContentDescription)) {
     renderInfoModalEditor({
       container: document.getElementById('modalContentSection'),
-      data: infoModal
+      data: {
+        ...infoModal,
+        infoModalTitle: modalContentTitle,
+        infoModalDescription: modalContentDescription,
+      }
     });
     document.getElementById('modalContentSection')?.classList.remove('d-none');
     reinitalizeEditors();
@@ -265,6 +283,41 @@ function buildLocalizedFieldValue(values, existingValue) {
   }
 
   return payload;
+}
+
+function normalizeLocalizedField(value) {
+  if (value == null) {
+    return {};
+  }
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    return trimmed ? { en: trimmed } : {};
+  }
+
+  if (Array.isArray(value)) {
+    return value.reduce((accumulator, item, index) => {
+      if (isNonEmptyString(item)) {
+        accumulator[`value_${index}`] = item.trim();
+      }
+      return accumulator;
+    }, {});
+  }
+
+  if (typeof value !== 'object') {
+    return {};
+  }
+
+  return Object.entries(value).reduce((accumulator, [language, localizedValue]) => {
+    if (isNonEmptyString(localizedValue)) {
+      accumulator[language] = localizedValue.trim();
+    }
+    return accumulator;
+  }, {});
+}
+
+function hasLocalizedContent(value) {
+  return Object.values(normalizeLocalizedField(value)).some((entry) => isNonEmptyString(entry));
 }
 
 function escapeHtml(value) {
@@ -820,9 +873,10 @@ function renderButtonSettingsEditor({
 }) {
   if (!container) throw new Error('Container is required');
   let buttonTitleDiv = document.getElementById('buttonTitleDiv');
-  if (buttonTitleDiv && !isNonEmptyString(data.linkTitle)) {
+  const buttonTitleData = normalizeLocalizedField(data?.linkTitle ?? data?.title ?? data?.infoModalTitle);
+  if (buttonTitleDiv && Object.keys(buttonTitleData).length > 0) {
     // 🔹 Tabs
-    let navtabs = Object.keys(data.linkTitle).map((lang, i) => {
+    let navtabs = Object.keys(buttonTitleData).map((lang, i) => {
       return `
             <li class="nav-item">
                 <button 
@@ -835,12 +889,12 @@ function renderButtonSettingsEditor({
             </li>
         `;
     }).join('');
-    let titlesTabs = Object.keys(data.linkTitle).map((lang, i) => {
+    let titlesTabs = Object.keys(buttonTitleData).map((lang, i) => {
       return `
       <div class="tab-pane fade show ${i === 0 ? 'active' : ''}" id="ButtonTitle-modal-${lang}" role="tabpanel" aria-labelledby="ButtonTitle-modal-${lang}-tab">
         <div class="mb-3">
             <label class="form-label">Button title (${lang})*</label>
-            <input type="text" class="form-control" name="linkTitle[${lang}]" value="${data.linkTitle?.[lang] || ''}">
+            <input type="text" class="form-control" name="linkTitle[${lang}]" value="${buttonTitleData?.[lang] || ''}">
         </div>
       </div>
       `;
@@ -854,11 +908,13 @@ function renderButtonSettingsEditor({
 
   // button select type
   let buttonTypeSelect = document.getElementById('buttonTypeSelect');
-  buttonTypeSelect.onchange = function (e) {
-    if (e.target.value === 'icon') renderIconSettingEditor({
-      container: document.getElementById('iconDetailsDiv'),
-    })
-  };
+  if (buttonTypeSelect) {
+    buttonTypeSelect.onchange = function (e) {
+      if (e.target.value === 'icon') renderIconSettingEditor({
+        container: document.getElementById('iconDetailsDiv'),
+      });
+    };
+  }
 
   if (buttonTypeSelect) {
     [{ label: 'Text', value: 'text' }, { label: 'Icon', value: 'icon' }].map((option) => {
@@ -915,8 +971,10 @@ function renderIconSettingEditor() {
   if (!container) throw new Error('Container is required');
   // main icon selection section
   let iconInput = document.getElementById('iconInput');
-  iconInput.onclick = function () {
-    iconLib.open($('#iconInput'), $('#iconPreview'));
+  if (iconInput) {
+    iconInput.onclick = function () {
+      iconLib.open($('#iconInput'), $('#iconPreview'));
+    };
   }
   // icon color preview
   if (data.iconColor) {
@@ -925,8 +983,9 @@ function renderIconSettingEditor() {
   }
   // icon title 
   let IconTitleDiv = document.getElementById('IconTitleDiv');
-  if (IconTitleDiv && !isNonEmptyString(data?.linkTitle)) {
-    let navtabs = Object.keys(data?.linkTitle).map((lang, i) => {
+  const iconTitleData = normalizeLocalizedField(data?.linkTitle ?? data?.title ?? data?.infoModalTitle);
+  if (IconTitleDiv && Object.keys(iconTitleData).length > 0) {
+    let navtabs = Object.keys(iconTitleData).map((lang, i) => {
       return `
             <li class="nav-item">
                 <button 
@@ -940,12 +999,12 @@ function renderIconSettingEditor() {
         `;
     }).join('');
 
-    let titlesTabs = Object.keys(data?.linkTitle).map((lang, i) => {
+    let titlesTabs = Object.keys(iconTitleData).map((lang, i) => {
       return `
       <div class="tab-pane fade show ${i === 0 ? 'active' : ''}" id="IconTitleDiv-modal-${lang}" role="tabpanel" aria-labelledby="IconTitleDiv-modal-${lang}-tab">
         <div class="mb-3">
             <label class="form-label">Icon Tooltip (${lang})*</label>
-            <input type="text" class="form-control" name="IconTitleDiv[${lang}]" value="${data.linkTitle?.[lang] || ''}">
+            <input type="text" class="form-control" name="IconTitleDiv[${lang}]" value="${iconTitleData?.[lang] || ''}">
         </div>
       </div>
       `;
@@ -1394,6 +1453,36 @@ function parseMultiValueLines(value) {
     .filter(Boolean);
 }
 
+function normalizeImagePayload(value) {
+  if (Array.isArray(value)) {
+    return value.filter((item) => isNonEmptyString(item)).map((item) => item.trim());
+  }
+
+  if (isNonEmptyString(value)) {
+    return [value.trim()];
+  }
+
+  return [];
+}
+
+function resolveInfoPointImages(form, currentInfoPoint) {
+  const existingImages = normalizeImagePayload(currentInfoPoint?.image);
+  const manualImageUrls = parseMultiValueLines(getInputValue('imageUrls'));
+  const selectedFileNames = Array.from(form.getAll('images[]') || [])
+    .map((value) => (typeof value === 'string' ? value.trim() : value?.name || ''))
+    .filter(Boolean);
+  const newlySelectedNames = uploadedImageFiles
+    .map((file) => file?.name || '')
+    .filter(Boolean);
+
+  return Array.from(new Set([
+    ...existingImages,
+    ...manualImageUrls,
+    ...selectedFileNames,
+    ...newlySelectedNames,
+  ]));
+}
+
 function updateIconPreview() {
   const iconName = getInputValue('infoPointIcon') || 'radio_button_unchecked';
   const iconPreview = document.getElementById('infoPointIconPreview');
@@ -1612,7 +1701,7 @@ infoPointForm?.addEventListener('submit', async (e) => {
   let formDataObj = {
     "id": currentInfoPoint.id || generateUniqueId(),
     "nodeId": currentInfoPoint.nodeId || null,
-    "image": form.get('images') || [],
+    "image": resolveInfoPointImages(form, currentInfoPoint),
     "title": (() => {
       let obj = {};
       enabledLanguages.forEach(lang => {

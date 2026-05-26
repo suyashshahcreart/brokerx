@@ -948,10 +948,10 @@ class TourController extends Controller
     /**
      * Update tour JSON and JS files in S3 storage
      *
-    * Updates 3 files in order:
-    * 1. virtual-tour-nodes.json - current payload, with nodes coming from $finalJson when present
-    * 2. tour-data.json - current payload, with nodes coming from $finalJson when present
-    * 3. tour-data.js - same content as tour-data.json, wrapped in JS and obfuscated
+     * Updates 3 files in order:
+     * 1. virtual-tour-nodes.json - current payload, with nodes coming from $finalJson when present
+     * 2. tour-data.json - current payload, with nodes coming from $finalJson when present
+     * 3. tour-data.js - same content as tour-data.json, wrapped in JS and obfuscated
      *
      * @param Tour $tour The tour model
      * @param array $finalJson The final JSON data to save (userInfo, bottomMarker, etc.)
@@ -2662,6 +2662,30 @@ class TourController extends Controller
 
         return [];
     }
+    private function normalizeTourDataJsonPayload(Tour $tour): array
+    {
+        $rawFinalJson = $tour->tour_data_json;
+
+        if (is_array($rawFinalJson)) {
+            return $rawFinalJson;
+        }
+
+        if (is_string($rawFinalJson) && trim($rawFinalJson) !== '') {
+            $decoded = json_decode($rawFinalJson, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                return $decoded;
+            }
+        }
+
+        if (is_object($rawFinalJson)) {
+            $decoded = json_decode(json_encode($rawFinalJson), true);
+            if (is_array($decoded)) {
+                return $decoded;
+            }
+        }
+
+        return [];
+    }
 
     /**
      * Method to update the basic details of the tour.
@@ -3167,7 +3191,110 @@ class TourController extends Controller
         ]);
     }
 
+    /**
+     * Group incoming info points by node id and info point id.
+     */
+    private function groupInfoPointsByNode(array $infoPoints): array
+    {
+        $grouped = [];
+        foreach ($infoPoints as $infoPoint) {
+            if (!is_array($infoPoint) || empty($infoPoint['nodeId'])) {
+                continue;
+            }
+            $nodeId = (string) $infoPoint['nodeId'];
+            if (empty($infoPoint['id'])) {
+                $infoPoint['id'] = 'ip_' . Str::random(8);
+            }
+            $infoPointId = (string) $infoPoint['id'];
+            // Last incoming item with same id wins.
+            $grouped[$nodeId][$infoPointId] = $infoPoint;
+        }
+        return $grouped;
+    }
 
+    /**
+     * Update infoPoints inside a JSON payload and return the updated payload + count.
+     *
+     * Returns:
+     * [
+     *   'json' => array,
+     *   'updated_count' => int
+     * ]
+     */
+    private function updateInfoPointsInNodeList(array $nodes, array $infoPointsByNode): array
+    {
+        $updatedCount = 0;
+
+        foreach ($nodes as $nodeIndex => $node) {
+            if (!is_array($node) || empty($node['id'])) {
+                continue;
+            }
+
+            $nodeId = (string) $node['id'];
+            if (empty($infoPointsByNode[$nodeId])) {
+                continue;
+            }
+
+            $existingInfoPoints = $node['infoPoints'] ?? [];
+            if (!is_array($existingInfoPoints)) {
+                $existingInfoPoints = [];
+            }
+
+            $existingById = [];
+            foreach ($existingInfoPoints as $idx => $existingPoint) {
+                if (is_array($existingPoint) && !empty($existingPoint['id'])) {
+                    $existingById[(string) $existingPoint['id']] = $idx;
+                }
+            }
+
+            foreach ($infoPointsByNode[$nodeId] as $incomingId => $incomingPoint) {
+                $incomingPoint = is_array($incomingPoint) ? $incomingPoint : [];
+                $incomingPoint['id'] = (string) ($incomingPoint['id'] ?? $incomingId);
+                $incomingPoint['nodeId'] = $nodeId;
+
+                if (isset($existingById[$incomingId])) {
+                    $existingIndex = $existingById[$incomingId];
+                    $existingInfoPoints[$existingIndex] = array_replace_recursive(
+                        is_array($existingInfoPoints[$existingIndex] ?? null) ? $existingInfoPoints[$existingIndex] : [],
+                        $incomingPoint
+                    );
+                } else {
+                    $existingInfoPoints[] = $incomingPoint;
+                }
+
+                $updatedCount++;
+            }
+
+            $nodes[$nodeIndex]['infoPoints'] = array_values($existingInfoPoints);
+        }
+
+        return [
+            'nodes' => array_values($nodes),
+            'updated_count' => $updatedCount,
+        ];
+    }
+
+    private function updateInfoPointsInJson(array $json, array $infoPointsByNode): array
+    {
+        $updatedCount = 0;
+
+        if (isset($json['nodes']) && is_array($json['nodes'])) {
+            $result = $this->updateInfoPointsInNodeList($json['nodes'], $infoPointsByNode);
+            $json['nodes'] = $result['nodes'];
+            $updatedCount = max($updatedCount, $result['updated_count']);
+        }
+
+        if (isset($json['tour']['nodes']) && is_array($json['tour']['nodes'])) {
+            $result = $this->updateInfoPointsInNodeList($json['tour']['nodes'], $infoPointsByNode);
+            $json['tour']['nodes'] = $result['nodes'];
+            $updatedCount = max($updatedCount, $result['updated_count']);
+        }
+
+        return [
+            'json' => $json,
+            'updated_count' => $updatedCount,
+        ];
+    }
     /**
      * Update Info Point on Tour Nodes.
      * @param Request $request
@@ -3179,77 +3306,55 @@ class TourController extends Controller
         $validated = $request->validate([
             'info_points' => ['nullable', 'array'],
         ]);
+        dd($request->all());
 
         $finalJson = $this->normalizeFinalJsonPayload($tour);
+        $tourDataJson = $this->normalizeTourDataJsonPayload($tour);
+        $virtualTourNodesJson = $this->normalizeJsonPayload($tour->virtual_tour_nodes_json);
+
         $infoPoints = $validated['info_points'] ?? [];
+        $infoPointsByNode = $this->groupInfoPointsByNode($infoPoints);
 
-        // Group incoming info points by nodeId, then by id. If id is missing, generate one so it can be added.
-        $infoPointsByNode = [];
-        foreach ($infoPoints as $infoPoint) {
-            if (!is_array($infoPoint) || !isset($infoPoint['nodeId'])) {
-                continue;
+        $finalResult = $this->updateInfoPointsInJson($finalJson, $infoPointsByNode);
+        $tourDataResult = $this->updateInfoPointsInJson($tourDataJson, $infoPointsByNode);
+        $virtualTourNodesResult = $this->updateInfoPointsInJson($virtualTourNodesJson, $infoPointsByNode);
+
+        $finalJson = $finalResult['json'];
+        $tourDataJson = $tourDataResult['json'];
+        $virtualTourNodesJson = $virtualTourNodesResult['json'];
+
+        $updatedInfoPoints = max(
+            $finalResult['updated_count'],
+            $tourDataResult['updated_count'],
+            $virtualTourNodesResult['updated_count']
+        );
+
+        $tour->update([
+            'final_json' => $finalJson,
+            'tour_data_json' => $tourDataJson,
+            'virtual_tour_nodes_json' => $virtualTourNodesJson,
+        ]);
+
+        try {
+            $qrCode = $tour->booking_id ? QR::where('booking_id', $tour->booking_id)->value('code') : null;
+            if ($qrCode) {
+                Storage::disk('s3')->put(
+                    'tours/' . $qrCode . '/virtual-tour-nodes.json',
+                    json_encode($virtualTourNodesJson, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+                    ['ContentType' => 'application/json']
+                );
+                Storage::disk('s3')->put(
+                    'tours/' . $qrCode . '/assets/js/tour-data.json',
+                    json_encode($tourDataJson, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+                    ['ContentType' => 'application/json']
+                );
             }
-            // ensure id exists for upsert
-            if (!isset($infoPoint['id']) || $infoPoint['id'] === '') {
-                $infoPoint['id'] = 'ip_' . Str::random(8);
-            }
-            $nodeId = (string) $infoPoint['nodeId'];
-            $infoPointId = (string) $infoPoint['id'];
-            $infoPointsByNode[$nodeId][$infoPointId] = $infoPoint;
+        } catch (\Throwable $e) {
+            \Log::warning('Info point JSON saved to DB but virtual-tour-nodes.json could not be uploaded', [
+                'tour_id' => $tour->id,
+                'error' => $e->getMessage(),
+            ]);
         }
-
-        $updatedInfoPoints = 0;
-
-        if (isset($finalJson['nodes']) && is_array($finalJson['nodes'])) {
-            foreach ($finalJson['nodes'] as &$node) {
-                if (!isset($node['id'])) {
-                    continue;
-                }
-                $nodeId = (string) $node['id'];
-                if (!isset($infoPointsByNode[$nodeId])) {
-                    continue;
-                }
-                $existingInfoPoints = $node['infoPoints'] ?? [];
-                if (!is_array($existingInfoPoints)) {
-                    $existingInfoPoints = [];
-                }
-
-                // Build map of existing info points by id for quick lookup
-                $existingById = [];
-                foreach ($existingInfoPoints as $idx => $eip) {
-                    if (is_array($eip) && isset($eip['id'])) {
-                        $existingById[(string)$eip['id']] = $idx;
-                    }
-                }
-
-                // Upsert incoming info points for this node
-                foreach ($infoPointsByNode[$nodeId] as $incomingId => $incomingInfoPoint) {
-                    if (isset($existingById[$incomingId])) {
-                        // update existing (deep merge)
-                        $idx = $existingById[$incomingId];
-                        $existingInfoPoints[$idx] = array_replace_recursive(
-                            is_array($existingInfoPoints[$idx]) ? $existingInfoPoints[$idx] : [],
-                            is_array($incomingInfoPoint) ? $incomingInfoPoint : []
-                        );
-                        $updatedInfoPoints++;
-                    } else {
-                        // add new info point
-                        $new = is_array($incomingInfoPoint) ? $incomingInfoPoint : [];
-                        // ensure nodeId is set on new item
-                        $new['nodeId'] = $nodeId;
-                        $existingInfoPoints[] = $new;
-                        $updatedInfoPoints++;
-                    }
-                }
-
-                // Reindex
-                $node['infoPoints'] = array_values($existingInfoPoints);
-            }
-            unset($node);
-        }
-
-        $tour->update(['final_json' => $finalJson]);
-        $UPLOAD_RESULT = $this->updateTourJsonAndJsFilesInS3($tour, $finalJson);
 
         activity('tours')
             ->performedOn($tour)
@@ -3259,18 +3364,33 @@ class TourController extends Controller
             ])
             ->log('Tour info points updated');
 
-        // Return JSON response for AJAX requests
-        if (true) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Info points updated successfully.',
-                'tour' => $tour->fresh(),
-                'UPLOAD STATUS'=>$UPLOAD_RESULT,
-            ]);
+        return response()->json([
+            'success' => true,
+            'message' => 'Info points updated successfully.',
+            'tour' => $tour->fresh(),
+        ]);
+    }
+
+    private function normalizeJsonPayload(mixed $rawJson): array
+    {
+        if (is_array($rawJson)) {
+            return $rawJson;
         }
 
-        return redirect()->back()->with([
-            'success' => 'Info points updated successfully.',
-        ]);
+        if (is_string($rawJson) && trim($rawJson) !== '') {
+            $decoded = json_decode($rawJson, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                return $decoded;
+            }
+        }
+
+        if (is_object($rawJson)) {
+            $decoded = json_decode(json_encode($rawJson), true);
+            if (is_array($decoded)) {
+                return $decoded;
+            }
+        }
+
+        return [];
     }
 }
