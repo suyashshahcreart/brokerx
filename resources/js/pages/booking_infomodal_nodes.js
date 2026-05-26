@@ -1089,7 +1089,8 @@ function renderImagePreview(images = []) {
   }
 
   // Show section if there are any images (existing or new)
-  const hasImages = (Array.isArray(images) && images.length > 0) || uploadedImageFiles.length > 0;
+  const imageList = images == null ? [] : Array.isArray(images) ? images : [images];
+  const hasImages = imageList.length > 0 || uploadedImageFiles.length > 0;
   if (hasImages) {
     imageSection.classList.remove('d-none');
   } else {
@@ -1097,7 +1098,7 @@ function renderImagePreview(images = []) {
   }
 
   // Render existing images from modal
-  const existingImagesHtml = (images || []).map((image, index) => {
+  const existingImagesHtml = imageList.map((image, index) => {
     const imageUrl = typeof image === 'string' && image.startsWith('http')
       ? image
       : `${finalJson.s3_link}${image}`;
