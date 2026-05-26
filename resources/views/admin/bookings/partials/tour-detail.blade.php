@@ -1104,7 +1104,7 @@
                                         <div class="accordion-body px-2 pt-3 pb-1">
                                             <div class="row g-3">
                                                 {{-- User Name --}}
-                                                <div class="col-lg-6">
+                                                <div class="col-lg-6 d-none">
                                                     <div class="d-flex justify-content-between align-items-center mb-1">
                                                         <label class="form-label mb-0" for="tour_contact_user_name">
                                                             User Name <span class="text-danger">*</span>
