@@ -561,7 +561,7 @@ class TourManagerController extends Controller
         );
 
         // Sync tour fields from final_json without overwriting existing tour fields that are not in final_json
-        $this->tourService->syncTourFieldsFromJson($tour, $tour->final_json, [], true);
+        $this->tourService->syncTourFieldsFromJson($tour, $tour->tour_data_json, [], true);
 
         if ($zipResultForHistory) {
             app(TourAssetJsonPersistenceService::class)->recordFromZipResult(
