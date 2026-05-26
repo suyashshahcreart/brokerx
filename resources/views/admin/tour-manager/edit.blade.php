@@ -549,10 +549,10 @@
     const currentPath = window.location.pathname;
     const match = currentPath.match(/^\/([^\/]+)/);
     if (match && match[1]) {
-        // window.adminBasePath = '/' + match[1];
+        window.adminBasePath = '/' + match[1];
 
         // in locahost run with folder that time 
-        window.adminBasePath = '/' + match[1] + '/ppadmlog';
+        // window.adminBasePath = '/' + match[1] + '/ppadmlog';
     } else {
         window.adminBasePath = '/ppadmlog';
     }

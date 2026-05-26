@@ -987,32 +987,48 @@ class TourController extends Controller
             $tourDataJsonPath = 'tours/' . $qrCode . '/assets/js/tour-data.json';
             // $tourDataJsPath = 'tours/' . $qrCode . '/assets/js/tour-data.js';
 
-            // Fetch existing nodes from S3 - NEVER use $finalJson['nodes'], only S3
-            $existingVirtualTourNodes = [];
-            $existingTourDataJsonNodes = [];
+            // old code
 
-            if (Storage::disk('s3')->exists($virtualTourNodesPath)) {
-                $content = Storage::disk('s3')->get($virtualTourNodesPath);
-                $decoded = json_decode($content, true);
-                if (json_last_error() === JSON_ERROR_NONE && !empty($decoded['tour']['nodes'])) {
-                    $existingVirtualTourNodes = $decoded['tour']['nodes'];
-                }
+                // // Fetch existing nodes from S3 - NEVER use $finalJson['nodes'], only S3
+                // $existingVirtualTourNodes = [];
+                // $existingTourDataJsonNodes = [];
+
+                // if (Storage::disk('s3')->exists($virtualTourNodesPath)) {
+                //     $content = Storage::disk('s3')->get($virtualTourNodesPath);
+                //     $decoded = json_decode($content, true);
+                //     if (json_last_error() === JSON_ERROR_NONE && !empty($decoded['tour']['nodes'])) {
+                //         $existingVirtualTourNodes = $decoded['tour']['nodes'];
+                //     }
+                // }
+
+                // if (Storage::disk('s3')->exists($tourDataJsonPath)) {
+                //     $content = Storage::disk('s3')->get($tourDataJsonPath);
+                //     $decoded = json_decode($content, true);
+                //     if (json_last_error() === JSON_ERROR_NONE && !empty($decoded['tour']['nodes'])) {
+                //         $existingTourDataJsonNodes = $decoded['tour']['nodes'];
+                //     }
+                // }
+
+                // // Merge: our updates (userInfo, etc.) + nodes from S3 only (never $finalJson['nodes'])
+                // $virtualTourNodesContent = $finalJson;
+                // $virtualTourNodesContent['tour']['nodes'] = $existingVirtualTourNodes;
+
+                // $tourDataJsonContent = $finalJson;
+                // $tourDataJsonContent['tour']['nodes'] = $existingTourDataJsonNodes;
+
+            // new code
+            // Publish from DB columns — no downloading/merging from S3
+            $tour->refresh();
+            $virtualTourNodesContent = $this->normalizeFinalJsonPayload($tour);
+            $tourDataJsonContent = $this->normalizeTourDataJsonPayload($tour);
+            if (empty($virtualTourNodesContent)) {
+                $virtualTourNodesContent = $finalJson;
+            }
+            if (empty($tourDataJsonContent)) {
+                $tourDataJsonContent = $finalJson;
             }
 
-            if (Storage::disk('s3')->exists($tourDataJsonPath)) {
-                $content = Storage::disk('s3')->get($tourDataJsonPath);
-                $decoded = json_decode($content, true);
-                if (json_last_error() === JSON_ERROR_NONE && !empty($decoded['tour']['nodes'])) {
-                    $existingTourDataJsonNodes = $decoded['tour']['nodes'];
-                }
-            }
-
-            // Merge: our updates (userInfo, etc.) + nodes from S3 only (never $finalJson['nodes'])
-            $virtualTourNodesContent = $finalJson;
-            $virtualTourNodesContent['tour']['nodes'] = $existingVirtualTourNodes;
-
-            $tourDataJsonContent = $finalJson;
-            $tourDataJsonContent['tour']['nodes'] = $existingTourDataJsonNodes;
+            
 
             // Upload 1: virtual-tour-nodes.json (first)
             $virtualTourNodesString = json_encode(
@@ -1644,7 +1660,10 @@ class TourController extends Controller
         }
 
         $oldData = $tour->toArray();
+
         $finalJson = $this->normalizeFinalJsonPayload($tour);
+        $tourDataJson = $this->normalizeTourDataJsonPayload($tour);
+
         $userInfo = $finalJson['branding']['userInfo'] ?? [];
         $qrCode = $tour->booking_id ? QR::where('booking_id', $tour->booking_id)->value('code') : null;
 
@@ -1662,9 +1681,15 @@ class TourController extends Controller
         $userInfo['showWhatsAppNumber'] = $validated['show_contact_whatsapp_no'];
 
         $finalJson['branding']['userInfo'] = $userInfo;
+        $tourDataJson['branding']['userInfo'] = $userInfo;
 
         $updateData = $validated;
         $updateData['final_json'] = $finalJson;
+        $updateData['virtual_tour_nodes_json'] = $finalJson;
+
+        $updateData['tour_data_json'] = $tourDataJson;
+        
+
         $tour->update($updateData);
         $newData = $tour->fresh()->toArray();
 
@@ -1713,7 +1738,10 @@ class TourController extends Controller
         $validated['show_document_url2'] = $request->boolean('show_document_url2');
 
         $oldData = $tour->toArray();
+
         $finalJson = $this->normalizeFinalJsonPayload($tour);
+        $tourDataJson = $this->normalizeTourDataJsonPayload($tour);
+
         $userInfo = $finalJson['branding']['userInfo'] ?? [];
         $qrCode = $tour->booking_id ? QR::where('booking_id', $tour->booking_id)->value('code') : null;
 
@@ -1791,7 +1819,9 @@ class TourController extends Controller
         $userInfo['documentAuthRequired'] = $validated['document_auth_required'];
         $userInfo['showDocumentUrl'] = $validated['show_document_url'];
         $userInfo['showDocumentUrl2'] = $validated['show_document_url2'];
+        
         $finalJson['branding']['userInfo'] = $userInfo;
+        $tourDataJson['branding']['userInfo'] = $userInfo;
 
         $updateData = [
             'document_auth_required' => $validated['document_auth_required'],
@@ -1799,6 +1829,8 @@ class TourController extends Controller
             'show_document_url2' => $validated['show_document_url2'],
             'attachment_file' => empty($attachmentFiles) ? null : $attachmentFiles,
             'final_json' => $finalJson,
+            'virtual_tour_nodes_json' => $finalJson,
+            'tour_data_json' => $tourDataJson,
         ];
 
         $tour->update($updateData);
@@ -1974,7 +2006,11 @@ class TourController extends Controller
             : null;
 
         $oldData = $tour->toArray();
+
         $finalJson = $this->normalizeFinalJsonPayload($tour);
+        $tourDataJson = $this->normalizeTourDataJsonPayload($tour);
+
+
         $finalJson['branding']['loaderConfig'] = $finalJson['branding']['loaderConfig'] ?? [];
 
         if (array_key_exists('overlay_bg_color', $validated)) {
@@ -1996,12 +2032,16 @@ class TourController extends Controller
             $finalJson['branding']['loaderConfig']['spinnerGradientColor3'] = $validated['spinner_color'][2] ?? null;
         }
 
+        $tourDataJson['branding']['loaderConfig'] = $finalJson['branding']['loaderConfig'];
+
         $updateData = [
             'overlay_bg_color' => $validated['overlay_bg_color'] ?? null,
             'loader_text' => $validated['loader_text'] ?? null,
             'loader_color' => $validated['loader_color'] ?? null,
             'spinner_color' => $validated['spinner_color'] ?? null,
             'final_json' => $finalJson,
+            'virtual_tour_nodes_json' => $finalJson,
+            'tour_data_json' => $tourDataJson,
         ];
 
         $tour->update($updateData);
@@ -2045,7 +2085,10 @@ class TourController extends Controller
             : null;
 
         $oldData = $tour->toArray();
+
         $finalJson = $this->normalizeFinalJsonPayload($tour);
+        $tourDataJson = $this->normalizeTourDataJsonPayload($tour);
+
 
         $finalJson['tour']['localeConfig'] = $finalJson['tour']['localeConfig'] ?? [];
         $finalJson['tour']['localeConfig']['enabledLanguages'] = $validated['enable_language'] ?? [];
@@ -2054,10 +2097,14 @@ class TourController extends Controller
             $finalJson['tour']['localeConfig']['defaultLanguage'] = $validated['default_language'];
         }
 
+        $tourDataJson['tour']['localeConfig'] = $finalJson['tour']['localeConfig'];
+
         $updateData = [
             'enable_language' => $validated['enable_language'],
             'default_language' => $validated['default_language'] ?? null,
             'final_json' => $finalJson,
+            'virtual_tour_nodes_json' => $finalJson,
+            'tour_data_json' => $tourDataJson,
         ];
 
         $tour->update($updateData);
@@ -2216,14 +2263,19 @@ class TourController extends Controller
 
         $oldData = $tour->toArray();
         $finalJson = $this->normalizeFinalJsonPayload($tour);
+        $tourDataJson = $this->normalizeTourDataJsonPayload($tour);
 
         // Ensure sidebarConfig structure exists
         $finalJson['branding']['sidebarLinks'] = $sidebarLinks;
 
+        $tourDataJson['branding']['sidebarLinks'] = $sidebarLinks;
+
         // Persist both DB column and final_json for consistency
         $updateData = [
-            'final_json' => $finalJson,
             'sidebar_links' => $sidebarLinks,
+            'final_json' => $finalJson,
+            'virtual_tour_nodes_json' => $finalJson,
+            'tour_data_json' => $tourDataJson,
         ];
 
         $tour->update($updateData);
@@ -2276,7 +2328,11 @@ class TourController extends Controller
         ]);
 
         $oldData = $tour->toArray();
+
         $finalJson = $this->normalizeFinalJsonPayload($tour);
+        $tourDataJson = $this->normalizeTourDataJsonPayload($tour);
+
+
         $finalJson['branding']['bottomMarker'] = $finalJson['branding']['bottomMarker'] ?? [];
 
         $resolvedFooterTitle = is_array($validated['footer_title'] ?? null) ? $validated['footer_title'] : [];
@@ -2343,7 +2399,14 @@ class TourController extends Controller
             }
         }
 
+
+        $tourDataJson['branding']['bottomMarker'] = $finalJson['branding']['bottomMarker'];
+
         $updateData['final_json'] = $finalJson;
+        $updateData['virtual_tour_nodes_json'] = $finalJson;
+        $updateData['tour_data_json'] = $tourDataJson;
+
+
         $tour->update($updateData);
         $newData = $tour->fresh()->toArray();
 
@@ -2387,7 +2450,11 @@ class TourController extends Controller
         ]);
 
         $oldData = $tour->toArray();
+
         $finalJson = $this->normalizeFinalJsonPayload($tour);
+        $tourDataJson = $this->normalizeTourDataJsonPayload($tour);
+
+
         $finalJson['branding']['bottomMarker'] = $finalJson['branding']['bottomMarker'] ?? [];
 
         $resolvedPropertyName = array_filter([
@@ -2435,7 +2502,11 @@ class TourController extends Controller
             $updateData['bottommark_dimensions_hi']
         );
 
+        $tourDataJson['branding']['bottomMarker'] = $finalJson['branding']['bottomMarker'];
+
         $updateData['final_json'] = $finalJson;
+        $updateData['virtual_tour_nodes_json'] = $finalJson;
+        $updateData['tour_data_json'] = $tourDataJson;
         $tour->update($updateData);
         $newData = $tour->fresh()->toArray();
 
@@ -2463,7 +2534,7 @@ class TourController extends Controller
 
     private function normalizeFinalJsonPayload(Tour $tour): array
     {
-        $rawFinalJson = $tour->final_json;
+        $rawFinalJson = $tour->virtual_tour_nodes_json;
 
         if (is_array($rawFinalJson)) {
             return $rawFinalJson;
@@ -2478,6 +2549,31 @@ class TourController extends Controller
 
         if (is_object($rawFinalJson)) {
             $decoded = json_decode(json_encode($rawFinalJson), true);
+            if (is_array($decoded)) {
+                return $decoded;
+            }
+        }
+
+        return [];
+    }
+
+    private function normalizeTourDataJsonPayload(Tour $tour): array
+    {
+        $raw = $tour->tour_data_json;
+
+        if (is_array($raw)) {
+            return $raw;
+        }
+
+        if (is_string($raw) && trim($raw) !== '') {
+            $decoded = json_decode($raw, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                return $decoded;
+            }
+        }
+
+        if (is_object($raw)) {
+            $decoded = json_decode(json_encode($raw), true);
             if (is_array($decoded)) {
                 return $decoded;
             }
@@ -2620,6 +2716,7 @@ class TourController extends Controller
 
         // Get current final_json
         $finalJson = $tour->final_json ?? [];
+        $tourDataJson = $this->normalizeTourDataJsonPayload($tour);
 
         // Update user details array in final_json
         $finalJson['branding']['userInfo']['userDetails'] = $validated['user_details'] ?? [];
@@ -2627,8 +2724,10 @@ class TourController extends Controller
         $finalJson['branding']['userInfo']['userDetailsButtonIcon'] = $validated['user_details_button_icon'] ?? '';
         $finalJson['branding']['userInfo']['userDetailsButtonTooltip'] = $validated['user_details_button_tooltip'] ?? '';
 
+        $tourDataJson['branding']['userInfo'] = $finalJson['branding']['userInfo'];
+
         // Update the tour with final_json
-        $tour->update(['final_json' => $finalJson]);
+        $tour->update(['final_json' => $finalJson, 'virtual_tour_nodes_json' => $finalJson, 'tour_data_json' => $tourDataJson]);
         $tour->refresh();
 
         // Sync to S3
@@ -2691,7 +2790,9 @@ class TourController extends Controller
         ]);
 
         $oldData = $tour->toArray();
+
         $finalJson = $this->normalizeFinalJsonPayload($tour);
+        $tourDataJson = $this->normalizeTourDataJsonPayload($tour);
 
         $qrCode = $tour->booking_id ? QR::where('booking_id', $tour->booking_id)->value('code') : null;
 
@@ -2890,8 +2991,14 @@ class TourController extends Controller
         $finalJson['tour']['bookmark']['imageUrl'] = $updateData['bookmark_image_url'];
         $finalJson['tour']['bookmark']['imageUrls'] = $updateData['bookmark_images_url'] ?? [];
 
-        $updateData['final_json'] = $finalJson;
+        $tourDataJson['tour']['bookmark'] = $finalJson['tour']['bookmark'];
 
+        $updateData['final_json'] = $finalJson;
+        $updateData['virtual_tour_nodes_json'] = $finalJson;
+
+        $updateData['tour_data_json'] = $tourDataJson;
+        
+        
         $tour->update($updateData);
         $newData = $tour->fresh()->toArray();
 
@@ -2967,11 +3074,16 @@ class TourController extends Controller
         ];
 
         $finalJson = $this->normalizeFinalJsonPayload($tour);
+        $tourDataJson = $this->normalizeTourDataJsonPayload($tour);
+
         $finalJson['branding']['bottomMarker']['userStars'] = $userStar;
+        $tourDataJson['branding']['bottomMarker']['userStars'] = $userStar;
 
         $tour->update([
             'user_star' => $userStar,
             'final_json' => $finalJson,
+            'virtual_tour_nodes_json' => $finalJson,
+            'tour_data_json' => $tourDataJson,
         ]);
 
         $this->updateTourJsonAndJsFilesInS3($tour, $finalJson);
