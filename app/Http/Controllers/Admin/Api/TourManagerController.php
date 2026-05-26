@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Models\Setting;
 use App\Models\FtpConfiguration;
 use App\Jobs\ProcessTourZipFile;
+use App\Services\TourZipProgressService;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Hash;
@@ -416,14 +417,11 @@ class TourManagerController extends Controller
         $tempPath = $file->storeAs('temp_uploads', 'tour_' . $booking->id . '_' . time() . '.zip', 'local');
         $fullTempPath = storage_path('app/' . $tempPath);
         
-        // Track status for UI
-        $booking->tour_zip_status = 'processing';
-        $booking->tour_zip_progress = 0;
-        $booking->tour_zip_message = 'Queued for background processing (simple upload)';
-        $booking->tour_zip_started_at = now();
-        $booking->tour_zip_finished_at = null;
-        $booking->save();
-        
+        app(TourZipProgressService::class)->initializeQueued(
+            $booking,
+            'Queued for background processing (simple upload)'
+        );
+
         // Dispatch background job to process the ZIP file
         $jobUniqueId = 'tour-processing-' . $booking->id . '-' . md5($filename . $fullTempPath);
         ProcessTourZipFile::dispatch(
@@ -446,7 +444,12 @@ class TourManagerController extends Controller
             'tour_code' => $booking->tour_code,
             'processing' => true,
             'tour_zip_status' => $booking->tour_zip_status,
-            'tour_zip_progress' => $booking->tour_zip_progress,
+            'tour_zip_progress' => (float) ($booking->tour_zip_progress ?? 0),
+            'tour_zip_phase' => $booking->tour_zip_phase,
+            'tour_zip_current_item' => $booking->tour_zip_current_item,
+            'tour_zip_items_done' => (int) ($booking->tour_zip_items_done ?? 0),
+            'tour_zip_items_total' => (int) ($booking->tour_zip_items_total ?? 0),
+            'tour_zip_eta_seconds' => $booking->tour_zip_eta_seconds !== null ? (int) $booking->tour_zip_eta_seconds : null,
             'tour_zip_message' => $booking->tour_zip_message,
             'tour' => [
                 'id' => $tour->id,
@@ -571,14 +574,11 @@ class TourManagerController extends Controller
                 @unlink($fullTempPath);
             }
             
-            // Track status for UI
-            $booking->tour_zip_status = 'processing';
-            $booking->tour_zip_progress = 0;
-            $booking->tour_zip_message = 'Queued for background processing (chunked upload)';
-            $booking->tour_zip_started_at = now();
-            $booking->tour_zip_finished_at = null;
-            $booking->save();
-            
+            app(TourZipProgressService::class)->initializeQueued(
+                $booking,
+                'Queued for background processing (chunked upload)'
+            );
+
             // Dispatch background job to process the ZIP file
             $jobUniqueId = 'tour-processing-' . $booking->id . '-' . md5($filename . $finalPath);
             ProcessTourZipFile::dispatch(
@@ -606,7 +606,12 @@ class TourManagerController extends Controller
                 'tour_code' => $booking->tour_code,
                 'processing' => true,
                 'tour_zip_status' => $booking->tour_zip_status,
-                'tour_zip_progress' => $booking->tour_zip_progress,
+                'tour_zip_progress' => (float) ($booking->tour_zip_progress ?? 0),
+                'tour_zip_phase' => $booking->tour_zip_phase,
+                'tour_zip_current_item' => $booking->tour_zip_current_item,
+                'tour_zip_items_done' => (int) ($booking->tour_zip_items_done ?? 0),
+                'tour_zip_items_total' => (int) ($booking->tour_zip_items_total ?? 0),
+                'tour_zip_eta_seconds' => $booking->tour_zip_eta_seconds !== null ? (int) $booking->tour_zip_eta_seconds : null,
                 'tour_zip_message' => $booking->tour_zip_message,
                 'tour' => [
                     'id' => $tour->id,
@@ -615,7 +620,7 @@ class TourManagerController extends Controller
                     'tour_code' => $booking->tour_code,
                 ]
             ]);
-            
+
         } catch (\Exception $e) {
             \Log::error('Chunked upload error: ' . $e->getMessage());
             
@@ -628,17 +633,15 @@ class TourManagerController extends Controller
                 @unlink($fullTempPath);
             }
             
-            // Track error for UI
             try {
-                $booking->tour_zip_status = 'failed';
-                $booking->tour_zip_progress = 0;
-                $booking->tour_zip_message = 'Failed to process chunks: ' . $e->getMessage();
-                $booking->tour_zip_finished_at = now();
-                $booking->save();
+                app(TourZipProgressService::class)->markFailed(
+                    $booking->id,
+                    'Failed to process chunks: ' . $e->getMessage()
+                );
             } catch (\Exception $inner) {
                 // ignore status update failure
             }
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to process chunked upload: ' . $e->getMessage()

@@ -30,6 +30,11 @@ class Booking extends Model
         'base_url',
         'tour_zip_status',
         'tour_zip_progress',
+        'tour_zip_phase',
+        'tour_zip_current_item',
+        'tour_zip_items_done',
+        'tour_zip_items_total',
+        'tour_zip_eta_seconds',
         'tour_zip_message',
         'tour_zip_started_at',
         'tour_zip_finished_at',
@@ -72,6 +77,10 @@ class Booking extends Model
         'json_data' => 'array',
         'tour_zip_started_at' => 'datetime',
         'tour_zip_finished_at' => 'datetime',
+        'tour_zip_progress' => 'decimal:2',
+        'tour_zip_items_done' => 'integer',
+        'tour_zip_items_total' => 'integer',
+        'tour_zip_eta_seconds' => 'integer',
     ];
 
     // Relationships

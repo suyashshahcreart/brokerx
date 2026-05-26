@@ -226,16 +226,15 @@ if (document.getElementById('tour-dropzone') && !document.getElementById('tour-d
                         
                         // Upload chunks sequentially
                         let chunkNumber = 0;
-                        let folderIntervalId = null;
                         
                         function uploadNextChunk() {
                             if (chunkNumber >= totalChunks) {
                                 // All chunks uploaded, finalize
                                 if (folderStatus) {
-                                    folderStatus.textContent = 'Finalizing upload...';
+                                    folderStatus.textContent = 'Finalizing upload…';
                                 }
                                 if (folderProgressBar) {
-                                    folderProgressBar.style.width = '100%';
+                                    folderProgressBar.style.width = '8%';
                                 }
                                 
                                 // Finalize upload
@@ -256,11 +255,12 @@ if (document.getElementById('tour-dropzone') && !document.getElementById('tour-d
                                 })
                                 .then(response => response.json())
                                 .then(data => {
-                                    if (folderIntervalId) {
-                                        clearInterval(folderIntervalId);
+                                    if (data.success && folderProgressBar) {
+                                        folderProgressBar.style.width = '100%';
                                     }
-                                    
-                                if (data.success) {
+                                    if (!data.success) {
+                                        throw new Error(data.message || 'Finalization failed');
+                                    }
                                     if (folderStatus) {
                                         if (data.processing) {
                                             folderStatus.textContent = 'Upload complete! Processing in background...';
@@ -268,15 +268,15 @@ if (document.getElementById('tour-dropzone') && !document.getElementById('tour-d
                                             folderStatus.textContent = 'Upload complete!';
                                         }
                                     }
-                                    
+
                                     setTimeout(() => {
                                         if (loadingOverlay) loadingOverlay.style.display = 'none';
-                                        
+
                                         if (typeof Swal !== 'undefined') {
-                                            const message = data.processing 
+                                            const message = data.processing
                                                 ? (data.message || 'File uploaded! Processing will continue in the background. You can check the status later.')
                                                 : (data.message || 'Tour updated successfully!');
-                                            
+
                                             Swal.fire({
                                                 icon: data.processing ? 'info' : 'success',
                                                 title: data.processing ? 'Processing in Background' : 'Success',
@@ -291,19 +291,13 @@ if (document.getElementById('tour-dropzone') && !document.getElementById('tour-d
                                             window.location.reload();
                                         }
                                     }, 500);
-                                } else {
-                                    throw new Error(data.message || 'Finalization failed');
-                                }
                                 })
                                 .catch(error => {
                                     console.error('Finalization error:', error);
-                                    if (folderIntervalId) {
-                                        clearInterval(folderIntervalId);
-                                    }
                                     if (loadingOverlay) loadingOverlay.style.display = 'none';
                                     submitBtn.disabled = false;
                                     submitBtn.innerHTML = originalBtnText;
-                                    
+
                                     if (typeof Swal !== 'undefined') {
                                         Swal.fire({
                                             icon: 'error',
@@ -326,13 +320,14 @@ if (document.getElementById('tour-dropzone') && !document.getElementById('tour-d
                             chunkFormData.append('chunk_number', chunkNumber);
                             chunkFormData.append('chunk', chunk);
                             
-                            // Update progress
-                            const progress = ((chunkNumber + 1) / totalChunks) * 100;
+                            // Chunk upload uses 0–8% of the bar; server-side progress is in Tour Live Link poll
+                            const chunkBarMax = 8;
+                            const progress = totalChunks > 0 ? ((chunkNumber + 1) / totalChunks) * chunkBarMax : 0;
                             if (folderProgressBar) {
                                 folderProgressBar.style.width = progress + '%';
                             }
                             if (folderStatus) {
-                                folderStatus.textContent = `Uploading chunk ${chunkNumber + 1} of ${totalChunks} (${Math.round(progress)}%)`;
+                                folderStatus.textContent = `Uploading chunk ${chunkNumber + 1} of ${totalChunks}`;
                             }
                             
                             const chunkUrl = baseUrl + adminPath + '/tour-manager/chunked-upload/chunk';
@@ -356,9 +351,6 @@ if (document.getElementById('tour-dropzone') && !document.getElementById('tour-d
                             })
                             .catch(error => {
                                 console.error('Chunk upload error:', error);
-                                if (folderIntervalId) {
-                                    clearInterval(folderIntervalId);
-                                }
                                 if (loadingOverlay) loadingOverlay.style.display = 'none';
                                 submitBtn.disabled = false;
                                 submitBtn.innerHTML = originalBtnText;
@@ -398,59 +390,23 @@ if (document.getElementById('tour-dropzone') && !document.getElementById('tour-d
                 
                 // Regular upload function for small files
                 function uploadFileRegular(files, form, loadingOverlay, folderStatus, folderProgressBar, submitBtn, originalBtnText) {
-                    // Create FormData from the form
                     const formData = new FormData(form);
-                    
-                    // Add all dropzone files to FormData
+
                     files.forEach(function(file) {
                         formData.append('files[]', file);
                     });
-                    
-                    // List of folders to display
-                    const folders = ['images', 'gallery', 'tiles', 'index.html', 'Json data'];
-                    let currentIndex = 0;
-                    let folderIntervalId = null;
-                    
-                    // Function to display folders in sequence
-                    function startFolderDisplay() {
-                        folderIntervalId = setInterval(() => {
-                            
-                            const folder = folders[currentIndex % folders.length];
-                            
-                            // Display folder name
-                            const currentFolderName = document.getElementById('current-folder-name');
-                            if (currentFolderName) {
-                                currentFolderName.textContent = folder;
-                            }
-                            
-                            if (folderStatus) {
-                                folderStatus.textContent = `Processing folder ${(currentIndex % folders.length) + 1} of ${folders.length}`;
-                            }
-                            
-                            // Reset and animate progress bar
-                            if (folderProgressBar) {
-                                folderProgressBar.style.width = '0%';
-                                let progress = 0;
-                                const progressInterval = setInterval(() => {
-                                    progress += 2; // Increment by 2% every 100ms = 5 seconds total
-                                    if (folderProgressBar) {
-                                        folderProgressBar.style.width = progress + '%';
-                                    }
-                                    
-                                    if (progress >= 100) {
-                                        clearInterval(progressInterval);
-                                    }
-                                }, 100);
-                            }
-                            
-                            currentIndex++;
-                        }, 5200); // 5 seconds per folder + 200ms pause
+
+                    const currentFolderNameEl = document.getElementById('current-folder-name');
+                    if (currentFolderNameEl) {
+                        currentFolderNameEl.textContent = '';
                     }
-                    
-                    // Start displaying folders immediately
-                    startFolderDisplay();
-                    
-                    // Submit form via AJAX
+                    if (folderStatus) {
+                        folderStatus.textContent = 'Uploading tour ZIP to the server…';
+                    }
+                    if (folderProgressBar) {
+                        folderProgressBar.style.width = '100%';
+                    }
+
                     fetch(form.action, {
                         method: 'POST',
                         body: formData,
@@ -461,11 +417,6 @@ if (document.getElementById('tour-dropzone') && !document.getElementById('tour-d
                     })
                     .then(response => response.json())
                     .then(data => {
-                        // Stop folder display animation
-                        if (folderIntervalId) {
-                            clearInterval(folderIntervalId);
-                        }
-                        
                         if (data.success) {
                             // Show completion message
                             if (folderStatus) {
@@ -505,12 +456,7 @@ if (document.getElementById('tour-dropzone') && !document.getElementById('tour-d
                     })
                     .catch(error => {
                         console.error('Submit error:', error);
-                        
-                        // Stop folder display animation
-                        if (folderIntervalId) {
-                            clearInterval(folderIntervalId);
-                        }
-                        
+
                         // Hide loading overlay
                         if (loadingOverlay) loadingOverlay.style.display = 'none';
                         
@@ -584,7 +530,10 @@ if (document.getElementById('tour-dropzone') && !document.getElementById('tour-d
                         if (folderContainer) {
                             folderContainer.style.display = 'block';
                         }
-                        
+                        if (currentFolderName) {
+                            currentFolderName.textContent = '';
+                        }
+
                         // Show loading state on button
                         const submitBtn = form.querySelector('button[type="submit"]');
                         const originalBtnText = submitBtn.innerHTML;
