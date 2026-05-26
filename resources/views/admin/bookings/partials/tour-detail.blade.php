@@ -633,7 +633,7 @@
                             <div class="mb-3">
                                 <label class="form-label">Enabled languages</label>
                                 <div class="d-flex flex-wrap gap-3">
-                                    @foreach ($tour->final_json['tour']['localeConfig']['languageDisplay'] as $code => $lang)
+                                    @foreach(data_get($tour->final_json, 'tour.localeConfig.languageDisplay', []) as $code => $lang)
                                         <div class="form-check">
                                             <input class="form-check-input" type="checkbox" name="enable_language[]"
                                                 id="lang_english" value="{{$code}}"
@@ -652,10 +652,13 @@
                                         <label class="form-label" for="default_language">Default language</label>
                                         <select name="default_language" id="default_language" class="form-select">
                                             <option value="">Select default language</option>
-                                            @foreach($tour->final_json['tour']['localeConfig']['languageDisplay'] as $code => $lang)
+                                            @foreach(data_get($tour->final_json, 'tour.localeConfig.languageDisplay', []) as $code => $lang)
                                                 <option value="{{ $code }}"
-                                                    {{ old('default_language', $tour->default_language) == strtolower($lang['short']) ? 'selected' : '' }}>
-                                                    {{ $lang['title'] }} ({{ $lang['short'] }})
+                                                    {{ old('default_language', $tour->default_language) == strtolower($lang['short'] ?? '') ? 'selected' : '' }}>
+                                                    {{ $lang['title'] ?? $code }}
+                                                    @if(!empty($lang['short']))
+                                                        ({{ $lang['short'] }})
+                                                    @endif
                                                 </option>
                                             @endforeach
                                         </select>

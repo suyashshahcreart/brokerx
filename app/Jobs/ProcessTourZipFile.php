@@ -2,19 +2,18 @@
 
 namespace App\Jobs;
 
+use App\Models\Booking;
+use App\Models\QR;
+use App\Models\Tour;
+use App\Services\TourAssetJsonPersistenceService;
+use App\Services\TourService;
+use App\Services\TourZipProgressService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
-use App\Models\Booking;
-use App\Models\Tour;
-use App\Models\QR;
-use App\Services\TourService;
-use App\Services\TourAssetJsonPersistenceService;
-use ZipArchive;
 
 /**
  * Background processing of uploaded tour ZIP archives.
@@ -27,15 +26,24 @@ class ProcessTourZipFile implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public $timeout = 18000; // 5 hours for large ZIP processing
+
     public $tries = 3; // Retry a few times (DB retry_after can re-attempt long jobs)
+
     public $backoff = 900; // Wait 15 minutes before retry
 
     protected $bookingId;
+
     protected $zipFilePath;
+
     protected $originalFilename;
+
     protected $slug;
+
     protected $location;
+
     protected $tourService;
+
+    protected ?TourZipProgressService $zipProgress = null;
 
     /**
      * Create a new job instance.
@@ -55,34 +63,32 @@ class ProcessTourZipFile implements ShouldQueue
      */
     public function handle(): void
     {
+        $this->zipProgress = app(TourZipProgressService::class);
+
         try {
-            // Increase execution time and memory for large ZIP processing
             set_time_limit(18000);
             ini_set('max_execution_time', '18000');
             ini_set('memory_limit', '2048M');
 
-            $this->updateBookingStatus('processing', 5, 'Job started');
-            $this->workerLog('RUNNING', 5, 'Starting background ZIP processing');
+            $this->zipProgress->report($this->bookingId, 3.5, 'job_start', 'Job started', [], true);
+            $this->workerLog('RUNNING', 4, 'Starting background ZIP processing');
 
-            // Get booking and tour (every queued upload runs the full pipeline; no duplicate skip)
             $booking = Booking::findOrFail($this->bookingId);
-            $this->updateBookingStatus('processing', 10, 'Loaded booking');
+            $this->zipProgress->report($this->bookingId, 8.0, 'validate', 'Loaded booking', [], true);
             $tour = $booking->tours()->first();
 
-            if (!$tour) {
+            if (! $tour) {
                 throw new \Exception('No tour found for this booking.');
             }
-            $this->updateBookingStatus('processing', 15, 'Loaded tour');
+            $this->zipProgress->report($this->bookingId, 12.5, 'validate', 'Loaded tour', [], true);
 
-            // Resolve size/hash before processing; temp path must still exist (no "fake done" if cleaned early)
-            if (!file_exists($this->zipFilePath)) {
+            if (! file_exists($this->zipFilePath)) {
                 throw new \Exception("ZIP file not found: {$this->zipFilePath}");
             }
             $fileSize = filesize($this->zipFilePath);
             $fileHash = md5_file($this->zipFilePath);
-            $this->updateBookingStatus('processing', 20, 'ZIP file validated');
+            $this->zipProgress->report($this->bookingId, 16.0, 'validate', 'ZIP file validated', [], true);
 
-            // Update tour slug and location if provided
             $tourUpdated = false;
             if ($this->slug && $tour->slug !== $this->slug) {
                 $tour->slug = $this->slug;
@@ -99,13 +105,12 @@ class ProcessTourZipFile implements ShouldQueue
             }
 
             $tour->refresh();
-            $this->updateBookingStatus('processing', 25, 'Tour details updated');
+            $this->zipProgress->report($this->bookingId, 20.0, 'validate', 'Tour details updated', [], true);
 
-            // Get or assign QR code
             $qrCode = $booking->qr;
-            if (!$qrCode) {
+            if (! $qrCode) {
                 $qrCode = QR::whereNull('booking_id')->first();
-                if (!$qrCode) {
+                if (! $qrCode) {
                     throw new \Exception('No available QR codes.');
                 }
                 $qrCode->booking_id = $booking->id;
@@ -114,12 +119,11 @@ class ProcessTourZipFile implements ShouldQueue
                 $booking->tour_code = $qrCode->code;
                 $booking->save();
             }
-            $this->updateBookingStatus('processing', 30, 'QR code assigned');
+            $this->zipProgress->report($this->bookingId, 24.0, 'validate', 'QR code assigned', [], true);
 
-            // Process the ZIP file using the controller's method
             Log::info("Processing ZIP file '{$this->originalFilename}' (size: {$fileSize} bytes, hash: {$fileHash}) for booking #{$this->bookingId}");
-            $this->workerLog('RUNNING', 40, "Processing ZIP '{$this->originalFilename}'");
-            $this->updateBookingStatus('processing', 40, 'Processing ZIP contents');
+            $this->workerLog('RUNNING', 26, "Processing ZIP '{$this->originalFilename}'");
+
             $controller = app(\App\Http\Controllers\Admin\TourManagerController::class);
             $result = $controller->processZipFile(
                 new \Illuminate\Http\UploadedFile(
@@ -130,18 +134,18 @@ class ProcessTourZipFile implements ShouldQueue
                     true
                 ),
                 $tour,
-                $qrCode->code
+                $qrCode->code,
+                $this->zipProgress
             );
 
-            if (!$result['success']) {
+            if (! $result['success']) {
                 throw new \Exception($result['message']);
             }
-            $this->updateBookingStatus('processing', 80, 'ZIP processed, saving results');
 
-            // Snapshot ZIP JSON assets before array_merge/sync mutates nested refs shared with $result['data']
+            $this->zipProgress->report($this->bookingId, 88.5, 'db_sync', 'Merging tour JSON and syncing database fields', [], true);
+
             $zipPayloadForHistory = TourAssetJsonPersistenceService::snapshotZipPayloadForHistory($result);
 
-            // Update tour data
             $tourData = $result['data'];
 
             $uploadedFiles = [
@@ -157,20 +161,16 @@ class ProcessTourZipFile implements ShouldQueue
                     'file_hash' => $fileHash,
                     'uploaded_at' => now()->toDateTimeString(),
                     'processed_at' => now()->toDateTimeString(),
-                    'processed_in_background' => true
-                ]
+                    'processed_in_background' => true,
+                ],
             ];
 
             $existingFiles = $tour->final_json['files'] ?? [];
-            // $existingTourData = is_array($tour->final_json) ? $tour->final_json : [];
 
-            // Prevent duplicate file entries - check if exact same file already exists (by hash)
             $fileAlreadyExists = false;
             $existingFileIndex = null;
             foreach ($existingFiles as $index => $existingFile) {
-                // Check if same file (by hash) or same name without hash (old records)
                 if (isset($existingFile['name']) && $existingFile['name'] === $this->originalFilename) {
-                    // If both have hash, compare by hash; otherwise treat as same if name matches
                     if (isset($existingFile['file_hash']) && isset($fileHash)) {
                         if (
                             $existingFile['file_hash'] === $fileHash &&
@@ -181,7 +181,6 @@ class ProcessTourZipFile implements ShouldQueue
                             break;
                         }
                     } else {
-                        // Old record without hash - update it
                         $fileAlreadyExists = true;
                         $existingFileIndex = $index;
                         break;
@@ -189,29 +188,25 @@ class ProcessTourZipFile implements ShouldQueue
                 }
             }
 
-            // Only add file if it doesn't already exist (by hash)
-            if (!$fileAlreadyExists) {
+            if (! $fileAlreadyExists) {
                 $existingFiles = array_merge($existingFiles, $uploadedFiles);
             } else {
-                // Update existing file entry
                 if ($existingFileIndex !== null) {
                     $existingFiles[$existingFileIndex] = array_merge($existingFiles[$existingFileIndex], $uploadedFiles[0]);
                 }
             }
 
             $tour->final_json = array_merge(
-                // $existingTourData,
                 $tourData,
                 [
                     'files' => $existingFiles,
                     'qr_code' => $qrCode->code,
-                    'updated_at' => now()->toDateTimeString()
+                    'updated_at' => now()->toDateTimeString(),
                 ]
             );
 
-            // Sync tour database fields from final_json BEFORE saving
-            // This ensures individual DB columns are synchronized with the JSON data
-            $this->tourService->syncTourFieldsFromJson($tour, $tour->final_json, [], true);
+            $this->tourService->syncTourFieldsFromJson($tour, $tour->tour_data_json, [], true);
+            $this->zipProgress->report($this->bookingId, 94.0, 'db_sync', 'Recording JSON history snapshot', [], true);
 
             app(TourAssetJsonPersistenceService::class)->recordFromZipResult(
                 $tour,
@@ -223,66 +218,30 @@ class ProcessTourZipFile implements ShouldQueue
             $booking->save();
 
             Log::info("Successfully processed ZIP file for booking #{$this->bookingId}");
-            $this->updateBookingStatus('done', 100, 'Processing completed');
+            $this->zipProgress->markDone($this->bookingId);
             $this->workerLog('DONE', 100, 'Successfully processed ZIP file');
 
-            // Clean up the temporary ZIP file if it's in chunks directory
             if (strpos($this->zipFilePath, 'chunks') !== false && file_exists($this->zipFilePath)) {
                 @unlink($this->zipFilePath);
             }
-
         } catch (\Exception $e) {
-            Log::error("Background ZIP processing failed for booking #{$this->bookingId}: " . $e->getMessage() . " in " . $e->getFile() . ":" . $e->getLine());
-            $this->updateBookingStatus('failed', 0, 'Processing failed: ' . $e->getMessage());
-            $this->workerLog('FAILED', 0, 'Processing failed: ' . $e->getMessage());
-            throw $e; // Re-throw to trigger retry
+            Log::error("Background ZIP processing failed for booking #{$this->bookingId}: ".$e->getMessage().' in '.$e->getFile().':'.$e->getLine());
+            ($this->zipProgress ?? app(TourZipProgressService::class))->markFailed($this->bookingId, 'Processing failed: '.$e->getMessage());
+            $this->workerLog('FAILED', 0, 'Processing failed: '.$e->getMessage());
+            throw $e;
         }
     }
 
-    /**
-     * Handle a job failure.
-     */
     public function failed(\Throwable $exception): void
     {
-        Log::error("Background ZIP processing permanently failed for booking #{$this->bookingId}: " . $exception->getMessage() . " in " . $exception->getFile() . ":" . $exception->getLine());
-        $this->updateBookingStatus('failed', 0, 'Processing permanently failed: ' . $exception->getMessage(), true);
-        $this->workerLog('FAILED', 0, 'Processing permanently failed: ' . $exception->getMessage());
+        Log::error("Background ZIP processing permanently failed for booking #{$this->bookingId}: ".$exception->getMessage().' in '.$exception->getFile().':'.$exception->getLine());
+        app(TourZipProgressService::class)->markFailed($this->bookingId, 'Processing permanently failed: '.$exception->getMessage());
+        $this->workerLog('FAILED', 0, 'Processing permanently failed: '.$exception->getMessage());
 
-        // Optionally notify admin or update booking status
         try {
-            $booking = Booking::find($this->bookingId);
-            if ($booking) {
-                // You can add a status field to track processing errors
-            }
+            Booking::find($this->bookingId);
         } catch (\Exception $e) {
-            Log::error("Failed to update booking status: " . $e->getMessage() . " in " . $e->getFile() . ":" . $e->getLine());
-        }
-    }
-
-    private function updateBookingStatus(string $status, int $progress, string $message, bool $finished = false): void
-    {
-        try {
-            $booking = Booking::find($this->bookingId);
-            if (!$booking) {
-                return;
-            }
-
-            $booking->tour_zip_status = $status;
-            $booking->tour_zip_progress = max(0, min(100, $progress));
-            $booking->tour_zip_message = $message;
-
-            if ($status === 'processing' && !$booking->tour_zip_started_at) {
-                $booking->tour_zip_started_at = now();
-            }
-
-            if ($finished || in_array($status, ['done', 'failed'], true)) {
-                $booking->tour_zip_finished_at = now();
-            }
-
-            $booking->save();
-        } catch (\Exception $e) {
-            // avoid breaking the job due to status update issues
-            Log::warning("Failed to update booking #{$this->bookingId} tour_zip_status: " . $e->getMessage());
+            Log::error('Failed to update booking status: '.$e->getMessage().' in '.$e->getFile().':'.$e->getLine());
         }
     }
 
@@ -294,8 +253,6 @@ class ProcessTourZipFile implements ShouldQueue
                 'path' => storage_path('logs/worker-tour.log'),
             ]);
 
-            // Example line:
-            // [BOOKING:6] [RUNNING] [40%] Processing ZIP 'file.zip'
             $logger->info(sprintf(
                 '[BOOKING:%s] [%s] [%d%%] %s',
                 $this->bookingId,
@@ -304,7 +261,6 @@ class ProcessTourZipFile implements ShouldQueue
                 $message
             ));
         } catch (\Exception $e) {
-            // ignore worker log failures
         }
     }
 }

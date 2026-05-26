@@ -33,6 +33,16 @@
                     </a>
                </li>
 
+               <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('admin.queue-monitor.*') ? 'active' : '' }}"
+                         href="{{ route('admin.queue-monitor.index') }}">
+                         <span class="nav-icon">
+                              <i class="ri-stack-line"></i>
+                         </span>
+                         <span class="nav-text">Queue monitor</span>
+                    </a>
+               </li>
+
 
                @can('customer_view')
                     <li class="nav-item">

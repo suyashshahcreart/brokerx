@@ -85,7 +85,7 @@
     </div> <!-- end row -->
     <!-- Sales Analytic -->
     <div class="row">
-        <div class="col-xl-12">
+        <div class="col-xl-6">
             <div class="card overflow-hidden">
                 <div class="card-header d-flex justify-content-between align-items-center pb-1">
                     <div>
@@ -129,8 +129,10 @@
                     </div>
                 </div>
             </div>
+        </div>
+        <div class="col-xl-6">
             <!-- Sales Analytic Chart -->
-            <div class="card overflow-hidden mt-4">
+            <div class="card overflow-hidden">
                 <div class="card-header d-flex justify-content-between align-items-center pb-1">
                     <div>
                         <h4 class="card-title">Sales Analytic</h4>
@@ -170,7 +172,7 @@
             </div>
         </div>
         <!-- my balance  -->
-        <div class="d-none col-xl-4">
+        <div class="d-none col-xl-6">
             <div class="card bg-primary bg-gradient">
                 <div class="card-body">
                     <div class="row align-items-center justify-content-between">
@@ -446,6 +448,36 @@
         </div>
     </div>
 
+    <div class="row mb-3">
+        <div class="col-xl-12">
+            <div class="card border shadow-none">
+                <div class="card-header d-flex flex-wrap gap-2 justify-content-between align-items-center py-3">
+                    <div>
+                        <h4 class="card-title mb-0">Background jobs</h4>
+                        <p class="text-muted mb-0 fs-13">Queues, workers, and tour ZIP progress</p>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2 align-items-center">
+                        <span class="badge bg-secondary-subtle text-secondary">Pending <strong id="dash-qm-pending">—</strong></span>
+                        <span class="badge bg-warning-subtle text-warning">Running <strong id="dash-qm-running">—</strong></span>
+                        <span class="badge bg-danger-subtle text-danger">Failed 24h <strong id="dash-qm-failed">—</strong></span>
+                        <a href="{{ route('admin.queue-monitor.index') }}" class="btn btn-sm btn-primary">View all</a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="btn-group btn-group-sm mb-3" role="group" aria-label="Queue filter">
+                        <button type="button" class="btn btn-outline-secondary qm-dash-chip active" data-chip="all">All</button>
+                        <button type="button" class="btn btn-outline-secondary qm-dash-chip" data-chip="running">Running</button>
+                        <button type="button" class="btn btn-outline-secondary qm-dash-chip" data-chip="pending">Pending</button>
+                        <button type="button" class="btn btn-outline-secondary qm-dash-chip" data-chip="failed">Failed</button>
+                    </div>
+                    <div id="dashboard-queue-monitor"
+                         data-api-url="{{ route('admin.dashboard.queue-monitor') }}"
+                         data-limit="8"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="row">
         <div class="col-xl-12">
             <div class="card">
@@ -552,5 +584,5 @@
         window.monthlyCustomers = @json($monthlyCustomers);
         window.daysInMonth = {{ $daysInMonth }};
     </script>
-    @vite(['resources/js/pages/dashboard-analytics.js'])
+    @vite(['resources/js/pages/dashboard-analytics.js', 'resources/js/pages/dashboard-queue-monitor.js'])
 @endsection
