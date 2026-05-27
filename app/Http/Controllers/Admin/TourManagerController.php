@@ -359,7 +359,7 @@ class TourManagerController extends Controller
         $validated = $request->validate([
             'slug' => 'required|string|max:255|regex:/^[a-zA-Z0-9\/\-_]+$/',
             'location' => ['required', 'string', Rule::in($validLocations)],
-            'files.*' => 'nullable|file|max:1572864', // 1.5GB for zip files - single file only (max is in KB)
+            'files.*' => 'nullable|file|max:10192896', // ~9.72 GiB single ZIP (max rule is in KB); matches Dropzone maxFilesize MB
         ]);
 
         // Get the tour for this booking
@@ -584,7 +584,7 @@ class TourManagerController extends Controller
             // Ensure sufficient execution time and memory for large ZIP processing (5 hours for files up to 1GB)
             set_time_limit(18000);
             ini_set('max_execution_time', '18000');
-            ini_set('memory_limit', '2048M'); // Increase memory limit for large ZIP processing
+            ini_set('memory_limit', '9048M'); // Increase memory limit for large ZIP processing
 
             // Start processing
             \Log::info("Starting ZIP processing for tour code: {$uniqueCode}");
