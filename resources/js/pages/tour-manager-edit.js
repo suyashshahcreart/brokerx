@@ -85,7 +85,7 @@ if (document.getElementById('tour-dropzone') && !document.getElementById('tour-d
         const myDropzone = new Dropzone("#tour-dropzone", {
             url: "#", // Dummy URL since we'll submit via form
             paramName: "files",
-            maxFilesize: 1536, // MB (1.5GB max ZIP)
+            maxFilesize: 9954, // MB (~9.72 GiB; Dropzone uses MB, Laravel max rule below uses KB)
             maxFiles: 1, // Only single file allowed
             acceptedFiles: ".zip,application/zip,application/x-zip-compressed,application/x-zip", // Only ZIP files
             addRemoveLinks: true,

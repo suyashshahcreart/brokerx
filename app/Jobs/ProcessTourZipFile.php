@@ -68,7 +68,7 @@ class ProcessTourZipFile implements ShouldQueue
         try {
             set_time_limit(18000);
             ini_set('max_execution_time', '18000');
-            ini_set('memory_limit', '2048M');
+            ini_set('memory_limit', '9048M');
 
             $this->zipProgress->report($this->bookingId, 3.5, 'job_start', 'Job started', [], true);
             $this->workerLog('RUNNING', 4, 'Starting background ZIP processing');
