@@ -14,6 +14,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Background processing of uploaded tour ZIP archives.
@@ -25,11 +26,11 @@ class ProcessTourZipFile implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public $timeout = 18000; // 5 hours for large ZIP processing
+        public $timeout = 18000; // 5 hours for large ZIP processing
 
-    public $tries = 3; // Retry a few times (DB retry_after can re-attempt long jobs)
+        public $tries = 2; // Retry a few times (DB retry_after can re-attempt long jobs)
 
-    public $backoff = 900; // Wait 15 minutes before retry
+        public $backoff = 10000; // Wait 10000 seconds before retry
 
     protected $bookingId;
 
@@ -142,6 +143,10 @@ class ProcessTourZipFile implements ShouldQueue
                 throw new \Exception($result['message']);
             }
 
+            DB::reconnect();
+            $tour = $tour->fresh();
+            $booking = $booking->fresh();
+
             $this->zipProgress->report($this->bookingId, 88.5, 'db_sync', 'Merging tour JSON and syncing database fields', [], true);
 
             $zipPayloadForHistory = TourAssetJsonPersistenceService::snapshotZipPayloadForHistory($result);
@@ -204,6 +209,8 @@ class ProcessTourZipFile implements ShouldQueue
                     'updated_at' => now()->toDateTimeString(),
                 ]
             );
+
+            $tour->tour_data_json = $result['tour_data_json'];
 
             $this->tourService->syncTourFieldsFromJson($tour, $tour->tour_data_json, [], true);
             $this->zipProgress->report($this->bookingId, 94.0, 'db_sync', 'Recording JSON history snapshot', [], true);
