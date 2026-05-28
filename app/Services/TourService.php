@@ -108,21 +108,21 @@ class TourService
         $loaderConfig = $finalJson['branding']['loaderConfig'] ?? [];
         if ($forceSync || Arr::has($diffJson, 'loaderConfig')) {
             $tour->loader_text = $loaderConfig['loadingText'] ?? "It's Prop Pik, It's Real";
-            $tour->overlay_bg_color = $loaderConfig['overlayBackgroundColor'] ?? '#3949AB';
+            $tour->overlay_bg_color = $loaderConfig['overlayBackgroundColor'] ?? 'rgb(0, 0, 64)';
         }
 
         if ($forceSync || Arr::has($diffJson, 'loaderConfig.spinnerGradientColor1') || Arr::has($diffJson, 'loaderConfig.spinnerGradientColor2') || Arr::has($diffJson, 'loaderConfig.spinnerGradientColor3')) {
             $tour->spinner_color = [
-                $loaderConfig['spinnerGradientColor1'] ?? '#FF5F5F',
-                $loaderConfig['spinnerGradientColor2'] ?? '#FF5F5F',
+                $loaderConfig['spinnerGradientColor1'] ?? '#b47e37',
+                $loaderConfig['spinnerGradientColor2'] ?? '#73b7d4',
                 $loaderConfig['spinnerGradientColor3'] ?? '#FF5F5F',
             ];
         }
 
         if ($forceSync || Arr::has($diffJson, 'loaderConfig.textGradientColor1') || Arr::has($diffJson, 'loaderConfig.textGradientColor2') || Arr::has($diffJson, 'loaderConfig.textGradientColor3')) {
             $tour->loader_color = [
-                $loaderConfig['textGradientColor1'] ?? '#FF5F5F',
-                $loaderConfig['textGradientColor2'] ?? '#FF5F5F',
+                $loaderConfig['textGradientColor1'] ?? '#b47e37',
+                $loaderConfig['textGradientColor2'] ?? '#73b7d4',
                 $loaderConfig['textGradientColor3'] ?? '#FF5F5F',
             ];
         }

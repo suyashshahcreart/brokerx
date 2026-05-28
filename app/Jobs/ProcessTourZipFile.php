@@ -205,6 +205,8 @@ class ProcessTourZipFile implements ShouldQueue
                 ]
             );
 
+            $tour->tour_data_json = $result['tour_data_json'];
+
             $this->tourService->syncTourFieldsFromJson($tour, $tour->tour_data_json, [], true);
             $this->zipProgress->report($this->bookingId, 94.0, 'db_sync', 'Recording JSON history snapshot', [], true);
 
