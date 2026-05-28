@@ -14,6 +14,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Background processing of uploaded tour ZIP archives.
@@ -141,6 +142,10 @@ class ProcessTourZipFile implements ShouldQueue
             if (! $result['success']) {
                 throw new \Exception($result['message']);
             }
+
+            DB::reconnect();
+            $tour = $tour->fresh();
+            $booking = $booking->fresh();
 
             $this->zipProgress->report($this->bookingId, 88.5, 'db_sync', 'Merging tour JSON and syncing database fields', [], true);
 
