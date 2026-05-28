@@ -624,22 +624,43 @@ class TourManagerController extends Controller
             // 2. S3 path for tour assets (images, assets, gallery, tiles)
             $s3TourPath = 'tours/'.$uniqueCode;
 
-            // STEP 1: Upload the original ZIP file to S3
+            // STEP 1: Upload the original ZIP file to S3 (streamed — avoids PHP ~2GB string limit)
             try {
-                $zipContent = file_get_contents($tempPath);
-                if ($zipContent !== false) {
-                    Storage::disk('s3')->put(
-                        $s3TourPath.'/tour.zip',
-                        $zipContent,
-                        ['ContentType' => 'application/zip']
-                    );
-                    try {
-                        Storage::disk('s3')->setVisibility($s3TourPath.'/tour.zip', 'public');
-                    } catch (\Exception $e) {
-                        // Visibility failure is not critical
-                    }
-                    $this->reportTourZipProgress($zipProgressService, $bookingIdProgress, 11.25, 'zip_to_s3', 'Archive uploaded to cloud storage', [], true);
+                // $zipContent = file_get_contents($tempPath);
+                // if ($zipContent !== false) {
+                //     Storage::disk('s3')->put(
+                //         $s3TourPath.'/tour.zip',
+                //         $zipContent,
+                //         ['ContentType' => 'application/zip']
+                //     );
+                //     try {
+                //         Storage::disk('s3')->setVisibility($s3TourPath.'/tour.zip', 'public');
+                //     } catch (\Exception $e) {
+                //         // Visibility failure is not critical
+                //     }
+                //     $this->reportTourZipProgress($zipProgressService, $bookingIdProgress, 11.25, 'zip_to_s3', 'Archive uploaded to cloud storage', [], true);
+                // }
+
+                $s3ZipKey = $s3TourPath.'/tour.zip';
+                $stream = fopen($tempPath, 'rb');
+
+                if ($stream === false) {
+                    throw new \RuntimeException('Could not open ZIP file for S3 upload.');
                 }
+
+                Storage::disk('s3')->writeStream($s3ZipKey, $stream);
+
+                if (is_resource($stream)) {
+                    fclose($stream);
+                }
+
+                try {
+                    Storage::disk('s3')->setVisibility($s3ZipKey, 'public');
+                } catch (\Exception $e) {
+                    // Visibility failure is not critical
+                }
+
+                $this->reportTourZipProgress($zipProgressService, $bookingIdProgress, 11.25, 'zip_to_s3', 'Archive uploaded to cloud storage', [], true);
             } catch (\Exception $zipUploadException) {
                 \Log::warning('Error uploading ZIP to S3 (continuing): '.$zipUploadException->getMessage().' in '.$zipUploadException->getFile().':'.$zipUploadException->getLine());
             }
