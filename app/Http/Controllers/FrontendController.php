@@ -17,6 +17,7 @@ use App\Models\BHK;
 use App\Models\PropertyType;
 use App\Models\PropertySubType;
 use App\Models\Setting;
+use App\Support\SidebarConfigHelper;
 use App\Services\CashfreeService;
 use App\Services\SmsService;
 use Carbon\Carbon;
@@ -653,9 +654,7 @@ class FrontendController extends Controller
             'status' => 'draft',
             'revision' => 1,
 
-            'sidebar_footer_text' => $tourSettings['tour_footer_button_text'] ?? null,
-            'sidebar_footer_link' => $tourSettings['tour_footer_button_link'] ?? null,
-            'sidebar_footer_link_show' => $tourSettings['tour_footer_link_show'] ?? 1,
+            'sidebar_config' => SidebarConfigHelper::defaultFromTourSettings($tourSettings),
 
             'footer_brand_logo' => $tourSettings['tour_bottommark_logo'] ?? null,
             'footer_brand_text' => $tourSettings['tour_bottommark_contact_text'] ?? null,
@@ -866,9 +865,7 @@ class FrontendController extends Controller
                 'status' => 'draft',
                 'revision' => 1,
 
-                'sidebar_footer_text' => $tourSettings['tour_footer_button_text'] ?? null,
-                'sidebar_footer_link' => $tourSettings['tour_footer_button_link'] ?? null,
-                'sidebar_footer_link_show' => $tourSettings['tour_footer_link_show'] ?? 1,
+                'sidebar_config' => SidebarConfigHelper::defaultFromTourSettings($tourSettings),
 
                 'footer_brand_logo' => $tourSettings['tour_bottommark_logo'] ?? null,
                 'footer_brand_text' => $tourSettings['tour_bottommark_contact_text'] ?? null,

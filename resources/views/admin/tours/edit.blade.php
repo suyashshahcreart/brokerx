@@ -1,6 +1,18 @@
 @extends('admin.layouts.vertical', ['title' => 'Edit Tour', 'subTitle' => 'Manage'])
 
 @section('content')
+    @php
+        $sidebarConfigForm = \App\Support\SidebarConfigHelper::resolveForForm($tour);
+        $sidebarFooterButton = $sidebarConfigForm['footerButton'] ?? [];
+        $sidebarFooterText = is_array($sidebarFooterButton['text'] ?? null)
+            ? ($sidebarFooterButton['text']['en'] ?? '')
+            : (string) ($sidebarFooterButton['text'] ?? '');
+        $sidebarLogoPreview = \App\Support\SidebarConfigHelper::logoPreviewUrl(
+            $tour,
+            null,
+            $sidebarConfigForm['logo'] ?? null
+        );
+    @endphp
     <div class="row">
         <div class="col-12">
             <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
@@ -350,9 +362,9 @@
                                         class="form-control" accept="image/*"
                                         onchange="previewImage(event, 'sidebar_logo_preview')">
                                     <div class="mt-2">
-                                        @if($tour->sidebar_logo)
+                                        @if($sidebarLogoPreview)
                                             <img id="sidebar_logo_preview"
-                                                src="{{ Storage::disk('s3')->url($tour->sidebar_logo) }}"
+                                                src="{{ $sidebarLogoPreview }}"
                                                 alt="Sidebar Logo"
                                                 style="max-width: 150px; max-height: 80px; border:1px solid #ddd; background:#fff; padding:2px;">
                                         @else
@@ -476,23 +488,23 @@
                         <div class="col-md-6">
                             <label for="sidebar_footer_link" class="form-label">Sidebar Footer Link</label>
                             <input type="text" name="sidebar_footer_link" id="sidebar_footer_link" class="form-control"
-                                value="{{ old('sidebar_footer_link', $tour->sidebar_footer_link) }}">
+                                value="{{ old('sidebar_footer_link', $sidebarFooterButton['link'] ?? '') }}">
                             @error('sidebar_footer_link')<div class="text-danger">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-md-6">
                             <label for="sidebar_footer_text" class="form-label">Sidebar Footer Text</label>
                             <input type="text" name="sidebar_footer_text" id="sidebar_footer_text" class="form-control"
-                                value="{{ old('sidebar_footer_text', $tour->sidebar_footer_text) }}">
+                                value="{{ old('sidebar_footer_text', $sidebarFooterText) }}">
                             @error('sidebar_footer_text')<div class="text-danger">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-md-6">
                             <label for="sidebar_footer_link_show" class="form-label">Sidebar Footer Link Show</label>
                             <select name="sidebar_footer_link_show" id="sidebar_footer_link_show" class="form-select">
                                 <option value="1"
-                                    {{ old('sidebar_footer_link_show', $tour->sidebar_footer_link_show) ? 'selected' : '' }}>
+                                    {{ old('sidebar_footer_link_show', ($sidebarFooterButton['show'] ?? true) ? 1 : 0) ? 'selected' : '' }}>
                                     Show</option>
                                 <option value="0"
-                                    {{ !old('sidebar_footer_link_show', $tour->sidebar_footer_link_show) ? 'selected' : '' }}>
+                                    {{ !old('sidebar_footer_link_show', ($sidebarFooterButton['show'] ?? true) ? 1 : 0) ? 'selected' : '' }}>
                                     Hide</option>
                             </select>
                             @error('sidebar_footer_link_show')<div class="text-danger">{{ $message }}</div>@enderror

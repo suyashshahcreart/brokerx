@@ -382,15 +382,16 @@ document.addEventListener('DOMContentLoaded', function () {
             },
         });
 
-        submitFormAjax(document.querySelector('#sidebarTabUpdateForm'), {
+        submitFormAjax(document.querySelector('#sidebarConfigTabUpdateForm'), {
             loadingText: 'Updating...',
-            successMessage: 'Sidebar section updated successfully!',
-            errorMessage: 'An error occurred while updating sidebar section. Please try again.',
+            successMessage: 'Sidebar configuration updated successfully!',
+            errorMessage: 'An error occurred while updating sidebar configuration. Please try again.',
             afterSuccess: (form, data) => {
-                if (data?.tour?.sidebar_logo) {
-                    const preview = document.getElementById('sidebar_logo_preview');
+                const logoUrl = data?.sidebar_config_logo_url;
+                if (logoUrl) {
+                    const preview = document.getElementById('sidebar_config_logo_preview');
                     if (preview) {
-                        preview.src = data.tour.sidebar_logo;
+                        preview.src = logoUrl;
                         preview.style.display = '';
                     }
                 }

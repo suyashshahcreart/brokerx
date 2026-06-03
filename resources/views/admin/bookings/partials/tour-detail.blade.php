@@ -1519,195 +1519,22 @@
                         <!-- nav links for the sidebar tabls -->
                         <ul class="nav nav-tabs mb-3" id="tourAttachmentsTabs" role="tablist">
                             <li class="nav-item" role="presentation">
-                                <button class="nav-link active" id="sidebar-tab-1-tab" data-bs-toggle="tab"
-                                    data-bs-target="#sidebar-tab-1-pane" type="button" role="tab"
-                                    aria-controls="tour-attachment-1-pane" aria-selected="true">Sidebar Details</button>
+                                <button class="nav-link active" id="sidebar-tab-3-tab" data-bs-toggle="tab"
+                                    data-bs-target="#sidebar-tab-3-pane" type="button" role="tab"
+                                    aria-controls="sidebar-tab-3-pane" aria-selected="true">Sidebar Configuration</button>
                             </li>
                             <li class="nav-item" role="presentation">
                                 <button class="nav-link" id="sidebar-2-tab" data-bs-toggle="tab"
                                     data-bs-target="#sidebar-tab-2-pane" type="button" role="tab"
-                                    aria-controls="tour-attachment-2-pane" aria-selected="false">Sidebar Links</button>
+                                    aria-controls="sidebar-tab-2-pane" aria-selected="false">Sidebar Links</button>
                             </li>
                         </ul>
 
                         <!-- tab Content div -->
                         <div class="tab-content" id="sidebarTabContent">
-                            <div class="tab-pane fade show active" id="sidebar-tab-1-pane" role="tabpanel"
-                                aria-labelledby="sidebar-tab-1-tab" tabindex="0">
-                                <form id="sidebarTabUpdateForm" method="POST"
-                                    action="{{ route('admin.tours.updateTourSidebarTab', $tour) }}"
-                                    enctype="multipart/form-data" class="needs-validation" novalidate>
-                                    @csrf
-                                    @method('PUT')
-                                    <input type="hidden" name="booking_id" value="{{ $booking->id }}">
-                                    <div class="row">
-                                        <div class="col-md-12">
-                                            <div class="mb-3">
-                                                <div class="mt-2 items-start">
-                                                    @if($tour->sidebar_logo)
-                                                        <img id="sidebar_logo_preview" src="{{ $tour->sidebar_logo }}"
-                                                            alt="Sidebar Logo"
-                                                            style="max-width: 300px; max-height: auto; border:1px solid #ddd; background:#fff; padding:2px;">
-                                                    @else
-                                                        <img id="sidebar_logo_preview" src="" alt="Sidebar Logo"
-                                                            style="max-width: 300px; max-height: auto; border:1px solid #ddd; background:#fff; padding:2px; display:none;">
-                                                    @endif
-                                                </div>
-                                                <div class="mt-3">
-                                                    <label class="form-label" for="sidebar_logo">Sidebar Logo</label>
-                                                    <input type="file" name="sidebar_logo" id="sidebar_logo" @if (!$qr_code) disabled @endif class="form-control"
-                                                        accept="image/webp"
-                                                        onchange="previewImage(event, 'sidebar_logo')">
-                                                </div>
-                                                @error('sidebar_logo')<div class="text-danger">{{ $message }}</div>
-                                                @enderror
-                                            </div>
-                                        </div>
-                                        <div class="col-md-12">
-                                            <h5 class="mb-3">Sidebar Tag <span class="text-muted">(optional)</span></h5>
-                                            <p class="text-muted mb-3">Vertical tag on the right side of the sidebar.
-                                                Leave
-                                                empty to hide.</p>
-                                        </div>
-                                        @php
-                                            $sidebarTagTitleValues = [];
-                                            $oldSidebarTagText = old('sidebar_tag_text');
-                                            if (is_array($oldSidebarTagText)) {
-                                                $sidebarTagTitleValues = $oldSidebarTagText;
-                                            } else {
-                                                $storedSidebarTagText = $tour->sidebar_tag_text;
-                                                if (is_array($storedSidebarTagText)) {
-                                                    $sidebarTagTitleValues = $storedSidebarTagText;
-                                                } elseif (is_string($storedSidebarTagText) && trim($storedSidebarTagText) !== '') {
-                                                    $decodedSidebarTagText = json_decode($storedSidebarTagText, true);
-                                                    if (json_last_error() === JSON_ERROR_NONE && is_array($decodedSidebarTagText)) {
-                                                        $sidebarTagTitleValues = $decodedSidebarTagText;
-                                                    } else {
-                                                        $sidebarTagTitleValues = ['en' => $storedSidebarTagText];
-                                                    }
-                                                }
-                                            }
-                                            $sidebarTagFirstLang = $tourOrderedEnabledLanguages[0];
-                                        @endphp
-                                        <div class="col-md-4">
-                                            <div class="mb-3">
-                                                <label class="form-label">Tag Title</label>
+                            @include('admin.bookings.partials.sidebar-config-tab')
 
-                                                <x-admin.tour-language-tab-nav
-                                                    group-id="sidebarTagTitleLanguageTabs"
-                                                    :languages="$tourLanguageSlots"
-                                                    :enabled-languages="$tourOrderedEnabledLanguages"
-                                                    :language-display="$tourLanguageDisplay"
-                                                    :active-language="$sidebarTagFirstLang"
-                                                    pane-id-prefix="sidebar-tag-title-lang" />
-
-                                                <div class="tab-content py-1"
-                                                    data-tour-lang-tab-panes="sidebarTagTitleLanguageTabs">
-                                                    @foreach ($tourLanguageSlots as $lang)
-                                                        @php
-                                                            $sidebarTagLangEnabled = in_array($lang, $tourOrderedEnabledLanguages, true);
-                                                            $sidebarTagLangLabel = \App\Support\LanguageConfigHelper::languageLabel($lang, $tourLanguageDisplay);
-                                                        @endphp
-                                                        <div class="tab-pane m-0 fade {{ $lang === $sidebarTagFirstLang ? 'show active' : '' }} {{ $sidebarTagLangEnabled ? '' : 'd-none' }}"
-                                                            id="sidebar-tag-title-lang-{{ $lang }}-pane"
-                                                            data-language="{{ $lang }}"
-                                                            role="tabpanel"
-                                                            aria-labelledby="sidebarTagTitleLanguageTabs-{{ $lang }}-tab">
-                                                            <input type="text" class="form-control"
-                                                                name="sidebar_tag_text[{{ $lang }}]"
-                                                                id="sidebar_tag_text_{{ $lang }}"
-                                                                value="{{ old('sidebar_tag_text.' . $lang, data_get($sidebarTagTitleValues, $lang, '')) }}"
-                                                                placeholder="Enter {{ $sidebarTagLangLabel }} title">
-                                                            @error('sidebar_tag_text.' . $lang)
-                                                                <div class="text-danger mt-1">{{ $message }}</div>
-                                                            @enderror
-                                                        </div>
-                                                    @endforeach
-                                                </div>
-                                                @error('sidebar_tag_text')
-                                                    <div class="text-danger mt-1">
-                                                        {{ $message }}
-                                                    </div>
-                                                @enderror
-                                            </div>
-                                        </div>
-
-                                        <div class="col-md-4">
-                                            <div class="mb-3">
-                                                <label class="form-label" for="sidebar_tag_bg_color">Tag Background
-                                                    Color</label>
-                                                <div class="input-group">
-                                                    <span class="input-group-text p-1">
-                                                        <input type="color" id="sidebar_tag_bg_color_picker"
-                                                            class="form-control form-control-color"
-                                                            value="{{ old('sidebar_tag_bg_color', $tour->sidebar_tag_bg_color ?? '#ff000d') }}"
-                                                            onchange="document.getElementById('sidebar_tag_bg_color').value = this.value">
-                                                    </span>
-                                                    <input type="text" name="sidebar_tag_bg_color"
-                                                        id="sidebar_tag_bg_color" class="form-control"
-                                                        placeholder="e.g. #ff000d"
-                                                        oninput="document.getElementById('sidebar_tag_bg_color_picker').value = this.value"
-                                                        value="{{ old('sidebar_tag_bg_color', $tour->sidebar_tag_bg_color ?? '#ff000d') }}">
-                                                </div>
-                                                @error('sidebar_tag_bg_color')<div class="text-danger">{{ $message }}
-                                                    </div>
-                                                @enderror
-                                            </div>
-                                        </div>
-
-                                        <div class="col-md-4">
-                                            <div class="mb-3">
-                                                <label class="form-label" for="sidebar_tag_color">Tag Text Color</label>
-                                                <div class="input-group">
-                                                    <span class="input-group-text p-1">
-                                                        <input type="color" id="sidebar_tag_color_picker"
-                                                            class="form-control form-control-color"
-                                                            value="{{ old('sidebar_tag_color', $tour->sidebar_tag_color ?? '#ffffff') }}"
-                                                            onchange="document.getElementById('sidebar_tag_color').value = this.value">
-                                                    </span>
-                                                    <input type="text" name="sidebar_tag_color" id="sidebar_tag_color"
-                                                        class="form-control" placeholder="e.g. #ffffff"
-                                                        oninput="document.getElementById('sidebar_tag_color_picker').value = this.value"
-                                                        value="{{ old('sidebar_tag_color', $tour->sidebar_tag_color ?? '#ffffff') }}">
-                                                </div>
-                                                @error('sidebar_tag_color')<div class="text-danger">{{ $message }}</div>
-                                                @enderror
-                                            </div>
-                                        </div>
-
-                                        <div class="col-md-6">
-                                            <div class="mb-3">
-                                                <label for="made_by_text" class="form-label">Made by text <span
-                                                        class="text-muted">(optional)</span></label>
-                                                <input type="text" name="sidebar_footer_text" id="made_by_text"
-                                                    class="form-control" placeholder="e.g, Prop Pik"
-                                                    value="{{ old('sidebar_footer_text', $tour->sidebar_footer_text ?? '') }}">
-                                                @error('made_by_text')<div class="text-danger">{{ $message }}</div>
-                                                @enderror
-                                            </div>
-                                        </div>
-
-                                        <div class="col-md-6">
-                                            <div class="mb-3">
-                                                <label for="made_by_link" class="form-label">Made by link <span
-                                                        class="text-danger">*</span></label>
-                                                <input type="url" name="sidebar_footer_link" id="made_by_link"
-                                                    class="form-control"
-                                                    placeholder="e.g,   https://proppik.com/contact"
-                                                    value="{{ old('sidebar_footer_link', $tour->sidebar_footer_link ?? '') }}">
-                                                @error('made_by_link')<div class="text-danger">{{ $message }}</div>
-                                                @enderror
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="d-flex justify-content-end mt-3">
-                                        <button type="submit" class="btn btn-primary">
-                                            <i class="ri-save-line me-1"></i> Update Sidebar Section
-                                        </button>
-                                    </div>
-                                </form>
-                            </div><!-- first tab end -->
-                            <div class="tab-pane fade show" id="sidebar-tab-2-pane" role="tabpanel"
+                            <div class="tab-pane fade" id="sidebar-tab-2-pane" role="tabpanel"
                                 aria-labelledby="sidebar-tab-2-tab" tabindex="0">
                                 <form action="{{ route('admin.tours.updateSidebarLinks', $tour) }}" method="POST"
                                     id="sidebarLinksForm" class="needs-validation" novalidate>
@@ -2263,6 +2090,7 @@
     'resources/js/pages/booking-tour-detail-update-tab.js',
     'resources/js/pages/booking-language-tab.js',
     'resources/js/pages/booking_edit_sidebarLink.js',
+    'resources/js/pages/booking-sidebar-config-tab.js',
     'resources/js/pages/booking_userDetails_edit.js',
     'resources/js/pages/booking_tour_bookmark_action.js',
     'resources/js/pages/booking_user_stars_edit.js',

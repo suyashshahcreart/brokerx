@@ -17,6 +17,7 @@ use App\Models\QR;
 use App\Models\Setting;
 use App\Models\State;
 use App\Models\Tour;
+use App\Support\SidebarConfigHelper;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -549,9 +550,7 @@ class BookingController extends Controller
             'status' => 'draft',
             'revision' => 1,
 
-            'sidebar_footer_text' => $tourSettings['tour_footer_button_text'] ?? null,
-            'sidebar_footer_link' => $tourSettings['tour_footer_button_link'] ?? null,
-            'sidebar_footer_link_show' => $tourSettings['tour_footer_link_show'] ?? 1,
+            'sidebar_config' => SidebarConfigHelper::defaultFromTourSettings($tourSettings),
 
             'footer_brand_logo' => $tourSettings['tour_bottommark_logo'] ?? null,
             'footer_brand_text' => $tourSettings['tour_bottommark_contact_text'] ?? null,

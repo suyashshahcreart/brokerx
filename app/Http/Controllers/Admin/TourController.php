@@ -19,6 +19,7 @@ use Storage;
 use Yajra\DataTables\DataTables;
 use App\Services\TourService;
 use App\Support\LanguageConfigHelper;
+use App\Support\SidebarConfigHelper;
 
 require_once app_path('Helpers/JsObfuscator.php');
 
@@ -151,7 +152,6 @@ class TourController extends Controller
             'footer_code' => ['nullable', 'string'],
 
             // Custom fields
-            'sidebar_logo' => ['nullable'],
             'footer_logo' => ['nullable', 'string', 'max:255'],
             'footer_title' => ['nullable', 'array'],
             'footer_title.*' => ['nullable', 'string'],
@@ -162,16 +162,10 @@ class TourController extends Controller
             'footer_decription' => ['nullable', 'string'],
             // Sidebar and Footer fields
             'company_address' => ['nullable', 'string'],
-            'sidebar_footer_link' => ['nullable', 'string'],
-            'sidebar_footer_text' => ['nullable', 'string'],
-            'sidebar_footer_link_show' => ['nullable', 'boolean'],
             'footer_info_type' => ['nullable', 'string'],
             'footer_brand_logo' => ['nullable'],
             'footer_brand_text' => ['nullable', 'string'],
             'footer_brand_mobile' => ['nullable', 'string'],
-            'sidebar_tag_text' => ['nullable', 'string', 'max:255'],
-            'sidebar_tag_color' => ['nullable', 'string', 'max:255'],
-            'sidebar_tag_bg_color' => ['nullable', 'string', 'max:255'],
             'bottommark_property_name_en' => ['nullable', 'string'],
             'bottommark_property_name_gu' => ['nullable', 'string'],
             'bottommark_property_name_hi' => ['nullable', 'string'],
@@ -201,7 +195,7 @@ class TourController extends Controller
             $logoFooterFile = $request->file('footer_logo');
             $logoBrandFile = $request->file('footer_brand_logo');
             $tourThumbnailFile = $request->file('tour_thumbnail');
-            unset($validated['sidebar_logo'], $validated['footer_logo'], $validated['footer_brand_logo'], $validated['tour_thumbnail']);
+            unset($validated['footer_logo'], $validated['footer_brand_logo'], $validated['tour_thumbnail']);
 
             $tour = Tour::create($validated);
             try {
@@ -214,7 +208,9 @@ class TourController extends Controller
                     $sidebarMime = $logoSidebarFile->getMimeType();
                     $uploaded = Storage::disk('s3')->put($sidebarPath, $sidebarContent, ['ContentType' => $sidebarMime]);
                     if ($uploaded) {
-                        $updateData['sidebar_logo'] = $sidebarPath;
+                        $sidebarConfig = is_array($tour->sidebar_config) ? $tour->sidebar_config : [];
+                        $sidebarConfig['logo'] = $sidebarPath;
+                        $updateData['sidebar_config'] = $sidebarConfig;
                     }
                 }
                 if ($logoFooterFile) {
@@ -333,7 +329,6 @@ class TourController extends Controller
             'footer_code' => ['nullable', 'string'],
 
             // Custom fields
-            'sidebar_logo' => ['nullable'],
             'footer_logo' => ['nullable'],
             'footer_title' => ['nullable', 'array'],
             'footer_title.*' => ['nullable', 'string'],
@@ -344,16 +339,10 @@ class TourController extends Controller
             'footer_decription' => ['nullable', 'string'],
             // Sidebar and Footer fields
             'company_address' => ['nullable', 'string'],
-            'sidebar_footer_link' => ['nullable', 'string'],
-            'sidebar_footer_text' => ['nullable', 'string'],
-            'sidebar_footer_link_show' => ['nullable', 'boolean'],
             'footer_info_type' => ['nullable', 'string'],
             'footer_brand_logo' => ['nullable'],
             'footer_brand_text' => ['nullable', 'string'],
             'footer_brand_mobile' => ['nullable', 'string'],
-            'sidebar_tag_text' => ['nullable', 'string', 'max:255'],
-            'sidebar_tag_color' => ['nullable', 'string', 'max:255'],
-            'sidebar_tag_bg_color' => ['nullable', 'string', 'max:255'],
             'bottommark_property_name_en' => ['nullable', 'string'],
             'bottommark_property_name_gu' => ['nullable', 'string'],
             'bottommark_property_name_hi' => ['nullable', 'string'],
@@ -388,7 +377,7 @@ class TourController extends Controller
         $logoSidebarFile = $request->file('sidebar_logo');
         $logoFooterFile = $request->file('footer_logo');
         $logoBrandFile = $request->file('footer_brand_logo');
-        unset($validated['sidebar_logo'], $validated['footer_logo'], $validated['footer_brand_logo']);
+        unset($validated['footer_logo'], $validated['footer_brand_logo']);
 
         $oldData = $tour->toArray();
         try {
@@ -402,7 +391,9 @@ class TourController extends Controller
                 $sidebarMime = $logoSidebarFile->getMimeType();
                 $uploaded = Storage::disk('s3')->put($sidebarPath, $sidebarContent, ['ContentType' => $sidebarMime]);
                 if ($uploaded) {
-                    $updateData['sidebar_logo'] = $sidebarPath;
+                    $sidebarConfig = is_array($tour->sidebar_config) ? $tour->sidebar_config : [];
+                    $sidebarConfig['logo'] = $sidebarPath;
+                    $updateData['sidebar_config'] = $sidebarConfig;
                 }
             }
             if ($logoFooterFile) {
@@ -472,9 +463,6 @@ class TourController extends Controller
             'max_participants' => ['nullable', 'integer', 'min:1'],
             'status' => ['required', 'in:draft,published,archived'],
             'revision' => ['nullable', 'string', 'max:255'],
-            'sidebar_footer_link_show' => ['nullable', 'boolean'],
-            'sidebar_footer_text' => ['nullable', 'string'],
-            'sidebar_footer_link' => ['nullable', 'string'],
             'footer_info_type' => ['nullable', 'string'],
             'footer_brand_logo_text' => ['nullable', 'string'],
             'footer_brand_text' => ['nullable', 'string'],
@@ -503,10 +491,6 @@ class TourController extends Controller
             'footer_name' => ['nullable', 'string'],
             'footer_email' => ['nullable', 'string'],
             'footer_mobile' => ['nullable', 'string'],
-            // sidebar tag fields 
-            'sidebar_tag_text' => ['nullable', 'string', 'max:255'],
-            'sidebar_tag_color' => ['nullable', 'string', 'max:255'],
-            'sidebar_tag_bg_color' => ['nullable', 'string', 'max:255'],
             // Bottommark multilingual fields
             'bottommark_property_name_en' => ['nullable', 'string'],
             'bottommark_property_name_gu' => ['nullable', 'string'],
@@ -563,37 +547,7 @@ class TourController extends Controller
         $finalJsonWasEmpty = empty($finalJson);
 
         // Ensure expected structure exists before updates
-        $finalJson['sidebarConfig'] = $finalJson['sidebarConfig'] ?? [];
-        $finalJson['sidebarConfig']['footerButton'] = $finalJson['sidebarConfig']['footerButton'] ?? [];
-        $finalJson['sidebarConfig']['sidebarTag'] = $finalJson['sidebarConfig']['sidebarTag'] ?? [];
         $finalJson['bottomMarker'] = $finalJson['bottomMarker'] ?? [];
-
-        // Update sidebar footer button JSON while preserving multilingual structure if present
-        $existingFooterButtonText = $finalJson['sidebarConfig']['footerButton']['text'] ?? [];
-        if (!is_array($existingFooterButtonText)) {
-            $existingFooterButtonText = ['en' => $existingFooterButtonText];
-        }
-        if (array_key_exists('sidebar_footer_text', $validated)) {
-            $existingFooterButtonText['en'] = $validated['sidebar_footer_text'];
-        }
-        $finalJson['sidebarConfig']['footerButton']['text'] = $existingFooterButtonText;
-        if (array_key_exists('sidebar_footer_link', $validated)) {
-            $finalJson['sidebarConfig']['footerButton']['link'] = $validated['sidebar_footer_link'];
-        }
-        if (array_key_exists('sidebar_footer_link_show', $validated)) {
-            $finalJson['sidebarConfig']['footerButton']['show'] = (bool) $validated['sidebar_footer_link_show'];
-        }
-
-        // Sidebar tag and made-by info
-        if (array_key_exists('sidebar_tag_text', $validated)) {
-            $finalJson['sidebarConfig']['sidebarTag']['text'] = $validated['sidebar_tag_text'];
-        }
-        if (array_key_exists('sidebar_tag_color', $validated)) {
-            $finalJson['sidebarConfig']['sidebarTag']['color'] = $validated['sidebar_tag_color'];
-        }
-        if (array_key_exists('sidebar_tag_bg_color', $validated)) {
-            $finalJson['sidebarConfig']['sidebarTag']['backgroundColor'] = $validated['sidebar_tag_bg_color'];
-        }
 
         $existingMadeByText = $finalJson['bottomMarker']['madeByText'] ?? [];
         if (!is_array($existingMadeByText)) {
@@ -755,9 +709,13 @@ class TourController extends Controller
             $sidebarContent = file_get_contents($logoSidebarFile->getRealPath());
             $sidebarMime = $logoSidebarFile->getMimeType();
             $uploaded = Storage::disk('s3')->put($sidebarPath, $sidebarContent, ['ContentType' => $sidebarMime]);
-            $finalJson['sidebarConfig']['logo'] = 'assets/' . $sidebarFilename;
+            $logoRelative = 'assets/' . $sidebarFilename;
+            $finalJson['sidebarConfig'] = is_array($finalJson['sidebarConfig'] ?? null) ? $finalJson['sidebarConfig'] : [];
+            $finalJson['sidebarConfig']['logo'] = $logoRelative;
             if ($uploaded) {
-                $updateData['sidebar_logo'] = $sidebarPath;
+                $sidebarConfig = is_array($tour->sidebar_config) ? $tour->sidebar_config : [];
+                $sidebarConfig['logo'] = $logoRelative;
+                $updateData['sidebar_config'] = $sidebarConfig;
             }
         }
         // Footer logo
@@ -2226,98 +2184,39 @@ class TourController extends Controller
     }
 
     /**
-     * Update only sidebar tab data.
+     * Update sidebar configuration tab (stored in tours.sidebar_config JSON).
      */
-    public function updateTourSidebarTab(Request $request, Tour $tour): JsonResponse|RedirectResponse
+    public function updateTourSidebarConfigTab(Request $request, Tour $tour): JsonResponse|RedirectResponse
     {
         $languageState = LanguageConfigHelper::resolveFromTour($tour);
         $languageCodes = $languageState['languageSlotOrder'];
 
-        $validated = $request->validate(array_merge(
-            [
-                'sidebar_logo' => ['nullable', 'file', 'image', 'max:5120'],
-                'sidebar_tag_color' => ['nullable', 'string', 'max:255'],
-                'sidebar_tag_bg_color' => ['nullable', 'string', 'max:255'],
-                'sidebar_footer_text' => ['nullable', 'string'],
-                'sidebar_footer_link' => ['nullable', 'string'],
-            ],
-            LanguageConfigHelper::perLanguageStringRules('sidebar_tag_text', $languageCodes, 255)
-        ));
+        $validated = $request->validate(SidebarConfigHelper::validationRules($languageCodes));
 
         $oldData = $tour->toArray();
-        $finalJson = $this->normalizeFinalJsonPayload($tour);
-        $finalJson['branding']['sidebarConfig'] = $finalJson['branding']['sidebarConfig'] ?? [];
-        $finalJson['branding']['sidebarConfig']['footerButton'] = $finalJson['branding']['sidebarConfig']['footerButton'] ?? [];
-        $finalJson['branding']['sidebarConfig']['sidebarTag'] = $finalJson['branding']['sidebarConfig']['sidebarTag'] ?? [];
+        $existingConfig = is_array($tour->sidebar_config) ? $tour->sidebar_config : SidebarConfigHelper::resolveForForm($tour);
+        $qrCode = $tour->booking_id ? QR::where('booking_id', $tour->booking_id)->value('code') : null;
 
-        $existingFooterButtonText = $finalJson['branding']['sidebarConfig']['footerButton']['text'] ?? [];
-        if (!is_array($existingFooterButtonText)) {
-            $existingFooterButtonText = ['en' => $existingFooterButtonText];
+        $sidebarConfig = SidebarConfigHelper::buildFromValidated(
+            $validated,
+            $request,
+            $existingConfig,
+            $languageCodes,
+            $qrCode
+        );
+
+        $tourDataJson = $this->normalizeTourDataJsonPayload($tour);
+        if (! empty($sidebarConfig)) {
+            $tourDataJson['sidebarConfig'] = $sidebarConfig;
+            $tourDataJson['branding'] = is_array($tourDataJson['branding'] ?? null) ? $tourDataJson['branding'] : [];
+            $tourDataJson['branding']['sidebarConfig'] = $sidebarConfig;
         }
 
-        if (array_key_exists('sidebar_footer_text', $validated)) {
-            $existingFooterButtonText['en'] = $validated['sidebar_footer_text'];
-        }
-        $finalJson['branding']['sidebarConfig']['footerButton']['text'] = $existingFooterButtonText;
+        $updateData = [
+            'sidebar_config' => ! empty($sidebarConfig) ? $sidebarConfig : null,
+            'tour_data_json' => $tourDataJson,
+        ];
 
-        if (array_key_exists('sidebar_footer_link', $validated)) {
-            $finalJson['branding']['sidebarConfig']['footerButton']['link'] = $validated['sidebar_footer_link'];
-        }
-        if (array_key_exists('sidebar_tag_text', $validated)) {
-            $existingSidebarTagText = [];
-            $storedTagText = $tour->sidebar_tag_text;
-            if (is_array($storedTagText)) {
-                $existingSidebarTagText = $storedTagText;
-            } elseif (is_string($storedTagText) && trim($storedTagText) !== '') {
-                $decodedTagText = json_decode($storedTagText, true);
-                if (json_last_error() === JSON_ERROR_NONE && is_array($decodedTagText)) {
-                    $existingSidebarTagText = $decodedTagText;
-                } else {
-                    $existingSidebarTagText = ['en' => $storedTagText];
-                }
-            }
-
-            $incomingSidebarTagText = is_array($validated['sidebar_tag_text'])
-                ? $validated['sidebar_tag_text']
-                : [];
-            $mergedSidebarTagText = LanguageConfigHelper::mergePerLanguageStringMap(
-                $existingSidebarTagText,
-                $incomingSidebarTagText,
-                $languageCodes
-            );
-
-            $sidebarTagTextJson = empty($mergedSidebarTagText)
-                ? null
-                : json_encode($mergedSidebarTagText, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-
-            $validated['sidebar_tag_text'] = $sidebarTagTextJson;
-            $finalJson['branding']['sidebarConfig']['sidebarTag']['text'] = $sidebarTagTextJson;
-        }
-        if (array_key_exists('sidebar_tag_color', $validated)) {
-            $finalJson['branding']['sidebarConfig']['sidebarTag']['textColor'] = $validated['sidebar_tag_color'];
-        }
-        if (array_key_exists('sidebar_tag_bg_color', $validated)) {
-            $finalJson['branding']['sidebarConfig']['sidebarTag']['backgroundColor'] = $validated['sidebar_tag_bg_color'];
-        }
-
-        $updateData = $validated;
-        $qrCode = QR::where('booking_id', $tour->booking_id)->value('code');
-        $logoSidebarFile = $request->file('sidebar_logo');
-
-        if ($logoSidebarFile && $qrCode) {
-            $sidebarFilename = 'logo_sidebar_' . time() . '_' . Str::random(8) . '.' . $logoSidebarFile->getClientOriginalExtension();
-            $sidebarPath = 'tours/' . $qrCode . '/assets/' . $sidebarFilename;
-            $sidebarContent = file_get_contents($logoSidebarFile->getRealPath());
-            $sidebarMime = $logoSidebarFile->getMimeType();
-            $uploaded = Storage::disk('s3')->put($sidebarPath, $sidebarContent, ['ContentType' => $sidebarMime]);
-            $finalJson['branding']['sidebarConfig']['logo'] = 'assets/' . $sidebarFilename;
-
-            if ($uploaded) {
-                $updateData['sidebar_logo'] = Storage::disk('s3')->url($sidebarPath);
-            }
-        }
-
-        $updateData['final_json'] = $finalJson;
         $tour->update($updateData);
         $newData = $tour->fresh()->toArray();
 
@@ -2328,19 +2227,30 @@ class TourController extends Controller
                 'old' => $oldData,
                 'new' => $newData,
             ])
-            ->log('Tour sidebar tab updated');
+            ->log('Tour sidebar configuration tab updated');
 
-        $this->updateTourJsonAndJsFilesInS3($tour, $finalJson);
+        $this->updateTourJsonAndJsFilesInS3($tour, $tourDataJson);
 
         if ($request->expectsJson()) {
+            $freshTour = $tour->fresh();
+            $logoPreview = SidebarConfigHelper::logoPreviewUrl(
+                $freshTour,
+                $qrCode,
+                data_get($freshTour->sidebar_config, 'logo')
+            );
+
             return response()->json([
                 'success' => true,
-                'message' => 'Sidebar section updated successfully.',
-                'tour' => $tour->fresh(),
+                'message' => 'Sidebar configuration updated successfully.',
+                'tour' => $freshTour,
+                'sidebar_config_logo_url' => $logoPreview,
             ]);
         }
 
-        return redirect()->back()->with(['success' => 'Sidebar section updated successfully.', 'active_tab' => 'vl-pills-sidebar-section']);
+        return redirect()->back()->with([
+            'success' => 'Sidebar configuration updated successfully.',
+            'active_tab' => 'vl-pills-sidebar-section',
+        ]);
     }
 
     public function updateSidebarLinks(Request $request, Tour $tour): JsonResponse|RedirectResponse
