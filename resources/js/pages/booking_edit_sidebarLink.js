@@ -1,110 +1,93 @@
 import $ from 'jquery';
 window.$ = window.jQuery = $;
 import '../../css/pages/materialIconLiberaryStyles.css';
-/* My Liberary Imports */
 import iconLib from './booking_tour_iconLib';
 import reinitalizeEditors from '../tinyEditor';
+import {
+    buildDynamicLanguageTabGroup,
+    resolveOrderedEnabledLanguages,
+    syncTourLanguageTabs,
+} from '../utils/tour-language-tabs';
 
-const quillEditors = {}; // map rowIndex -> { en: Quill, gu: Quill, hi: Quill }
-
-// Language configuration
-const languageMap = {
-    'en': 'English',
-    'gu': 'Gujarati',
-    'hi': 'Hindi'
-};
-
-function getEnabledLanguages() {
-    const enabled = window.enabledLanguages || ['en'];
-    return enabled.map(code => ({
-        code: code,
-        label: languageMap[code] || code.toUpperCase()
-    }));
-}
-
+const quillEditors = {};
 
 $(document).ready(function () {
-    // setup the icon library modal and search input
-    iconLib.init('materialIconModal', 'materialIconSearch', 'materialIconModalClose'); // Pass the close button element
-    // Initialize sidebar links functionality
+    iconLib.init('materialIconModal', 'materialIconSearch', 'materialIconModalClose');
     initSidebarLinks();
-    // Render existing sidebar links
     renderSidebarLinks();
 });
 
 function initSidebarLinks() {
     const addBtn = document.getElementById('addSideLinkBtn');
     if (addBtn) {
-        addBtn.addEventListener('click', addSidebarLinkRow);
+        addBtn.addEventListener('click', () => addSidebarLinkRow());
+    }
+}
+
+function getFirstTitleInput(rowIndex) {
+    const firstCode = resolveOrderedEnabledLanguages()[0] || 'en';
+    const container = document.getElementById(`titleContainer_${rowIndex}`);
+    if (!container) {
+        return null;
+    }
+
+    return container.querySelector(
+        `input.sidebar-link-title-input[data-language="${firstCode}"]`
+    ) || container.querySelector('input.sidebar-link-title-input');
+}
+
+function setTitleRequired(rowIndex, required) {
+    const container = document.getElementById(`titleContainer_${rowIndex}`);
+    if (!container) {
+        return;
+    }
+
+    container.querySelectorAll('.sidebar-link-title-input').forEach((input) => {
+        input.required = false;
+    });
+
+    if (required) {
+        const firstInput = getFirstTitleInput(rowIndex);
+        if (firstInput) {
+            firstInput.required = true;
+        }
     }
 }
 
 function addSidebarLinkRow(linkData = {}) {
     const container = document.getElementById('sidebarLinksRow');
-    if (!container) return;
+    if (!container) {
+        return;
+    }
 
     const existingRows = Array.from(container.querySelectorAll('.sidebar-link-row'));
     const rowIndex = existingRows.length
-        ? Math.max(...existingRows.map(row => Number(row.dataset.rowIndex) || 0)) + 1
+        ? Math.max(...existingRows.map((row) => Number(row.dataset.rowIndex) || 0)) + 1
         : 0;
 
-    // Extract data from linkData
     const icon = linkData.icon || '';
     const type = linkData.type || '';
     const order = linkData.order || rowIndex + 1;
     const link = linkData.link || '';
+    const titleValues = linkData.title && typeof linkData.title === 'object' ? linkData.title : {};
+    const contentValues = linkData.content && typeof linkData.content === 'object' ? linkData.content : {};
 
-    const enabledLanguages = getEnabledLanguages();
-    const allLanguages = [
-        { code: 'en', label: 'English' },
-        { code: 'gu', label: 'Gujarati' },
-        { code: 'hi', label: 'Hindi' }
-    ];
+    const titleGroupId = `sidebarLinkTitle-${rowIndex}`;
+    const contentGroupId = `sidebarLinkContent-${rowIndex}`;
 
-    // Generate title tabs and panes for all languages, but hide disabled ones
-    let titleTabsHTML = '';
-    let titlePanesHTML = '';
-
-    allLanguages.forEach(({ code, label }, index) => {
-        const isEnabled = enabledLanguages.some(lang => lang.code === code);
-        const isActive = isEnabled && index === 0 ? 'active show' : '';
-        const isSelected = isEnabled && index === 0 ? 'true' : 'false';
-        const fadeClass = isEnabled && index === 0 ? 'show active' : '';
-        const hiddenClass = isEnabled ? '' : 'd-none';
-
-        titleTabsHTML += `
-            <li class="nav-item ${hiddenClass}" role="presentation">
-                <button class="nav-link ${isEnabled && index === 0 ? 'active' : ''} p-1" id="title-tab-${code}-${rowIndex}" data-bs-toggle="tab" data-bs-target="#title-pane-${code}-${rowIndex}" type="button" role="tab" aria-controls="title-pane-${code}-${rowIndex}" aria-selected="${isSelected}">${label}</button>
-            </li>`;
-
-        titlePanesHTML += `
-            <div class="tab-pane fade ${fadeClass}" id="title-pane-${code}-${rowIndex}" role="tabpanel" aria-labelledby="title-tab-${code}-${rowIndex}">
-                <input type="text" name="sidebar_links[${rowIndex}][title][${code}]" class="form-control mb-2" placeholder="e.g, Floor Plan" ${isEnabled && index === 0 ? 'required' : ''} value="${linkData.title?.[code] || ''}">
-            </div>`;
+    const titleTabs = buildDynamicLanguageTabGroup({
+        groupId: titleGroupId,
+        rowIndex,
+        field: 'title',
+        values: titleValues,
+        firstFieldRequired: true,
     });
 
-    // Generate content tabs and panes for all languages, but hide disabled ones
-    let contentTabsHTML = '';
-    let contentPanesHTML = '';
-
-    allLanguages.forEach(({ code, label }, index) => {
-        const isEnabled = enabledLanguages.some(lang => lang.code === code);
-        const isActive = isEnabled && index === 0 ? 'active show' : '';
-        const isSelected = isEnabled && index === 0 ? 'true' : 'false';
-        const fadeClass = isEnabled && index === 0 ? 'show active' : '';
-        const hiddenClass = isEnabled ? '' : 'd-none';
-
-        contentTabsHTML += `
-            <li class="nav-item ${hiddenClass}" role="presentation">
-                <button class="nav-link ${isEnabled && index === 0 ? 'active' : ''} p-1" id="content-tab-${code}-${rowIndex}" data-bs-toggle="tab" data-bs-target="#content-pane-${code}-${rowIndex}" type="button" role="tab" aria-controls="content-pane-${code}-${rowIndex}" aria-selected="${isSelected}">${label}</button>
-            </li>`;
-
-        //<label for="exampleFormControlTextarea1" class="form-label">Content <span class="text-danger">*${code}</span></label>
-        //<textarea name="sidebar_links[${rowIndex}][content][${code}]" class="form-control" id="exampleFormControlTextarea1" rows="6">${linkData.content?.[code] || ''}</textarea>
-        contentPanesHTML += `
-            <div class="tab-pane fade ${fadeClass}" id="content-pane-${code}-${rowIndex}" role="tabpanel" aria-labelledby="content-tab-${code}-${rowIndex}">
-                <textarea name="sidebar_links[${rowIndex}][content][${code}]" class="editor">${linkData.content?.[code] || ''}</textarea>
-            </div>`;
+    const contentTabs = buildDynamicLanguageTabGroup({
+        groupId: contentGroupId,
+        rowIndex,
+        field: 'content',
+        values: contentValues,
     });
 
     const rowHTML = `
@@ -114,7 +97,7 @@ function addSidebarLinkRow(linkData = {}) {
                 <div class="input-group">
                     <input type="text" name="sidebar_links[${rowIndex}][icon]"
                         class="form-control icon-input" placeholder="Click to select"
-                        data-row-index="${rowIndex}" readonly value="${icon}">
+                        data-row-index="${rowIndex}" readonly value="${icon.replace(/"/g, '&quot;')}">
                     <div class="icon-preview" id="sidebarIconPreview_${rowIndex}">
                         ${icon ? `
                             <div class="icon-item text-center">
@@ -127,12 +110,8 @@ function addSidebarLinkRow(linkData = {}) {
 
             <div class="col-md-4" id="titleContainer_${rowIndex}">
                 <label class="form-label">Title <span class="text-danger">*</span></label>
-                <ul class="nav nav-tabs mb-2" id="titleLanguageTabs_${rowIndex}" role="tablist">
-                    ${titleTabsHTML}
-                </ul>
-                <div class="tab-content" id="titleTabContent_${rowIndex}">
-                    ${titlePanesHTML}
-                </div>
+                ${titleTabs.navHtml}
+                ${titleTabs.panesHtml}
             </div>
 
             <div class="col-md-2">
@@ -153,23 +132,21 @@ function addSidebarLinkRow(linkData = {}) {
                     class="form-control" placeholder="1" value="${order}" min="1" required>
             </div>
 
-            <div class="col-md-3" id="linkInputContainer_${rowIndex}" style="display: ${type === 'link' ? 'block' : 'none'};">
+            <div class="col-md-3" id="linkUrlContainer_${rowIndex}" style="display: ${type === 'link' ? 'block' : 'none'};">
                 <label class="form-label">Link <span class="text-danger">*</span></label>
                 <input type="url" name="sidebar_links[${rowIndex}][link]"
-                    class="form-control" placeholder="e.g, https://example.com" value="${link}" ${type === 'link' ? 'required' : ''}>
+                    class="form-control sidebar-link-url-input" placeholder="e.g, https://example.com"
+                    value="${(link || '').replace(/"/g, '&quot;')}" ${type === 'link' ? 'required' : ''}>
             </div>
 
-            <div class="col-md-3" id="linkInputContainer_${rowIndex}" style="display: ${['image', 'video', 'document'].includes(type) ? 'block' : 'none'};">
+            <div class="col-md-3" id="linkMediaContainer_${rowIndex}" style="display: ${['image', 'video', 'document'].includes(type) ? 'block' : 'none'};">
                 <p class="m-0">This feature is currently unavailable.<span class="text-danger">We are working on it!</span></p>
             </div>
 
             <div class="col-md-12 mt-2" id="contentInputContainer_${rowIndex}" style="display: ${type === 'content' || type === 'infoModal' ? 'block' : 'none'};">
-                <ul class="nav nav-tabs mt-2" id="contentLanguageTabs_${rowIndex}" role="tablist">
-                    ${contentTabsHTML}
-                </ul>
-                <div class="tab-content" id="contentTabContent_${rowIndex}">
-                    ${contentPanesHTML}
-                </div>
+                <label class="form-label">Content</label>
+                ${contentTabs.navHtml}
+                ${contentTabs.panesHtml}
             </div>
 
             <div class="col-md-12 d-flex justify-content-end align-items-end pb-2 mt-2">
@@ -184,86 +161,105 @@ function addSidebarLinkRow(linkData = {}) {
     reinitalizeEditors();
 
     const typeSelect = document.getElementById(`typeSelect_${rowIndex}`);
-    const linkContainer = document.getElementById(`linkInputContainer_${rowIndex}`);
+    const linkUrlContainer = document.getElementById(`linkUrlContainer_${rowIndex}`);
+    const linkMediaContainer = document.getElementById(`linkMediaContainer_${rowIndex}`);
     const contentContainer = document.getElementById(`contentInputContainer_${rowIndex}`);
-    const linkInput = linkContainer.querySelector('input');
-    const contentHiddenInputs = contentContainer.querySelectorAll('.content-hidden-input');
-    const titleContainer = document.getElementById(`titleContainer_${rowIndex}`);
-    const titleEnInput = titleContainer.querySelector('input[name="sidebar_links[' + rowIndex + '][title][en]"]');
+    const linkInput = linkUrlContainer?.querySelector('.sidebar-link-url-input');
 
-    typeSelect.addEventListener('change', function () {
-        const selectedType = this.value;
+    const applyTypeVisibility = () => {
+        const selectedType = typeSelect?.value || '';
 
         if (selectedType === 'link') {
-            linkContainer.style.display = 'block';
-            contentContainer.style.display = 'none';
-            linkInput.required = true;
-            contentHiddenInputs.forEach(input => input.required = false);
-            titleEnInput.required = true;
+            if (linkUrlContainer) {
+                linkUrlContainer.style.display = 'block';
+            }
+            if (linkMediaContainer) {
+                linkMediaContainer.style.display = 'none';
+            }
+            if (contentContainer) {
+                contentContainer.style.display = 'none';
+            }
+            if (linkInput) {
+                linkInput.required = true;
+            }
+            setTitleRequired(rowIndex, true);
         } else if (selectedType === 'content' || selectedType === 'infoModal') {
-            linkContainer.style.display = 'none';
-            contentContainer.style.display = 'block';
-            linkInput.required = false;
-
-            // Only require the first enabled language for content
-            const enabledLanguages = getEnabledLanguages();
-            const firstEnabledCode = enabledLanguages.length > 0 ? enabledLanguages[0].code : 'en';
-            contentHiddenInputs.forEach(input => {
-                const langCode = input.name.match(/\[content\]\[(\w+)\]/)?.[1];
-                input.required = langCode === firstEnabledCode;
-            });
-            titleEnInput.required = true;
+            if (linkUrlContainer) {
+                linkUrlContainer.style.display = 'none';
+            }
+            if (linkMediaContainer) {
+                linkMediaContainer.style.display = 'none';
+            }
+            if (contentContainer) {
+                contentContainer.style.display = 'block';
+            }
+            if (linkInput) {
+                linkInput.required = false;
+            }
+            setTitleRequired(rowIndex, true);
+        } else if (['image', 'video', 'document'].includes(selectedType)) {
+            if (linkUrlContainer) {
+                linkUrlContainer.style.display = 'none';
+            }
+            if (linkMediaContainer) {
+                linkMediaContainer.style.display = 'block';
+            }
+            if (contentContainer) {
+                contentContainer.style.display = 'none';
+            }
+            if (linkInput) {
+                linkInput.required = false;
+            }
+            setTitleRequired(rowIndex, true);
         } else {
-            linkContainer.style.display = 'none';
-            contentContainer.style.display = 'none';
-            linkInput.required = false;
-            contentHiddenInputs.forEach(input => input.required = false);
-            titleEnInput.required = true;
+            if (linkUrlContainer) {
+                linkUrlContainer.style.display = 'none';
+            }
+            if (linkMediaContainer) {
+                linkMediaContainer.style.display = 'none';
+            }
+            if (contentContainer) {
+                contentContainer.style.display = 'none';
+            }
+            if (linkInput) {
+                linkInput.required = false;
+            }
+            setTitleRequired(rowIndex, false);
         }
-    });
+    };
 
-    // Initialize Quill if content type is selected
-    if (type === 'content' || type === 'infoModal') {
-        // Set required on the first enabled content input
-        const enabledLanguages = getEnabledLanguages();
-        const firstEnabledCode = enabledLanguages.length > 0 ? enabledLanguages[0].code : 'en';
-        contentHiddenInputs.forEach(input => {
-            const langCode = input.name.match(/\[content\]\[(\w+)\]/)?.[1];
-            input.required = langCode === firstEnabledCode;
-        });
+    typeSelect?.addEventListener('change', applyTypeVisibility);
+    applyTypeVisibility();
+
+    if (typeof syncTourLanguageTabs === 'function') {
+        syncTourLanguageTabs();
     }
 
-    // Attach event listeners to the new row
     const newRow = container.querySelector('.sidebar-link-row:last-child');
 
-    // Remove button
-    const removeBtn = newRow.querySelector('.remove-sidebar-link');
+    const removeBtn = newRow?.querySelector('.remove-sidebar-link');
     if (removeBtn) {
         removeBtn.addEventListener('click', function () {
             const rowEl = this.closest('.sidebar-link-row');
-            const index = Number(rowEl.dataset.rowIndex);
+            const index = Number(rowEl?.dataset.rowIndex);
             if (!Number.isNaN(index) && quillEditors[index]) {
                 delete quillEditors[index];
             }
-            rowEl.remove();
+            rowEl?.remove();
         });
     }
 
-    // Icon input (readonly but clickable)
-    const iconInput = newRow.querySelector('.icon-input');
+    const iconInput = newRow?.querySelector('.icon-input');
     if (iconInput) {
         iconInput.addEventListener('click', function () {
-            const preview = $(this).closest('.input-group').find('.icon-preview');
             iconLib.open(this, $(`#sidebarIconPreview_${rowIndex}`));
         });
     }
-
 }
 
 function renderSidebarLinks() {
     let existingLinks = [];
 
-    // Parse the JSON string if it's a string
     if (typeof window.sidebarLinksData === 'string') {
         try {
             existingLinks = JSON.parse(window.sidebarLinksData);
@@ -275,11 +271,15 @@ function renderSidebarLinks() {
         existingLinks = window.sidebarLinksData;
     }
 
-    // Sort by order
-    existingLinks.sort((a, b) => (parseInt(a.order ?? 0) - parseInt(b.order ?? 0)) || 0);
+    existingLinks.sort(
+        (a, b) => (parseInt(a.order ?? 0, 10) - parseInt(b.order ?? 0, 10)) || 0
+    );
 
-    // Create rows for each existing link
     existingLinks.forEach((linkData) => {
         addSidebarLinkRow(linkData);
     });
+
+    if (typeof syncTourLanguageTabs === 'function') {
+        syncTourLanguageTabs();
+    }
 }

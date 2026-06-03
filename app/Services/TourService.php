@@ -102,7 +102,16 @@ class TourService
             $tour->default_language = $localeConfig['defaultLanguage'] ?? 'en';
         }
         if ($forceSync || Arr::has($diffJson, 'localeConfig.enabledLanguages')) {
-            $tour->enable_language = $localeConfig['enabledLanguages'] ?? ['en', 'hi'];
+            $tour->enable_language = $localeConfig['enabledLanguages'] ?? ['en', 'hi', 'gu'];
+        }
+        if ($forceSync || Arr::has($diffJson, 'localeConfig')) {
+            $tour->locale_config = ! empty($localeConfig) ? $localeConfig : null;
+        }
+        if ($forceSync || Arr::has($diffJson, 'localeConfig.languageDisplay')) {
+            $tour->language_display = $localeConfig['languageDisplay'] ?? null;
+        }
+        if ($forceSync || Arr::has($diffJson, 'localeConfig.languageSlotOrder')) {
+            $tour->language_slot_order = $localeConfig['languageSlotOrder'] ?? null;
         }
 
         $loaderConfig = $finalJson['branding']['loaderConfig'] ?? [];

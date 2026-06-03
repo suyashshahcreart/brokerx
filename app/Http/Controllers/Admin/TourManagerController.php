@@ -17,6 +17,7 @@ use App\Services\TourService;
 use GrahamCampbell\ResultType\Success;
 use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Yajra\DataTables\Facades\DataTables;
@@ -405,10 +406,6 @@ class TourManagerController extends Controller
             $booking->save();
         }
 
-        $tourData = [];
-        $uploadedFiles = [];
-        $zipResultForHistory = null;
-
         // Handle single ZIP file upload only
         if ($request->hasFile('files')) {
             $files = $request->file('files');
@@ -485,29 +482,38 @@ class TourManagerController extends Controller
                     $syncZipProgress->initializeQueued($booking, 'Processing ZIP (sync)');
 
                     $result = $this->processZipFile($file, $tour, $qrCode->code, $syncZipProgress);
-                    if ($result['success']) {
-                        $zipResultForHistory = TourAssetJsonPersistenceService::snapshotZipPayloadForHistory($result);
-                        $tourData = $result['data']; // vertual tour data josn
-                        // $tourData = $result['tour_data_json'] ?? [];
-                        $uploadedFiles[] = [
-                            'name' => $file->getClientOriginalName(),
-                            'type' => 'zip',
-                            'processed' => true,
-                            'tour_path' => $result['tour_path'],
-                            'tour_url' => $result['tour_url'],
-                            's3_path' => $result['s3_path'],
-                            's3_url' => $result['s3_url'],
-                            'size' => $file->getSize(),
-                            'uploaded_at' => now()->toDateTimeString(),
-                        ];
-
-                        // Save the S3 base URL of the storage folder to booking
-                        $booking->base_url = $result['s3_url'];
-                        $booking->save();
-                        $syncZipProgress->markDone($booking->id);
-                    } else {
+                    if (! $result['success']) {
                         throw new \Exception($result['message']);
                     }
+
+                    $tour->refresh();
+                    $fileHash = @md5_file($file->getPathname()) ?: null;
+
+                    $this->applyZipProcessResultToTour(
+                        $booking,
+                        $tour,
+                        $qrCode,
+                        $result,
+                        $file->getClientOriginalName(),
+                        $fileSize,
+                        $fileHash,
+                        false,
+                        auth()->id()
+                    );
+
+                    $syncZipProgress->markDone($booking->id);
+
+                    if ($request->expectsJson()) {
+                        return response()->json([
+                            'success' => true,
+                            'message' => 'Tour updated successfully!',
+                            'booking_id' => $booking->id,
+                            'redirect' => route('admin.tour-manager.show', $booking),
+                        ]);
+                    }
+
+                    return redirect()->route('admin.tour-manager.show', $booking)
+                        ->with('success', 'Tour updated successfully!');
                 }
             } catch (\Exception $e) {
                 \Log::error('File upload error: '.$e->getMessage().' in '.$e->getFile().':'.$e->getLine());
@@ -532,47 +538,130 @@ class TourManagerController extends Controller
             // No file uploaded
             return back()->withErrors(['files' => 'Please upload a ZIP file.']);
         }
+    }
 
-        // Merge with existing files or create new array
+    /**
+     * Merge processZipFile() output into tour/booking (same steps as ProcessTourZipFile after extraction).
+     */
+    public function applyZipProcessResultToTour(
+        Booking $booking,
+        Tour $tour,
+        QR $qrCode,
+        array $result,
+        string $originalFilename,
+        int $fileSize,
+        ?string $fileHash = null,
+        bool $processedInBackground = false,
+        ?int $updatedBy = null
+    ): void {
+        $updatedBy = $updatedBy ?? auth()->id() ?? 1;
+
+        $zipPayloadForHistory = TourAssetJsonPersistenceService::snapshotZipPayloadForHistory($result);
+
+        $tourData = is_array($result['data'] ?? null) ? $result['data'] : [];
+
+        $uploadedFileEntry = [
+            'name' => $originalFilename,
+            'type' => 'zip',
+            'processed' => true,
+            'tour_path' => $result['tour_path'] ?? null,
+            'tour_url' => $result['tour_url'] ?? null,
+            's3_path' => $result['s3_path'] ?? null,
+            's3_url' => $result['s3_url'] ?? null,
+            'size' => $fileSize,
+            'uploaded_at' => now()->toDateTimeString(),
+        ];
+
+        if ($fileHash !== null) {
+            $uploadedFileEntry['file_hash'] = $fileHash;
+        }
+
+        if ($processedInBackground) {
+            $uploadedFileEntry['processed_at'] = now()->toDateTimeString();
+            $uploadedFileEntry['processed_in_background'] = true;
+        }
+
+        $uploadedFiles = [$uploadedFileEntry];
+
         $existingFiles = $tour->final_json['files'] ?? [];
-        // $existingTourData = is_array($tour->final_json) ? $tour->final_json : [];
 
-        // Only update final_json, not other tour fields
+        $fileAlreadyExists = false;
+        $existingFileIndex = null;
+        foreach ($existingFiles as $index => $existingFile) {
+            if (isset($existingFile['name']) && $existingFile['name'] === $originalFilename) {
+                if ($fileHash !== null && isset($existingFile['file_hash'])) {
+                    if (
+                        $existingFile['file_hash'] === $fileHash &&
+                        isset($existingFile['size']) && (int) $existingFile['size'] === $fileSize
+                    ) {
+                        $fileAlreadyExists = true;
+                        $existingFileIndex = $index;
+                        break;
+                    }
+                } else {
+                    $fileAlreadyExists = true;
+                    $existingFileIndex = $index;
+                    break;
+                }
+            }
+        }
+
+        if (! $fileAlreadyExists) {
+            $existingFiles = array_merge($existingFiles, $uploadedFiles);
+        } elseif ($existingFileIndex !== null) {
+            $existingFiles[$existingFileIndex] = array_merge($existingFiles[$existingFileIndex], $uploadedFiles[0]);
+        }
+
         $tour->final_json = array_merge(
-            // $existingTourData,
             $tourData,
             [
-                'files' => array_merge($existingFiles, $uploadedFiles),
+                'files' => $existingFiles,
                 'qr_code' => $qrCode->code,
                 'updated_at' => now()->toDateTimeString(),
             ]
         );
 
-        // Sync tour fields from final_json without overwriting existing tour fields that are not in final_json
-        $this->tourService->syncTourFieldsFromJson($tour, $tour->tour_data_json, [], true);
+        $tour->tour_data_json = $result['tour_data_json'] ?? null;
 
-        if ($zipResultForHistory) {
-            app(TourAssetJsonPersistenceService::class)->recordFromZipResult(
-                $tour,
-                $zipResultForHistory,
-                auth()->id()
-            );
-        } else {
-            $tour->updated_by = auth()->id();
-            $tour->save();
+        $jsonForSync = is_array($tour->tour_data_json) ? $tour->tour_data_json : [];
+        $this->tourService->syncTourFieldsFromJson($tour, $jsonForSync, [], true);
+
+        app(TourAssetJsonPersistenceService::class)->recordFromZipResult(
+            $tour,
+            $zipPayloadForHistory,
+            $updatedBy
+        );
+
+        $booking->base_url = $result['s3_url'] ?? $booking->base_url;
+        $booking->save();
+    }
+
+    /**
+     * Remove chunked-upload temp directory (e.g. storage/app/chunks/{upload_id}/).
+     */
+    public function cleanupChunkUploadDirectory(string $zipFilePath): void
+    {
+        $normalized = str_replace('\\', '/', $zipFilePath);
+        if (! str_contains($normalized, '/chunks/')) {
+            return;
         }
 
-        if ($request->expectsJson()) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Tour updated successfully!',
-                'booking_id' => $booking->id,
-                'redirect' => route('admin.tour-manager.show', $booking),
-            ]);
+        $chunkDir = dirname($zipFilePath);
+        $chunksBase = str_replace('\\', '/', storage_path('app/chunks'));
+
+        if (! is_dir($chunkDir) || dirname(str_replace('\\', '/', $chunkDir)) !== $chunksBase) {
+            return;
         }
 
-        return redirect()->route('admin.tour-manager.show', $booking)
-            ->with('success', 'Tour updated successfully!');
+        try {
+            if (File::deleteDirectory($chunkDir)) {
+                \Log::info("Removed chunked upload directory: {$chunkDir}");
+            } else {
+                \Log::warning("Could not remove chunked upload directory: {$chunkDir}");
+            }
+        } catch (\Throwable $e) {
+            \Log::warning("Chunk upload directory cleanup failed for {$chunkDir}: ".$e->getMessage());
+        }
     }
 
     /**
@@ -2432,16 +2521,7 @@ PHP;
             }
 
             // Clean up on error
-            if (file_exists($finalPath)) {
-                @unlink($finalPath);
-            }
-            if (file_exists($metadataPath)) {
-                @unlink($metadataPath);
-            }
-            if (is_dir($chunkDir)) {
-                @array_map('unlink', glob($chunkDir.'/*'));
-                @rmdir($chunkDir);
-            }
+            $this->cleanupChunkUploadDirectory($finalPath);
 
             return response()->json([
                 'success' => false,

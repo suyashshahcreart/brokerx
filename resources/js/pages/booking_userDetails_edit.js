@@ -8,20 +8,6 @@ import reinitalizeEditors from '../tinyEditor';
 // Only Quill editors for description fields, so we can manage them in a single object
 const quillEditors = {};
 
-const languageMap = {
-    en: 'English',
-    gu: 'Gujarati',
-    hi: 'Hindi'
-};
-
-function getEnabledLanguages() {
-    const enabled = window.enabledLanguages || ['en'];
-    return enabled.map(code => ({
-        code,
-        label: languageMap[code] || code.toUpperCase()
-    }));
-}
-
 function escapeHtml(value) {
     return String(value || '')
         .replace(/&/g, '&amp;')

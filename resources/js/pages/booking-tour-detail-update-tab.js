@@ -1,37 +1,64 @@
 // CSS Import: CSS for Settings page
 import '../../css/pages/setting-index.css';
+import { syncTourLanguageTabs } from '../utils/tour-language-tabs';
 
-// Helper function to show SweetAlert notifications
-function showContactAlert(message, type = 'success') {
-    if (type === 'success') {
-        Swal.fire({
-            icon: 'success',
-            text: message,
-            timer: 3000,
-            showConfirmButton: false,
-            toast: true,
-            position: 'top-end',
-            padding: '0',
-            timerProgressBar: true,
-            customClass: {
-                popup: 'alert alert-success alert-dismissible fade show'
-            }
-        });
-    } else {
-        Swal.fire({
-            icon: 'error',
-            text: message,
-            timer: 3000,
-            showConfirmButton: false,
-            toast: true,
-            position: 'top-end',
-            padding: '0',
-            timerProgressBar: true,
-            customClass: {
-                popup: 'alert alert-danger alert-dismissible fade show'
-            }
-        });
+window.syncTourLanguageTabs = syncTourLanguageTabs;
+
+const TOAST_ICONS = {
+    success: 'success',
+    error: 'error',
+    warning: 'warning',
+    info: 'info',
+};
+
+const TOAST_CLASSES = {
+    success: 'alert alert-success alert-dismissible fade show',
+    error: 'alert alert-danger alert-dismissible fade show',
+    warning: 'alert alert-warning alert-dismissible fade show',
+    info: 'alert alert-info alert-dismissible fade show',
+};
+
+/** SweetAlert2 toast (no page reload). */
+function showTourToast(message, type = 'success') {
+    if (typeof Swal === 'undefined') {
+        console[type === 'error' ? 'error' : 'log'](message);
+        return;
     }
+
+    const toastType = TOAST_ICONS[type] || 'info';
+    const timer = type === 'error' ? 5000 : 3500;
+
+    Swal.fire({
+        icon: toastType,
+        text: message,
+        timer,
+        showConfirmButton: false,
+        toast: true,
+        position: 'top-end',
+        padding: '0.5rem',
+        timerProgressBar: true,
+        customClass: {
+            popup: TOAST_CLASSES[type] || TOAST_CLASSES.info,
+        },
+    });
+}
+
+function syncTinyMceInForm(form) {
+    if (!form || typeof tinymce === 'undefined') {
+        return;
+    }
+
+    if (typeof tinymce.triggerSave === 'function') {
+        tinymce.triggerSave();
+        return;
+    }
+
+    form.querySelectorAll('textarea.editor').forEach((textarea) => {
+        const editor = textarea.id ? tinymce.get(textarea.id) : null;
+        if (editor) {
+            editor.save();
+        }
+    });
 }
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -77,15 +104,29 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
     const resolveErrorMessage = function (error, fallbackMessage) {
-        if (error?.message) {
-            return error.message;
+        if (error?.errors && typeof error.errors === 'object') {
+            const messages = [];
+            Object.values(error.errors).forEach((value) => {
+                if (Array.isArray(value)) {
+                    value.forEach((msg) => {
+                        if (msg) {
+                            messages.push(String(msg));
+                        }
+                    });
+                } else if (value) {
+                    messages.push(String(value));
+                }
+            });
+
+            if (messages.length > 0) {
+                const max = 3;
+                const shown = messages.slice(0, max).join(' ');
+                return messages.length > max ? `${shown} (+${messages.length - max} more)` : shown;
+            }
         }
 
-        if (error?.errors && typeof error.errors === 'object') {
-            const firstErrorKey = Object.keys(error.errors)[0];
-            if (firstErrorKey && Array.isArray(error.errors[firstErrorKey]) && error.errors[firstErrorKey].length > 0) {
-                return error.errors[firstErrorKey][0];
-            }
+        if (error?.message && error.message !== 'The given data was invalid.') {
+            return error.message;
         }
 
         return fallbackMessage;
@@ -120,8 +161,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
             if (!form.checkValidity()) {
                 form.classList.add('was-validated');
+                showTourToast('Please correct the highlighted required fields.', 'warning');
                 return false;
             }
+
+            syncTinyMceInForm(form);
 
             const submitBtn = form.querySelector('button[type="submit"]');
             const originalBtnText = submitBtn?.innerHTML || '';
@@ -143,7 +187,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 .then(parseAjaxResponse)
                 .then((data) => {
                     form.classList.remove('was-validated');
-                    showContactAlert(data.message || successMessage, 'success');
+                    showTourToast(data.message || successMessage, 'success');
 
                     if (typeof afterSuccess === 'function') {
                         afterSuccess(form, data);
@@ -151,7 +195,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 })
                 .catch((error) => {
                     console.error('Error:', error);
-                    showContactAlert(resolveErrorMessage(error, errorMessage), 'error');
+                    showTourToast(resolveErrorMessage(error, errorMessage), 'error');
                 })
                 .finally(() => {
                     submitState.set(form, false);
@@ -298,68 +342,7 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
     const syncBottomMarkLanguageTabs = function () {
-        const enabledLangInputs = document.querySelectorAll('#languageTabUpdateForm input[name="enable_language[]"]');
-        if (enabledLangInputs.length === 0) {
-            return;
-        }
-
-        const enabledLanguages = Array.from(enabledLangInputs)
-            .filter((input) => input.checked)
-            .map((input) => input.value);
-
-        const languagesToShow = enabledLanguages.length > 0 ? enabledLanguages : ['en'];
-
-        const tabGroups = [
-            {
-                tabsSelector: '#testingFooterLanguageTabs [data-language]',
-                panesSelector: '#testingFooterLanguageTabsContent .tab-pane[data-language]'
-            },
-            {
-                tabsSelector: '#testingBottommarkLanguageTabs [data-language]',
-                panesSelector: '#testingBottommarkLanguageTabsContent .tab-pane[data-language]'
-            }
-        ];
-
-        tabGroups.forEach((group) => {
-            const tabButtons = Array.from(document.querySelectorAll(group.tabsSelector));
-            const panes = Array.from(document.querySelectorAll(group.panesSelector));
-
-            tabButtons.forEach((button) => {
-                const lang = button.getAttribute('data-language');
-                const shouldShow = !!lang && languagesToShow.includes(lang);
-                const navItem = button.closest('.nav-item');
-
-                if (navItem) {
-                    navItem.classList.toggle('d-none', !shouldShow);
-                } else {
-                    button.classList.toggle('d-none', !shouldShow);
-                }
-
-                if (!shouldShow) {
-                    button.classList.remove('active');
-                    button.setAttribute('aria-selected', 'false');
-                }
-            });
-
-            panes.forEach((pane) => {
-                const lang = pane.getAttribute('data-language');
-                const shouldShow = !!lang && languagesToShow.includes(lang);
-                pane.classList.toggle('d-none', !shouldShow);
-
-                if (!shouldShow) {
-                    pane.classList.remove('active', 'show');
-                }
-            });
-
-            const activeTabButton = tabButtons.find((button) => button.classList.contains('active') && !button.closest('.nav-item')?.classList.contains('d-none'));
-
-            if (!activeTabButton) {
-                const firstVisibleButton = tabButtons.find((button) => !button.closest('.nav-item')?.classList.contains('d-none'));
-                if (firstVisibleButton && window.bootstrap) {
-                    new bootstrap.Tab(firstVisibleButton).show();
-                }
-            }
-        });
+        syncTourLanguageTabs();
     };
 
     const initTabForms = function () {
@@ -377,17 +360,41 @@ document.addEventListener('DOMContentLoaded', function () {
 
         submitFormAjax(document.querySelector('#languageTabUpdateForm'), {
             loadingText: 'Updating...',
-            successMessage: 'Tour settings updated successfully!',
+            successMessage: 'Language settings updated successfully!',
             errorMessage: 'An error occurred while updating language settings. Please try again.',
-            afterSuccess: () => {
-                syncBottomMarkLanguageTabs();
+            beforeSubmit: () => {
+                if (typeof window.prepareLanguageTabFormBeforeSubmit === 'function') {
+                    window.prepareLanguageTabFormBeforeSubmit();
+                }
+            },
+            afterSuccess: (data) => {
+                if (data?.tour?.enable_language) {
+                    window.enabledLanguages = data.tour.enable_language;
+                }
+                if (data?.tour?.language_slot_order && window.tourLanguageConfig) {
+                    window.tourLanguageConfig.languageSlotOrder = data.tour.language_slot_order;
+                    window.tourLanguageConfig.slots = data.tour.language_slot_order;
+                }
+                if (data?.tour?.language_display && window.tourLanguageConfig) {
+                    window.tourLanguageConfig.languageDisplay = data.tour.language_display;
+                }
+                syncTourLanguageTabs();
             },
         });
 
         submitFormAjax(document.querySelector('#sidebarTabUpdateForm'), {
             loadingText: 'Updating...',
-            successMessage: 'Tour details updated successfully!',
+            successMessage: 'Sidebar section updated successfully!',
             errorMessage: 'An error occurred while updating sidebar section. Please try again.',
+            afterSuccess: (form, data) => {
+                if (data?.tour?.sidebar_logo) {
+                    const preview = document.getElementById('sidebar_logo_preview');
+                    if (preview) {
+                        preview.src = data.tour.sidebar_logo;
+                        preview.style.display = '';
+                    }
+                }
+            },
         });
 
         submitFormAjax(document.querySelector('#attachmentsTabUpdateForm'), {
@@ -398,14 +405,69 @@ document.addEventListener('DOMContentLoaded', function () {
 
         submitFormAjax(document.querySelector('#bottomTopTabUpdateForm'), {
             loadingText: 'Updating...',
-            successMessage: 'Tour details updated successfully!',
+            successMessage: 'Bottom top section updated successfully!',
             errorMessage: 'An error occurred while updating bottom top section. Please try again.',
+            afterSuccess: (form, data) => {
+                if (data?.tour?.footer_logo) {
+                    const preview = document.getElementById('footer_logo_preview');
+                    if (preview) {
+                        preview.src = data.tour.footer_logo;
+                        preview.style.display = '';
+                    }
+                }
+            },
         });
 
         submitFormAjax(document.querySelector('#bottomPropertyTabUpdateForm'), {
             loadingText: 'Updating...',
-            successMessage: 'Tour details updated successfully!',
+            successMessage: 'Property details updated successfully!',
             errorMessage: 'An error occurred while updating property details. Please try again.',
+        });
+
+        submitFormAjax(document.querySelector('#tourBookmarkTabUpdateForm'), {
+            loadingText: 'Updating...',
+            successMessage: 'Tour bookmark updated successfully!',
+            errorMessage: 'An error occurred while updating tour bookmark. Please try again.',
+        });
+
+        submitFormAjax(document.querySelector('#sidebarLinksForm'), {
+            loadingText: 'Updating...',
+            successMessage: 'Sidebar links updated successfully!',
+            errorMessage: 'An error occurred while updating sidebar links. Please try again.',
+            afterSuccess: (form, data) => {
+                if (data?.tour?.sidebar_links) {
+                    window.sidebarLinksData = data.tour.sidebar_links;
+                }
+            },
+        });
+
+        submitFormAjax(document.querySelector('#userDetailsTabUpdateForm'), {
+            loadingText: 'Updating...',
+            successMessage: 'User details updated successfully!',
+            errorMessage: 'An error occurred while updating user details. Please try again.',
+            afterSuccess: (form, data) => {
+                if (data?.tour?.user_details) {
+                    const container = document.getElementById('userDetailsContainer');
+                    if (container) {
+                        container.setAttribute('data-userdetails-data', JSON.stringify(data.tour.user_details));
+                    }
+                }
+            },
+        });
+
+        submitFormAjax(document.querySelector('#userStarsTabUpdateForm'), {
+            loadingText: 'Updating...',
+            successMessage: 'User stars updated successfully!',
+            errorMessage: 'An error occurred while updating user stars. Please try again.',
+            afterSuccess: (form, data) => {
+                const stars = data?.tour?.user_star?.stars;
+                if (stars) {
+                    const container = document.getElementById('userStarsContainer');
+                    if (container) {
+                        container.setAttribute('data-user-stars', JSON.stringify(stars));
+                    }
+                }
+            },
         });
     };
 
@@ -420,3 +482,5 @@ document.addEventListener('DOMContentLoaded', function () {
 
     syncBottomMarkLanguageTabs();
 });
+
+window.showTourToast = showTourToast;

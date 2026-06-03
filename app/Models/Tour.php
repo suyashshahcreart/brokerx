@@ -99,6 +99,9 @@ class Tour extends Model
         // Language fields
         'enable_language',
         'default_language',
+        'locale_config',
+        'language_display',
+        'language_slot_order',
         // Customization fields
         'overlay_bg_color',
         'loader_text',
@@ -178,6 +181,9 @@ class Tour extends Model
             'show_document_url' => 'boolean',
             'show_document_url2' => 'boolean',
             'enable_language' => 'array',
+            'locale_config' => 'array',
+            'language_display' => 'array',
+            'language_slot_order' => 'array',
             'loader_color' => 'array',
             'spinner_color' => 'array',
             'attachment_file' => 'array',

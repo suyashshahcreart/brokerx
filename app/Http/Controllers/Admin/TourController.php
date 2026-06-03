@@ -18,6 +18,7 @@ use App\Models\QR;
 use Storage;
 use Yajra\DataTables\DataTables;
 use App\Services\TourService;
+use App\Support\LanguageConfigHelper;
 
 require_once app_path('Helpers/JsObfuscator.php');
 
@@ -2076,38 +2077,112 @@ class TourController extends Controller
     {
         $validated = $request->validate([
             'enable_language' => ['nullable', 'array'],
-            'enable_language.*' => ['string'],
+            'enable_language.*' => ['string', 'max:10'],
             'default_language' => ['nullable', 'string', 'max:10'],
+            'language_display' => ['nullable', 'string'],
+            'language_slot_order' => ['nullable', 'string'],
+            'show_language_in_contact_panel' => ['nullable', 'boolean'],
         ]);
 
-        $validated['enable_language'] = isset($validated['enable_language'])
-            ? array_values($validated['enable_language'])
-            : null;
+        $enabledLanguages = isset($validated['enable_language'])
+            ? array_values(array_map(static fn ($c) => strtolower((string) $c), $validated['enable_language']))
+            : [];
+
+        if ($enabledLanguages === []) {
+            $enabledLanguages = ['en'];
+        }
+
+        $languageDisplay = $this->decodeJsonField($request->input('language_display'));
+        $languageSlotOrder = $this->decodeJsonField($request->input('language_slot_order'));
+
+        $existingLocale = is_array($tour->locale_config) ? $tour->locale_config : [];
+        if ($existingLocale === []) {
+            $resolved = LanguageConfigHelper::resolveFromTour($tour);
+            $existingLocale = $resolved['localeConfig'];
+        }
+
+        if (! is_array($languageDisplay) || $languageDisplay === []) {
+            $languageDisplay = is_array($tour->language_display) && $tour->language_display !== []
+                ? $tour->language_display
+                : ($existingLocale['languageDisplay'] ?? []);
+        }
+
+        $languageDisplay = LanguageConfigHelper::normalizeLanguageDisplay($languageDisplay);
+
+        if (! is_array($languageSlotOrder) || $languageSlotOrder === []) {
+            $languageSlotOrder = is_array($tour->language_slot_order) && $tour->language_slot_order !== []
+                ? $tour->language_slot_order
+                : ($existingLocale['languageSlotOrder'] ?? []);
+        }
+
+        $languageSlotOrder = LanguageConfigHelper::collectLanguageSlotCodes(
+            $enabledLanguages,
+            $languageDisplay,
+            $languageSlotOrder
+        );
+
+        $defaultLanguage = strtolower((string) ($validated['default_language'] ?? $tour->default_language ?? 'en'));
+        if ($defaultLanguage === '' || ! preg_match('/^[a-z]{2}$/', $defaultLanguage)) {
+            $defaultLanguage = $enabledLanguages[0] ?? 'en';
+        }
+
+        $showInPanel = $request->boolean('show_language_in_contact_panel');
+
+        $localeConfig = LanguageConfigHelper::buildLocaleConfig(
+            $existingLocale,
+            $enabledLanguages,
+            $defaultLanguage,
+            $languageDisplay,
+            $languageSlotOrder,
+            $showInPanel
+        );
 
         $oldData = $tour->toArray();
 
         $finalJson = $this->normalizeFinalJsonPayload($tour);
         $tourDataJson = $this->normalizeTourDataJsonPayload($tour);
 
-
-        $finalJson['tour']['localeConfig'] = $finalJson['tour']['localeConfig'] ?? [];
-        $finalJson['tour']['localeConfig']['enabledLanguages'] = $validated['enable_language'] ?? [];
-
-        if (array_key_exists('default_language', $validated)) {
-            $finalJson['tour']['localeConfig']['defaultLanguage'] = $validated['default_language'];
+        $existingFinalJsonColumn = is_array($tour->final_json) ? $tour->final_json : [];
+        foreach (['files', 'qr_code', 'updated_at'] as $preserveKey) {
+            if (array_key_exists($preserveKey, $existingFinalJsonColumn)) {
+                $finalJson[$preserveKey] = $existingFinalJsonColumn[$preserveKey];
+            }
         }
 
-        $tourDataJson['tour']['localeConfig'] = $finalJson['tour']['localeConfig'];
+        $finalJson['tour'] = $finalJson['tour'] ?? [];
+        $finalJson['tour']['localeConfig'] = $localeConfig;
+        $tourDataJson['tour'] = $tourDataJson['tour'] ?? [];
+        $tourDataJson['tour']['localeConfig'] = $localeConfig;
+
+        $finalJson['branding'] = is_array($finalJson['branding'] ?? null) ? $finalJson['branding'] : [];
+        $finalJson['branding']['userInfo'] = is_array($finalJson['branding']['userInfo'] ?? null)
+            ? $finalJson['branding']['userInfo']
+            : [];
+        $finalJson['branding']['userInfo']['showLanguageInContactPanel'] = $showInPanel;
+
+        if (isset($tourDataJson['branding']) && is_array($tourDataJson['branding'])) {
+            $tourDataJson['branding']['userInfo'] = is_array($tourDataJson['branding']['userInfo'] ?? null)
+                ? $tourDataJson['branding']['userInfo']
+                : [];
+            $tourDataJson['branding']['userInfo']['showLanguageInContactPanel'] = $showInPanel;
+        }
 
         $updateData = [
-            'enable_language' => $validated['enable_language'],
-            'default_language' => $validated['default_language'] ?? null,
+            'enable_language' => $enabledLanguages,
+            'default_language' => $defaultLanguage,
+            'language_display' => $languageDisplay,
+            'language_slot_order' => $languageSlotOrder,
+            'locale_config' => $localeConfig,
             'final_json' => $finalJson,
             'virtual_tour_nodes_json' => $finalJson,
             'tour_data_json' => $tourDataJson,
         ];
 
         $tour->update($updateData);
+
+        $jsonForSync = is_array($tourDataJson) && $tourDataJson !== [] ? $tourDataJson : $finalJson;
+        $this->tourService->syncTourFieldsFromJson($tour->fresh(), $jsonForSync, [], true);
+
         $newData = $tour->fresh()->toArray();
 
         activity('tours')
@@ -2133,18 +2208,41 @@ class TourController extends Controller
     }
 
     /**
+     * @return array<mixed>|null
+     */
+    private function decodeJsonField(mixed $value): ?array
+    {
+        if (is_array($value)) {
+            return $value;
+        }
+
+        if (! is_string($value) || trim($value) === '') {
+            return null;
+        }
+
+        $decoded = json_decode($value, true);
+
+        return json_last_error() === JSON_ERROR_NONE && is_array($decoded) ? $decoded : null;
+    }
+
+    /**
      * Update only sidebar tab data.
      */
     public function updateTourSidebarTab(Request $request, Tour $tour): JsonResponse|RedirectResponse
     {
-        $validated = $request->validate([
-            'sidebar_logo' => ['nullable', 'file', 'image', 'max:5120'],
-            'sidebar_tag_text' => ['nullable', 'array'],
-            'sidebar_tag_color' => ['nullable', 'string', 'max:255'],
-            'sidebar_tag_bg_color' => ['nullable', 'string', 'max:255'],
-            'sidebar_footer_text' => ['nullable', 'string'],
-            'sidebar_footer_link' => ['nullable', 'string'],
-        ]);
+        $languageState = LanguageConfigHelper::resolveFromTour($tour);
+        $languageCodes = $languageState['languageSlotOrder'];
+
+        $validated = $request->validate(array_merge(
+            [
+                'sidebar_logo' => ['nullable', 'file', 'image', 'max:5120'],
+                'sidebar_tag_color' => ['nullable', 'string', 'max:255'],
+                'sidebar_tag_bg_color' => ['nullable', 'string', 'max:255'],
+                'sidebar_footer_text' => ['nullable', 'string'],
+                'sidebar_footer_link' => ['nullable', 'string'],
+            ],
+            LanguageConfigHelper::perLanguageStringRules('sidebar_tag_text', $languageCodes, 255)
+        ));
 
         $oldData = $tour->toArray();
         $finalJson = $this->normalizeFinalJsonPayload($tour);
@@ -2166,7 +2264,34 @@ class TourController extends Controller
             $finalJson['branding']['sidebarConfig']['footerButton']['link'] = $validated['sidebar_footer_link'];
         }
         if (array_key_exists('sidebar_tag_text', $validated)) {
-            $finalJson['branding']['sidebarConfig']['sidebarTag']['text'] = json_encode($validated['sidebar_tag_text']);
+            $existingSidebarTagText = [];
+            $storedTagText = $tour->sidebar_tag_text;
+            if (is_array($storedTagText)) {
+                $existingSidebarTagText = $storedTagText;
+            } elseif (is_string($storedTagText) && trim($storedTagText) !== '') {
+                $decodedTagText = json_decode($storedTagText, true);
+                if (json_last_error() === JSON_ERROR_NONE && is_array($decodedTagText)) {
+                    $existingSidebarTagText = $decodedTagText;
+                } else {
+                    $existingSidebarTagText = ['en' => $storedTagText];
+                }
+            }
+
+            $incomingSidebarTagText = is_array($validated['sidebar_tag_text'])
+                ? $validated['sidebar_tag_text']
+                : [];
+            $mergedSidebarTagText = LanguageConfigHelper::mergePerLanguageStringMap(
+                $existingSidebarTagText,
+                $incomingSidebarTagText,
+                $languageCodes
+            );
+
+            $sidebarTagTextJson = empty($mergedSidebarTagText)
+                ? null
+                : json_encode($mergedSidebarTagText, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+
+            $validated['sidebar_tag_text'] = $sidebarTagTextJson;
+            $finalJson['branding']['sidebarConfig']['sidebarTag']['text'] = $sidebarTagTextJson;
         }
         if (array_key_exists('sidebar_tag_color', $validated)) {
             $finalJson['branding']['sidebarConfig']['sidebarTag']['textColor'] = $validated['sidebar_tag_color'];
@@ -2220,45 +2345,71 @@ class TourController extends Controller
 
     public function updateSidebarLinks(Request $request, Tour $tour): JsonResponse|RedirectResponse
     {
-        $validated = $request->validate([
-            'sidebar_links' => ['nullable', 'array'],
-            'sidebar_links.*.icon' => ['nullable', 'string', 'max:255'],
-            'sidebar_links.*.title' => ['nullable', 'array'],
-            'sidebar_links.*.title.en' => ['nullable', 'string'],
-            'sidebar_links.*.title.gu' => ['nullable', 'string'],
-            'sidebar_links.*.title.hi' => ['nullable', 'string'],
-            'sidebar_links.*.type' => ['required', 'string', 'in:link,infoModal,image,video,document'],
-            'sidebar_links.*.order' => ['required', 'integer', 'min:1'],
-            'sidebar_links.*.link' => ['nullable', 'url', 'max:255'],
-            'sidebar_links.*.content' => ['nullable', 'array'],
-            'sidebar_links.*.content.en' => ['nullable', 'string'],
-            'sidebar_links.*.content.gu' => ['nullable', 'string'],
-            'sidebar_links.*.content.hi' => ['nullable', 'string'],
-        ]);
+        $languageState = LanguageConfigHelper::resolveFromTour($tour);
+        $languageCodes = $languageState['languageSlotOrder'];
+        $defaultLanguage = $languageState['defaultLanguage'];
 
-        $sidebarLinks = collect($validated['sidebar_links'] ?? [])->map(function ($item) {
-            $title = isset($item['title']) ? (array) $item['title'] : [];
-            $content = isset($item['content']) ? (array) $item['content'] : [];
+        $sidebarLinkLangRules = [];
+        foreach ($languageCodes as $code) {
+            $lc = strtolower((string) $code);
+            if (! preg_match('/^[a-z]{2}$/', $lc)) {
+                continue;
+            }
+            $sidebarLinkLangRules["sidebar_links.*.title.{$lc}"] = ['nullable', 'string', 'max:255'];
+            $sidebarLinkLangRules["sidebar_links.*.content.{$lc}"] = ['nullable', 'string'];
+        }
+
+        $validated = $request->validate(array_merge(
+            [
+                'sidebar_links' => ['nullable', 'array'],
+                'sidebar_links.*.icon' => ['nullable', 'string', 'max:255'],
+                'sidebar_links.*.title' => ['nullable', 'array'],
+                'sidebar_links.*.type' => ['required', 'string', 'in:link,infoModal,image,video,document'],
+                'sidebar_links.*.order' => ['required', 'integer', 'min:1'],
+                'sidebar_links.*.link' => ['nullable', 'url', 'max:255'],
+                'sidebar_links.*.content' => ['nullable', 'array'],
+            ],
+            $sidebarLinkLangRules
+        ));
+
+        $sidebarLinks = collect($validated['sidebar_links'] ?? [])->map(function ($item) use ($languageCodes) {
+            $title = LanguageConfigHelper::mergePerLanguageStringMap(
+                [],
+                isset($item['title']) ? (array) $item['title'] : [],
+                $languageCodes
+            );
+            $content = LanguageConfigHelper::mergePerLanguageStringMap(
+                [],
+                isset($item['content']) ? (array) $item['content'] : [],
+                $languageCodes
+            );
 
             return [
-                'icon' => !empty($item['icon']) ? trim($item['icon']) : null,
-                'title' => [
-                    'en' => trim($title['en']),
-                    'gu' => trim($title['gu']),
-                    'hi' => trim($title['hi']),
-                ],
+                'icon' => ! empty($item['icon']) ? trim($item['icon']) : null,
+                'title' => $title,
                 'type' => $item['type'] ?? 'link',
                 'order' => (int) ($item['order'] ?? 140),
                 'link' => $item['type'] === 'link' ? trim($item['link'] ?? '') : null,
-                'content' => [
-                    'en' => $content['en'],
-                    'gu' => $content['gu'],
-                    'hi' => $content['hi'],
-                ],
+                'content' => $content,
             ];
-        })->filter(function ($item) {
-            // Ensure English title is not empty and type is valid
-            return !empty($item['title']['en']) && in_array($item['type'], ['link', 'content', 'infoModal'], true);
+        })->filter(function ($item) use ($defaultLanguage) {
+            if (! in_array($item['type'], ['link', 'content', 'infoModal'], true)) {
+                return false;
+            }
+
+            $titles = $item['title'] ?? [];
+            $primary = trim((string) ($titles[$defaultLanguage] ?? ''));
+            if ($primary !== '') {
+                return true;
+            }
+
+            foreach ($titles as $value) {
+                if (trim((string) $value) !== '') {
+                    return true;
+                }
+            }
+
+            return false;
         })->sortBy('order')->values()->toArray();
 
         $oldData = $tour->toArray();
@@ -2309,68 +2460,58 @@ class TourController extends Controller
      */
     public function updateTourBottomTopTab(Request $request, Tour $tour): JsonResponse|RedirectResponse
     {
-        $validated = $request->validate([
-            'footer_logo' => ['nullable', 'file', 'image', 'max:5120'],
-            'footer_title' => ['nullable', 'array'],
-            'footer_title.en' => ['nullable', 'string'],
-            'footer_title.gu' => ['nullable', 'string'],
-            'footer_title.hi' => ['nullable', 'string'],
-            'footer_subtitle' => ['nullable', 'array'],
-            'footer_subtitle.en' => ['nullable', 'string'],
-            'footer_subtitle.gu' => ['nullable', 'string'],
-            'footer_subtitle.hi' => ['nullable', 'string'],
-            'footer_decription' => ['nullable', 'array'],
-            'footer_decription.en' => ['nullable', 'string'],
-            'footer_decription.gu' => ['nullable', 'string'],
-            'footer_decription.hi' => ['nullable', 'string'],
-            'footer_email' => ['nullable', 'string', 'max:255'],
-            'footer_mobile' => ['nullable', 'string', 'max:255'],
-        ]);
+        $languageState = LanguageConfigHelper::resolveFromTour($tour);
+        $languageCodes = $languageState['languageSlotOrder'];
+
+        $validated = $request->validate(array_merge(
+            [
+                'footer_logo' => ['nullable', 'file', 'image', 'max:5120'],
+                'footer_email' => ['nullable', 'string', 'max:255'],
+                'footer_mobile' => ['nullable', 'string', 'max:255'],
+            ],
+            LanguageConfigHelper::perLanguageStringRules('footer_title', $languageCodes, 255),
+            LanguageConfigHelper::perLanguageStringRules('footer_subtitle', $languageCodes, 255),
+            LanguageConfigHelper::perLanguageStringRules('footer_decription', $languageCodes, 5000)
+        ));
 
         $oldData = $tour->toArray();
 
         $finalJson = $this->normalizeFinalJsonPayload($tour);
         $tourDataJson = $this->normalizeTourDataJsonPayload($tour);
 
-
         $finalJson['branding']['bottomMarker'] = $finalJson['branding']['bottomMarker'] ?? [];
 
-        $resolvedFooterTitle = is_array($validated['footer_title'] ?? null) ? $validated['footer_title'] : [];
-        $resolvedFooterSubtitle = is_array($validated['footer_subtitle'] ?? null) ? $validated['footer_subtitle'] : [];
-        $resolvedFooterDescription = is_array($validated['footer_decription'] ?? null) ? $validated['footer_decription'] : [];
+        $resolvedFooterTitle = LanguageConfigHelper::mergePerLanguageStringMap(
+            LanguageConfigHelper::decodePerLanguageStored($tour->footer_title),
+            is_array($validated['footer_title'] ?? null) ? $validated['footer_title'] : [],
+            $languageCodes
+        );
+        $resolvedFooterSubtitle = LanguageConfigHelper::mergePerLanguageStringMap(
+            LanguageConfigHelper::decodePerLanguageStored($tour->footer_subtitle),
+            is_array($validated['footer_subtitle'] ?? null) ? $validated['footer_subtitle'] : [],
+            $languageCodes
+        );
+        $resolvedFooterDescription = LanguageConfigHelper::mergePerLanguageStringMap(
+            LanguageConfigHelper::decodePerLanguageStored($tour->footer_decription),
+            is_array($validated['footer_decription'] ?? null) ? $validated['footer_decription'] : [],
+            $languageCodes
+        );
 
-        $existingTopTitle = $finalJson['branding']['bottomMarker']['topTitle'] ?? [];
-        if (!is_array($existingTopTitle)) {
-            $existingTopTitle = ['en' => $existingTopTitle];
-        }
-        foreach (['en', 'gu', 'hi'] as $lang) {
-            if (array_key_exists($lang, $resolvedFooterTitle)) {
-                $existingTopTitle[$lang] = $resolvedFooterTitle[$lang];
-            }
-        }
-        $finalJson['branding']['bottomMarker']['topTitle'] = $existingTopTitle;
-
-        $existingTopSubTitle = $finalJson['branding']['bottomMarker']['topSubTitle'] ?? [];
-        if (!is_array($existingTopSubTitle)) {
-            $existingTopSubTitle = ['en' => $existingTopSubTitle];
-        }
-        foreach (['en', 'gu', 'hi'] as $lang) {
-            if (array_key_exists($lang, $resolvedFooterSubtitle)) {
-                $existingTopSubTitle[$lang] = $resolvedFooterSubtitle[$lang];
-            }
-        }
-        $finalJson['branding']['bottomMarker']['topSubTitle'] = $existingTopSubTitle;
-
-        $existingTopDescription = $finalJson['branding']['bottomMarker']['topDescription'] ?? [];
-        if (!is_array($existingTopDescription)) {
-            $existingTopDescription = ['en' => $existingTopDescription];
-        }
-        foreach (['en', 'gu', 'hi'] as $lang) {
-            if (array_key_exists($lang, $resolvedFooterDescription)) {
-                $existingTopDescription[$lang] = $resolvedFooterDescription[$lang];
-            }
-        }
-        $finalJson['branding']['bottomMarker']['topDescription'] = $existingTopDescription;
+        $finalJson['branding']['bottomMarker']['topTitle'] = LanguageConfigHelper::mergeLocaleMapForJson(
+            $finalJson['branding']['bottomMarker']['topTitle'] ?? [],
+            $validated['footer_title'] ?? [],
+            $languageCodes
+        );
+        $finalJson['branding']['bottomMarker']['topSubTitle'] = LanguageConfigHelper::mergeLocaleMapForJson(
+            $finalJson['branding']['bottomMarker']['topSubTitle'] ?? [],
+            $validated['footer_subtitle'] ?? [],
+            $languageCodes
+        );
+        $finalJson['branding']['bottomMarker']['topDescription'] = LanguageConfigHelper::mergeLocaleMapForJson(
+            $finalJson['branding']['bottomMarker']['topDescription'] ?? [],
+            $validated['footer_decription'] ?? [],
+            $languageCodes
+        );
 
         if (array_key_exists('footer_mobile', $validated)) {
             $finalJson['branding']['bottomMarker']['contactNumber'] = $validated['footer_mobile'];
@@ -2437,70 +2578,53 @@ class TourController extends Controller
      */
     public function updateTourBottomPropertyTab(Request $request, Tour $tour): JsonResponse|RedirectResponse
     {
-        $validated = $request->validate([
-            'bottommark_property_name_en' => ['nullable', 'string'],
-            'bottommark_property_name_gu' => ['nullable', 'string'],
-            'bottommark_property_name_hi' => ['nullable', 'string'],
-            'bottommark_room_type_en' => ['nullable', 'string'],
-            'bottommark_room_type_gu' => ['nullable', 'string'],
-            'bottommark_room_type_hi' => ['nullable', 'string'],
-            'bottommark_dimensions_en' => ['nullable', 'string'],
-            'bottommark_dimensions_gu' => ['nullable', 'string'],
-            'bottommark_dimensions_hi' => ['nullable', 'string'],
-        ]);
+        $languageState = LanguageConfigHelper::resolveFromTour($tour);
+        $languageCodes = $languageState['languageSlotOrder'];
+
+        $validated = $request->validate(array_merge(
+            LanguageConfigHelper::perLanguageStringRules('bottommark_property_name', $languageCodes, 255),
+            LanguageConfigHelper::perLanguageStringRules('bottommark_room_type', $languageCodes, 255),
+            LanguageConfigHelper::perLanguageStringRules('bottommark_dimensions', $languageCodes, 255)
+        ));
 
         $oldData = $tour->toArray();
 
         $finalJson = $this->normalizeFinalJsonPayload($tour);
         $tourDataJson = $this->normalizeTourDataJsonPayload($tour);
 
-
         $finalJson['branding']['bottomMarker'] = $finalJson['branding']['bottomMarker'] ?? [];
 
-        $resolvedPropertyName = array_filter([
-            'en' => $validated['bottommark_property_name_en'] ?? '',
-            'gu' => $validated['bottommark_property_name_gu'] ?? '',
-            'hi' => $validated['bottommark_property_name_hi'] ?? '',
-        ], static fn($value) => !is_null($value));
+        $resolvedPropertyName = LanguageConfigHelper::mergePerLanguageStringMap(
+            LanguageConfigHelper::decodePerLanguageStored($tour->bottommark_property_name),
+            is_array($validated['bottommark_property_name'] ?? null) ? $validated['bottommark_property_name'] : [],
+            $languageCodes
+        );
+        $resolvedRoomType = LanguageConfigHelper::mergePerLanguageStringMap(
+            LanguageConfigHelper::decodePerLanguageStored($tour->bottommark_room_type),
+            is_array($validated['bottommark_room_type'] ?? null) ? $validated['bottommark_room_type'] : [],
+            $languageCodes
+        );
+        $resolvedDimensions = LanguageConfigHelper::mergePerLanguageStringMap(
+            LanguageConfigHelper::decodePerLanguageStored($tour->bottommark_dimensions),
+            is_array($validated['bottommark_dimensions'] ?? null) ? $validated['bottommark_dimensions'] : [],
+            $languageCodes
+        );
 
-        $resolvedRoomType = array_filter([
-            'en' => $validated['bottommark_room_type_en'] ?? '',
-            'gu' => $validated['bottommark_room_type_gu'] ?? '',
-            'hi' => $validated['bottommark_room_type_hi'] ?? '',
-        ], static fn($value) => !is_null($value));
-
-        $resolvedDimensions = array_filter([
-            'en' => $validated['bottommark_dimensions_en'] ?? '',
-            'gu' => $validated['bottommark_dimensions_gu'] ?? '',
-            'hi' => $validated['bottommark_dimensions_hi'] ?? '',
-        ], static fn($value) => !is_null($value));
-
-        if (!empty($resolvedPropertyName)) {
+        if (! empty($resolvedPropertyName)) {
             $finalJson['branding']['bottomMarker']['propertyName'] = $resolvedPropertyName;
         }
-        if (!empty($resolvedRoomType)) {
+        if (! empty($resolvedRoomType)) {
             $finalJson['branding']['bottomMarker']['roomType'] = $resolvedRoomType;
         }
-        if (!empty($resolvedDimensions)) {
+        if (! empty($resolvedDimensions)) {
             $finalJson['branding']['bottomMarker']['dimensions'] = $resolvedDimensions;
         }
 
-        $updateData = $validated;
-        $updateData['bottommark_property_name'] = empty($resolvedPropertyName) ? null : $resolvedPropertyName;
-        $updateData['bottommark_room_type'] = empty($resolvedRoomType) ? null : $resolvedRoomType;
-        $updateData['bottommark_dimensions'] = empty($resolvedDimensions) ? null : $resolvedDimensions;
-
-        unset(
-            $updateData['bottommark_property_name_en'],
-            $updateData['bottommark_property_name_gu'],
-            $updateData['bottommark_property_name_hi'],
-            $updateData['bottommark_room_type_en'],
-            $updateData['bottommark_room_type_gu'],
-            $updateData['bottommark_room_type_hi'],
-            $updateData['bottommark_dimensions_en'],
-            $updateData['bottommark_dimensions_gu'],
-            $updateData['bottommark_dimensions_hi']
-        );
+        $updateData = [
+            'bottommark_property_name' => empty($resolvedPropertyName) ? null : $resolvedPropertyName,
+            'bottommark_room_type' => empty($resolvedRoomType) ? null : $resolvedRoomType,
+            'bottommark_dimensions' => empty($resolvedDimensions) ? null : $resolvedDimensions,
+        ];
 
         $tourDataJson['branding']['bottomMarker'] = $finalJson['branding']['bottomMarker'];
 
@@ -2754,40 +2878,32 @@ class TourController extends Controller
      * */
     public function updateBookmarkFields(Request $request, Tour $tour): JsonResponse|RedirectResponse
     {
-        $validated = $request->validate([
-            'bookmark_title' => ['nullable', 'array'],
-            'bookmark_title.en' => ['nullable', 'string', 'max:255'],
-            'bookmark_title.gu' => ['nullable', 'string', 'max:255'],
-            'bookmark_title.hi' => ['nullable', 'string', 'max:255'],
-            'bookmark_ribbon_background_color' => ['nullable', 'string', 'max:100'],
-            'bookmark_ribbon_text_color' => ['nullable', 'string', 'max:100'],
-            'bookmark_show_on_tour_load' => ['nullable', 'boolean'],
-            'bookmark_show_on_tour_load_delay_ms' => ['nullable', 'integer', 'min:0'],
-            'bookmark_action' => ['nullable', 'string', 'max:255'],
-            'bookmark_modal_title' => ['nullable', 'array'],
-            'bookmark_modal_title.en' => ['nullable', 'string'],
-            'bookmark_modal_title.gu' => ['nullable', 'string'],
-            'bookmark_modal_title.hi' => ['nullable', 'string'],
-            'bookmark_modal_description' => ['nullable', 'array'],
-            'bookmark_modal_description.en' => ['nullable', 'string'],
-            'bookmark_modal_description.gu' => ['nullable', 'string'],
-            'bookmark_modal_description.hi' => ['nullable', 'string'],
-            'bookmark_info_modal_footer_button_title' => ['nullable', 'array'],
-            'bookmark_info_modal_footer_button_title.en' => ['nullable', 'string'],
-            'bookmark_info_modal_footer_button_title.gu' => ['nullable', 'string'],
-            'bookmark_info_modal_footer_button_link' => ['nullable', 'string', 'max:500'],
-            'bookmark_info_modal_footer_text' => ['nullable', 'array'],
-            'bookmark_info_modal_footer_text.en' => ['nullable', 'string'],
-            'bookmark_info_modal_footer_text.gu' => ['nullable', 'string'],
-            'bookmark_open_link_url' => ['nullable', 'string', 'max:500'],
-            'bookmark_document_url' => ['nullable', 'string', 'max:500'],
-            'bookmark_video_url' => ['nullable', 'string', 'max:500'],
-            'bookmark_image_url' => ['nullable', 'string', 'max:1000'],
-            'bookmark_document_file' => ['nullable', 'file', 'max:10240', 'mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,txt'],
-            'bookmark_video_file' => ['nullable', 'file', 'max:102400', 'mimetypes:video/mp4,video/quicktime,video/x-msvideo,video/x-matroska,video/webm'],
-            'bookmark_image_file' => ['nullable', 'array'],
-            'bookmark_image_file.*' => ['nullable', 'file', 'image', 'max:10240'],
-        ]);
+        $languageState = LanguageConfigHelper::resolveFromTour($tour);
+        $languageCodes = $languageState['languageSlotOrder'];
+
+        $validated = $request->validate(array_merge(
+            [
+                'bookmark_ribbon_background_color' => ['nullable', 'string', 'max:100'],
+                'bookmark_ribbon_text_color' => ['nullable', 'string', 'max:100'],
+                'bookmark_show_on_tour_load' => ['nullable', 'boolean'],
+                'bookmark_show_on_tour_load_delay_ms' => ['nullable', 'integer', 'min:0'],
+                'bookmark_action' => ['nullable', 'string', 'max:255'],
+                'bookmark_info_modal_footer_button_link' => ['nullable', 'string', 'max:500'],
+                'bookmark_open_link_url' => ['nullable', 'string', 'max:500'],
+                'bookmark_document_url' => ['nullable', 'string', 'max:500'],
+                'bookmark_video_url' => ['nullable', 'string', 'max:500'],
+                'bookmark_image_url' => ['nullable', 'string', 'max:1000'],
+                'bookmark_document_file' => ['nullable', 'file', 'max:10240', 'mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,txt'],
+                'bookmark_video_file' => ['nullable', 'file', 'max:102400', 'mimetypes:video/mp4,video/quicktime,video/x-msvideo,video/x-matroska,video/webm'],
+                'bookmark_image_file' => ['nullable', 'array'],
+                'bookmark_image_file.*' => ['nullable', 'file', 'image', 'max:10240'],
+            ],
+            LanguageConfigHelper::perLanguageStringRules('bookmark_title', $languageCodes, 255),
+            LanguageConfigHelper::perLanguageStringRules('bookmark_modal_title', $languageCodes, 5000, true),
+            LanguageConfigHelper::perLanguageStringRules('bookmark_modal_description', $languageCodes, 50000, true),
+            LanguageConfigHelper::perLanguageStringRules('bookmark_info_modal_footer_text', $languageCodes, 50000, true),
+            LanguageConfigHelper::perLanguageStringRules('bookmark_info_modal_footer_button_title', $languageCodes, 500, true)
+        ));
 
         $oldData = $tour->toArray();
 
@@ -2819,14 +2935,10 @@ class TourController extends Controller
         if (!is_array($incomingBookmarkTitle)) {
             $incomingBookmarkTitle = [];
         }
-        foreach (['en', 'gu', 'hi'] as $lang) {
-            if (array_key_exists($lang, $incomingBookmarkTitle)) {
-                $resolvedBookmarkTitle[$lang] = $incomingBookmarkTitle[$lang];
-            }
-        }
-        $resolvedBookmarkTitle = array_filter(
+        $resolvedBookmarkTitle = LanguageConfigHelper::mergePerLanguageStringMap(
             $resolvedBookmarkTitle,
-            static fn($value) => is_string($value) && trim($value) !== ''
+            $incomingBookmarkTitle,
+            $languageCodes
         );
 
         $existingBookmarkImagesUrl = $tour->bookmark_images_url;

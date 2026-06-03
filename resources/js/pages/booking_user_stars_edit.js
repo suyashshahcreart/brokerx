@@ -51,7 +51,7 @@ function buildStarRow(index, star = {}) {
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">Count</label>
-                    <input type="number" step="0.1" min="0" max="5" name="stars[${index}][count]" class="form-control" value="${count}" placeholder="e.g, 3.5">
+                    <input type="number" step="0.01" min="0" max="5" name="stars[${index}][count]" class="form-control" value="${count}" placeholder="e.g, 3.5">
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">URL</label>
@@ -74,7 +74,14 @@ function addStarRow(star = {}) {
     }
 
     const index = getNextStarIndex(container);
-    if(index > 2) return alert('Maximum 3 stars allowed');
+    if(index > 2) {
+        if (typeof window.showTourToast === 'function') {
+            window.showTourToast('Maximum 3 stars allowed.', 'warning');
+        } else {
+            alert('Maximum 3 stars allowed');
+        }
+        return;
+    }
     container.insertAdjacentHTML('beforeend', buildStarRow(index, star));
 
     const newRow = container.querySelector('.user-star-row:last-child');

@@ -1,3 +1,18 @@
+@php
+    $tourLanguageState = \App\Support\LanguageConfigHelper::resolveFromTour($tour);
+    $tourLanguageSlots = $tourLanguageState['languageSlotOrder'];
+    $tourLanguageDisplay = $tourLanguageState['languageDisplay'];
+    $tourEnabledLanguages = $tourLanguageState['enabledLanguages'];
+    $tourDefaultLanguage = $tourLanguageState['defaultLanguage'];
+    $tourShowLangInPanel = $tourLanguageState['showLanguageInContactPanel'];
+    $tourOrderedEnabledLanguages = \App\Support\LanguageConfigHelper::getOrderedEnabledLanguages(
+        $tourEnabledLanguages,
+        $tourLanguageSlots
+    );
+    if ($tourOrderedEnabledLanguages === []) {
+        $tourOrderedEnabledLanguages = ['en'];
+    }
+@endphp
 <div class="row mb-5">
     <div class="col-sm-3 col-md-3 col-lg-3 mb-2 mb-sm-0">
         <div class="nav flex-column nav-pills settings-nav-pills p-1" id="vl-pills-tab" role="tablist"
@@ -611,10 +626,9 @@
             <!-- language Update Tab -->
             <div class="tab-pane fade {{ ($firstActiveTab === 'vl-pills-language') ? 'active show' : '' }}"
                 id="vl-pills-language" role="tabpanel" aria-labelledby="vl-pills-language-tab">
-                <!-- Language settings -->
                 <div class="card border-1 shadow-sm">
                     <div class="card-header">
-                        <h4 class="card-title mb-0">Language</h4>
+                        <h4 class="card-title mb-0">Languages</h4>
                     </div>
                     <div class="card-body">
                         <form id="languageTabUpdateForm" method="POST"
@@ -623,42 +637,136 @@
                             @csrf
                             @method('PUT')
                             <input type="hidden" name="booking_id" value="{{ $booking->id }}">
+                            <input type="hidden" name="language_display" id="language_display_payload" value="">
+                            <input type="hidden" name="language_slot_order" id="language_slot_order_payload" value="">
+
                             <div class="mb-3">
-                                <label class="form-label">Enabled languages</label>
-                                <div class="d-flex flex-wrap gap-3">
-                                    @foreach(data_get($tour->final_json, 'tour.localeConfig.languageDisplay', []) as $code => $lang)
+                                <label class="form-label d-block">Enabled languages</label>
+                                <div id="enabled-languages-checkboxes" class="d-flex flex-wrap gap-3">
+                                    @foreach($tourLanguageSlots as $code)
+                                        @php
+                                            $slotTitle = $tourLanguageDisplay[$code]['title'] ?? strtoupper($code);
+                                            $isEnabled = in_array($code, $tourEnabledLanguages, true);
+                                        @endphp
                                         <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" name="enable_language[]"
-                                                id="lang_english" value="{{$code}}"
-                                                {{ in_array($code, $tour->enable_language) ? 'checked' : '' }}>
-                                            <label class="form-check-label" for="lang_english">{{$lang['title']}}</label>
+                                            <input class="form-check-input enabled-language-checkbox" type="checkbox"
+                                                name="enable_language[]" id="lang_enabled_{{ $code }}"
+                                                value="{{ $code }}" {{ $isEnabled ? 'checked' : '' }}>
+                                            <label class="form-check-label" for="lang_enabled_{{ $code }}">
+                                                {{ $slotTitle }}
+                                            </label>
                                         </div>
                                     @endforeach
                                 </div>
-                                <small class="text-muted d-block mt-2">At least one language must be selected.</small>
+                                <div class="mt-3">
+                                    <div class="form-check form-switch mb-2">
+                                        <input class="form-check-input" type="checkbox" role="switch"
+                                            name="show_language_in_contact_panel" id="show_language_in_contact_panel"
+                                            value="1" {{ $tourShowLangInPanel ? 'checked' : '' }}>
+                                        <label class="form-check-label" for="show_language_in_contact_panel">
+                                            Show in Information Panel
+                                        </label>
+                                    </div>
+                                    <p class="form-text small text-muted mb-0">
+                                        When on, the language switcher appears in the Information overlay (needs multiple languages).
+                                        When off, it stays on the right toolbar.
+                                    </p>
+                                </div>
                                 @error('enable_language')<div class="text-danger">{{ $message }}</div>@enderror
                             </div>
 
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label class="form-label" for="default_language">Default language</label>
-                                        <select name="default_language" id="default_language" class="form-select">
-                                            <option value="">Select default language</option>
-                                            @foreach(data_get($tour->final_json, 'tour.localeConfig.languageDisplay', []) as $code => $lang)
-                                                <option value="{{ $code }}"
-                                                    {{ old('default_language', $tour->default_language) == strtolower($lang['short'] ?? '') ? 'selected' : '' }}>
-                                                    {{ $lang['title'] ?? $code }}
-                                                    @if(!empty($lang['short']))
-                                                        ({{ $lang['short'] }})
-                                                    @endif
-                                                </option>
-                                            @endforeach
-                                        </select>
-                                        @error('default_language')<div class="text-danger">{{ $message }}</div>@enderror
+                            <div class="mb-3">
+                                <p class="small mb-2 fw-semibold">Add a language</p>
+                                <div class="row g-2 g-lg-3 align-items-end">
+                                    <div class="col-12 col-md-6 col-xl-5">
+                                        <label for="add_language_title" class="form-label small">Title</label>
+                                        <input type="text" id="add_language_title" class="form-control form-control-sm"
+                                            placeholder="e.g. Spanish" autocomplete="off">
+                                    </div>
+                                    <div class="col-12 col-md-6 col-xl-4">
+                                        <label for="add_language_short" class="form-label small">Short code</label>
+                                        <input type="text" id="add_language_short" class="form-control form-control-sm"
+                                            maxlength="12" placeholder="e.g. ES" autocomplete="off">
+                                    </div>
+                                    <div class="col-12 col-md-12 col-xl-3">
+                                        <button type="button" id="add_language_btn"
+                                            class="btn btn-sm btn-outline-primary w-100">Add language</button>
                                     </div>
                                 </div>
+                                <div class="form-text small mt-2 mb-0">
+                                    First two letters of the short code set the language slot (e.g. ES → es).
+                                </div>
+                                <div id="add_language_error" class="text-danger small mt-2 d-none"></div>
                             </div>
+
+                            <div class="row mb-3">
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label" for="default_language">Default language (loaded by default in HTML)</label>
+                                    <select name="default_language" id="default_language" class="form-select">
+                                        @foreach($tourLanguageSlots as $code)
+                                            <option value="{{ $code }}"
+                                                {{ $tourDefaultLanguage === $code ? 'selected' : '' }}>
+                                                {{ $tourLanguageDisplay[$code]['title'] ?? strtoupper($code) }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    <div class="form-text">Used when the tour loads and when no language is selected in the URL.</div>
+                                    @error('default_language')<div class="text-danger">{{ $message }}</div>@enderror
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label d-block">Language names</label>
+                                <p class="text-muted small mb-2">
+                                    Full titles are used in tooltips; short labels appear on language switches.
+                                    Drag rows to set the order of language controls in the exported tour.
+                                </p>
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-bordered align-middle mb-0" id="language-names-table">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th scope="col" style="width: 2.5rem;" aria-label="Reorder"></th>
+                                                <th scope="col">Slot</th>
+                                                <th scope="col">Title</th>
+                                                <th scope="col">Short label</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="language-names-tbody">
+                                            @foreach($tourLanguageSlots as $code)
+                                                @php
+                                                    $rowTitle = $tourLanguageDisplay[$code]['title'] ?? '';
+                                                    $rowShort = $tourLanguageDisplay[$code]['short'] ?? '';
+                                                    $slotLabel = $rowTitle ?: strtoupper($code);
+                                                @endphp
+                                                <tr class="language-names-row" draggable="true" data-lang-code="{{ $code }}">
+                                                    <td class="align-middle text-muted language-drag-handle" title="Drag to reorder">
+                                                        <i class="ri-draggable fs-18"></i>
+                                                    </td>
+                                                    <td class="text-muted small language-slot-label">
+                                                        {{ $slotLabel }} ({{ $code }})
+                                                    </td>
+                                                    <td>
+                                                        <input type="text"
+                                                            class="form-control form-control-sm language-title-input"
+                                                            data-lang-code="{{ $code }}"
+                                                            value="{{ $rowTitle }}"
+                                                            autocomplete="off">
+                                                    </td>
+                                                    <td>
+                                                        <input type="text"
+                                                            class="form-control form-control-sm language-short-input"
+                                                            data-lang-code="{{ $code }}"
+                                                            maxlength="12"
+                                                            value="{{ $rowShort }}"
+                                                            autocomplete="off">
+                                                    </td>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
                             <div class="d-flex justify-content-end mt-3">
                                 <button type="submit" class="btn btn-primary">
                                     <i class="ri-save-line me-1"></i> Update Language Settings
@@ -684,13 +792,8 @@
                             <input type="hidden" name="booking_id" value="{{ $booking->id }}">
 
                             @php
-                                $bookmarkLangLabels = ['en' => 'English', 'gu' => 'Gujarati', 'hi' => 'Hindi'];
-                                $bookmarkEnabledLanguages = is_array($tour->enable_language) && !empty($tour->enable_language)
-                                    ? array_values(array_intersect(['en', 'gu', 'hi'], $tour->enable_language))
-                                    : ['en'];
-                                if (empty($bookmarkEnabledLanguages)) {
-                                    $bookmarkEnabledLanguages = ['en'];
-                                }
+                                $bookmarkTabLanguages = $tourLanguageSlots;
+                                $bookmarkEnabledLanguages = $tourOrderedEnabledLanguages;
                                 $bookmarkFirstLang = $bookmarkEnabledLanguages[0];
 
                                 $bookmarkTitleValues = [];
@@ -717,26 +820,26 @@
                                     <div class="mb-3">
                                         <label class="form-label">Bookmark Title (Ribbon Label)</label>
 
-                                        <ul class="nav nav-tabs mb-3" id="bookmarkTitleLanguageTabs" role="tablist">
-                                            @foreach($bookmarkEnabledLanguages as $lang)
-                                                <li class="nav-item" role="presentation">
-                                                    <button
-                                                        class="nav-link {{ $lang === $bookmarkFirstLang ? 'active' : '' }}"
-                                                        id="bookmark-title-lang-{{ $lang }}-tab" data-bs-toggle="tab"
-                                                        data-bs-target="#bookmark-title-lang-{{ $lang }}-pane" type="button"
-                                                        role="tab" aria-controls="bookmark-title-lang-{{ $lang }}-pane"
-                                                        aria-selected="{{ $lang === $bookmarkFirstLang ? 'true' : 'false' }}">
-                                                        {{ $bookmarkLangLabels[$lang] ?? strtoupper($lang) }}
-                                                    </button>
-                                                </li>
-                                            @endforeach
-                                        </ul>
+                                        <x-admin.tour-language-tab-nav
+                                            group-id="bookmarkTitleLanguageTabs"
+                                            :languages="$bookmarkTabLanguages"
+                                            :enabled-languages="$bookmarkEnabledLanguages"
+                                            :language-display="$tourLanguageDisplay"
+                                            :active-language="$bookmarkFirstLang"
+                                            pane-id-prefix="bookmark-title-lang" />
 
-                                        <div class="tab-content" id="bookmarkTitleLanguageTabsContent">
-                                            @foreach($bookmarkEnabledLanguages as $lang)
-                                                <div class="tab-pane fade {{ $lang === $bookmarkFirstLang ? 'show active' : '' }}"
-                                                    id="bookmark-title-lang-{{ $lang }}-pane" role="tabpanel"
-                                                    aria-labelledby="bookmark-title-lang-{{ $lang }}-tab">
+                                        <div class="tab-content" id="bookmarkTitleLanguageTabsContent"
+                                            data-tour-lang-tab-panes="bookmarkTitleLanguageTabs">
+                                            @foreach ($bookmarkTabLanguages as $lang)
+                                                @php
+                                                    $langEnabled = in_array($lang, $bookmarkEnabledLanguages, true);
+                                                    $langLabel = \App\Support\LanguageConfigHelper::languageLabel($lang, $tourLanguageDisplay);
+                                                @endphp
+                                                <div class="tab-pane fade {{ $lang === $bookmarkFirstLang ? 'show active' : '' }} {{ $langEnabled ? '' : 'd-none' }}"
+                                                    id="bookmark-title-lang-{{ $lang }}-pane"
+                                                    data-language="{{ $lang }}"
+                                                    role="tabpanel"
+                                                    aria-labelledby="bookmarkTitleLanguageTabs-{{ $lang }}-tab">
                                                     <input type="text" name="bookmark_title[{{ $lang }}]"
                                                         id="bookmark_title_{{ $lang }}" class="form-control"
                                                         placeholder="e.g., About us"
@@ -964,31 +1067,30 @@
                             </div>
 
                             <div id="bookmark_action_openInfoModal" class="bookmark-action-section d-none">
-                                <ul class="nav nav-tabs mb-3" id="bookmarkLanguageTabs" role="tablist">
-                                    @foreach($bookmarkEnabledLanguages as $lang)
-                                        <li class="nav-item" role="presentation">
-                                            <button class="nav-link {{ $lang === $bookmarkFirstLang ? 'active' : '' }}"
-                                                id="bookmark-lang-{{ $lang }}-tab" data-language="{{ $lang }}"
-                                                data-bs-toggle="tab" data-bs-target="#bookmark-lang-{{ $lang }}-pane"
-                                                type="button" role="tab" aria-controls="bookmark-lang-{{ $lang }}-pane"
-                                                aria-selected="{{ $lang === $bookmarkFirstLang ? 'true' : 'false' }}">
-                                                {{ $bookmarkLangLabels[$lang] ?? strtoupper($lang) }}
-                                            </button>
-                                        </li>
-                                    @endforeach
-                                </ul>
+                                <x-admin.tour-language-tab-nav
+                                    group-id="bookmarkLanguageTabs"
+                                    :languages="$bookmarkTabLanguages"
+                                    :enabled-languages="$bookmarkEnabledLanguages"
+                                    :language-display="$tourLanguageDisplay"
+                                    :active-language="$bookmarkFirstLang"
+                                    pane-id-prefix="bookmark-lang" />
 
-                                <div class="tab-content" id="bookmarkLanguageTabsContent">
-                                    @foreach($bookmarkEnabledLanguages as $lang)
-                                        <div class="tab-pane fade {{ $lang === $bookmarkFirstLang ? 'show active' : '' }}"
+                                <div class="tab-content" id="bookmarkLanguageTabsContent"
+                                    data-tour-lang-tab-panes="bookmarkLanguageTabs">
+                                    @foreach ($bookmarkTabLanguages as $lang)
+                                        @php
+                                            $langEnabled = in_array($lang, $bookmarkEnabledLanguages, true);
+                                            $langLabel = \App\Support\LanguageConfigHelper::languageLabel($lang, $tourLanguageDisplay);
+                                        @endphp
+                                        <div class="tab-pane fade {{ $lang === $bookmarkFirstLang ? 'show active' : '' }} {{ $langEnabled ? '' : 'd-none' }}"
                                             id="bookmark-lang-{{ $lang }}-pane" data-language="{{ $lang }}" role="tabpanel"
-                                            aria-labelledby="bookmark-lang-{{ $lang }}-tab" tabindex="0">
+                                            aria-labelledby="bookmarkLanguageTabs-{{ $lang }}-tab" tabindex="0">
                                             <div class="row">
                                                 <div class="col-md-6">
                                                     <div class="mb-3">
                                                         <label class="form-label" for="bookmark_modal_title_{{ $lang }}">
                                                             Modal Title
-                                                            ({{ $bookmarkLangLabels[$lang] ?? strtoupper($lang) }})
+                                                            ({{ $langLabel }})
                                                         </label>
                                                         <input type="text" name="bookmark_modal_title[{{ $lang }}]"
                                                             id="bookmark_modal_title_{{ $lang }}" class="form-control"
@@ -1004,7 +1106,7 @@
                                                         <label class="form-label"
                                                             for="bookmark_modal_description_{{ $lang }}">
                                                             Modal Description
-                                                            ({{ $bookmarkLangLabels[$lang] ?? strtoupper($lang) }})
+                                                            ({{ $langLabel }})
                                                         </label>
                                                         <textarea name="bookmark_modal_description[{{ $lang }}]"
                                                             id="bookmark_modal_description_{{ $lang }}"
@@ -1020,7 +1122,7 @@
                                                         <label class="form-label"
                                                             for="bookmark_info_modal_footer_text_{{ $lang }}">
                                                             Modal Footer Text
-                                                            ({{ $bookmarkLangLabels[$lang] ?? strtoupper($lang) }})
+                                                            ({{ $langLabel }})
                                                         </label>
                                                         <textarea name="bookmark_info_modal_footer_text[{{ $lang }}]"
                                                             id="bookmark_info_modal_footer_text_{{ $lang }}"
@@ -1038,7 +1140,7 @@
                                                         <label class="form-label"
                                                             for="bookmark_info_modal_footer_button_title_{{ $lang }}">
                                                             Footer Button Title
-                                                            ({{ $bookmarkLangLabels[$lang] ?? strtoupper($lang) }})
+                                                            ({{ $langLabel }})
                                                         </label>
                                                         <input type="text"
                                                             name="bookmark_info_modal_footer_button_title[{{ $lang }}]"
@@ -1468,35 +1570,57 @@
                                                 empty to hide.</p>
                                         </div>
                                         @php
-                                            $tagTitles = json_decode($tour->sidebar_tag_text ?? '{}', true);
-                                            if (empty($tagTitles)) {
-                                                $tagTitles = ['en' => ''];
+                                            $sidebarTagTitleValues = [];
+                                            $oldSidebarTagText = old('sidebar_tag_text');
+                                            if (is_array($oldSidebarTagText)) {
+                                                $sidebarTagTitleValues = $oldSidebarTagText;
+                                            } else {
+                                                $storedSidebarTagText = $tour->sidebar_tag_text;
+                                                if (is_array($storedSidebarTagText)) {
+                                                    $sidebarTagTitleValues = $storedSidebarTagText;
+                                                } elseif (is_string($storedSidebarTagText) && trim($storedSidebarTagText) !== '') {
+                                                    $decodedSidebarTagText = json_decode($storedSidebarTagText, true);
+                                                    if (json_last_error() === JSON_ERROR_NONE && is_array($decodedSidebarTagText)) {
+                                                        $sidebarTagTitleValues = $decodedSidebarTagText;
+                                                    } else {
+                                                        $sidebarTagTitleValues = ['en' => $storedSidebarTagText];
+                                                    }
+                                                }
                                             }
+                                            $sidebarTagFirstLang = $tourOrderedEnabledLanguages[0];
                                         @endphp
                                         <div class="col-md-4">
                                             <div class="mb-3">
                                                 <label class="form-label">Tag Title</label>
-                                                <!-- Language Tabs -->
-                                                <ul class="nav nav-tabs" role="tablist">
-                                                    @foreach($tagTitles as $lang => $value)
-                                                        <li class="nav-item" role="presentation">
-                                                            <button class="nav-link {{ $loop->first ? 'active' : '' }}"
-                                                                id="tab-{{ $lang }}" data-bs-toggle="tab"
-                                                                data-bs-target="#pane-{{ $lang }}" type="button" role="tab">
-                                                                {{ strtoupper($lang) }}
-                                                            </button>
-                                                        </li>
-                                                    @endforeach
-                                                </ul>
-                                                <!-- Input Fields -->
-                                                <div class="tab-content py-1">
-                                                    @foreach($tagTitles as $lang => $value)
-                                                        <div class="tab-pane m-0 fade {{ $loop->first ? 'show active' : '' }}"
-                                                            id="pane-{{ $lang }}" role="tabpanel">
+
+                                                <x-admin.tour-language-tab-nav
+                                                    group-id="sidebarTagTitleLanguageTabs"
+                                                    :languages="$tourLanguageSlots"
+                                                    :enabled-languages="$tourOrderedEnabledLanguages"
+                                                    :language-display="$tourLanguageDisplay"
+                                                    :active-language="$sidebarTagFirstLang"
+                                                    pane-id-prefix="sidebar-tag-title-lang" />
+
+                                                <div class="tab-content py-1"
+                                                    data-tour-lang-tab-panes="sidebarTagTitleLanguageTabs">
+                                                    @foreach ($tourLanguageSlots as $lang)
+                                                        @php
+                                                            $sidebarTagLangEnabled = in_array($lang, $tourOrderedEnabledLanguages, true);
+                                                            $sidebarTagLangLabel = \App\Support\LanguageConfigHelper::languageLabel($lang, $tourLanguageDisplay);
+                                                        @endphp
+                                                        <div class="tab-pane m-0 fade {{ $lang === $sidebarTagFirstLang ? 'show active' : '' }} {{ $sidebarTagLangEnabled ? '' : 'd-none' }}"
+                                                            id="sidebar-tag-title-lang-{{ $lang }}-pane"
+                                                            data-language="{{ $lang }}"
+                                                            role="tabpanel"
+                                                            aria-labelledby="sidebarTagTitleLanguageTabs-{{ $lang }}-tab">
                                                             <input type="text" class="form-control"
                                                                 name="sidebar_tag_text[{{ $lang }}]"
-                                                                value="{{ old("sidebar_tag_text.$lang", $value) }}"
-                                                                placeholder="Enter {{ strtoupper($lang) }} title">
+                                                                id="sidebar_tag_text_{{ $lang }}"
+                                                                value="{{ old('sidebar_tag_text.' . $lang, data_get($sidebarTagTitleValues, $lang, '')) }}"
+                                                                placeholder="Enter {{ $sidebarTagLangLabel }} title">
+                                                            @error('sidebar_tag_text.' . $lang)
+                                                                <div class="text-danger mt-1">{{ $message }}</div>
+                                                            @enderror
                                                         </div>
                                                     @endforeach
                                                 </div>
@@ -1932,155 +2056,77 @@
                                 </div>
                             </div>
 
-                            <!-- Language tabs -->
-                            <ul class="nav nav-tabs mb-3" id="testingFooterLanguageTabs" role="tablist">
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link active" id="testing-footer-lang-english-tab"
-                                        data-language="en" data-bs-toggle="tab"
-                                        data-bs-target="#testing-footer-lang-english-pane" type="button" role="tab"
-                                        aria-controls="testing-footer-lang-english-pane" aria-selected="true">
-                                        <span class="badge bg-success me-2">✓</span>English
-                                    </button>
-                                </li>
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link" id="testing-footer-lang-gujarati-tab" data-language="gu"
-                                        data-bs-toggle="tab" data-bs-target="#testing-footer-lang-gujarati-pane"
-                                        type="button" role="tab" aria-controls="testing-footer-lang-gujarati-pane"
-                                        aria-selected="false">
-                                        <span class="badge bg-success me-2">✓</span>Gujarati
-                                    </button>
-                                </li>
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link" id="testing-footer-lang-hindi-tab" data-language="hi"
-                                        data-bs-toggle="tab" data-bs-target="#testing-footer-lang-hindi-pane"
-                                        type="button" role="tab" aria-controls="testing-footer-lang-hindi-pane"
-                                        aria-selected="false">
-                                        <span class="badge bg-success me-2">✓</span>Hindi
-                                    </button>
-                                </li>
-                            </ul>
+                            @php
+                                $footerFirstLang = $tourOrderedEnabledLanguages[0];
+                                $footerTitleValues = \App\Support\LanguageConfigHelper::decodePerLanguageStored($tour->footer_title);
+                                $footerSubtitleValues = \App\Support\LanguageConfigHelper::decodePerLanguageStored($tour->footer_subtitle);
+                                $footerDescriptionValues = \App\Support\LanguageConfigHelper::decodePerLanguageStored($tour->footer_decription);
+                                if (is_array(old('footer_title'))) {
+                                    $footerTitleValues = array_merge($footerTitleValues, old('footer_title'));
+                                }
+                                if (is_array(old('footer_subtitle'))) {
+                                    $footerSubtitleValues = array_merge($footerSubtitleValues, old('footer_subtitle'));
+                                }
+                                if (is_array(old('footer_decription'))) {
+                                    $footerDescriptionValues = array_merge($footerDescriptionValues, old('footer_decription'));
+                                }
+                            @endphp
 
-                            <div class="tab-content" id="testingFooterLanguageTabsContent">
-                                <div class="tab-pane fade show active" id="testing-footer-lang-english-pane"
-                                    data-language="en" role="tabpanel" aria-labelledby="testing-footer-lang-english-tab"
-                                    tabindex="0">
-                                    <div class="row">
-                                        <div class="col-md-6">
-                                            <div class="mb-3">
-                                                <label for="footer_title_en" class="form-label">Top Title (English)
-                                                    <span class="text-danger">*</span></label>
-                                                <input type="text" name="footer_title[en]" id="footer_title_en"
-                                                    class="form-control" placeholder="e.g, Ramesh Mehta"
-                                                    value="{{ old('footer_title.en', data_get($tour, 'footer_title.en', '')) }}">
-                                                @error('footer_title.en')<div class="text-danger">{{ $message }}</div>
-                                                @enderror
+                            <x-admin.tour-language-tab-nav
+                                group-id="footerTopLanguageTabs"
+                                :languages="$tourLanguageSlots"
+                                :enabled-languages="$tourOrderedEnabledLanguages"
+                                :language-display="$tourLanguageDisplay"
+                                :active-language="$footerFirstLang"
+                                pane-id-prefix="footer-top-lang" />
+
+                            <div class="tab-content" data-tour-lang-tab-panes="footerTopLanguageTabs">
+                                @foreach ($tourLanguageSlots as $lang)
+                                    @php
+                                        $footerLangEnabled = in_array($lang, $tourOrderedEnabledLanguages, true);
+                                        $footerLangLabel = \App\Support\LanguageConfigHelper::languageLabel($lang, $tourLanguageDisplay);
+                                    @endphp
+                                    <div class="tab-pane fade {{ $lang === $footerFirstLang ? 'show active' : '' }} {{ $footerLangEnabled ? '' : 'd-none' }}"
+                                        id="footer-top-lang-{{ $lang }}-pane"
+                                        data-language="{{ $lang }}"
+                                        role="tabpanel"
+                                        aria-labelledby="footerTopLanguageTabs-{{ $lang }}-tab"
+                                        tabindex="0">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label for="footer_title_{{ $lang }}" class="form-label">Top Title ({{ $footerLangLabel }})
+                                                        <span class="text-danger">*</span></label>
+                                                    <input type="text" name="footer_title[{{ $lang }}]" id="footer_title_{{ $lang }}"
+                                                        class="form-control" placeholder="e.g, Ramesh Mehta"
+                                                        value="{{ old('footer_title.' . $lang, data_get($footerTitleValues, $lang, '')) }}">
+                                                    @error('footer_title.' . $lang)<div class="text-danger">{{ $message }}</div>@enderror
+                                                </div>
                                             </div>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <div class="mb-3">
-                                                <label for="footer_subtitle_en" class="form-label">Top Sub Title
-                                                    (English) <span class="text-danger">*</span></label>
-                                                <input type="text" name="footer_subtitle[en]" id="footer_subtitle_en"
-                                                    class="form-control" placeholder="e.g, JK Real Estate"
-                                                    value="{{ old('footer_subtitle.en', data_get($tour, 'footer_subtitle.en', '')) }}">
-                                                @error('footer_subtitle.en')<div class="text-danger">{{ $message }}
-                                                </div>@enderror
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label for="footer_subtitle_{{ $lang }}" class="form-label">Top Sub Title ({{ $footerLangLabel }})
+                                                        <span class="text-danger">*</span></label>
+                                                    <input type="text" name="footer_subtitle[{{ $lang }}]" id="footer_subtitle_{{ $lang }}"
+                                                        class="form-control" placeholder="e.g, JK Real Estate"
+                                                        value="{{ old('footer_subtitle.' . $lang, data_get($footerSubtitleValues, $lang, '')) }}">
+                                                    @error('footer_subtitle.' . $lang)<div class="text-danger">{{ $message }}</div>@enderror
+                                                </div>
                                             </div>
-                                        </div>
-                                        <div class="col-md-12">
-                                            <div class="mb-3">
-                                                <label for="footer_decription_en" class="form-label">Top Description
-                                                    (English) <span class="text-muted">(optional)</span></label>
-                                                <textarea name="footer_decription[en]" id="footer_decription_en"
-                                                    class="form-control"
-                                                    placeholder="e.g, For Reant / For Sell / For Lease"
-                                                    rows="2">{{ old('footer_decription.en', data_get($tour, 'footer_decription.en', '')) }}</textarea>
-                                                @error('footer_decription.en')<div class="text-danger">{{ $message }}
-                                                </div>@enderror
+                                            <div class="col-md-12">
+                                                <div class="mb-3">
+                                                    <label for="footer_decription_{{ $lang }}" class="form-label">Top Description ({{ $footerLangLabel }})
+                                                        <span class="text-muted">(optional)</span></label>
+                                                    <textarea name="footer_decription[{{ $lang }}]" id="footer_decription_{{ $lang }}"
+                                                        class="form-control"
+                                                        placeholder="e.g, For Rent / For Sell / For Lease"
+                                                        rows="2">{{ old('footer_decription.' . $lang, data_get($footerDescriptionValues, $lang, '')) }}</textarea>
+                                                    @error('footer_decription.' . $lang)<div class="text-danger">{{ $message }}</div>@enderror
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-
-                                <div class="tab-pane fade" id="testing-footer-lang-gujarati-pane" data-language="gu"
-                                    role="tabpanel" aria-labelledby="testing-footer-lang-gujarati-tab" tabindex="0">
-                                    <div class="row">
-                                        <div class="col-md-6">
-                                            <div class="mb-3">
-                                                <label for="footer_title_gu" class="form-label">Top Title (Gujarati)
-                                                    <span class="text-danger">*</span></label>
-                                                <input type="text" name="footer_title[gu]" id="footer_title_gu"
-                                                    class="form-control" placeholder="e.g, રમેશ મહતા"
-                                                    value="{{ old('footer_title.gu', data_get($tour, 'footer_title.gu', '')) }}">
-                                                @error('footer_title.gu')<div class="text-danger">{{ $message }}</div>
-                                                @enderror
-                                            </div>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <div class="mb-3">
-                                                <label for="footer_subtitle_gu" class="form-label">Top Sub Title
-                                                    (Gujarati) <span class="text-danger">*</span></label>
-                                                <input type="text" name="footer_subtitle[gu]" id="footer_subtitle_gu"
-                                                    class="form-control" placeholder="e.g, જે કે રીયલ એસ્ટેટ"
-                                                    value="{{ old('footer_subtitle.gu', data_get($tour, 'footer_subtitle.gu', '')) }}">
-                                                @error('footer_subtitle.gu')<div class="text-danger">{{ $message }}
-                                                </div>@enderror
-                                            </div>
-                                        </div>
-                                        <div class="col-md-12">
-                                            <div class="mb-3">
-                                                <label for="footer_decription_gu" class="form-label">Top Description
-                                                    (Gujarati) <span class="text-muted">(optional)</span></label>
-                                                <textarea name="footer_decription[gu]" id="footer_decription_gu"
-                                                    class="form-control"
-                                                    placeholder="e.g, ભાડે માટે / વેચવા માટે / ભાડે માટે"
-                                                    rows="2">{{ old('footer_decription.gu', data_get($tour, 'footer_decription.gu', '')) }}</textarea>
-                                                @error('footer_decription.gu')<div class="text-danger">{{ $message }}
-                                                </div>@enderror
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="tab-pane fade" id="testing-footer-lang-hindi-pane" data-language="hi"
-                                    role="tabpanel" aria-labelledby="testing-footer-lang-hindi-tab" tabindex="0">
-                                    <div class="row">
-                                        <div class="col-md-6">
-                                            <div class="mb-3">
-                                                <label for="footer_title_hi" class="form-label">Top Title (Hindi) <span
-                                                        class="text-danger">*</span></label>
-                                                <input type="text" name="footer_title[hi]" id="footer_title_hi"
-                                                    class="form-control" placeholder="e.g, रमेश मेहता"
-                                                    value="{{ old('footer_title.hi', data_get($tour, 'footer_title.hi', '')) }}">
-                                                @error('footer_title.hi')<div class="text-danger">{{ $message }}</div>
-                                                @enderror
-                                            </div>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <div class="mb-3">
-                                                <label for="footer_subtitle_hi" class="form-label">Top Sub Title (Hindi)
-                                                    <span class="text-danger">*</span></label>
-                                                <input type="text" name="footer_subtitle[hi]" id="footer_subtitle_hi"
-                                                    class="form-control" placeholder="e.g, जे के रीयल एस्टेट"
-                                                    value="{{ old('footer_subtitle.hi', data_get($tour, 'footer_subtitle.hi', '')) }}">
-                                                @error('footer_subtitle.hi')<div class="text-danger">{{ $message }}
-                                                </div>@enderror
-                                            </div>
-                                        </div>
-                                        <div class="col-md-12">
-                                            <div class="mb-3">
-                                                <label for="footer_decription_hi" class="form-label">Top Description
-                                                    (Hindi) <span class="text-muted">(optional)</span></label>
-                                                <textarea name="footer_decription[hi]" id="footer_decription_hi"
-                                                    class="form-control"
-                                                    placeholder="e.g, किराए के लिए / बिक्री के लिए / पट्टे के लिए"
-                                                    rows="2">{{ old('footer_decription.hi', data_get($tour, 'footer_decription.hi', '')) }}</textarea>
-                                                @error('footer_decription.hi')<div class="text-danger">{{ $message }}
-                                                </div>@enderror
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+                                @endforeach
                             </div>
                             <div class="row mt-2">
                                 <div class="col-md-6">
@@ -2128,170 +2174,76 @@
                             @method('PUT')
                             <input type="hidden" name="booking_id" value="{{ $booking->id }}">
                             <p class="text-muted mb-3">Add property details in multiple languages</p>
-                            <!-- Language tabs -->
-                            <ul class="nav nav-tabs mb-3" id="testingBottommarkLanguageTabs" role="tablist">
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link active" id="testing-bottommark-lang-english-tab"
-                                        data-language="en" data-bs-toggle="tab"
-                                        data-bs-target="#testing-bottommark-lang-english-pane" type="button" role="tab"
-                                        aria-controls="testing-bottommark-lang-english-pane" aria-selected="true">
-                                        English
-                                    </button>
-                                </li>
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link" id="testing-bottommark-lang-gujarati-tab"
-                                        data-language="gu" data-bs-toggle="tab"
-                                        data-bs-target="#testing-bottommark-lang-gujarati-pane" type="button" role="tab"
-                                        aria-controls="testing-bottommark-lang-gujarati-pane" aria-selected="false">
-                                        Gujarati
-                                    </button>
-                                </li>
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link" id="testing-bottommark-lang-hindi-tab" data-language="hi"
-                                        data-bs-toggle="tab" data-bs-target="#testing-bottommark-lang-hindi-pane"
-                                        type="button" role="tab" aria-controls="testing-bottommark-lang-hindi-pane"
-                                        aria-selected="false">
-                                        Hindi
-                                    </button>
-                                </li>
-                            </ul>
+                            @php
+                                $bottommarkFirstLang = $tourOrderedEnabledLanguages[0];
+                                $bottommarkPropertyValues = \App\Support\LanguageConfigHelper::decodePerLanguageStored($tour->bottommark_property_name);
+                                $bottommarkRoomTypeValues = \App\Support\LanguageConfigHelper::decodePerLanguageStored($tour->bottommark_room_type);
+                                $bottommarkDimensionsValues = \App\Support\LanguageConfigHelper::decodePerLanguageStored($tour->bottommark_dimensions);
+                                if (is_array(old('bottommark_property_name'))) {
+                                    $bottommarkPropertyValues = array_merge($bottommarkPropertyValues, old('bottommark_property_name'));
+                                }
+                                if (is_array(old('bottommark_room_type'))) {
+                                    $bottommarkRoomTypeValues = array_merge($bottommarkRoomTypeValues, old('bottommark_room_type'));
+                                }
+                                if (is_array(old('bottommark_dimensions'))) {
+                                    $bottommarkDimensionsValues = array_merge($bottommarkDimensionsValues, old('bottommark_dimensions'));
+                                }
+                            @endphp
 
-                            <div class="tab-content" id="testingBottommarkLanguageTabsContent">
-                                <!-- English Tab -->
-                                <div class="tab-pane fade show active" id="testing-bottommark-lang-english-pane"
-                                    data-language="en" role="tabpanel"
-                                    aria-labelledby="testing-bottommark-lang-english-tab" tabindex="0">
-                                    <div class="row">
-                                        <div class="col-md-4">
-                                            <div class="mb-3">
-                                                <label for="bottommark_property_name_en" class="form-label">Property
-                                                    Name</label>
-                                                <input type="text" name="bottommark_property_name_en"
-                                                    id="bottommark_property_name_en" class="form-control"
-                                                    placeholder="e.g., 3 BHK Apartment"
-                                                    value="{{ old('bottommark_property_name_en', $tour->bottommark_property_name['en'] ?? '') }}">
-                                                @error('bottommark_property_name_en')<div class="text-danger">
-                                                    {{ $message }}
-                                                </div>@enderror
+                            <x-admin.tour-language-tab-nav
+                                group-id="bottommarkPropertyLanguageTabs"
+                                :languages="$tourLanguageSlots"
+                                :enabled-languages="$tourOrderedEnabledLanguages"
+                                :language-display="$tourLanguageDisplay"
+                                :active-language="$bottommarkFirstLang"
+                                pane-id-prefix="bottommark-property-lang" />
+
+                            <div class="tab-content" data-tour-lang-tab-panes="bottommarkPropertyLanguageTabs">
+                                @foreach ($tourLanguageSlots as $lang)
+                                    @php
+                                        $bmLangEnabled = in_array($lang, $tourOrderedEnabledLanguages, true);
+                                        $bmLangLabel = \App\Support\LanguageConfigHelper::languageLabel($lang, $tourLanguageDisplay);
+                                    @endphp
+                                    <div class="tab-pane fade {{ $lang === $bottommarkFirstLang ? 'show active' : '' }} {{ $bmLangEnabled ? '' : 'd-none' }}"
+                                        id="bottommark-property-lang-{{ $lang }}-pane"
+                                        data-language="{{ $lang }}"
+                                        role="tabpanel"
+                                        aria-labelledby="bottommarkPropertyLanguageTabs-{{ $lang }}-tab"
+                                        tabindex="0">
+                                        <div class="row">
+                                            <div class="col-md-4">
+                                                <div class="mb-3">
+                                                    <label for="bottommark_property_name_{{ $lang }}" class="form-label">Property Name ({{ $bmLangLabel }})</label>
+                                                    <input type="text" name="bottommark_property_name[{{ $lang }}]"
+                                                        id="bottommark_property_name_{{ $lang }}" class="form-control"
+                                                        placeholder="e.g., 3 BHK Apartment"
+                                                        value="{{ old('bottommark_property_name.' . $lang, data_get($bottommarkPropertyValues, $lang, '')) }}">
+                                                    @error('bottommark_property_name.' . $lang)<div class="text-danger">{{ $message }}</div>@enderror
+                                                </div>
                                             </div>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <div class="mb-3">
-                                                <label for="bottommark_room_type_en" class="form-label">Room
-                                                    Type</label>
-                                                <input type="text" name="bottommark_room_type_en"
-                                                    id="bottommark_room_type_en" class="form-control"
-                                                    placeholder="e.g., Residential"
-                                                    value="{{ old('bottommark_room_type_en', $tour->bottommark_room_type['en'] ?? '') }}">
-                                                @error('bottommark_room_type_en')<div class="text-danger">{{ $message }}
-                                                </div>@enderror
+                                            <div class="col-md-4">
+                                                <div class="mb-3">
+                                                    <label for="bottommark_room_type_{{ $lang }}" class="form-label">Room Type ({{ $bmLangLabel }})</label>
+                                                    <input type="text" name="bottommark_room_type[{{ $lang }}]"
+                                                        id="bottommark_room_type_{{ $lang }}" class="form-control"
+                                                        placeholder="e.g., Residential"
+                                                        value="{{ old('bottommark_room_type.' . $lang, data_get($bottommarkRoomTypeValues, $lang, '')) }}">
+                                                    @error('bottommark_room_type.' . $lang)<div class="text-danger">{{ $message }}</div>@enderror
+                                                </div>
                                             </div>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <div class="mb-3">
-                                                <label for="bottommark_dimensions_en"
-                                                    class="form-label">Dimensions</label>
-                                                <input type="text" name="bottommark_dimensions_en"
-                                                    id="bottommark_dimensions_en" class="form-control"
-                                                    placeholder="e.g., 1200 sq ft"
-                                                    value="{{ old('bottommark_dimensions_en', $tour->bottommark_dimensions['en'] ?? '') }}">
-                                                @error('bottommark_dimensions_en')<div class="text-danger">
-                                                    {{ $message }}
-                                                </div>@enderror
+                                            <div class="col-md-4">
+                                                <div class="mb-3">
+                                                    <label for="bottommark_dimensions_{{ $lang }}" class="form-label">Dimensions ({{ $bmLangLabel }})</label>
+                                                    <input type="text" name="bottommark_dimensions[{{ $lang }}]"
+                                                        id="bottommark_dimensions_{{ $lang }}" class="form-control"
+                                                        placeholder="e.g., 1200 sq ft"
+                                                        value="{{ old('bottommark_dimensions.' . $lang, data_get($bottommarkDimensionsValues, $lang, '')) }}">
+                                                    @error('bottommark_dimensions.' . $lang)<div class="text-danger">{{ $message }}</div>@enderror
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-
-                                <!-- Gujarati Tab -->
-                                <div class="tab-pane fade" id="testing-bottommark-lang-gujarati-pane" data-language="gu"
-                                    role="tabpanel" aria-labelledby="testing-bottommark-lang-gujarati-tab" tabindex="0">
-                                    <div class="row">
-                                        <div class="col-md-4">
-                                            <div class="mb-3">
-                                                <label for="bottommark_property_name_gu" class="form-label">Property
-                                                    Name</label>
-                                                <input type="text" name="bottommark_property_name_gu"
-                                                    id="bottommark_property_name_gu" class="form-control"
-                                                    placeholder="e.g., 3 BHK એપાર્ટમેન્ટ"
-                                                    value="{{ old('bottommark_property_name_gu', $tour->bottommark_property_name['gu'] ?? '') }}">
-                                                @error('bottommark_property_name_gu')<div class="text-danger">
-                                                    {{ $message }}
-                                                </div>@enderror
-                                            </div>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <div class="mb-3">
-                                                <label for="bottommark_room_type_gu" class="form-label">Room
-                                                    Type</label>
-                                                <input type="text" name="bottommark_room_type_gu"
-                                                    id="bottommark_room_type_gu" class="form-control"
-                                                    placeholder="e.g., રહેણાંક"
-                                                    value="{{ old('bottommark_room_type_gu', $tour->bottommark_room_type['gu'] ?? '') }}">
-                                                @error('bottommark_room_type_gu')<div class="text-danger">{{ $message }}
-                                                </div>@enderror
-                                            </div>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <div class="mb-3">
-                                                <label for="bottommark_dimensions_gu"
-                                                    class="form-label">Dimensions</label>
-                                                <input type="text" name="bottommark_dimensions_gu"
-                                                    id="bottommark_dimensions_gu" class="form-control"
-                                                    placeholder="e.g., 1200 ચોક્સ ફૂટ"
-                                                    value="{{ old('bottommark_dimensions_gu', $tour->bottommark_dimensions['gu'] ?? '') }}">
-                                                @error('bottommark_dimensions_gu')<div class="text-danger">
-                                                    {{ $message }}
-                                                </div>@enderror
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Hindi Tab -->
-                                <div class="tab-pane fade" id="testing-bottommark-lang-hindi-pane" data-language="hi"
-                                    role="tabpanel" aria-labelledby="testing-bottommark-lang-hindi-tab" tabindex="0">
-                                    <div class="row">
-                                        <div class="col-md-4">
-                                            <div class="mb-3">
-                                                <label for="bottommark_property_name_hi" class="form-label">Property
-                                                    Name</label>
-                                                <input type="text" name="bottommark_property_name_hi"
-                                                    id="bottommark_property_name_hi" class="form-control"
-                                                    placeholder="e.g., 3 BHK अपार्टमेंट"
-                                                    value="{{ old('bottommark_property_name_hi', $tour->bottommark_property_name['hi'] ?? '') }}">
-                                                @error('bottommark_property_name_hi')<div class="text-danger">
-                                                    {{ $message }}
-                                                </div>@enderror
-                                            </div>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <div class="mb-3">
-                                                <label for="bottommark_room_type_hi" class="form-label">Room
-                                                    Type</label>
-                                                <input type="text" name="bottommark_room_type_hi"
-                                                    id="bottommark_room_type_hi" class="form-control"
-                                                    placeholder="e.g., आवासीय"
-                                                    value="{{ old('bottommark_room_type_hi', $tour->bottommark_room_type['hi'] ?? '') }}">
-                                                @error('bottommark_room_type_hi')<div class="text-danger">{{ $message }}
-                                                </div>@enderror
-                                            </div>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <div class="mb-3">
-                                                <label for="bottommark_dimensions_hi"
-                                                    class="form-label">Dimensions</label>
-                                                <input type="text" name="bottommark_dimensions_hi"
-                                                    id="bottommark_dimensions_hi" class="form-control"
-                                                    placeholder="e.g., 1200 वर्ग फुट"
-                                                    value="{{ old('bottommark_dimensions_hi', $tour->bottommark_dimensions['hi'] ?? '') }}">
-                                                @error('bottommark_dimensions_hi')<div class="text-danger">
-                                                    {{ $message }}
-                                                </div>@enderror
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+                                @endforeach
                             </div>
                             <div class="d-flex justify-content-end mt-3">
                                 <button type="submit" class="btn btn-primary">
@@ -2307,9 +2259,24 @@
     </div>
 </div>
 
-@vite(['resources/js/pages/booking-tour-detail-update-tab.js', 'resources/js/pages/booking_edit_sidebarLink.js', 'resources/js/pages/booking_userDetails_edit.js', 'resources/js/pages/booking_tour_bookmark_action.js', 'resources/js/pages/booking_user_stars_edit.js'])
+@vite([
+    'resources/js/pages/booking-tour-detail-update-tab.js',
+    'resources/js/pages/booking-language-tab.js',
+    'resources/js/pages/booking_edit_sidebarLink.js',
+    'resources/js/pages/booking_userDetails_edit.js',
+    'resources/js/pages/booking_tour_bookmark_action.js',
+    'resources/js/pages/booking_user_stars_edit.js',
+])
 
 <script>
     window.sidebarLinksData = {!! json_encode(old('sidebar_links', $tour->sidebar_links)) !!};
-    window.enabledLanguages = {!! json_encode($tour->enable_language ?? ['en']) !!};
+    window.enabledLanguages = {!! json_encode($tourOrderedEnabledLanguages ?? ($tour->enable_language ?? ['en'])) !!};
+    window.tourLanguageConfig = {!! json_encode([
+        'slots' => $tourLanguageSlots ?? ['en', 'hi', 'gu'],
+        'languageDisplay' => $tourLanguageDisplay ?? [],
+        'languageSlotOrder' => $tourLanguageSlots ?? [],
+        'enabledLanguages' => $tourEnabledLanguages ?? ['en'],
+        'defaultLanguage' => $tourDefaultLanguage ?? 'en',
+        'showLanguageInContactPanel' => $tourShowLangInPanel ?? false,
+    ]) !!};
 </script>
