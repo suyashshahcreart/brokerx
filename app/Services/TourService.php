@@ -102,7 +102,16 @@ class TourService
             $tour->default_language = $localeConfig['defaultLanguage'] ?? 'en';
         }
         if ($forceSync || Arr::has($diffJson, 'localeConfig.enabledLanguages')) {
-            $tour->enable_language = $localeConfig['enabledLanguages'] ?? ['en', 'hi'];
+            $tour->enable_language = $localeConfig['enabledLanguages'] ?? ['en', 'hi', 'gu'];
+        }
+        if ($forceSync || Arr::has($diffJson, 'localeConfig')) {
+            $tour->locale_config = ! empty($localeConfig) ? $localeConfig : null;
+        }
+        if ($forceSync || Arr::has($diffJson, 'localeConfig.languageDisplay')) {
+            $tour->language_display = $localeConfig['languageDisplay'] ?? null;
+        }
+        if ($forceSync || Arr::has($diffJson, 'localeConfig.languageSlotOrder')) {
+            $tour->language_slot_order = $localeConfig['languageSlotOrder'] ?? null;
         }
 
         $loaderConfig = $finalJson['branding']['loaderConfig'] ?? [];
@@ -127,27 +136,16 @@ class TourService
             ];
         }
         $branding = $finalJson['branding'] ?? [];
-        $sidebarConfig = $branding['sidebarConfig'] ?? [];
-        $tourNode = $finalJson['tour'] ?? [];
-        $footerButton = $sidebarConfig['footerButton'] ?? [];
-
-        if ($forceSync || Arr::has($diffJson, 'sidebarConfig.logo')) {
-            $bookingCode = QR::where('booking_id', $tour->booking_id ?? null)->value('code');
-            $logo = $sidebarConfig['logo'] ?? null;
-            $path = $bookingCode && $logo ? "tours/$bookingCode/$logo" : null;
-            $tour->sidebar_logo = $path ? Storage::disk('s3')->url($path) : null;
+        $sidebarConfig = $finalJson['sidebarConfig'] ?? null;
+        if (! is_array($sidebarConfig) || $sidebarConfig === []) {
+            $sidebarConfig = $branding['sidebarConfig'] ?? [];
+        }
+        if (! is_array($sidebarConfig)) {
+            $sidebarConfig = [];
         }
 
-        if ($forceSync || Arr::has($diffJson, 'sidebarConfig.footerButton')) {
-            $tour->sidebar_footer_text = $footerButton['text']['en'] ?? 'Designe By PROP PIK';
-            $tour->sidebar_footer_link = $footerButton['link'] ?? null;
-        }
-
-        if ($forceSync || Arr::has($diffJson, 'sidebarConfig.sidebarTag')) {
-            $sidebarTag = $sidebarConfig['sidebarTag'] ?? [];
-            $tour->sidebar_tag_text = $sidebarTag['text'] ?? null;
-            $tour->sidebar_tag_color = $sidebarTag['color'] ?? $sidebarTag['textColor'] ?? '#ffffff';
-            $tour->sidebar_tag_bg_color = $sidebarTag['backgroundColor'] ?? null;
+        if ($forceSync || Arr::has($diffJson, 'sidebarConfig') || Arr::has($diffJson, 'branding.sidebarConfig')) {
+            $tour->sidebar_config = ! empty($sidebarConfig) ? $sidebarConfig : null;
         }
 
         if ($forceSync || Arr::has($diffJson, 'sidebarLinks')) {

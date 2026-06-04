@@ -17,6 +17,7 @@
     "@fullcalendar/interaction": "^6.1.15",
     "@fullcalendar/list": "^6.1.15",
     "@fullcalendar/timegrid": "^6.1.15",
+    "@photo-sphere-viewer/core": "^5.14.1",
     "@popperjs/core": "^2.11.8",
     "apexcharts": "^3.44.2",
     "bootstrap": "^5.3.3",

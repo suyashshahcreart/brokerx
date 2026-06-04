@@ -222,12 +222,12 @@ Route::group(['prefix' => 'ppadmlog', 'as' => 'admin.', 'middleware' => ['web', 
     Route::put('admin/tours/{tour}/update-tour-language-tab', [TourController::class, 'updateTourLanguageTab'])->name('tours.updateTourLanguageTab');
     Route::put('admin/tours/{tour}/update-tour-contact-info-tab', [TourController::class, 'updateTourContactInfoTab'])->name('tours.updateTourContactInfoTab');
     Route::put('admin/tours/{tour}/update-tour-attachments-tab', [TourController::class, 'updateTourAttachmentsTab'])->name('tours.updateTourAttachmentsTab');
-    Route::put('admin/tours/{tour}/update-tour-sidebar-tab', [TourController::class, 'updateTourSidebarTab'])->name('tours.updateTourSidebarTab');
     Route::put('admin/tours/{tour}/update-tour-bottom-top-tab', [TourController::class, 'updateTourBottomTopTab'])->name('tours.updateTourBottomTopTab');
     Route::put('admin/tours/{tour}/update-tour-bottom-property-tab', [TourController::class, 'updateTourBottomPropertyTab'])->name('tours.updateTourBottomPropertyTab');
     Route::put('admin/tours/{tour}/updateTourJson', [TourController::class, 'updateTourJson'])->name('tours.updateTourJson');
     Route::post('admin/tours/{tour}/upload-json-file', [TourController::class, 'uploadJsonFile'])->name('tours.uploadJsonFile');
     Route::put('admin/tours/{tour}/update-sidebar-links', [TourController::class, 'updateSidebarLinks'])->name('tours.updateSidebarLinks');
+    Route::put('admin/tours/{tour}/update-tour-sidebar-config-tab', [TourController::class, 'updateTourSidebarConfigTab'])->name('tours.updateTourSidebarConfigTab');
     Route::put('admin/tours/{tour}/update-user-details', [TourController::class, 'updateUserDetails'])->name('tours.updateUserDetails');
     Route::put('admin/tours/{tour}/update-bookmark-fields', [TourController::class, 'updateBookmarkFields'])->name('tours.updateBookmarkFields');
     Route::put('admin/tours/{tour}/update-user-star', [TourController::class, 'updateUserStar'])->name('tours.updateUserStar');

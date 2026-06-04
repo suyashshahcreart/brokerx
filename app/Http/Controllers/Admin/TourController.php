@@ -18,6 +18,8 @@ use App\Models\QR;
 use Storage;
 use Yajra\DataTables\DataTables;
 use App\Services\TourService;
+use App\Support\LanguageConfigHelper;
+use App\Support\SidebarConfigHelper;
 
 require_once app_path('Helpers/JsObfuscator.php');
 
@@ -150,7 +152,6 @@ class TourController extends Controller
             'footer_code' => ['nullable', 'string'],
 
             // Custom fields
-            'sidebar_logo' => ['nullable'],
             'footer_logo' => ['nullable', 'string', 'max:255'],
             'footer_title' => ['nullable', 'array'],
             'footer_title.*' => ['nullable', 'string'],
@@ -161,16 +162,10 @@ class TourController extends Controller
             'footer_decription' => ['nullable', 'string'],
             // Sidebar and Footer fields
             'company_address' => ['nullable', 'string'],
-            'sidebar_footer_link' => ['nullable', 'string'],
-            'sidebar_footer_text' => ['nullable', 'string'],
-            'sidebar_footer_link_show' => ['nullable', 'boolean'],
             'footer_info_type' => ['nullable', 'string'],
             'footer_brand_logo' => ['nullable'],
             'footer_brand_text' => ['nullable', 'string'],
             'footer_brand_mobile' => ['nullable', 'string'],
-            'sidebar_tag_text' => ['nullable', 'string', 'max:255'],
-            'sidebar_tag_color' => ['nullable', 'string', 'max:255'],
-            'sidebar_tag_bg_color' => ['nullable', 'string', 'max:255'],
             'bottommark_property_name_en' => ['nullable', 'string'],
             'bottommark_property_name_gu' => ['nullable', 'string'],
             'bottommark_property_name_hi' => ['nullable', 'string'],
@@ -200,7 +195,7 @@ class TourController extends Controller
             $logoFooterFile = $request->file('footer_logo');
             $logoBrandFile = $request->file('footer_brand_logo');
             $tourThumbnailFile = $request->file('tour_thumbnail');
-            unset($validated['sidebar_logo'], $validated['footer_logo'], $validated['footer_brand_logo'], $validated['tour_thumbnail']);
+            unset($validated['footer_logo'], $validated['footer_brand_logo'], $validated['tour_thumbnail']);
 
             $tour = Tour::create($validated);
             try {
@@ -213,7 +208,9 @@ class TourController extends Controller
                     $sidebarMime = $logoSidebarFile->getMimeType();
                     $uploaded = Storage::disk('s3')->put($sidebarPath, $sidebarContent, ['ContentType' => $sidebarMime]);
                     if ($uploaded) {
-                        $updateData['sidebar_logo'] = $sidebarPath;
+                        $sidebarConfig = is_array($tour->sidebar_config) ? $tour->sidebar_config : [];
+                        $sidebarConfig['logo'] = $sidebarPath;
+                        $updateData['sidebar_config'] = $sidebarConfig;
                     }
                 }
                 if ($logoFooterFile) {
@@ -332,7 +329,6 @@ class TourController extends Controller
             'footer_code' => ['nullable', 'string'],
 
             // Custom fields
-            'sidebar_logo' => ['nullable'],
             'footer_logo' => ['nullable'],
             'footer_title' => ['nullable', 'array'],
             'footer_title.*' => ['nullable', 'string'],
@@ -343,16 +339,10 @@ class TourController extends Controller
             'footer_decription' => ['nullable', 'string'],
             // Sidebar and Footer fields
             'company_address' => ['nullable', 'string'],
-            'sidebar_footer_link' => ['nullable', 'string'],
-            'sidebar_footer_text' => ['nullable', 'string'],
-            'sidebar_footer_link_show' => ['nullable', 'boolean'],
             'footer_info_type' => ['nullable', 'string'],
             'footer_brand_logo' => ['nullable'],
             'footer_brand_text' => ['nullable', 'string'],
             'footer_brand_mobile' => ['nullable', 'string'],
-            'sidebar_tag_text' => ['nullable', 'string', 'max:255'],
-            'sidebar_tag_color' => ['nullable', 'string', 'max:255'],
-            'sidebar_tag_bg_color' => ['nullable', 'string', 'max:255'],
             'bottommark_property_name_en' => ['nullable', 'string'],
             'bottommark_property_name_gu' => ['nullable', 'string'],
             'bottommark_property_name_hi' => ['nullable', 'string'],
@@ -387,7 +377,7 @@ class TourController extends Controller
         $logoSidebarFile = $request->file('sidebar_logo');
         $logoFooterFile = $request->file('footer_logo');
         $logoBrandFile = $request->file('footer_brand_logo');
-        unset($validated['sidebar_logo'], $validated['footer_logo'], $validated['footer_brand_logo']);
+        unset($validated['footer_logo'], $validated['footer_brand_logo']);
 
         $oldData = $tour->toArray();
         try {
@@ -401,7 +391,9 @@ class TourController extends Controller
                 $sidebarMime = $logoSidebarFile->getMimeType();
                 $uploaded = Storage::disk('s3')->put($sidebarPath, $sidebarContent, ['ContentType' => $sidebarMime]);
                 if ($uploaded) {
-                    $updateData['sidebar_logo'] = $sidebarPath;
+                    $sidebarConfig = is_array($tour->sidebar_config) ? $tour->sidebar_config : [];
+                    $sidebarConfig['logo'] = $sidebarPath;
+                    $updateData['sidebar_config'] = $sidebarConfig;
                 }
             }
             if ($logoFooterFile) {
@@ -471,9 +463,6 @@ class TourController extends Controller
             'max_participants' => ['nullable', 'integer', 'min:1'],
             'status' => ['required', 'in:draft,published,archived'],
             'revision' => ['nullable', 'string', 'max:255'],
-            'sidebar_footer_link_show' => ['nullable', 'boolean'],
-            'sidebar_footer_text' => ['nullable', 'string'],
-            'sidebar_footer_link' => ['nullable', 'string'],
             'footer_info_type' => ['nullable', 'string'],
             'footer_brand_logo_text' => ['nullable', 'string'],
             'footer_brand_text' => ['nullable', 'string'],
@@ -502,10 +491,6 @@ class TourController extends Controller
             'footer_name' => ['nullable', 'string'],
             'footer_email' => ['nullable', 'string'],
             'footer_mobile' => ['nullable', 'string'],
-            // sidebar tag fields 
-            'sidebar_tag_text' => ['nullable', 'string', 'max:255'],
-            'sidebar_tag_color' => ['nullable', 'string', 'max:255'],
-            'sidebar_tag_bg_color' => ['nullable', 'string', 'max:255'],
             // Bottommark multilingual fields
             'bottommark_property_name_en' => ['nullable', 'string'],
             'bottommark_property_name_gu' => ['nullable', 'string'],
@@ -562,37 +547,7 @@ class TourController extends Controller
         $finalJsonWasEmpty = empty($finalJson);
 
         // Ensure expected structure exists before updates
-        $finalJson['sidebarConfig'] = $finalJson['sidebarConfig'] ?? [];
-        $finalJson['sidebarConfig']['footerButton'] = $finalJson['sidebarConfig']['footerButton'] ?? [];
-        $finalJson['sidebarConfig']['sidebarTag'] = $finalJson['sidebarConfig']['sidebarTag'] ?? [];
         $finalJson['bottomMarker'] = $finalJson['bottomMarker'] ?? [];
-
-        // Update sidebar footer button JSON while preserving multilingual structure if present
-        $existingFooterButtonText = $finalJson['sidebarConfig']['footerButton']['text'] ?? [];
-        if (!is_array($existingFooterButtonText)) {
-            $existingFooterButtonText = ['en' => $existingFooterButtonText];
-        }
-        if (array_key_exists('sidebar_footer_text', $validated)) {
-            $existingFooterButtonText['en'] = $validated['sidebar_footer_text'];
-        }
-        $finalJson['sidebarConfig']['footerButton']['text'] = $existingFooterButtonText;
-        if (array_key_exists('sidebar_footer_link', $validated)) {
-            $finalJson['sidebarConfig']['footerButton']['link'] = $validated['sidebar_footer_link'];
-        }
-        if (array_key_exists('sidebar_footer_link_show', $validated)) {
-            $finalJson['sidebarConfig']['footerButton']['show'] = (bool) $validated['sidebar_footer_link_show'];
-        }
-
-        // Sidebar tag and made-by info
-        if (array_key_exists('sidebar_tag_text', $validated)) {
-            $finalJson['sidebarConfig']['sidebarTag']['text'] = $validated['sidebar_tag_text'];
-        }
-        if (array_key_exists('sidebar_tag_color', $validated)) {
-            $finalJson['sidebarConfig']['sidebarTag']['color'] = $validated['sidebar_tag_color'];
-        }
-        if (array_key_exists('sidebar_tag_bg_color', $validated)) {
-            $finalJson['sidebarConfig']['sidebarTag']['backgroundColor'] = $validated['sidebar_tag_bg_color'];
-        }
 
         $existingMadeByText = $finalJson['bottomMarker']['madeByText'] ?? [];
         if (!is_array($existingMadeByText)) {
@@ -754,9 +709,13 @@ class TourController extends Controller
             $sidebarContent = file_get_contents($logoSidebarFile->getRealPath());
             $sidebarMime = $logoSidebarFile->getMimeType();
             $uploaded = Storage::disk('s3')->put($sidebarPath, $sidebarContent, ['ContentType' => $sidebarMime]);
-            $finalJson['sidebarConfig']['logo'] = 'assets/' . $sidebarFilename;
+            $logoRelative = 'assets/' . $sidebarFilename;
+            $finalJson['sidebarConfig'] = is_array($finalJson['sidebarConfig'] ?? null) ? $finalJson['sidebarConfig'] : [];
+            $finalJson['sidebarConfig']['logo'] = $logoRelative;
             if ($uploaded) {
-                $updateData['sidebar_logo'] = $sidebarPath;
+                $sidebarConfig = is_array($tour->sidebar_config) ? $tour->sidebar_config : [];
+                $sidebarConfig['logo'] = $logoRelative;
+                $updateData['sidebar_config'] = $sidebarConfig;
             }
         }
         // Footer logo
@@ -2076,38 +2035,112 @@ class TourController extends Controller
     {
         $validated = $request->validate([
             'enable_language' => ['nullable', 'array'],
-            'enable_language.*' => ['string'],
+            'enable_language.*' => ['string', 'max:10'],
             'default_language' => ['nullable', 'string', 'max:10'],
+            'language_display' => ['nullable', 'string'],
+            'language_slot_order' => ['nullable', 'string'],
+            'show_language_in_contact_panel' => ['nullable', 'boolean'],
         ]);
 
-        $validated['enable_language'] = isset($validated['enable_language'])
-            ? array_values($validated['enable_language'])
-            : null;
+        $enabledLanguages = isset($validated['enable_language'])
+            ? array_values(array_map(static fn ($c) => strtolower((string) $c), $validated['enable_language']))
+            : [];
+
+        if ($enabledLanguages === []) {
+            $enabledLanguages = ['en'];
+        }
+
+        $languageDisplay = $this->decodeJsonField($request->input('language_display'));
+        $languageSlotOrder = $this->decodeJsonField($request->input('language_slot_order'));
+
+        $existingLocale = is_array($tour->locale_config) ? $tour->locale_config : [];
+        if ($existingLocale === []) {
+            $resolved = LanguageConfigHelper::resolveFromTour($tour);
+            $existingLocale = $resolved['localeConfig'];
+        }
+
+        if (! is_array($languageDisplay) || $languageDisplay === []) {
+            $languageDisplay = is_array($tour->language_display) && $tour->language_display !== []
+                ? $tour->language_display
+                : ($existingLocale['languageDisplay'] ?? []);
+        }
+
+        $languageDisplay = LanguageConfigHelper::normalizeLanguageDisplay($languageDisplay);
+
+        if (! is_array($languageSlotOrder) || $languageSlotOrder === []) {
+            $languageSlotOrder = is_array($tour->language_slot_order) && $tour->language_slot_order !== []
+                ? $tour->language_slot_order
+                : ($existingLocale['languageSlotOrder'] ?? []);
+        }
+
+        $languageSlotOrder = LanguageConfigHelper::collectLanguageSlotCodes(
+            $enabledLanguages,
+            $languageDisplay,
+            $languageSlotOrder
+        );
+
+        $defaultLanguage = strtolower((string) ($validated['default_language'] ?? $tour->default_language ?? 'en'));
+        if ($defaultLanguage === '' || ! preg_match('/^[a-z]{2}$/', $defaultLanguage)) {
+            $defaultLanguage = $enabledLanguages[0] ?? 'en';
+        }
+
+        $showInPanel = $request->boolean('show_language_in_contact_panel');
+
+        $localeConfig = LanguageConfigHelper::buildLocaleConfig(
+            $existingLocale,
+            $enabledLanguages,
+            $defaultLanguage,
+            $languageDisplay,
+            $languageSlotOrder,
+            $showInPanel
+        );
 
         $oldData = $tour->toArray();
 
         $finalJson = $this->normalizeFinalJsonPayload($tour);
         $tourDataJson = $this->normalizeTourDataJsonPayload($tour);
 
-
-        $finalJson['tour']['localeConfig'] = $finalJson['tour']['localeConfig'] ?? [];
-        $finalJson['tour']['localeConfig']['enabledLanguages'] = $validated['enable_language'] ?? [];
-
-        if (array_key_exists('default_language', $validated)) {
-            $finalJson['tour']['localeConfig']['defaultLanguage'] = $validated['default_language'];
+        $existingFinalJsonColumn = is_array($tour->final_json) ? $tour->final_json : [];
+        foreach (['files', 'qr_code', 'updated_at'] as $preserveKey) {
+            if (array_key_exists($preserveKey, $existingFinalJsonColumn)) {
+                $finalJson[$preserveKey] = $existingFinalJsonColumn[$preserveKey];
+            }
         }
 
-        $tourDataJson['tour']['localeConfig'] = $finalJson['tour']['localeConfig'];
+        $finalJson['tour'] = $finalJson['tour'] ?? [];
+        $finalJson['tour']['localeConfig'] = $localeConfig;
+        $tourDataJson['tour'] = $tourDataJson['tour'] ?? [];
+        $tourDataJson['tour']['localeConfig'] = $localeConfig;
+
+        $finalJson['branding'] = is_array($finalJson['branding'] ?? null) ? $finalJson['branding'] : [];
+        $finalJson['branding']['userInfo'] = is_array($finalJson['branding']['userInfo'] ?? null)
+            ? $finalJson['branding']['userInfo']
+            : [];
+        $finalJson['branding']['userInfo']['showLanguageInContactPanel'] = $showInPanel;
+
+        if (isset($tourDataJson['branding']) && is_array($tourDataJson['branding'])) {
+            $tourDataJson['branding']['userInfo'] = is_array($tourDataJson['branding']['userInfo'] ?? null)
+                ? $tourDataJson['branding']['userInfo']
+                : [];
+            $tourDataJson['branding']['userInfo']['showLanguageInContactPanel'] = $showInPanel;
+        }
 
         $updateData = [
-            'enable_language' => $validated['enable_language'],
-            'default_language' => $validated['default_language'] ?? null,
+            'enable_language' => $enabledLanguages,
+            'default_language' => $defaultLanguage,
+            'language_display' => $languageDisplay,
+            'language_slot_order' => $languageSlotOrder,
+            'locale_config' => $localeConfig,
             'final_json' => $finalJson,
             'virtual_tour_nodes_json' => $finalJson,
             'tour_data_json' => $tourDataJson,
         ];
 
         $tour->update($updateData);
+
+        $jsonForSync = is_array($tourDataJson) && $tourDataJson !== [] ? $tourDataJson : $finalJson;
+        $this->tourService->syncTourFieldsFromJson($tour->fresh(), $jsonForSync, [], true);
+
         $newData = $tour->fresh()->toArray();
 
         activity('tours')
@@ -2133,66 +2166,57 @@ class TourController extends Controller
     }
 
     /**
-     * Update only sidebar tab data.
+     * @return array<mixed>|null
      */
-    public function updateTourSidebarTab(Request $request, Tour $tour): JsonResponse|RedirectResponse
+    private function decodeJsonField(mixed $value): ?array
     {
-        $validated = $request->validate([
-            'sidebar_logo' => ['nullable', 'file', 'image', 'max:5120'],
-            'sidebar_tag_text' => ['nullable', 'array'],
-            'sidebar_tag_color' => ['nullable', 'string', 'max:255'],
-            'sidebar_tag_bg_color' => ['nullable', 'string', 'max:255'],
-            'sidebar_footer_text' => ['nullable', 'string'],
-            'sidebar_footer_link' => ['nullable', 'string'],
-        ]);
+        if (is_array($value)) {
+            return $value;
+        }
+
+        if (! is_string($value) || trim($value) === '') {
+            return null;
+        }
+
+        $decoded = json_decode($value, true);
+
+        return json_last_error() === JSON_ERROR_NONE && is_array($decoded) ? $decoded : null;
+    }
+
+    /**
+     * Update sidebar configuration tab (stored in tours.sidebar_config JSON).
+     */
+    public function updateTourSidebarConfigTab(Request $request, Tour $tour): JsonResponse|RedirectResponse
+    {
+        $languageState = LanguageConfigHelper::resolveFromTour($tour);
+        $languageCodes = $languageState['languageSlotOrder'];
+
+        $validated = $request->validate(SidebarConfigHelper::validationRules($languageCodes));
 
         $oldData = $tour->toArray();
-        $finalJson = $this->normalizeFinalJsonPayload($tour);
-        $finalJson['branding']['sidebarConfig'] = $finalJson['branding']['sidebarConfig'] ?? [];
-        $finalJson['branding']['sidebarConfig']['footerButton'] = $finalJson['branding']['sidebarConfig']['footerButton'] ?? [];
-        $finalJson['branding']['sidebarConfig']['sidebarTag'] = $finalJson['branding']['sidebarConfig']['sidebarTag'] ?? [];
+        $existingConfig = is_array($tour->sidebar_config) ? $tour->sidebar_config : SidebarConfigHelper::resolveForForm($tour);
+        $qrCode = $tour->booking_id ? QR::where('booking_id', $tour->booking_id)->value('code') : null;
 
-        $existingFooterButtonText = $finalJson['branding']['sidebarConfig']['footerButton']['text'] ?? [];
-        if (!is_array($existingFooterButtonText)) {
-            $existingFooterButtonText = ['en' => $existingFooterButtonText];
+        $sidebarConfig = SidebarConfigHelper::buildFromValidated(
+            $validated,
+            $request,
+            $existingConfig,
+            $languageCodes,
+            $qrCode
+        );
+
+        $tourDataJson = $this->normalizeTourDataJsonPayload($tour);
+        if (! empty($sidebarConfig)) {
+            $tourDataJson['sidebarConfig'] = $sidebarConfig;
+            $tourDataJson['branding'] = is_array($tourDataJson['branding'] ?? null) ? $tourDataJson['branding'] : [];
+            $tourDataJson['branding']['sidebarConfig'] = $sidebarConfig;
         }
 
-        if (array_key_exists('sidebar_footer_text', $validated)) {
-            $existingFooterButtonText['en'] = $validated['sidebar_footer_text'];
-        }
-        $finalJson['branding']['sidebarConfig']['footerButton']['text'] = $existingFooterButtonText;
+        $updateData = [
+            'sidebar_config' => ! empty($sidebarConfig) ? $sidebarConfig : null,
+            'tour_data_json' => $tourDataJson,
+        ];
 
-        if (array_key_exists('sidebar_footer_link', $validated)) {
-            $finalJson['branding']['sidebarConfig']['footerButton']['link'] = $validated['sidebar_footer_link'];
-        }
-        if (array_key_exists('sidebar_tag_text', $validated)) {
-            $finalJson['branding']['sidebarConfig']['sidebarTag']['text'] = json_encode($validated['sidebar_tag_text']);
-        }
-        if (array_key_exists('sidebar_tag_color', $validated)) {
-            $finalJson['branding']['sidebarConfig']['sidebarTag']['textColor'] = $validated['sidebar_tag_color'];
-        }
-        if (array_key_exists('sidebar_tag_bg_color', $validated)) {
-            $finalJson['branding']['sidebarConfig']['sidebarTag']['backgroundColor'] = $validated['sidebar_tag_bg_color'];
-        }
-
-        $updateData = $validated;
-        $qrCode = QR::where('booking_id', $tour->booking_id)->value('code');
-        $logoSidebarFile = $request->file('sidebar_logo');
-
-        if ($logoSidebarFile && $qrCode) {
-            $sidebarFilename = 'logo_sidebar_' . time() . '_' . Str::random(8) . '.' . $logoSidebarFile->getClientOriginalExtension();
-            $sidebarPath = 'tours/' . $qrCode . '/assets/' . $sidebarFilename;
-            $sidebarContent = file_get_contents($logoSidebarFile->getRealPath());
-            $sidebarMime = $logoSidebarFile->getMimeType();
-            $uploaded = Storage::disk('s3')->put($sidebarPath, $sidebarContent, ['ContentType' => $sidebarMime]);
-            $finalJson['branding']['sidebarConfig']['logo'] = 'assets/' . $sidebarFilename;
-
-            if ($uploaded) {
-                $updateData['sidebar_logo'] = Storage::disk('s3')->url($sidebarPath);
-            }
-        }
-
-        $updateData['final_json'] = $finalJson;
         $tour->update($updateData);
         $newData = $tour->fresh()->toArray();
 
@@ -2203,62 +2227,99 @@ class TourController extends Controller
                 'old' => $oldData,
                 'new' => $newData,
             ])
-            ->log('Tour sidebar tab updated');
+            ->log('Tour sidebar configuration tab updated');
 
-        $this->updateTourJsonAndJsFilesInS3($tour, $finalJson);
+        $this->updateTourJsonAndJsFilesInS3($tour, $tourDataJson);
 
         if ($request->expectsJson()) {
+            $freshTour = $tour->fresh();
+            $logoPreview = SidebarConfigHelper::logoPreviewUrl(
+                $freshTour,
+                $qrCode,
+                data_get($freshTour->sidebar_config, 'logo')
+            );
+
             return response()->json([
                 'success' => true,
-                'message' => 'Sidebar section updated successfully.',
-                'tour' => $tour->fresh(),
+                'message' => 'Sidebar configuration updated successfully.',
+                'tour' => $freshTour,
+                'sidebar_config_logo_url' => $logoPreview,
             ]);
         }
 
-        return redirect()->back()->with(['success' => 'Sidebar section updated successfully.', 'active_tab' => 'vl-pills-sidebar-section']);
+        return redirect()->back()->with([
+            'success' => 'Sidebar configuration updated successfully.',
+            'active_tab' => 'vl-pills-sidebar-section',
+        ]);
     }
 
     public function updateSidebarLinks(Request $request, Tour $tour): JsonResponse|RedirectResponse
     {
-        $validated = $request->validate([
-            'sidebar_links' => ['nullable', 'array'],
-            'sidebar_links.*.icon' => ['nullable', 'string', 'max:255'],
-            'sidebar_links.*.title' => ['nullable', 'array'],
-            'sidebar_links.*.title.en' => ['nullable', 'string'],
-            'sidebar_links.*.title.gu' => ['nullable', 'string'],
-            'sidebar_links.*.title.hi' => ['nullable', 'string'],
-            'sidebar_links.*.type' => ['required', 'string', 'in:link,infoModal,image,video,document'],
-            'sidebar_links.*.order' => ['required', 'integer', 'min:1'],
-            'sidebar_links.*.link' => ['nullable', 'url', 'max:255'],
-            'sidebar_links.*.content' => ['nullable', 'array'],
-            'sidebar_links.*.content.en' => ['nullable', 'string'],
-            'sidebar_links.*.content.gu' => ['nullable', 'string'],
-            'sidebar_links.*.content.hi' => ['nullable', 'string'],
-        ]);
+        $languageState = LanguageConfigHelper::resolveFromTour($tour);
+        $languageCodes = $languageState['languageSlotOrder'];
+        $defaultLanguage = $languageState['defaultLanguage'];
 
-        $sidebarLinks = collect($validated['sidebar_links'] ?? [])->map(function ($item) {
-            $title = isset($item['title']) ? (array) $item['title'] : [];
-            $content = isset($item['content']) ? (array) $item['content'] : [];
+        $sidebarLinkLangRules = [];
+        foreach ($languageCodes as $code) {
+            $lc = strtolower((string) $code);
+            if (! preg_match('/^[a-z]{2}$/', $lc)) {
+                continue;
+            }
+            $sidebarLinkLangRules["sidebar_links.*.title.{$lc}"] = ['nullable', 'string', 'max:255'];
+            $sidebarLinkLangRules["sidebar_links.*.content.{$lc}"] = ['nullable', 'string'];
+        }
+
+        $validated = $request->validate(array_merge(
+            [
+                'sidebar_links' => ['nullable', 'array'],
+                'sidebar_links.*.icon' => ['nullable', 'string', 'max:255'],
+                'sidebar_links.*.title' => ['nullable', 'array'],
+                'sidebar_links.*.type' => ['required', 'string', 'in:link,infoModal,image,video,document'],
+                'sidebar_links.*.order' => ['required', 'integer', 'min:1'],
+                'sidebar_links.*.link' => ['nullable', 'url', 'max:255'],
+                'sidebar_links.*.content' => ['nullable', 'array'],
+            ],
+            $sidebarLinkLangRules
+        ));
+
+        $sidebarLinks = collect($validated['sidebar_links'] ?? [])->map(function ($item) use ($languageCodes) {
+            $title = LanguageConfigHelper::mergePerLanguageStringMap(
+                [],
+                isset($item['title']) ? (array) $item['title'] : [],
+                $languageCodes
+            );
+            $content = LanguageConfigHelper::mergePerLanguageStringMap(
+                [],
+                isset($item['content']) ? (array) $item['content'] : [],
+                $languageCodes
+            );
 
             return [
-                'icon' => !empty($item['icon']) ? trim($item['icon']) : null,
-                'title' => [
-                    'en' => trim($title['en']),
-                    'gu' => trim($title['gu']),
-                    'hi' => trim($title['hi']),
-                ],
+                'icon' => ! empty($item['icon']) ? trim($item['icon']) : null,
+                'title' => $title,
                 'type' => $item['type'] ?? 'link',
                 'order' => (int) ($item['order'] ?? 140),
                 'link' => $item['type'] === 'link' ? trim($item['link'] ?? '') : null,
-                'content' => [
-                    'en' => $content['en'],
-                    'gu' => $content['gu'],
-                    'hi' => $content['hi'],
-                ],
+                'content' => $content,
             ];
-        })->filter(function ($item) {
-            // Ensure English title is not empty and type is valid
-            return !empty($item['title']['en']) && in_array($item['type'], ['link', 'content', 'infoModal'], true);
+        })->filter(function ($item) use ($defaultLanguage) {
+            if (! in_array($item['type'], ['link', 'content', 'infoModal'], true)) {
+                return false;
+            }
+
+            $titles = $item['title'] ?? [];
+            $primary = trim((string) ($titles[$defaultLanguage] ?? ''));
+            if ($primary !== '') {
+                return true;
+            }
+
+            foreach ($titles as $value) {
+                if (trim((string) $value) !== '') {
+                    return true;
+                }
+            }
+
+            return false;
         })->sortBy('order')->values()->toArray();
 
         $oldData = $tour->toArray();
@@ -2309,68 +2370,62 @@ class TourController extends Controller
      */
     public function updateTourBottomTopTab(Request $request, Tour $tour): JsonResponse|RedirectResponse
     {
-        $validated = $request->validate([
-            'footer_logo' => ['nullable', 'file', 'image', 'max:5120'],
-            'footer_title' => ['nullable', 'array'],
-            'footer_title.en' => ['nullable', 'string'],
-            'footer_title.gu' => ['nullable', 'string'],
-            'footer_title.hi' => ['nullable', 'string'],
-            'footer_subtitle' => ['nullable', 'array'],
-            'footer_subtitle.en' => ['nullable', 'string'],
-            'footer_subtitle.gu' => ['nullable', 'string'],
-            'footer_subtitle.hi' => ['nullable', 'string'],
-            'footer_decription' => ['nullable', 'array'],
-            'footer_decription.en' => ['nullable', 'string'],
-            'footer_decription.gu' => ['nullable', 'string'],
-            'footer_decription.hi' => ['nullable', 'string'],
-            'footer_email' => ['nullable', 'string', 'max:255'],
-            'footer_mobile' => ['nullable', 'string', 'max:255'],
-        ]);
+        $languageState = LanguageConfigHelper::resolveFromTour($tour);
+        $languageCodes = $languageState['languageSlotOrder'];
+
+        $validated = $request->validate(array_merge(
+            [
+                'footer_logo' => ['nullable', 'file', 'image', 'max:5120'],
+                'footer_email' => ['nullable', 'string', 'max:255'],
+                'footer_mobile' => ['nullable', 'string', 'max:255'],
+            ],
+            LanguageConfigHelper::perLanguageStringRules('footer_title', $languageCodes, 255),
+            LanguageConfigHelper::perLanguageStringRules('footer_subtitle', $languageCodes, 255),
+            LanguageConfigHelper::perLanguageStringRules('footer_decription', $languageCodes, 5000)
+        ));
 
         $oldData = $tour->toArray();
 
         $finalJson = $this->normalizeFinalJsonPayload($tour);
         $tourDataJson = $this->normalizeTourDataJsonPayload($tour);
+        $existingTopImage = $this->resolveBottomMarkerTopImage($finalJson, $tourDataJson, $tour);
 
+        $finalJson['branding'] = is_array($finalJson['branding'] ?? null) ? $finalJson['branding'] : [];
+        $finalJson['branding']['bottomMarker'] = is_array($finalJson['branding']['bottomMarker'] ?? null)
+            ? $finalJson['branding']['bottomMarker']
+            : [];
 
-        $finalJson['branding']['bottomMarker'] = $finalJson['branding']['bottomMarker'] ?? [];
+        $resolvedFooterTitle = LanguageConfigHelper::mergePerLanguageStringMap(
+            LanguageConfigHelper::decodePerLanguageStored($tour->footer_title),
+            is_array($validated['footer_title'] ?? null) ? $validated['footer_title'] : [],
+            $languageCodes
+        );
+        $resolvedFooterSubtitle = LanguageConfigHelper::mergePerLanguageStringMap(
+            LanguageConfigHelper::decodePerLanguageStored($tour->footer_subtitle),
+            is_array($validated['footer_subtitle'] ?? null) ? $validated['footer_subtitle'] : [],
+            $languageCodes
+        );
+        $resolvedFooterDescription = LanguageConfigHelper::mergePerLanguageStringMap(
+            LanguageConfigHelper::decodePerLanguageStored($tour->footer_decription),
+            is_array($validated['footer_decription'] ?? null) ? $validated['footer_decription'] : [],
+            $languageCodes
+        );
 
-        $resolvedFooterTitle = is_array($validated['footer_title'] ?? null) ? $validated['footer_title'] : [];
-        $resolvedFooterSubtitle = is_array($validated['footer_subtitle'] ?? null) ? $validated['footer_subtitle'] : [];
-        $resolvedFooterDescription = is_array($validated['footer_decription'] ?? null) ? $validated['footer_decription'] : [];
-
-        $existingTopTitle = $finalJson['branding']['bottomMarker']['topTitle'] ?? [];
-        if (!is_array($existingTopTitle)) {
-            $existingTopTitle = ['en' => $existingTopTitle];
-        }
-        foreach (['en', 'gu', 'hi'] as $lang) {
-            if (array_key_exists($lang, $resolvedFooterTitle)) {
-                $existingTopTitle[$lang] = $resolvedFooterTitle[$lang];
-            }
-        }
-        $finalJson['branding']['bottomMarker']['topTitle'] = $existingTopTitle;
-
-        $existingTopSubTitle = $finalJson['branding']['bottomMarker']['topSubTitle'] ?? [];
-        if (!is_array($existingTopSubTitle)) {
-            $existingTopSubTitle = ['en' => $existingTopSubTitle];
-        }
-        foreach (['en', 'gu', 'hi'] as $lang) {
-            if (array_key_exists($lang, $resolvedFooterSubtitle)) {
-                $existingTopSubTitle[$lang] = $resolvedFooterSubtitle[$lang];
-            }
-        }
-        $finalJson['branding']['bottomMarker']['topSubTitle'] = $existingTopSubTitle;
-
-        $existingTopDescription = $finalJson['branding']['bottomMarker']['topDescription'] ?? [];
-        if (!is_array($existingTopDescription)) {
-            $existingTopDescription = ['en' => $existingTopDescription];
-        }
-        foreach (['en', 'gu', 'hi'] as $lang) {
-            if (array_key_exists($lang, $resolvedFooterDescription)) {
-                $existingTopDescription[$lang] = $resolvedFooterDescription[$lang];
-            }
-        }
-        $finalJson['branding']['bottomMarker']['topDescription'] = $existingTopDescription;
+        $finalJson['branding']['bottomMarker']['topTitle'] = LanguageConfigHelper::mergeLocaleMapForJson(
+            $finalJson['branding']['bottomMarker']['topTitle'] ?? [],
+            $validated['footer_title'] ?? [],
+            $languageCodes
+        );
+        $finalJson['branding']['bottomMarker']['topSubTitle'] = LanguageConfigHelper::mergeLocaleMapForJson(
+            $finalJson['branding']['bottomMarker']['topSubTitle'] ?? [],
+            $validated['footer_subtitle'] ?? [],
+            $languageCodes
+        );
+        $finalJson['branding']['bottomMarker']['topDescription'] = LanguageConfigHelper::mergeLocaleMapForJson(
+            $finalJson['branding']['bottomMarker']['topDescription'] ?? [],
+            $validated['footer_decription'] ?? [],
+            $languageCodes
+        );
 
         if (array_key_exists('footer_mobile', $validated)) {
             $finalJson['branding']['bottomMarker']['contactNumber'] = $validated['footer_mobile'];
@@ -2379,28 +2434,39 @@ class TourController extends Controller
             $finalJson['branding']['bottomMarker']['contactEmail'] = $validated['footer_email'];
         }
 
-        $updateData = $validated;
-        $updateData['footer_title'] = empty($resolvedFooterTitle) ? null : $resolvedFooterTitle;
-        $updateData['footer_subtitle'] = empty($resolvedFooterSubtitle) ? null : $resolvedFooterSubtitle;
-        $updateData['footer_decription'] = empty($resolvedFooterDescription) ? null : $resolvedFooterDescription;
+        $updateData = [
+            'footer_title' => empty($resolvedFooterTitle) ? null : $resolvedFooterTitle,
+            'footer_subtitle' => empty($resolvedFooterSubtitle) ? null : $resolvedFooterSubtitle,
+            'footer_decription' => empty($resolvedFooterDescription) ? null : $resolvedFooterDescription,
+        ];
+        if (array_key_exists('footer_mobile', $validated)) {
+            $updateData['footer_mobile'] = $validated['footer_mobile'];
+        }
+        if (array_key_exists('footer_email', $validated)) {
+            $updateData['footer_email'] = $validated['footer_email'];
+        }
 
         $qrCode = QR::where('booking_id', $tour->booking_id)->value('code');
-        $logoFooterFile = $request->file('footer_logo');
+        $logoFooterFile = $request->hasFile('footer_logo') ? $request->file('footer_logo') : null;
         if ($logoFooterFile && $qrCode) {
             $footerFilename = 'logo_footer_' . time() . '_' . Str::random(8) . '.' . $logoFooterFile->getClientOriginalExtension();
             $footerPath = 'tours/' . $qrCode . '/assets/' . $footerFilename;
             $footerContent = file_get_contents($logoFooterFile->getRealPath());
             $footerMime = $logoFooterFile->getMimeType();
             $uploaded = Storage::disk('s3')->put($footerPath, $footerContent, ['ContentType' => $footerMime]);
-            $finalJson['branding']['bottomMarker']['topImage'] = 'assets/' . $footerFilename;
-
             if ($uploaded) {
+                $finalJson['branding']['bottomMarker']['topImage'] = 'assets/' . $footerFilename;
                 $updateData['footer_logo'] = Storage::disk('s3')->url($footerPath);
             }
+        } elseif ($existingTopImage) {
+            $finalJson['branding']['bottomMarker']['topImage'] = $existingTopImage;
         }
 
-
-        $tourDataJson['branding']['bottomMarker'] = $finalJson['branding']['bottomMarker'];
+        $tourDataJson['branding'] = is_array($tourDataJson['branding'] ?? null) ? $tourDataJson['branding'] : [];
+        $tourDataJson['branding']['bottomMarker'] = array_replace(
+            is_array($tourDataJson['branding']['bottomMarker'] ?? null) ? $tourDataJson['branding']['bottomMarker'] : [],
+            $finalJson['branding']['bottomMarker']
+        );
 
         $updateData['final_json'] = $finalJson;
         $updateData['virtual_tour_nodes_json'] = $finalJson;
@@ -2437,70 +2503,53 @@ class TourController extends Controller
      */
     public function updateTourBottomPropertyTab(Request $request, Tour $tour): JsonResponse|RedirectResponse
     {
-        $validated = $request->validate([
-            'bottommark_property_name_en' => ['nullable', 'string'],
-            'bottommark_property_name_gu' => ['nullable', 'string'],
-            'bottommark_property_name_hi' => ['nullable', 'string'],
-            'bottommark_room_type_en' => ['nullable', 'string'],
-            'bottommark_room_type_gu' => ['nullable', 'string'],
-            'bottommark_room_type_hi' => ['nullable', 'string'],
-            'bottommark_dimensions_en' => ['nullable', 'string'],
-            'bottommark_dimensions_gu' => ['nullable', 'string'],
-            'bottommark_dimensions_hi' => ['nullable', 'string'],
-        ]);
+        $languageState = LanguageConfigHelper::resolveFromTour($tour);
+        $languageCodes = $languageState['languageSlotOrder'];
+
+        $validated = $request->validate(array_merge(
+            LanguageConfigHelper::perLanguageStringRules('bottommark_property_name', $languageCodes, 255),
+            LanguageConfigHelper::perLanguageStringRules('bottommark_room_type', $languageCodes, 255),
+            LanguageConfigHelper::perLanguageStringRules('bottommark_dimensions', $languageCodes, 255)
+        ));
 
         $oldData = $tour->toArray();
 
         $finalJson = $this->normalizeFinalJsonPayload($tour);
         $tourDataJson = $this->normalizeTourDataJsonPayload($tour);
 
-
         $finalJson['branding']['bottomMarker'] = $finalJson['branding']['bottomMarker'] ?? [];
 
-        $resolvedPropertyName = array_filter([
-            'en' => $validated['bottommark_property_name_en'] ?? '',
-            'gu' => $validated['bottommark_property_name_gu'] ?? '',
-            'hi' => $validated['bottommark_property_name_hi'] ?? '',
-        ], static fn($value) => !is_null($value));
+        $resolvedPropertyName = LanguageConfigHelper::mergePerLanguageStringMap(
+            LanguageConfigHelper::decodePerLanguageStored($tour->bottommark_property_name),
+            is_array($validated['bottommark_property_name'] ?? null) ? $validated['bottommark_property_name'] : [],
+            $languageCodes
+        );
+        $resolvedRoomType = LanguageConfigHelper::mergePerLanguageStringMap(
+            LanguageConfigHelper::decodePerLanguageStored($tour->bottommark_room_type),
+            is_array($validated['bottommark_room_type'] ?? null) ? $validated['bottommark_room_type'] : [],
+            $languageCodes
+        );
+        $resolvedDimensions = LanguageConfigHelper::mergePerLanguageStringMap(
+            LanguageConfigHelper::decodePerLanguageStored($tour->bottommark_dimensions),
+            is_array($validated['bottommark_dimensions'] ?? null) ? $validated['bottommark_dimensions'] : [],
+            $languageCodes
+        );
 
-        $resolvedRoomType = array_filter([
-            'en' => $validated['bottommark_room_type_en'] ?? '',
-            'gu' => $validated['bottommark_room_type_gu'] ?? '',
-            'hi' => $validated['bottommark_room_type_hi'] ?? '',
-        ], static fn($value) => !is_null($value));
-
-        $resolvedDimensions = array_filter([
-            'en' => $validated['bottommark_dimensions_en'] ?? '',
-            'gu' => $validated['bottommark_dimensions_gu'] ?? '',
-            'hi' => $validated['bottommark_dimensions_hi'] ?? '',
-        ], static fn($value) => !is_null($value));
-
-        if (!empty($resolvedPropertyName)) {
+        if (! empty($resolvedPropertyName)) {
             $finalJson['branding']['bottomMarker']['propertyName'] = $resolvedPropertyName;
         }
-        if (!empty($resolvedRoomType)) {
+        if (! empty($resolvedRoomType)) {
             $finalJson['branding']['bottomMarker']['roomType'] = $resolvedRoomType;
         }
-        if (!empty($resolvedDimensions)) {
+        if (! empty($resolvedDimensions)) {
             $finalJson['branding']['bottomMarker']['dimensions'] = $resolvedDimensions;
         }
 
-        $updateData = $validated;
-        $updateData['bottommark_property_name'] = empty($resolvedPropertyName) ? null : $resolvedPropertyName;
-        $updateData['bottommark_room_type'] = empty($resolvedRoomType) ? null : $resolvedRoomType;
-        $updateData['bottommark_dimensions'] = empty($resolvedDimensions) ? null : $resolvedDimensions;
-
-        unset(
-            $updateData['bottommark_property_name_en'],
-            $updateData['bottommark_property_name_gu'],
-            $updateData['bottommark_property_name_hi'],
-            $updateData['bottommark_room_type_en'],
-            $updateData['bottommark_room_type_gu'],
-            $updateData['bottommark_room_type_hi'],
-            $updateData['bottommark_dimensions_en'],
-            $updateData['bottommark_dimensions_gu'],
-            $updateData['bottommark_dimensions_hi']
-        );
+        $updateData = [
+            'bottommark_property_name' => empty($resolvedPropertyName) ? null : $resolvedPropertyName,
+            'bottommark_room_type' => empty($resolvedRoomType) ? null : $resolvedRoomType,
+            'bottommark_dimensions' => empty($resolvedDimensions) ? null : $resolvedDimensions,
+        ];
 
         $tourDataJson['branding']['bottomMarker'] = $finalJson['branding']['bottomMarker'];
 
@@ -2530,6 +2579,40 @@ class TourController extends Controller
         }
 
         return redirect()->back()->with(['success' => 'Bottom property section updated successfully.', 'active_tab' => 'vl-pills-bottom-mark-property']);
+    }
+
+    /**
+     * Resolve bottom-marker top image path from JSON payloads or the tour footer_logo column.
+     */
+    private function resolveBottomMarkerTopImage(array $finalJson, array $tourDataJson, Tour $tour): ?string
+    {
+        $candidates = [
+            data_get($finalJson, 'branding.bottomMarker.topImage'),
+            data_get($finalJson, 'bottomMarker.topImage'),
+            data_get($tourDataJson, 'branding.bottomMarker.topImage'),
+            data_get($tourDataJson, 'bottomMarker.topImage'),
+        ];
+
+        foreach ($candidates as $value) {
+            if (is_string($value) && trim($value) !== '') {
+                return $value;
+            }
+        }
+
+        $footerLogo = $tour->footer_logo;
+        if (! is_string($footerLogo) || trim($footerLogo) === '') {
+            return null;
+        }
+
+        if (preg_match('#/assets/([^?]+)#', $footerLogo, $matches)) {
+            return 'assets/' . $matches[1];
+        }
+
+        if (! str_starts_with($footerLogo, 'http://') && ! str_starts_with($footerLogo, 'https://')) {
+            return ltrim($footerLogo, '/');
+        }
+
+        return null;
     }
 
     private function normalizeFinalJsonPayload(Tour $tour): array
@@ -2754,40 +2837,32 @@ class TourController extends Controller
      * */
     public function updateBookmarkFields(Request $request, Tour $tour): JsonResponse|RedirectResponse
     {
-        $validated = $request->validate([
-            'bookmark_title' => ['nullable', 'array'],
-            'bookmark_title.en' => ['nullable', 'string', 'max:255'],
-            'bookmark_title.gu' => ['nullable', 'string', 'max:255'],
-            'bookmark_title.hi' => ['nullable', 'string', 'max:255'],
-            'bookmark_ribbon_background_color' => ['nullable', 'string', 'max:100'],
-            'bookmark_ribbon_text_color' => ['nullable', 'string', 'max:100'],
-            'bookmark_show_on_tour_load' => ['nullable', 'boolean'],
-            'bookmark_show_on_tour_load_delay_ms' => ['nullable', 'integer', 'min:0'],
-            'bookmark_action' => ['nullable', 'string', 'max:255'],
-            'bookmark_modal_title' => ['nullable', 'array'],
-            'bookmark_modal_title.en' => ['nullable', 'string'],
-            'bookmark_modal_title.gu' => ['nullable', 'string'],
-            'bookmark_modal_title.hi' => ['nullable', 'string'],
-            'bookmark_modal_description' => ['nullable', 'array'],
-            'bookmark_modal_description.en' => ['nullable', 'string'],
-            'bookmark_modal_description.gu' => ['nullable', 'string'],
-            'bookmark_modal_description.hi' => ['nullable', 'string'],
-            'bookmark_info_modal_footer_button_title' => ['nullable', 'array'],
-            'bookmark_info_modal_footer_button_title.en' => ['nullable', 'string'],
-            'bookmark_info_modal_footer_button_title.gu' => ['nullable', 'string'],
-            'bookmark_info_modal_footer_button_link' => ['nullable', 'string', 'max:500'],
-            'bookmark_info_modal_footer_text' => ['nullable', 'array'],
-            'bookmark_info_modal_footer_text.en' => ['nullable', 'string'],
-            'bookmark_info_modal_footer_text.gu' => ['nullable', 'string'],
-            'bookmark_open_link_url' => ['nullable', 'string', 'max:500'],
-            'bookmark_document_url' => ['nullable', 'string', 'max:500'],
-            'bookmark_video_url' => ['nullable', 'string', 'max:500'],
-            'bookmark_image_url' => ['nullable', 'string', 'max:1000'],
-            'bookmark_document_file' => ['nullable', 'file', 'max:10240', 'mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,txt'],
-            'bookmark_video_file' => ['nullable', 'file', 'max:102400', 'mimetypes:video/mp4,video/quicktime,video/x-msvideo,video/x-matroska,video/webm'],
-            'bookmark_image_file' => ['nullable', 'array'],
-            'bookmark_image_file.*' => ['nullable', 'file', 'image', 'max:10240'],
-        ]);
+        $languageState = LanguageConfigHelper::resolveFromTour($tour);
+        $languageCodes = $languageState['languageSlotOrder'];
+
+        $validated = $request->validate(array_merge(
+            [
+                'bookmark_ribbon_background_color' => ['nullable', 'string', 'max:100'],
+                'bookmark_ribbon_text_color' => ['nullable', 'string', 'max:100'],
+                'bookmark_show_on_tour_load' => ['nullable', 'boolean'],
+                'bookmark_show_on_tour_load_delay_ms' => ['nullable', 'integer', 'min:0'],
+                'bookmark_action' => ['nullable', 'string', 'max:255'],
+                'bookmark_info_modal_footer_button_link' => ['nullable', 'string', 'max:500'],
+                'bookmark_open_link_url' => ['nullable', 'string', 'max:500'],
+                'bookmark_document_url' => ['nullable', 'string', 'max:500'],
+                'bookmark_video_url' => ['nullable', 'string', 'max:500'],
+                'bookmark_image_url' => ['nullable', 'string', 'max:1000'],
+                'bookmark_document_file' => ['nullable', 'file', 'max:10240', 'mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,txt'],
+                'bookmark_video_file' => ['nullable', 'file', 'max:102400', 'mimetypes:video/mp4,video/quicktime,video/x-msvideo,video/x-matroska,video/webm'],
+                'bookmark_image_file' => ['nullable', 'array'],
+                'bookmark_image_file.*' => ['nullable', 'file', 'image', 'max:10240'],
+            ],
+            LanguageConfigHelper::perLanguageStringRules('bookmark_title', $languageCodes, 255),
+            LanguageConfigHelper::perLanguageStringRules('bookmark_modal_title', $languageCodes, 5000, true),
+            LanguageConfigHelper::perLanguageStringRules('bookmark_modal_description', $languageCodes, 50000, true),
+            LanguageConfigHelper::perLanguageStringRules('bookmark_info_modal_footer_text', $languageCodes, 50000, true),
+            LanguageConfigHelper::perLanguageStringRules('bookmark_info_modal_footer_button_title', $languageCodes, 500, true)
+        ));
 
         $oldData = $tour->toArray();
 
@@ -2819,14 +2894,10 @@ class TourController extends Controller
         if (!is_array($incomingBookmarkTitle)) {
             $incomingBookmarkTitle = [];
         }
-        foreach (['en', 'gu', 'hi'] as $lang) {
-            if (array_key_exists($lang, $incomingBookmarkTitle)) {
-                $resolvedBookmarkTitle[$lang] = $incomingBookmarkTitle[$lang];
-            }
-        }
-        $resolvedBookmarkTitle = array_filter(
+        $resolvedBookmarkTitle = LanguageConfigHelper::mergePerLanguageStringMap(
             $resolvedBookmarkTitle,
-            static fn($value) => is_string($value) && trim($value) !== ''
+            $incomingBookmarkTitle,
+            $languageCodes
         );
 
         $existingBookmarkImagesUrl = $tour->bookmark_images_url;

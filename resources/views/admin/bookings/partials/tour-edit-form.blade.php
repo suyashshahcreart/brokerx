@@ -258,99 +258,10 @@
             </div>
         </div>
         <div class="card-body">
-            <div class="row">
-                <div class="col-md-12">
-                    <div class="mb-3">
-                        <div class="mt-2 items-start">
-                            @if($tour->sidebar_logo)
-                                <img id="sidebar_logo_preview" src="{{ Storage::disk('s3')->url($tour->sidebar_logo) }}"
-                                    alt="Sidebar Logo"
-                                    style="max-width: 300px; max-height: auto; border:1px solid #ddd; background:#fff; padding:2px;">
-                            @else
-                                <img id="sidebar_logo_preview" src="" alt="Sidebar Logo"
-                                    style="max-width: 300px; max-height: auto; border:1px solid #ddd; background:#fff; padding:2px; display:none;">
-                            @endif
-                        </div>
-                        <div class="mt-3">
-                            <label class="form-label" for="sidebar_logo">Sidebar Logo</label>
-                            <input type="file" name="sidebar_logo" id="custom_logo_sidebar" @if (!$qr_code) disabled @endif class="form-control"
-                                accept="image/*" onchange="previewImage(event, 'sidebar_logo')">
-                        </div>
-                        @error('sidebar_logo')<div class="text-danger">{{ $message }}</div>@enderror
-                    </div>
-                </div>
-
-                <div class="col-md-12">
-                    <h5 class="mb-3">Sidebar Tag <span class="text-muted">(optional)</span></h5>
-                    <p class="text-muted mb-3">Vertical tag on the right side of the sidebar. Leave empty to hide.</p>
-                </div>
-
-                <div class="col-md-4">
-                    <div class="mb-3">
-                        <label for="sidebar_tag_text" class="form-label">Tag Title</label>
-                        <input type="text" name="sidebar_tag_text" id="sidebar_tag_text" class="form-control"
-                            placeholder="e.g, sold out"
-                            value="{{ old('sidebar_tag_text', $tour->sidebar_tag_text ?? '') }}">
-                        @error('sidebar_tag_text')<div class="text-danger">{{ $message }}</div>@enderror
-                    </div>
-                </div>
-
-                <div class="col-md-4">
-                    <div class="mb-3">
-                        <label class="form-label" for="sidebar_tag_bg_color">Tag Background Color</label>
-                        <div class="input-group">
-                            <span class="input-group-text p-1">
-                                <input type="color" id="sidebar_tag_bg_color_picker" class="form-control form-control-color"
-                                    value="{{ old('sidebar_tag_bg_color', $tour->sidebar_tag_bg_color ?? '#ff000d') }}"
-                                    onchange="document.getElementById('sidebar_tag_bg_color').value = this.value">
-                            </span>
-                            <input type="text" name="sidebar_tag_bg_color" id="sidebar_tag_bg_color" class="form-control"
-                                placeholder="e.g. #ff000d"
-                                oninput="document.getElementById('sidebar_tag_bg_color_picker').value = this.value"
-                                value="{{ old('sidebar_tag_bg_color', $tour->sidebar_tag_bg_color ?? '#ff000d') }}">
-                        </div>
-                        @error('sidebar_tag_bg_color')<div class="text-danger">{{ $message }}</div>@enderror
-                    </div>
-                </div>
-
-                <div class="col-md-4">
-                    <div class="mb-3">
-                        <label class="form-label" for="sidebar_tag_color">Tag Text Color</label>
-                        <div class="input-group">
-                            <span class="input-group-text p-1">
-                                <input type="color" id="sidebar_tag_color_picker" class="form-control form-control-color"
-                                    value="{{ old('sidebar_tag_color', $tour->sidebar_tag_color ?? '#ffffff') }}"
-                                    onchange="document.getElementById('sidebar_tag_color').value = this.value">
-                            </span>
-                            <input type="text" name="sidebar_tag_color" id="sidebar_tag_color" class="form-control"
-                                placeholder="e.g. #ffffff"
-                                oninput="document.getElementById('sidebar_tag_color_picker').value = this.value"
-                                value="{{ old('sidebar_tag_color', $tour->sidebar_tag_color ?? '#ffffff') }}">
-                        </div>
-                        @error('sidebar_tag_color')<div class="text-danger">{{ $message }}</div>@enderror
-                    </div>
-                </div>
-
-                <div class="col-md-6">
-                    <div class="mb-3">
-                        <label for="made_by_text" class="form-label">Made by text <span class="text-muted">(optional)</span></label>
-                        <input type="text" name="sidebar_footer_text" id="made_by_text" class="form-control"
-                            placeholder="e.g, Prop Pik"
-                            value="{{ old('sidebar_footer_text', $tour->sidebar_footer_text ?? '') }}">
-                        @error('made_by_text')<div class="text-danger">{{ $message }}</div>@enderror
-                    </div>
-                </div>
-
-                <div class="col-md-6">
-                    <div class="mb-3">
-                        <label for="made_by_link" class="form-label">Made by link <span class="text-danger">*</span></label>
-                        <input type="url" name="sidebar_footer_link" id="made_by_link" class="form-control"
-                            placeholder="e.g,   https://proppik.com/contact"
-                            value="{{ old('sidebar_footer_link', $tour->sidebar_footer_link ?? '') }}">
-                        @error('made_by_link')<div class="text-danger">{{ $message }}</div>@enderror
-                    </div>
-                </div>
-            </div>
+            <p class="text-muted mb-0">
+                Sidebar logo, tags, and footer button are managed in
+                <strong>Tour Details → Sidebar → Sidebar Configuration</strong>.
+            </p>
         </div>
     </div>
 
@@ -741,9 +652,6 @@
         }
 
         // Bind sidebar tag color sync
-        bindColorSync('sidebar_tag_bg_color', 'sidebar_tag_bg_color_picker');
-        bindColorSync('sidebar_tag_color', 'sidebar_tag_color_picker');
-
         // Get Tour Active checkbox and related fields
         const isActive = document.getElementById('is_active');
         const credentialsRequiredField = document.getElementById('credentials-required-field');

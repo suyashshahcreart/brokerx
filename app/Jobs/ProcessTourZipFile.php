@@ -4,9 +4,6 @@ namespace App\Jobs;
 
 use App\Models\Booking;
 use App\Models\QR;
-use App\Models\Tour;
-use App\Services\TourAssetJsonPersistenceService;
-use App\Services\TourService;
 use App\Services\TourZipProgressService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -28,7 +25,7 @@ class ProcessTourZipFile implements ShouldQueue
 
         public $timeout = 18000; // 5 hours for large ZIP processing
 
-        public $tries = 2; // Retry a few times (DB retry_after can re-attempt long jobs)
+        public $tries = 1; // Retry a few times (DB retry_after can re-attempt long jobs)
 
         public $backoff = 10000; // Wait 10000 seconds before retry
 
@@ -42,8 +39,6 @@ class ProcessTourZipFile implements ShouldQueue
 
     protected $location;
 
-    protected $tourService;
-
     protected ?TourZipProgressService $zipProgress = null;
 
     /**
@@ -51,7 +46,6 @@ class ProcessTourZipFile implements ShouldQueue
      */
     public function __construct($bookingId, $zipFilePath, $originalFilename, $slug, $location)
     {
-        $this->tourService = app(TourService::class);
         $this->bookingId = $bookingId;
         $this->zipFilePath = $zipFilePath;
         $this->originalFilename = $originalFilename;
@@ -149,87 +143,27 @@ class ProcessTourZipFile implements ShouldQueue
 
             $this->zipProgress->report($this->bookingId, 88.5, 'db_sync', 'Merging tour JSON and syncing database fields', [], true);
 
-            $zipPayloadForHistory = TourAssetJsonPersistenceService::snapshotZipPayloadForHistory($result);
-
-            $tourData = $result['data'];
-
-            $uploadedFiles = [
-                [
-                    'name' => $this->originalFilename,
-                    'type' => 'zip',
-                    'processed' => true,
-                    'tour_path' => $result['tour_path'],
-                    'tour_url' => $result['tour_url'],
-                    's3_path' => $result['s3_path'],
-                    's3_url' => $result['s3_url'],
-                    'size' => $fileSize,
-                    'file_hash' => $fileHash,
-                    'uploaded_at' => now()->toDateTimeString(),
-                    'processed_at' => now()->toDateTimeString(),
-                    'processed_in_background' => true,
-                ],
-            ];
-
-            $existingFiles = $tour->final_json['files'] ?? [];
-
-            $fileAlreadyExists = false;
-            $existingFileIndex = null;
-            foreach ($existingFiles as $index => $existingFile) {
-                if (isset($existingFile['name']) && $existingFile['name'] === $this->originalFilename) {
-                    if (isset($existingFile['file_hash']) && isset($fileHash)) {
-                        if (
-                            $existingFile['file_hash'] === $fileHash &&
-                            isset($existingFile['size']) && $existingFile['size'] === $fileSize
-                        ) {
-                            $fileAlreadyExists = true;
-                            $existingFileIndex = $index;
-                            break;
-                        }
-                    } else {
-                        $fileAlreadyExists = true;
-                        $existingFileIndex = $index;
-                        break;
-                    }
-                }
-            }
-
-            if (! $fileAlreadyExists) {
-                $existingFiles = array_merge($existingFiles, $uploadedFiles);
-            } else {
-                if ($existingFileIndex !== null) {
-                    $existingFiles[$existingFileIndex] = array_merge($existingFiles[$existingFileIndex], $uploadedFiles[0]);
-                }
-            }
-
-            $tour->final_json = array_merge(
-                $tourData,
-                [
-                    'files' => $existingFiles,
-                    'qr_code' => $qrCode->code,
-                    'updated_at' => now()->toDateTimeString(),
-                ]
-            );
-
-            $tour->tour_data_json = $result['tour_data_json'];
-
-            $this->tourService->syncTourFieldsFromJson($tour, $tour->tour_data_json, [], true);
-            $this->zipProgress->report($this->bookingId, 94.0, 'db_sync', 'Recording JSON history snapshot', [], true);
-
-            app(TourAssetJsonPersistenceService::class)->recordFromZipResult(
+            $controller->applyZipProcessResultToTour(
+                $booking,
                 $tour,
-                $zipPayloadForHistory,
+                $qrCode,
+                $result,
+                $this->originalFilename,
+                $fileSize,
+                $fileHash,
+                true,
                 auth()->id() ?? 1
             );
 
-            $booking->base_url = $result['s3_url'];
-            $booking->save();
+            $this->zipProgress->report($this->bookingId, 94.0, 'db_sync', 'Recording JSON history snapshot', [], true);
 
             Log::info("Successfully processed ZIP file for booking #{$this->bookingId}");
             $this->zipProgress->markDone($this->bookingId);
             $this->workerLog('DONE', 100, 'Successfully processed ZIP file');
 
-            if (strpos($this->zipFilePath, 'chunks') !== false && file_exists($this->zipFilePath)) {
-                @unlink($this->zipFilePath);
+            if (str_contains(str_replace('\\', '/', $this->zipFilePath), '/chunks/')) {
+                app(\App\Http\Controllers\Admin\TourManagerController::class)
+                    ->cleanupChunkUploadDirectory($this->zipFilePath);
             }
         } catch (\Exception $e) {
             Log::error("Background ZIP processing failed for booking #{$this->bookingId}: ".$e->getMessage().' in '.$e->getFile().':'.$e->getLine());
@@ -249,6 +183,11 @@ class ProcessTourZipFile implements ShouldQueue
             Booking::find($this->bookingId);
         } catch (\Exception $e) {
             Log::error('Failed to update booking status: '.$e->getMessage().' in '.$e->getFile().':'.$e->getLine());
+        }
+
+        if (str_contains(str_replace('\\', '/', $this->zipFilePath), '/chunks/')) {
+            app(\App\Http\Controllers\Admin\TourManagerController::class)
+                ->cleanupChunkUploadDirectory($this->zipFilePath);
         }
     }
 

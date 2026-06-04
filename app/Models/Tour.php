@@ -39,6 +39,7 @@ class Tour extends Model
         'tour_data_json',
         'tour_data_js',
         'sidebar_links',
+        'sidebar_config',
         'working_json',
         'working_json_last_update_user',
         'revision',
@@ -59,7 +60,6 @@ class Tour extends Model
         'header_code',
         'footer_code',
         // New fields added by migration
-        'sidebar_logo',
         'footer_logo',
         'footer_title',
         'footer_email',
@@ -68,9 +68,6 @@ class Tour extends Model
         'footer_decription',
         // Sidebar and Footer fields
         'company_address',
-        'sidebar_footer_link',
-        'sidebar_footer_text',
-        'sidebar_footer_link_show',
         'footer_info_type',
         'footer_brand_logo',
         'footer_brand_text',
@@ -99,6 +96,9 @@ class Tour extends Model
         // Language fields
         'enable_language',
         'default_language',
+        'locale_config',
+        'language_display',
+        'language_slot_order',
         // Customization fields
         'overlay_bg_color',
         'loader_text',
@@ -106,10 +106,6 @@ class Tour extends Model
         'spinner_color',
         // Attachment file
         'attachment_file',
-        // Sidebar tag fields
-        'sidebar_tag_text',
-        'sidebar_tag_color',
-        'sidebar_tag_bg_color',
         // Bottommark multilingual fields
         'bottommark_property_name',
         'bottommark_room_type',
@@ -158,12 +154,12 @@ class Tour extends Model
             'final_json' => 'array',
             'virtual_tour_nodes_json' => 'array',
             'tour_data_json' => 'array',
-            'sidebar_links' => 'array',
-            'working_json' => 'array',
+        'sidebar_links' => 'array',
+        'sidebar_config' => 'array',
+        'working_json' => 'array',
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
             'deleted_at' => 'datetime',
-            'sidebar_footer_link_show' => 'boolean',
             'is_active' => 'boolean',
             'is_credentials' => 'boolean',
             'is_mobile_validation' => 'boolean',
@@ -178,6 +174,9 @@ class Tour extends Model
             'show_document_url' => 'boolean',
             'show_document_url2' => 'boolean',
             'enable_language' => 'array',
+            'locale_config' => 'array',
+            'language_display' => 'array',
+            'language_slot_order' => 'array',
             'loader_color' => 'array',
             'spinner_color' => 'array',
             'attachment_file' => 'array',

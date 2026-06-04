@@ -9,6 +9,7 @@ use App\Models\Tour;
 use App\Models\User;
 use App\Models\Setting;
 use App\Models\FtpConfiguration;
+use App\Support\SidebarConfigHelper;
 use App\Jobs\ProcessTourZipFile;
 use App\Services\TourZipProgressService;
 use Illuminate\Http\Request;
@@ -98,7 +99,9 @@ class TourManagerController extends Controller
             $tour->footer_brand_logo = $tour->footer_brand_logo ? $s3LinkBase . $tour->footer_brand_logo : null;
 
             $tour->footer_logo = $tour->footer_logo ? $tour->footer_logo : null;
-            $tour->sidebar_logo = $tour->sidebar_logo ? $s3LinkBase . $tour->sidebar_logo : null;
+            $sidebarConfig = is_array($tour->sidebar_config) ? $tour->sidebar_config : [];
+            $qrCode = $tour->booking ? $tour->booking->tour_code : null;
+            $tour->sidebar_logo = SidebarConfigHelper::logoPreviewUrl($tour, $qrCode, $sidebarConfig['logo'] ?? null);
 
             // QR Code
             $tour->qr_code = $tour->booking ? $tour->booking->tour_code : null;
@@ -166,7 +169,9 @@ class TourManagerController extends Controller
         // Format tour details (matching mapping logic in getToursByCustomer)
         $tour->footer_brand_logo = $tour->footer_brand_logo ? $s3LinkBase . $tour->footer_brand_logo : null;
         $tour->footer_logo = $tour->footer_logo ? $s3LinkBase . $tour->footer_logo : null;
-        $tour->sidebar_logo = $tour->sidebar_logo ? $s3LinkBase . $tour->sidebar_logo : null;
+        $sidebarConfig = is_array($tour->sidebar_config) ? $tour->sidebar_config : [];
+        $qrCode = $tour->booking ? $tour->booking->tour_code : null;
+        $tour->sidebar_logo = SidebarConfigHelper::logoPreviewUrl($tour, $qrCode, $sidebarConfig['logo'] ?? null);
 
         $tour->qr_code = $tour->booking ? $tour->booking->tour_code : null;
         $tour->qr_link = $tour->booking ? $tour->booking->tour_code ? $qrLinkBase . $tour->qr_code : null : null;
