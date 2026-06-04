@@ -409,12 +409,22 @@ document.addEventListener('DOMContentLoaded', function () {
             successMessage: 'Bottom top section updated successfully!',
             errorMessage: 'An error occurred while updating bottom top section. Please try again.',
             afterSuccess: (form, data) => {
+                const preview = document.getElementById('footer_logo_preview');
+                if (!preview) {
+                    return;
+                }
+
                 if (data?.tour?.footer_logo) {
-                    const preview = document.getElementById('footer_logo_preview');
-                    if (preview) {
-                        preview.src = data.tour.footer_logo;
-                        preview.style.display = '';
-                    }
+                    preview.src = data.tour.footer_logo;
+                    preview.dataset.originalSrc = data.tour.footer_logo;
+                    preview.style.display = '';
+                    return;
+                }
+
+                const originalSrc = preview.dataset.originalSrc;
+                if (originalSrc) {
+                    preview.src = originalSrc;
+                    preview.style.display = '';
                 }
             },
         });

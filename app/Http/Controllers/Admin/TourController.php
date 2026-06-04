@@ -2388,8 +2388,12 @@ class TourController extends Controller
 
         $finalJson = $this->normalizeFinalJsonPayload($tour);
         $tourDataJson = $this->normalizeTourDataJsonPayload($tour);
+        $existingTopImage = $this->resolveBottomMarkerTopImage($finalJson, $tourDataJson, $tour);
 
-        $finalJson['branding']['bottomMarker'] = $finalJson['branding']['bottomMarker'] ?? [];
+        $finalJson['branding'] = is_array($finalJson['branding'] ?? null) ? $finalJson['branding'] : [];
+        $finalJson['branding']['bottomMarker'] = is_array($finalJson['branding']['bottomMarker'] ?? null)
+            ? $finalJson['branding']['bottomMarker']
+            : [];
 
         $resolvedFooterTitle = LanguageConfigHelper::mergePerLanguageStringMap(
             LanguageConfigHelper::decodePerLanguageStored($tour->footer_title),
@@ -2430,28 +2434,39 @@ class TourController extends Controller
             $finalJson['branding']['bottomMarker']['contactEmail'] = $validated['footer_email'];
         }
 
-        $updateData = $validated;
-        $updateData['footer_title'] = empty($resolvedFooterTitle) ? null : $resolvedFooterTitle;
-        $updateData['footer_subtitle'] = empty($resolvedFooterSubtitle) ? null : $resolvedFooterSubtitle;
-        $updateData['footer_decription'] = empty($resolvedFooterDescription) ? null : $resolvedFooterDescription;
+        $updateData = [
+            'footer_title' => empty($resolvedFooterTitle) ? null : $resolvedFooterTitle,
+            'footer_subtitle' => empty($resolvedFooterSubtitle) ? null : $resolvedFooterSubtitle,
+            'footer_decription' => empty($resolvedFooterDescription) ? null : $resolvedFooterDescription,
+        ];
+        if (array_key_exists('footer_mobile', $validated)) {
+            $updateData['footer_mobile'] = $validated['footer_mobile'];
+        }
+        if (array_key_exists('footer_email', $validated)) {
+            $updateData['footer_email'] = $validated['footer_email'];
+        }
 
         $qrCode = QR::where('booking_id', $tour->booking_id)->value('code');
-        $logoFooterFile = $request->file('footer_logo');
+        $logoFooterFile = $request->hasFile('footer_logo') ? $request->file('footer_logo') : null;
         if ($logoFooterFile && $qrCode) {
             $footerFilename = 'logo_footer_' . time() . '_' . Str::random(8) . '.' . $logoFooterFile->getClientOriginalExtension();
             $footerPath = 'tours/' . $qrCode . '/assets/' . $footerFilename;
             $footerContent = file_get_contents($logoFooterFile->getRealPath());
             $footerMime = $logoFooterFile->getMimeType();
             $uploaded = Storage::disk('s3')->put($footerPath, $footerContent, ['ContentType' => $footerMime]);
-            $finalJson['branding']['bottomMarker']['topImage'] = 'assets/' . $footerFilename;
-
             if ($uploaded) {
+                $finalJson['branding']['bottomMarker']['topImage'] = 'assets/' . $footerFilename;
                 $updateData['footer_logo'] = Storage::disk('s3')->url($footerPath);
             }
+        } elseif ($existingTopImage) {
+            $finalJson['branding']['bottomMarker']['topImage'] = $existingTopImage;
         }
 
-
-        $tourDataJson['branding']['bottomMarker'] = $finalJson['branding']['bottomMarker'];
+        $tourDataJson['branding'] = is_array($tourDataJson['branding'] ?? null) ? $tourDataJson['branding'] : [];
+        $tourDataJson['branding']['bottomMarker'] = array_replace(
+            is_array($tourDataJson['branding']['bottomMarker'] ?? null) ? $tourDataJson['branding']['bottomMarker'] : [],
+            $finalJson['branding']['bottomMarker']
+        );
 
         $updateData['final_json'] = $finalJson;
         $updateData['virtual_tour_nodes_json'] = $finalJson;
@@ -2564,6 +2579,40 @@ class TourController extends Controller
         }
 
         return redirect()->back()->with(['success' => 'Bottom property section updated successfully.', 'active_tab' => 'vl-pills-bottom-mark-property']);
+    }
+
+    /**
+     * Resolve bottom-marker top image path from JSON payloads or the tour footer_logo column.
+     */
+    private function resolveBottomMarkerTopImage(array $finalJson, array $tourDataJson, Tour $tour): ?string
+    {
+        $candidates = [
+            data_get($finalJson, 'branding.bottomMarker.topImage'),
+            data_get($finalJson, 'bottomMarker.topImage'),
+            data_get($tourDataJson, 'branding.bottomMarker.topImage'),
+            data_get($tourDataJson, 'bottomMarker.topImage'),
+        ];
+
+        foreach ($candidates as $value) {
+            if (is_string($value) && trim($value) !== '') {
+                return $value;
+            }
+        }
+
+        $footerLogo = $tour->footer_logo;
+        if (! is_string($footerLogo) || trim($footerLogo) === '') {
+            return null;
+        }
+
+        if (preg_match('#/assets/([^?]+)#', $footerLogo, $matches)) {
+            return 'assets/' . $matches[1];
+        }
+
+        if (! str_starts_with($footerLogo, 'http://') && ! str_starts_with($footerLogo, 'https://')) {
+            return ltrim($footerLogo, '/');
+        }
+
+        return null;
     }
 
     private function normalizeFinalJsonPayload(Tour $tour): array
