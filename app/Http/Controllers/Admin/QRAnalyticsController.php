@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\QRAnalytics;
-use App\Models\Booking;
 use Illuminate\Http\Request;
 use Yajra\DataTables\DataTables;
 
@@ -21,155 +20,164 @@ class QRAnalyticsController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $query = QRAnalytics::with(['booking', 'user'])
-                ->select('qr_analytics.*');
+            $query = QRAnalytics::query()
+                ->select([
+                    'qr_analytics.id',
+                    'qr_analytics.tour_code',
+                    'qr_analytics.booking_id',
+                    'qr_analytics.city',
+                    'qr_analytics.region',
+                    'qr_analytics.country',
+                    'qr_analytics.device_type',
+                    'qr_analytics.browser_name',
+                    'qr_analytics.os_name',
+                    'qr_analytics.location_source',
+                    'qr_analytics.tracking_status',
+                    'qr_analytics.scan_date',
+                ]);
 
-            // Filter by tour_code
-            if ($request->has('tour_code') && $request->tour_code != '') {
-                $query->where('tour_code', 'like', '%' . $request->tour_code . '%');
+            if ($request->filled('tour_code')) {
+                $query->where('qr_analytics.tour_code', 'like', '%' . $request->tour_code . '%');
             }
 
-            // Filter by booking_id
-            if ($request->has('booking_id') && $request->booking_id != '') {
-                $query->where('booking_id', $request->booking_id);
+            if ($request->filled('booking_id')) {
+                $query->where('qr_analytics.booking_id', $request->booking_id);
             }
 
-            // Filter by country
-            if ($request->has('country') && $request->country != '') {
-                $query->where('country', 'like', '%' . $request->country . '%');
+            if ($request->filled('country')) {
+                $query->where('qr_analytics.country', 'like', '%' . $request->country . '%');
             }
 
-            // Filter by city
-            if ($request->has('city') && $request->city != '') {
-                $query->where('city', 'like', '%' . $request->city . '%');
+            if ($request->filled('city')) {
+                $query->where('qr_analytics.city', 'like', '%' . $request->city . '%');
             }
 
-            // Filter by device_type
-            if ($request->has('device_type') && $request->device_type != '') {
-                $query->where('device_type', $request->device_type);
+            if ($request->filled('device_type')) {
+                $query->where('qr_analytics.device_type', $request->device_type);
             }
 
-            // Filter by location_source
-            if ($request->has('location_source') && $request->location_source != '') {
-                $query->where('location_source', $request->location_source);
+            if ($request->filled('location_source')) {
+                $query->where('qr_analytics.location_source', $request->location_source);
             }
 
-            // Filter by tracking_status
-            if ($request->has('tracking_status') && $request->tracking_status != '') {
-                $query->where('tracking_status', $request->tracking_status);
+            if ($request->filled('tracking_status')) {
+                $query->where('qr_analytics.tracking_status', $request->tracking_status);
             }
 
-            // Filter by page_type
-            if ($request->has('page_type') && $request->page_type != '') {
-                $query->where('page_type', $request->page_type);
+            if ($request->filled('page_type')) {
+                $query->where('qr_analytics.page_type', $request->page_type);
             }
 
-            // Filter by date range
-            if ($request->has('date_from') && $request->date_from != '') {
-                $query->whereDate('scan_date', '>=', $request->date_from);
+            if ($request->filled('date_from') && $request->filled('date_to')) {
+                $query->whereBetween('qr_analytics.scan_date', [
+                    $request->date_from . ' 00:00:00',
+                    $request->date_to . ' 23:59:59',
+                ]);
+            } elseif ($request->filled('date_from')) {
+                $query->whereDate('qr_analytics.scan_date', '>=', $request->date_from);
+            } elseif ($request->filled('date_to')) {
+                $query->whereDate('qr_analytics.scan_date', '<=', $request->date_to);
             }
 
-            if ($request->has('date_to') && $request->date_to != '') {
-                $query->whereDate('scan_date', '<=', $request->date_to);
-            }
+            $query->orderByDesc('qr_analytics.scan_date')->orderByDesc('qr_analytics.id');
 
             return DataTables::of($query)
-                ->addIndexColumn()
+                ->filterColumn('location', function ($query, $keyword) {
+                    $query->where(function ($subQuery) use ($keyword) {
+                        $subQuery
+                            ->where('qr_analytics.city', 'like', "%{$keyword}%")
+                            ->orWhere('qr_analytics.region', 'like', "%{$keyword}%")
+                            ->orWhere('qr_analytics.country', 'like', "%{$keyword}%");
+                    });
+                })
+                ->filterColumn('device_info', function ($query, $keyword) {
+                    $query->where(function ($subQuery) use ($keyword) {
+                        $subQuery
+                            ->where('qr_analytics.device_type', 'like', "%{$keyword}%")
+                            ->orWhere('qr_analytics.browser_name', 'like', "%{$keyword}%")
+                            ->orWhere('qr_analytics.os_name', 'like', "%{$keyword}%");
+                    });
+                })
                 ->editColumn('tour_code', function (QRAnalytics $analytics) {
-                    return $analytics->tour_code ? '<span class="fw-semibold">' . htmlspecialchars($analytics->tour_code) . '</span>' : '<span class="text-muted">-</span>';
+                    return $analytics->tour_code
+                        ? '<span class="fw-semibold">' . e($analytics->tour_code) . '</span>'
+                        : '<span class="text-muted">-</span>';
                 })
                 ->editColumn('booking_id', function (QRAnalytics $analytics) {
-                    if ($analytics->booking) {
+                    if ($analytics->booking_id) {
                         return '<a href="' . route('admin.bookings.show', $analytics->booking_id) . '" class="text-primary" target="_blank">Booking #' . $analytics->booking_id . '</a>';
                     }
+
                     return '<span class="text-muted">-</span>';
                 })
-                ->editColumn('user_ip', function (QRAnalytics $analytics) {
-                    return '<span class="text-muted small">' . htmlspecialchars($analytics->user_ip ?? '-') . '</span>';
+                ->addColumn('location', function (QRAnalytics $analytics) {
+                    $location = array_filter([
+                        $analytics->city,
+                        $analytics->region,
+                        $analytics->country,
+                    ]);
+
+                    return $location !== []
+                        ? e(implode(', ', $location))
+                        : '<span class="text-muted">-</span>';
                 })
-                ->editColumn('location', function (QRAnalytics $analytics) {
-                    $location = [];
-                    if ($analytics->city)
-                        $location[] = $analytics->city;
-                    if ($analytics->region)
-                        $location[] = $analytics->region;
-                    if ($analytics->country)
-                        $location[] = $analytics->country;
-                    return !empty($location) ? implode(', ', $location) : '<span class="text-muted">-</span>';
-                })
-                ->editColumn('device_info', function (QRAnalytics $analytics) {
-                    $device = [];
-                    if ($analytics->device_type)
-                        $device[] = ucfirst($analytics->device_type);
-                    if ($analytics->browser_name)
-                        $device[] = $analytics->browser_name;
-                    if ($analytics->os_name)
-                        $device[] = $analytics->os_name;
-                    return !empty($device) ? implode(' / ', $device) : '<span class="text-muted">-</span>';
+                ->addColumn('device_info', function (QRAnalytics $analytics) {
+                    $device = array_filter([
+                        $analytics->device_type ? ucfirst($analytics->device_type) : null,
+                        $analytics->browser_name,
+                        $analytics->os_name,
+                    ]);
+
+                    return $device !== []
+                        ? e(implode(' / ', $device))
+                        : '<span class="text-muted">-</span>';
                 })
                 ->editColumn('location_source', function (QRAnalytics $analytics) {
-                    if (!$analytics->location_source)
+                    if (! $analytics->location_source) {
                         return '<span class="text-muted">-</span>';
+                    }
+
                     $badges = [
                         'GPS' => 'bg-success',
                         'IP' => 'bg-info',
-                        'UNAVAILABLE' => 'bg-secondary'
+                        'UNAVAILABLE' => 'bg-secondary',
                     ];
                     $class = $badges[$analytics->location_source] ?? 'bg-secondary';
-                    return '<span class="badge ' . $class . '">' . $analytics->location_source . '</span>';
+
+                    return '<span class="badge ' . $class . '">' . e($analytics->location_source) . '</span>';
                 })
                 ->editColumn('tracking_status', function (QRAnalytics $analytics) {
                     $badges = [
                         'success' => 'bg-success',
                         'error' => 'bg-danger',
-                        'invalid_tour_code' => 'bg-warning'
+                        'invalid_tour_code' => 'bg-warning',
                     ];
                     $class = $badges[$analytics->tracking_status] ?? 'bg-secondary';
-                    return '<span class="badge ' . $class . ' text-uppercase">' . $analytics->tracking_status . '</span>';
+
+                    return '<span class="badge ' . $class . ' text-uppercase">' . e($analytics->tracking_status) . '</span>';
                 })
-                ->editColumn('scan_date', function (QRAnalytics $analytics) {
-                    return $analytics->scan_date ? $analytics->scan_date->format('d M Y H:i') : '-';
-                })
-                ->editColumn('created_at', function (QRAnalytics $analytics) {
-                    return $analytics->created_at ? $analytics->created_at->format('d M Y H:i') : '-';
-                })
+                ->editColumn('scan_date', fn (QRAnalytics $analytics) => $analytics->scan_date ? $analytics->scan_date->format('d M Y H:i') : '-')
                 ->addColumn('actions', function (QRAnalytics $analytics) {
-                    return '<button type="button" class="btn btn-soft-primary btn-sm view-analytics" 
-                        data-id="' . $analytics->id . '" 
-                        data-bs-toggle="tooltip" data-bs-placement="top" title="View Full Scan Details">
-                        <iconify-icon icon="solar:eye-broken" class="align-middle fs-18"></iconify-icon>
-                    </button>';
+                    return '<button type="button" class="btn btn-soft-primary btn-sm view-analytics" data-id="' . $analytics->id . '" title="View Full Scan Details">'
+                        . '<iconify-icon icon="solar:eye-broken" class="align-middle fs-18"></iconify-icon>'
+                        . '</button>';
                 })
-                ->rawColumns(['tour_code', 'booking_id', 'user_ip', 'location', 'device_info', 'location_source', 'tracking_status', 'actions'])
-                ->toJson();
+                ->rawColumns(['tour_code', 'booking_id', 'location', 'device_info', 'location_source', 'tracking_status', 'actions'])
+                ->only([
+                    'id',
+                    'tour_code',
+                    'booking_id',
+                    'location',
+                    'device_info',
+                    'location_source',
+                    'tracking_status',
+                    'scan_date',
+                    'actions',
+                ])
+                ->make(true);
         }
 
-        // Get filter options
-        $bookings = Booking::select('id', 'tour_code')
-            ->whereNotNull('tour_code')
-            ->orderBy('id', 'desc')
-            ->limit(100)
-            ->get();
-
-        // Get unique values for filters
-        $countries = QRAnalytics::select('country')
-            ->whereNotNull('country')
-            ->distinct()
-            ->orderBy('country')
-            ->pluck('country')
-            ->filter()
-            ->unique();
-
-        $cities = QRAnalytics::select('city')
-            ->whereNotNull('city')
-            ->distinct()
-            ->orderBy('city')
-            ->pluck('city')
-            ->filter()
-            ->unique()
-            ->take(100);
-
-        return view('admin.qr-analytics.index', compact('bookings', 'countries', 'cities'));
+        return view('admin.qr-analytics.index');
     }
 
     /**
@@ -177,16 +185,54 @@ class QRAnalyticsController extends Controller
      */
     public function show($id)
     {
-        $analytics = QRAnalytics::with(['booking', 'user'])->findOrFail($id);
+        $analytics = QRAnalytics::query()
+            ->select([
+                'id',
+                'tour_code',
+                'booking_id',
+                'page_url',
+                'page_type',
+                'user_ip',
+                'user_agent',
+                'browser_name',
+                'browser_version',
+                'os_name',
+                'os_version',
+                'device_type',
+                'screen_resolution',
+                'language',
+                'country',
+                'city',
+                'region',
+                'full_address',
+                'pincode',
+                'latitude',
+                'longitude',
+                'timezone',
+                'location_source',
+                'referrer',
+                'utm_source',
+                'utm_medium',
+                'utm_campaign',
+                'utm_term',
+                'utm_content',
+                'session_id',
+                'scan_date',
+                'tracking_status',
+                'error_message',
+                'load_time',
+                'metadata',
+                'created_at',
+            ])
+            ->with(['booking:id'])
+            ->findOrFail($id);
 
-        // Format dates for display
         $analytics->formatted_scan_date = $analytics->scan_date ? $analytics->scan_date->format('d M Y, h:i A') : '-';
         $analytics->formatted_created_at = $analytics->created_at ? $analytics->created_at->format('d M Y, h:i A') : '-';
 
         return response()->json([
             'success' => true,
-            'analytics' => $analytics
+            'analytics' => $analytics,
         ]);
     }
 }
-

@@ -2,9 +2,22 @@ import {
     defineConfig
 } from 'vite';
 import laravel from 'laravel-vite-plugin';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
-    base: '/brokerx/',
+    base: '/',
+    resolve: {
+        dedupe: ['jquery'],
+        alias: {
+            jquery: path.resolve(__dirname, 'node_modules/jquery/dist/jquery.js'),
+        },
+    },
+    optimizeDeps: {
+        include: ['jquery', 'select2', 'datatables.net-bs5'],
+    },
     plugins: [
         laravel({
             input: [
@@ -44,6 +57,7 @@ export default defineConfig({
                 'resources/js/pages/bookings-edit.js',
                 'resources/js/pages/bookings-form.js',
                 'resources/js/pages/booking-index.js',
+                'resources/js/pages/pending-schedules-index.js',
                 'resources/js/pages/booking-assignees-index.js',
                 'resources/js/pages/setting-index.js',
                 'resources/js/pages/qr-index.js',

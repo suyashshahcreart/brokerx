@@ -1,5 +1,102 @@
 @extends('admin.layouts.vertical', ['title' => 'Tour Notifications', 'subTitle' => 'Notify Tour'])
 
+@section('css')
+    <style>
+        #filtersSection .select2-container {
+            width: 100% !important;
+        }
+
+        .booking-filters-panel {
+            position: relative;
+            background: var(--bs-light-bg-subtle, #f8f9fa);
+            border: 1px solid var(--bs-border-color);
+            border-radius: 0.375rem;
+            overflow: visible;
+            padding: 0.35rem 0.75rem 0.625rem;
+        }
+
+        .booking-filters-grid {
+            display: grid;
+            gap: 0.5rem 0.65rem;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+        }
+
+        .booking-filter-clear {
+            position: absolute;
+            top: 2px;
+            right: 0.5rem;
+            z-index: 2;
+            line-height: 1;
+        }
+
+        .booking-filter-clear .btn {
+            padding: 0.1rem 0.35rem;
+            font-size: 0.6875rem;
+            height: 22px;
+            min-width: auto;
+            line-height: 1;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.2rem;
+        }
+
+        .booking-filter-clear .btn i {
+            font-size: 0.8rem;
+            margin: 0 !important;
+        }
+
+        @media (max-width: 1199.98px) {
+            .booking-filters-grid {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 767.98px) {
+            .booking-filters-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 575.98px) {
+            .booking-filters-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .booking-filter-item {
+            min-width: 0;
+        }
+
+        #filtersSection .form-label {
+            font-size: 0.75rem;
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+            color: var(--bs-secondary-color);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        #filtersSection .form-control-sm,
+        #filtersSection .form-select-sm {
+            min-height: 32px;
+            font-size: 0.8125rem;
+        }
+
+        #filterDateRange {
+            background-color: var(--bs-body-bg, #fff);
+            height: 32px;
+            min-height: 32px;
+        }
+
+        .booking-filters-panel > .booking-filters-grid + .booking-filters-grid {
+            margin-top: 0.5rem;
+        }
+
+        @include('admin.partials.mobile-filters-toggle-styles')
+    </style>
+@endsection
+
 @section('content')
     <div class="row">
         <div class="col-12">
@@ -39,44 +136,47 @@
                     </div>
                 </div>
                 <div class="card-body">
-                    <!-- Filters Section -->
-                    <div class="row mb-4 g-3" id="filtersSection">
-                        <div class="col-md-3">
-                            <label for="filterTourCode" class="form-label">Tour Code</label>
-                            <input type="text" id="filterTourCode" class="form-control form-control-sm"
-                                placeholder="Search tour code..." />
-                        </div>
-                        <div class="col-md-3">
-                            <label for="filterPhoneNumber" class="form-label">Phone Number</label>
-                            <input type="text" id="filterPhoneNumber" class="form-control form-control-sm"
-                                placeholder="Search phone number..." />
-                        </div>
-                        <div class="col-md-3">
-                            <label for="filterStatus" class="form-label">Status</label>
-                            <select id="filterStatus" class="form-select form-select-sm">
-                                <option value="">All Status</option>
-                                <option value="pending">Pending</option>
-                                <option value="notified">Notified</option>
-                                <option value="failed">Failed</option>
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <label for="filterBookingId" class="form-label">Booking ID</label>
-                            <input type="number" id="filterBookingId" class="form-control form-control-sm"
-                                placeholder="Enter booking ID..." />
-                        </div>
-                        <div class="col-md-6">
-                            <label for="filterDateRange" class="form-label">Date Range</label>
-                            <input type="text" id="filterDateRange" class="form-control form-control-sm"
-                                placeholder="Select date range" />
-                        </div>
-                        <div class="col-12">
-                            <button type="button" class="btn btn-sm btn-primary" id="applyFilters">
-                                <i class="ri-search-line me-2"></i>Apply Filters
+                    <div class="booking-filters-panel mb-3" id="filtersSection">
+                        @include('admin.partials.mobile-filters-toggle-button')
+
+                        <div class="booking-filters-body" id="mobileFiltersBody">
+                        <div class="booking-filter-clear">
+                            <button type="button" class="btn btn-sm btn-soft-secondary" id="clearFilters" title="Clear All">
+                                <i class="ri-filter-off-line"></i><span>Clear All</span>
                             </button>
-                            <button type="button" class="btn btn-sm btn-secondary" id="clearFilters">
-                                <i class="ri-close-line me-2"></i>Clear Filters
-                            </button>
+                        </div>
+
+                        <div class="booking-filters-grid">
+                            <div class="booking-filter-item">
+                                <label for="filterTourCode" class="form-label">Tour Code</label>
+                                <input type="text" id="filterTourCode" class="form-control form-control-sm"
+                                    placeholder="Search tour code..." autocomplete="off" />
+                            </div>
+                            <div class="booking-filter-item">
+                                <label for="filterPhoneNumber" class="form-label">Phone Number</label>
+                                <input type="text" id="filterPhoneNumber" class="form-control form-control-sm"
+                                    placeholder="Search phone..." autocomplete="off" />
+                            </div>
+                            <div class="booking-filter-item">
+                                <label for="filterStatus" class="form-label">Status</label>
+                                <select id="filterStatus" class="form-select form-select-sm">
+                                    <option value="">All Status</option>
+                                    <option value="pending">Pending</option>
+                                    <option value="notified">Notified</option>
+                                    <option value="failed">Failed</option>
+                                </select>
+                            </div>
+                            <div class="booking-filter-item">
+                                <label for="filterBookingId" class="form-label">Booking ID</label>
+                                <input type="number" id="filterBookingId" class="form-control form-control-sm"
+                                    placeholder="Booking ID..." min="1" autocomplete="off" />
+                            </div>
+                            <div class="booking-filter-item">
+                                <label for="filterDateRange" class="form-label">Date Range</label>
+                                <input type="text" id="filterDateRange" class="form-control form-control-sm"
+                                    placeholder="Select date range" readonly />
+                            </div>
+                        </div>
                         </div>
                     </div>
 
@@ -129,9 +229,7 @@
 @section('scripts')
     @vite(['resources/js/pages/tour-notifications-index.js'])
     <script>
-        // Pass data to JavaScript
-        window.tourNotificationsIndexUrl = '{{ route('admin.tour-notifications.index') }}';
-        window.tourNotificationsShowUrl = '{{ route('admin.tour-notifications.show', ':id') }}';
+        window.tourNotificationsIndexUrl = @json(route('admin.tour-notifications.index'));
+        window.tourNotificationsShowUrl = @json(route('admin.tour-notifications.show', ':id'));
     </script>
 @endsection
-

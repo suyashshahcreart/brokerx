@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
+use App\Models\BHK;
 use App\Models\PropertySubType;
 use App\Models\PropertyType;
 use Illuminate\Http\Request;
@@ -166,6 +167,30 @@ class PropertySettingController extends Controller
             'message' => 'Property sub type updated successfully.',
             'data' => $propertySubType->load('propertyType:id,name'),
         ]);
+    }
+
+    /**
+     * Return property sub types for selects (optionally filtered by property type).
+     */
+    public function propertySubTypeOptions(Request $request)
+    {
+        $query = PropertySubType::select('id', 'name', 'property_type_id')->orderBy('name');
+
+        if ($request->filled('property_type_id')) {
+            $query->where('property_type_id', $request->property_type_id);
+        }
+
+        return response()->json($query->get());
+    }
+
+    /**
+     * Return BHK / RK size options for selects.
+     */
+    public function bhkOptions()
+    {
+        $bhks = BHK::select('id', 'name')->orderBy('name')->get();
+
+        return response()->json($bhks);
     }
 
     /**

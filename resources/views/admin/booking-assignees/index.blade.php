@@ -1,5 +1,42 @@
 @extends('admin.layouts.vertical', ['title' => 'Booking Assignees', 'subTitle' => 'Property'])
 
+@section('css')
+    <style>
+        .booking-filters-panel {
+            position: relative;
+            background: var(--bs-light-bg-subtle, #f8f9fa);
+            border: 1px solid var(--bs-border-color);
+            border-radius: 0.375rem;
+            padding: 0.35rem 0.75rem 0.625rem;
+        }
+
+        .booking-filter-clear {
+            position: absolute;
+            top: 2px;
+            right: 0.5rem;
+            z-index: 2;
+        }
+
+        .booking-filter-clear .btn {
+            padding: 0.1rem 0.35rem;
+            font-size: 0.6875rem;
+            height: 22px;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.2rem;
+        }
+
+        #filtersSection .form-label {
+            font-size: 0.75rem;
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+            color: var(--bs-secondary-color);
+        }
+
+        @include('admin.partials.mobile-filters-toggle-styles')
+    </style>
+@endsection
+
 @section('content')
     <div class="row">
         <div class="col-12">
@@ -42,8 +79,17 @@
                     </div>
                 </div>
                 <div class="card-body">
-                    <!-- Filters Section -->
-                    <div class="row mb-4 g-3" id="filtersSection">
+                    <div class="booking-filters-panel mb-3" id="filtersSection">
+                        @include('admin.partials.mobile-filters-toggle-button')
+
+                        <div class="booking-filters-body" id="mobileFiltersBody">
+                            <div class="booking-filter-clear">
+                                <button type="button" class="btn btn-sm btn-soft-secondary" id="clearFilters" title="Clear All">
+                                    <i class="ri-filter-off-line"></i><span>Clear All</span>
+                                </button>
+                            </div>
+
+                            <div class="row g-3">
                         <div class="col-md-3">
                             <label for="filterState" class="form-label">State</label>
                             <select id="filterState" class="form-select form-select-sm">
@@ -55,12 +101,8 @@
                         </div>
                         <div class="col-md-3">
                             <label for="filterCity" class="form-label">City</label>
-                            <select id="filterCity" class="form-select form-select-sm">
+                            <select id="filterCity" class="form-select form-select-sm" disabled>
                                 <option value="">All Cities</option>
-                                @foreach ($cities ?? [] as $city)
-                                    <option value="{{ $city->id }}" data-state="{{ $city->state_id }}">{{ $city->name }}
-                                    </option>
-                                @endforeach
                             </select>
                         </div>
                         <div class="col-md-3">
@@ -69,10 +111,10 @@
                                 <option value="">All Status</option>
                                 <option value="confirmed">Confirmed</option>
                                 <option value="completed">Completed</option>
-                                <option value="Schedul_assign">Schedul assign</option>
-                                <option value="Schedul_accepted">Schedul accepted</option>
-                                <option value="Reschedul_accepted">Reschedul Accepted</option>
-                                <!-- <option value="schedul_completed">Schedul Completed</option> -->
+                                <option value="schedul_assign">Schedul Assign</option>
+                                <option value="schedul_accepted">Schedul Accepted</option>
+                                <option value="reschedul_accepted">Reschedul Accepted</option>
+                                <option value="reschedul_assign">Reschedul Assign</option>
                             </select>
                         </div>
                         <div class="col-md-3">
@@ -84,9 +126,8 @@
                             <button type="button" class="btn btn-sm btn-primary" id="applyFilters">
                                 <i class="ri-search-line me-2"></i>Apply Filters
                             </button>
-                            <button type="button" class="btn btn-sm btn-secondary" id="clearFilters">
-                                <i class="ri-close-line me-2"></i>Clear Filters
-                            </button>
+                        </div>
+                            </div>
                         </div>
                     </div>
 
@@ -119,9 +160,9 @@
     <!-- Assignment Modal -->
     <div class="modal fade" id="assignBookingModal" tabindex="-1" aria-labelledby="assignBookingModalLabel"
         aria-hidden="true"
-        data-photographer-from="{{ \App\Models\Setting::where('name', 'photographer_available_from')->value('value') ?? '08:00' }}"
-        data-photographer-to="{{ \App\Models\Setting::where('name', 'photographer_available_to')->value('value') ?? '21:00' }}"
-        data-photographer-duration="{{ \App\Models\Setting::where('name', 'photographer_working_duration')->value('value') ?? '60' }}">
+        data-photographer-from="{{ $photographerSettings['photographer_available_from'] ?? '08:00' }}"
+        data-photographer-to="{{ $photographerSettings['photographer_available_to'] ?? '21:00' }}"
+        data-photographer-duration="{{ $photographerSettings['photographer_working_duration'] ?? '60' }}">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
@@ -212,9 +253,9 @@
     <!-- Reassignment Modal -->
     <div class="modal fade" id="reassignBookingModal" tabindex="-1" aria-labelledby="reassignBookingModalLabel"
         aria-hidden="true"
-        data-photographer-from="{{ \App\Models\Setting::where('name', 'photographer_available_from')->value('value') ?? '08:00' }}"
-        data-photographer-to="{{ \App\Models\Setting::where('name', 'photographer_available_to')->value('value') ?? '21:00' }}"
-        data-photographer-duration="{{ \App\Models\Setting::where('name', 'photographer_working_duration')->value('value') ?? '60' }}">
+        data-photographer-from="{{ $photographerSettings['photographer_available_from'] ?? '08:00' }}"
+        data-photographer-to="{{ $photographerSettings['photographer_available_to'] ?? '21:00' }}"
+        data-photographer-duration="{{ $photographerSettings['photographer_working_duration'] ?? '60' }}">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
@@ -313,4 +354,7 @@
 
 @section('scripts')
     @vite(['resources/js/pages/booking-assignees-index.js'])
+    <script>
+        window.citiesOptionsUrl = @json(route('admin.api.cities.options'));
+    </script>
 @endsection

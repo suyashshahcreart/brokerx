@@ -5,10 +5,10 @@ namespace App\Http\Controllers\Admin;
 use App\Models\BookingAssignee;
 use App\Models\Booking;
 use App\Models\BookingHistory;
+use App\Models\Country;
 use App\Models\PhotographerVisit;
 use App\Models\Setting;
 use App\Models\User;
-use App\Models\City;
 use App\Models\State;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -28,25 +28,43 @@ class BookingAssigneeController extends Controller
      */
     public function index(Request $request)
     {
-        // Get filter options for view
-        $states = State::all();
-        $cities = City::all();
-        // Get only photographers (filter by role)
-        $users = User::whereHas('roles', function ($q) {
-            $q->where('name', 'photographer');
-        })->get();
-
         if ($request->ajax()) {
-            // Add joins for searchable columns to avoid "Column not found" errors
-            $query = Booking::query()
-                ->leftJoin('customers', 'bookings.customer_id', '=', 'customers.id')
-                ->leftJoin('property_types', 'bookings.property_type_id', '=', 'property_types.id')
-                ->leftJoin('cities', 'bookings.city_id', '=', 'cities.id')
-                ->leftJoin('users as creator', 'bookings.created_by', '=', 'creator.id')
-                ->select('bookings.*')
-                ->with(['propertySubType', 'bhk', 'state']);
+            $needsAssignee = ! $request->filled('status')
+                || in_array(strtolower((string) $request->status), ['schedul_assign', 'reschedul_assign'], true);
 
-            // Apply filters
+            $eagerLoad = [
+                'customer:id,firstname,lastname,mobile',
+                'propertyType:id,name',
+                'bhk:id,name',
+                'city:id,name',
+                'state:id,name',
+                'creator:id,firstname,lastname',
+            ];
+
+            if ($needsAssignee) {
+                $eagerLoad['latestAssignee'] = fn ($q) => $q
+                    ->select('booking_assignees.id', 'booking_assignees.booking_id', 'booking_assignees.user_id', 'booking_assignees.time')
+                    ->with('user:id,firstname,lastname');
+            }
+
+            $query = Booking::query()
+                ->select([
+                    'bookings.id',
+                    'bookings.customer_id',
+                    'bookings.property_type_id',
+                    'bookings.bhk_id',
+                    'bookings.city_id',
+                    'bookings.state_id',
+                    'bookings.full_address',
+                    'bookings.pin_code',
+                    'bookings.booking_date',
+                    'bookings.status',
+                    'bookings.payment_status',
+                    'bookings.created_by',
+                    'bookings.created_at',
+                ])
+                ->with($eagerLoad);
+
             if ($request->filled('state_id')) {
                 $query->where('bookings.state_id', $request->state_id);
             }
@@ -56,19 +74,49 @@ class BookingAssigneeController extends Controller
             }
 
             if ($request->filled('status')) {
-                $query->where('bookings.status', $request->status);
+                $query->where('bookings.status', strtolower($request->status));
             } else {
-                $query->whereIn('bookings.status', ['Schedul_accepted', 'Reschedul_accepted', 'Schedul_assign', 'Reschedul_assigned']);
+                $query->whereIn('bookings.status', ['schedul_accepted', 'reschedul_accepted', 'schedul_assign', 'reschedul_assign']);
             }
 
             if ($request->filled('date_from') && $request->filled('date_to')) {
                 $query->whereBetween('bookings.booking_date', [
                     $request->date_from,
-                    $request->date_to
+                    $request->date_to,
                 ]);
             }
 
+            $query->orderByDesc('bookings.created_at');
+
             return DataTables::of($query)
+                ->filterColumn('customer', function ($query, $keyword) {
+                    $query->whereHas('customer', function ($customerQuery) use ($keyword) {
+                        $customerQuery
+                            ->where('firstname', 'like', "%{$keyword}%")
+                            ->orWhere('lastname', 'like', "%{$keyword}%")
+                            ->orWhere('mobile', 'like', "%{$keyword}%");
+                    });
+                })
+                ->filterColumn('property', function ($query, $keyword) {
+                    $query->where(function ($subQuery) use ($keyword) {
+                        $subQuery
+                            ->whereHas('propertyType', fn ($q) => $q->where('name', 'like', "%{$keyword}%"))
+                            ->orWhereHas('bhk', fn ($q) => $q->where('name', 'like', "%{$keyword}%"));
+                    });
+                })
+                ->filterColumn('location', function ($query, $keyword) {
+                    $query->where(function ($subQuery) use ($keyword) {
+                        $subQuery
+                            ->whereHas('city', fn ($q) => $q->where('name', 'like', "%{$keyword}%"))
+                            ->orWhereHas('state', fn ($q) => $q->where('name', 'like', "%{$keyword}%"));
+                    });
+                })
+                ->filterColumn('created_by', function ($query, $keyword) {
+                    $query->whereHas('creator', function ($q) use ($keyword) {
+                        $q->where('firstname', 'like', "%{$keyword}%")
+                            ->orWhere('lastname', 'like', "%{$keyword}%");
+                    });
+                })
                 ->addColumn('id', function (Booking $booking) {
                     return '<span class="badge bg-primary">#' . $booking->id . '</span>';
                 })
@@ -77,8 +125,9 @@ class BookingAssigneeController extends Controller
                 })
                 ->addColumn('customer', function (Booking $booking) {
                     if ($booking->customer) {
-                        return $booking->customer->name . ' | ' . $booking->customer->mobile;
+                        return e($booking->customer->name) . ' | ' . e($booking->customer->mobile);
                     }
+
                     return '<span class="text-muted">-</span>';
                 })
                 ->addColumn('property', function (Booking $booking) {
@@ -89,6 +138,7 @@ class BookingAssigneeController extends Controller
                     if ($booking->propertyType) {
                         $parts[] = $booking->propertyType->name;
                     }
+
                     return count($parts) > 0 ? implode(' ', $parts) : '-';
                 })
                 ->addColumn('location', function (Booking $booking) {
@@ -99,6 +149,7 @@ class BookingAssigneeController extends Controller
                     if ($booking->state) {
                         $parts[] = $booking->state->name;
                     }
+
                     return count($parts) > 0 ? implode(', ', $parts) : '-';
                 })
                 ->editColumn('booking_date', function (Booking $booking) {
@@ -111,9 +162,11 @@ class BookingAssigneeController extends Controller
                         'cancelled' => 'danger',
                         'completed' => 'info',
                         'schedul_assign' => 'success',
+                        'reschedul_assign' => 'success',
                         'tour_pending' => 'info',
                     ];
                     $color = $statusColors[$booking->status] ?? 'secondary';
+
                     return '<span class="badge bg-' . $color . '">' . ucfirst(str_replace('_', ' ', $booking->status)) . '</span>';
                 })
                 ->editColumn('payment_status', function (Booking $booking) {
@@ -124,6 +177,7 @@ class BookingAssigneeController extends Controller
                         'refunded' => 'info',
                     ];
                     $color = $statusColors[$booking->payment_status] ?? 'secondary';
+
                     return '<span class="badge bg-' . $color . '">' . ucfirst($booking->payment_status) . '</span>';
                 })
                 ->addColumn('created_by', function (Booking $booking) {
@@ -140,14 +194,14 @@ class BookingAssigneeController extends Controller
                     $pincode = htmlspecialchars($booking->pin_code ?? '');
                     $userName = htmlspecialchars($booking->customer ? trim($booking->customer->firstname . ' ' . $booking->customer->lastname) : '');
 
-                    // Check if already assigned
-                    if ($booking->status === 'schedul_assign') {
-                        $assignee = BookingAssignee::where('booking_id', $booking->id)->first();
+                    if (in_array($booking->status, ['schedul_assign', 'reschedul_assign'], true)) {
+                        $assignee = $booking->latestAssignee;
                         if ($assignee) {
                             $photographerName = $assignee->user ? $assignee->user->name : 'Unknown';
                             $assignedTime = $assignee->time ? \Carbon\Carbon::parse($assignee->time)->format('H:i') : '-';
+
                             return '<div class="d-flex justify-content-center gap-1">
-                                <button class="btn btn-sm btn-soft-warning reassign-btn" 
+                                <button type="button" class="btn btn-sm btn-soft-warning reassign-btn" 
                                     data-booking-id="' . $booking->id . '" 
                                     data-assignee-id="' . $assignee->id . '"
                                     data-current-photographer-id="' . $assignee->user_id . '"
@@ -158,23 +212,22 @@ class BookingAssigneeController extends Controller
                                     data-booking-pincode="' . $pincode . '"
                                     data-booking-customer="' . $userName . '"
                                     data-booking-date="' . $date . '"
-                                    data-bs-toggle="tooltip" data-bs-placement="top" title="Reassign to ' . $photographerName . ' at ' . $assignedTime . '">
+                                    title="Reassign to ' . e($photographerName) . ' at ' . $assignedTime . '">
                                     <iconify-icon icon="solar:transfer-horizontal-broken" class="align-middle fs-18"></iconify-icon>
                                 </button>
-                                <button class="btn btn-sm btn-soft-danger cancel-assignment-btn" 
+                                <button type="button" class="btn btn-sm btn-soft-danger cancel-assignment-btn" 
                                     data-assignee-id="' . $assignee->id . '"
                                     data-booking-id="' . $booking->id . '"
-                                    data-photographer-name="' . $photographerName . '"
-                                    data-bs-toggle="tooltip" data-bs-placement="top" title="Cancel Assignment">
+                                    data-photographer-name="' . e($photographerName) . '"
+                                    title="Cancel Assignment">
                                     <iconify-icon icon="solar:close-circle-broken" class="align-middle fs-18"></iconify-icon>
                                 </button>
                             </div>';
                         }
                     }
 
-                    // Show assign button for unassigned bookings
                     return '<div class="d-flex justify-content-center">
-                        <button class="btn btn-sm btn-soft-success assign-btn" 
+                        <button type="button" class="btn btn-sm btn-soft-success assign-btn" 
                             data-booking-id="' . $booking->id . '" 
                             data-booking-address="' . $address . '"
                             data-booking-city="' . $city . '"
@@ -182,7 +235,7 @@ class BookingAssigneeController extends Controller
                             data-booking-pincode="' . $pincode . '"
                             data-booking-customer="' . $userName . '"
                             data-booking-date="' . $date . '"
-                            data-bs-toggle="tooltip" data-bs-placement="top" title="Assign Photographer">
+                            title="Assign Photographer">
                             <iconify-icon icon="solar:user-check-rounded-broken" class="align-middle fs-18"></iconify-icon>
                         </button>
                     </div>';
@@ -190,17 +243,50 @@ class BookingAssigneeController extends Controller
                 ->addColumn('view_action', function (Booking $booking) {
                     return '<div class="d-flex justify-content-center">
                         <a href="' . route('admin.bookings.show', $booking->id) . '" class="btn btn-sm btn-soft-primary"
-                        data-bs-toggle="tooltip" data-bs-placement="top" title="View Booking Detail Page"
+                        title="View Booking Detail Page"
                         target="_blank">
                            <iconify-icon icon="solar:eye-broken" class="align-middle fs-18"></iconify-icon>
                         </a>
                     </div>';
                 })
                 ->rawColumns(['id', 'customer', 'status', 'payment_status', 'assign_action', 'view_action'])
-                ->toJson();
+                ->only([
+                    'id',
+                    'customer',
+                    'property',
+                    'location',
+                    'booking_date',
+                    'status',
+                    'payment_status',
+                    'created_by',
+                    'created_at',
+                    'assign_action',
+                    'view_action',
+                ])
+                ->make(true);
         }
 
-        return view('admin.booking-assignees.index', compact('states', 'cities', 'users'));
+        $defaultCountryId = Country::query()
+            ->where('is_active', true)
+            ->where(function ($query) {
+                $query->where('name', 'India')
+                    ->orWhere('country_code', 'IN');
+            })
+            ->value('id');
+
+        $states = $defaultCountryId
+            ? State::where('country_id', $defaultCountryId)->orderBy('name')->get(['id', 'name'])
+            : State::orderBy('name')->limit(100)->get(['id', 'name']);
+
+        $users = User::role('photographer')->orderBy('firstname')->get(['id', 'firstname', 'lastname']);
+
+        $photographerSettings = Setting::whereIn('name', [
+            'photographer_available_from',
+            'photographer_available_to',
+            'photographer_working_duration',
+        ])->pluck('value', 'name');
+
+        return view('admin.booking-assignees.index', compact('states', 'users', 'photographerSettings'));
     }
 
     /**

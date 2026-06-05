@@ -1,5 +1,26 @@
 @extends('admin.layouts.vertical', ['title' => 'Photographer Visits', 'subTitle' => 'Management'])
 
+@section('css')
+    <style>
+        .booking-filters-panel {
+            position: relative;
+            background: var(--bs-light-bg-subtle, #f8f9fa);
+            border: 1px solid var(--bs-border-color);
+            border-radius: 0.375rem;
+            padding: 0.35rem 0.75rem 0.625rem;
+        }
+
+        #filtersSection .form-label {
+            font-size: 0.75rem;
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+            color: var(--bs-secondary-color);
+        }
+
+        @include('admin.partials.mobile-filters-toggle-styles')
+    </style>
+@endsection
+
 @section('content')
     <div class="row">
         <div class="col-12">
@@ -46,11 +67,14 @@
                     </div>
                 </div>
                 <div class="card-body">
-                    <!-- Filters -->
-                    <div class="row mb-3">
-                        <div class="col-md-3 mb-2">
-                            <label for="filterState" class="form-label">Status</label>
-                            <select id="filter-status" class="form-select">
+                    <div class="booking-filters-panel mb-3" id="filtersSection">
+                        @include('admin.partials.mobile-filters-toggle-button')
+
+                        <div class="booking-filters-body" id="mobileFiltersBody">
+                            <div class="row g-3">
+                        <div class="col-md-4 col-sm-6">
+                            <label for="filter-status" class="form-label">Status</label>
+                            <select id="filter-status" class="form-select form-select-sm">
                                 <option value="">All Status</option>
                                 <option value="pending">Pending</option>
                                 <option value="checked_in">Checked In</option>
@@ -59,9 +83,9 @@
                                 <option value="cancelled">Cancelled</option>
                             </select>
                         </div>
-                        <div class="col-md-3 mb-2">
+                        <div class="col-md-4 col-sm-6">
                             <label for="filter-photographer" class="form-label">Photographer</label>
-                            <select id="filter-photographer" class="form-select">
+                            <select id="filter-photographer" class="form-select form-select-sm">
                                 <option value="">All Photographers</option>
                                 @foreach($photographers as $photographer)
                                     <option value="{{ $photographer->id }}">{{ $photographer->firstname }}
@@ -69,9 +93,11 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div class="col-md-3 mb-2">
+                        <div class="col-md-4 col-sm-6">
                             <label for="filter-date-range" class="form-label">Visit Date Range</label>
-                            <input type="text" id="filter-date-range" class="form-control" placeholder="Select date range" />
+                            <input type="text" id="filter-date-range" class="form-control form-control-sm" placeholder="Select date range" readonly />
+                        </div>
+                            </div>
                         </div>
                     </div>
 

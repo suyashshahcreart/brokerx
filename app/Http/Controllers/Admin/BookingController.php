@@ -58,30 +58,48 @@ class BookingController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            // Add joins for searchable columns to avoid "Column not found" errors
-            $query = Booking::query()
-                ->leftJoin('customers', 'bookings.customer_id', '=', 'customers.id')
-                ->leftJoin('cities', 'bookings.city_id', '=', 'cities.id')
-                ->leftJoin('tours', function ($join) {
-                    $join->on('tours.booking_id', '=', 'bookings.id')
-                        ->whereNull('tours.deleted_at');
-                })
-                ->leftJoin('qr_code', 'qr_code.booking_id', '=', 'bookings.id')
-                ->select('bookings.*')
-                ->distinct()
-                ->with(['propertyType', 'propertySubType', 'state', 'assignees', 'qr', 'tours']);
+            $canSchedule = $request->user()->can('booking_schedule');
+            $canEdit = $request->user()->can('booking_edit');
+            $canDelete = $request->user()->can('booking_delete');
 
-            // Filter bookings based on user role
-            if (auth()->user()->hasRole('admin')) {
-                // Admin can see all bookings
-            } elseif (auth()->user()->hasRole('photographer')) {
-                // Photographer can see only assigned bookings
+            $query = Booking::query()
+                ->select([
+                    'bookings.id',
+                    'bookings.customer_id',
+                    'bookings.property_type_id',
+                    'bookings.property_sub_type_id',
+                    'bookings.city_id',
+                    'bookings.state_id',
+                    'bookings.area',
+                    'bookings.price',
+                    'bookings.status',
+                    'bookings.booking_date',
+                    'bookings.created_at',
+                ])
+                ->with([
+                    'customer:id,firstname,lastname,base_mobile',
+                    'propertyType:id,name',
+                    'propertySubType:id,name',
+                    'city:id,name',
+                    'state:id,name',
+                    'qr:id,booking_id,code',
+                    'latestTour' => fn ($q) => $q->select('tours.id', 'tours.booking_id', 'tours.name'),
+                ]);
+
+            if ($request->user()->hasRole('photographer')) {
                 $query->whereHas('assignees', function ($subQuery) {
                     $subQuery->where('user_id', auth()->id());
                 });
             }
 
-            // Apply filters
+            if ($request->filled('country_id')) {
+                $query->where('bookings.country_id', $request->country_id);
+            }
+
+            if ($request->filled('customer_id')) {
+                $query->where('bookings.customer_id', $request->customer_id);
+            }
+
             if ($request->filled('state_id')) {
                 $query->where('bookings.state_id', $request->state_id);
             }
@@ -91,54 +109,84 @@ class BookingController extends Controller
             }
 
             if ($request->filled('status')) {
-                $query->where('bookings.status', $request->status);
+                $statuses = $request->input('status');
+                if (! is_array($statuses)) {
+                    $statuses = array_filter(explode(',', (string) $statuses));
+                }
+                $statuses = array_values(array_filter(array_map('strtolower', $statuses)));
+                if ($statuses !== []) {
+                    $query->whereIn('bookings.status', $statuses);
+                }
             }
 
             if ($request->filled('date_from') && $request->filled('date_to')) {
                 $query->whereBetween('bookings.booking_date', [
                     $request->date_from,
-                    $request->date_to
+                    $request->date_to,
                 ]);
+            }
+
+            if ($request->filled('property_type_id')) {
+                $query->where('bookings.property_type_id', $request->property_type_id);
+            }
+
+            if ($request->filled('property_sub_type_id')) {
+                $query->where('bookings.property_sub_type_id', $request->property_sub_type_id);
+            }
+
+            if ($request->filled('furniture_type')) {
+                $query->where('bookings.furniture_type', $request->furniture_type);
+            }
+
+            if ($request->filled('bhk_id')) {
+                $query->where('bookings.bhk_id', $request->bhk_id);
             }
 
             return DataTables::of($query)
                 ->filterColumn('customer', function ($query, $keyword) {
                     $query->where(function ($subQuery) use ($keyword) {
                         $subQuery
-                            // customer related to booking
-                            ->where('customers.firstname', 'like', "%{$keyword}%")
-                            ->orWhere('customers.lastname', 'like', "%{$keyword}%")
-                            ->orWhere('customers.mobile', 'like', "%{$keyword}%")
-                            ->orWhere('customers.base_mobile', 'like', "%{$keyword}%")
-                            // tour related to booking
-                            ->orWhere('tours.name', 'like', "%{$keyword}%")
-                            ->orWhere('tours.title', 'like', "%{$keyword}%")
-                            ->orWhere('tours.slug', 'like', "%{$keyword}%")
-                            // seo relarted search
-                            ->orWhere('tours.meta_keywords', 'like', "%{$keyword}%")
-                            ->orWhere('tours.meta_title', 'like', "%{$keyword}%")
-                            ->orWhere('tours.meta_description', 'like', "%{$keyword}%")
-                            // booking address
-                            ->orWhere('bookings.address_area', 'like', "%{$keyword}%")
+                            ->where('bookings.address_area', 'like', "%{$keyword}%")
                             ->orWhere('bookings.full_address', 'like', "%{$keyword}%")
                             ->orWhere('bookings.pin_code', 'like', "%{$keyword}%")
-                            ;
+                            ->orWhereHas('customer', function ($customerQuery) use ($keyword) {
+                                $customerQuery
+                                    ->where('firstname', 'like', "%{$keyword}%")
+                                    ->orWhere('lastname', 'like', "%{$keyword}%")
+                                    ->orWhere('mobile', 'like', "%{$keyword}%")
+                                    ->orWhere('base_mobile', 'like', "%{$keyword}%");
+                            })
+                            ->orWhereHas('tours', function ($tourQuery) use ($keyword) {
+                                $tourQuery
+                                    ->whereNull('deleted_at')
+                                    ->where(function ($tourSearch) use ($keyword) {
+                                        $tourSearch
+                                            ->where('name', 'like', "%{$keyword}%")
+                                            ->orWhere('title', 'like', "%{$keyword}%")
+                                            ->orWhere('slug', 'like', "%{$keyword}%")
+                                            ->orWhere('meta_keywords', 'like', "%{$keyword}%")
+                                            ->orWhere('meta_title', 'like', "%{$keyword}%")
+                                            ->orWhere('meta_description', 'like', "%{$keyword}%");
+                                    });
+                            });
                     });
                 })
                 ->filterColumn('qr_code', function ($query, $keyword) {
-                    $query->where(function ($subQuery) use ($keyword) {
-                        $subQuery
-                            // qr code                            
-                            ->orWhere('qr_code.code', 'like', "%{$keyword}%");
+                    $query->whereHas('qr', function ($qrQuery) use ($keyword) {
+                        $qrQuery->where('code', 'like', "%{$keyword}%");
                     });
                 })
-                ->addColumn('user', function (Booking $booking) {
-                    return $booking->customer ? trim($booking->customer->firstname . ' ' . $booking->customer->lastname) : 'N/A';
+                ->filterColumn('city_state', function ($query, $keyword) {
+                    $query->where(function ($subQuery) use ($keyword) {
+                        $subQuery
+                            ->whereHas('city', fn ($cityQuery) => $cityQuery->where('name', 'like', "%{$keyword}%"))
+                            ->orWhereHas('state', fn ($stateQuery) => $stateQuery->where('name', 'like', "%{$keyword}%"));
+                    });
                 })
                 ->addColumn('customer', function (Booking $booking) {
                     $name = $booking->customer ? $booking->customer->firstname . ' ' . $booking->customer->lastname : '-';
                     $mobile = $booking->customer ? $booking->customer->base_mobile : '-';
-                    $tourName = $booking->tours->first()?->name;
+                    $tourName = $booking->latestTour?->name;
 
                     if ($tourName) {
                         return '<div><strong>' . e($name) . ' | ' . e($mobile) . '</strong><div class="text-muted small">' . e($tourName) . '</div></div>';
@@ -150,80 +198,105 @@ class BookingController extends Controller
                     return $booking->propertyType?->name . '<div class="text-muted small">' . ($booking->propertySubType?->name ?? '-') . '</div>';
                 })
                 ->addColumn('qr_code', function (Booking $booking) {
-                    if ($booking->qr && $booking->qr->code) {
-                        $qrBaseUrl = rtrim(Setting::where('name', 'qr_link_base')->value('value') ?? '', '/');
-                        $qrUrl = $booking->qr->qr_link ?: ($qrBaseUrl ? $qrBaseUrl . '/' . $booking->qr->code : null);
+                    if ($booking->qr?->code) {
+                        $safeCode = e($booking->qr->code);
 
-                        if (!$qrUrl) {
-                            $safeCode = htmlspecialchars($booking->qr->code, ENT_QUOTES, 'UTF-8');
-                            return '<span class="text-muted dblclick-copy" data-copy-text="' . $safeCode . '" title="Double click to copy">' . $safeCode . '</span>';
-                        }
-
-                        $safeUrl = htmlspecialchars($qrUrl, ENT_QUOTES, 'UTF-8');
-                        $safeCode = htmlspecialchars($booking->qr->code, ENT_QUOTES, 'UTF-8');
-
-                        return '<a href="' . $safeUrl . '" target="_blank" rel="noopener" data-bs-toggle="tooltip" data-bs-placement="top" title="Open QR link" class="dblclick-copy" data-copy-text="' . $safeCode . '">' . $safeCode . '</a>';
+                        return '<span class="text-muted dblclick-copy" data-copy-text="' . $safeCode . '" title="Double click to copy">' . $safeCode . '</span>';
                     }
 
                     return '<span class="text-muted">N/A</span>';
                 })
                 ->addColumn('city_state', function (Booking $booking) {
-                    $city = $booking->city?->name ?? '-';
-                    $state = $booking->state?->name ?? '-';
-                    $country = $booking->country?->name ?? '-';
                     return ($booking->city?->name ?? '-') . ' / <div class="text-muted small">' . ($booking->state?->name ?? '-') . '</div>';
                 })
                 ->editColumn('area', fn(Booking $booking) => number_format($booking->area))
                 ->editColumn('price', fn(Booking $booking) => '₹ ' . number_format($booking->price))
                 ->editColumn('booking_date', fn(Booking $booking) => optional($booking->created_at)->format('Y-m-d') ?? '-')
                 ->editColumn('status', fn(Booking $booking) => '<span class="badge bg-secondary text-uppercase">' . $booking->status . '</span>')
-                ->editColumn('payment_status', fn(Booking $booking) => '<span class="badge bg-info text-uppercase">' . $booking->payment_status . '</span>')
-                ->addColumn('schedule', function (Booking $booking) {
-                    if (auth()->user()->can('booking_schedule')) {
-                        return '<a href="#" class="btn btn-soft-warning btn-sm schedule-booking-btn" data-booking-id="' . $booking->id . '" data-booking-date="' . ($booking->booking_date ? $booking->booking_date->format('Y-m-d') : '') . '" title="Schedule"><i class="ri-calendar-line"></i></a>';
+                ->addColumn('actions', function (Booking $booking) use ($canSchedule, $canEdit, $canDelete) {
+                    $showSchedule = $canSchedule
+                        && ! in_array($booking->status, ['schedul_completed', 'tour_live'], true);
+                    $bookingDate = $booking->booking_date?->format('Y-m-d') ?? '';
+                    $html = '<div class="d-flex gap-1 booking-row-actions">';
+
+                    if ($showSchedule) {
+                        $html .= '<button type="button" class="btn btn-soft-warning btn-sm schedule-booking-btn"'
+                            . ' data-booking-id="' . $booking->id . '"'
+                            . ' data-booking-date="' . e($bookingDate) . '"'
+                            . ' title="Schedule Booking">'
+                            . '<iconify-icon icon="solar:calendar-broken" class="align-middle fs-18"></iconify-icon></button>';
                     }
-                    return '';
-                })
-                ->addColumn('actions', function (Booking $booking) {
-                    $view = route('admin.bookings.show', $booking);
-                    $edit = route('admin.bookings.edit', $booking);
-                    $delete = route('admin.bookings.destroy', $booking);
-                    $csrf = csrf_field();
-                    $method = method_field('DELETE');
-                    $schedule = '';
-                    if (auth()->user()->can('booking_schedule') && $booking->status != 'schedul_completed') {
-                        if ($booking->status != 'tour_live') {
-                            $schedule = '<a href="#" class="btn btn-soft-warning btn-sm schedule-booking-btn" data-booking-id="' . $booking->id . '" data-booking-date="' . ($booking->booking_date ? $booking->booking_date->format('Y-m-d') : '') . '" data-bs-toggle="tooltip" data-bs-placement="top" title="Schedule Booking"><iconify-icon icon="solar:calendar-broken" class="align-middle fs-18"></iconify-icon></a>';
-                        }
+
+                    $html .= '<a href="' . route('admin.bookings.show', $booking->id) . '"'
+                        . ' class="btn btn-soft-primary btn-sm" title="View Booking">'
+                        . '<iconify-icon icon="solar:eye-broken" class="align-middle fs-18"></iconify-icon></a>';
+
+                    if ($canEdit) {
+                        $html .= '<a href="' . route('admin.bookings.edit', $booking->id) . '"'
+                            . ' class="btn btn-soft-info btn-sm" title="Edit Booking">'
+                            . '<iconify-icon icon="solar:pen-new-square-broken" class="align-middle fs-18"></iconify-icon></a>';
                     }
-                    return '<div class="d-flex gap-1">' . $schedule .
-                        '<a href="' . $view . '" class="btn btn-soft-primary btn-sm" data-bs-toggle="tooltip" data-bs-placement="top" title="View Booking Details"><iconify-icon icon="solar:eye-broken" class="align-middle fs-18"></iconify-icon></a>' .
-                        '<a href="' . $edit . '" class="btn btn-soft-info btn-sm" data-bs-toggle="tooltip" data-bs-placement="top" title="Edit Booking Info"><iconify-icon icon="solar:pen-new-square-broken" class="align-middle fs-18"></iconify-icon></a>' .
-                        '<form action="' . $delete . '" method="POST" class="d-inline">' . $csrf . $method .
-                        '<button type="submit" class="btn btn-soft-danger btn-sm" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete Booking" onclick="return confirm(\'Delete this booking?\')"><iconify-icon icon="solar:trash-bin-minimalistic-broken" class="align-middle fs-18"></iconify-icon></button></form></div>';
+
+                    if ($canDelete) {
+                        $html .= '<button type="button" class="btn btn-soft-danger btn-sm booking-delete-btn"'
+                            . ' data-booking-id="' . $booking->id . '" title="Delete Booking">'
+                            . '<iconify-icon icon="solar:trash-bin-minimalistic-broken" class="align-middle fs-18"></iconify-icon></button>';
+                    }
+
+                    return $html . '</div>';
                 })
-                ->rawColumns(['customer', 'type_subtype', 'city_state', 'qr_code', 'status', 'payment_status', 'actions', 'schedule'])
-                ->toJson();
+                ->rawColumns(['customer', 'type_subtype', 'city_state', 'qr_code', 'status', 'actions'])
+                ->only([
+                    'id',
+                    'customer',
+                    'type_subtype',
+                    'qr_code',
+                    'city_state',
+                    'area',
+                    'price',
+                    'booking_date',
+                    'status',
+                    'actions',
+                ])
+                ->make(true);
         }
 
-        // Check permissions for actions
         $canSchedule = $request->user()->can('booking_schedule');
         $canCreate = $request->user()->can('booking_create');
         $canEdit = $request->user()->can('booking_edit');
         $canDelete = $request->user()->can('booking_delete');
 
-        // Get filter options for view
-        $states = State::all();
-        $cities = City::all();
+        $countries = Country::where('is_active', true)->orderBy('name')->get(['id', 'name', 'country_code']);
+        $defaultCountryId = optional($countries->first(function ($country) {
+            return strcasecmp($country->name, 'India') === 0 || strtoupper($country->country_code ?? '') === 'IN';
+        }))->id;
 
-        $canCreate = $request->user()->can('booking_create');
-        $canEdit = $request->user()->can('booking_edit');
-        $canDelete = $request->user()->can('booking_delete');
-        $canSchedule = $request->user()->can('booking_schedule');
+        $states = $defaultCountryId
+            ? State::where('country_id', $defaultCountryId)->orderBy('name')->get(['id', 'name'])
+            : collect();
 
-        //dd($canCreate, $canEdit, $canDelete, $canSchedule, $states, $cities);
+        $propertyTypes = PropertyType::orderBy('name')->get(['id', 'name']);
+        $propertyTypeMeta = $propertyTypes->mapWithKeys(function ($type) {
+            $key = strtolower($type->name);
 
-        return view('admin.bookings.index', compact('canCreate', 'canEdit', 'canDelete', 'canSchedule', 'states', 'cities'));
+            return [$type->id => [
+                'name' => $type->name,
+                'is_residential' => str_contains($key, 'residential'),
+                'is_commercial' => str_contains($key, 'commercial'),
+            ]];
+        });
+
+        return view('admin.bookings.index', compact(
+            'canCreate',
+            'canEdit',
+            'canDelete',
+            'canSchedule',
+            'countries',
+            'defaultCountryId',
+            'states',
+            'propertyTypes',
+            'propertyTypeMeta'
+        ));
     }
 
     /**
@@ -795,6 +868,11 @@ class BookingController extends Controller
                 'deleted_id' => $bookingId,
             ]
         ]);
+
+        if (request()->expectsJson()) {
+            return response()->json(['message' => 'Booking deleted successfully.']);
+        }
+
         return redirect()->route('admin.bookings.index')->with('success', 'Booking deleted successfully.');
     }
 

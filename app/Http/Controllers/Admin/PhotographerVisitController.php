@@ -30,37 +30,51 @@ class PhotographerVisitController extends Controller
     {
         if ($request->ajax()) {
             try {
-                $query = PhotographerVisit::with([
-                    'booking',
-                    'booking.assignees.user',
-                    'photographer',
-                    'tour'
-                ])
-                ->visibleTo($request->user())
-                ->orderBy('created_at', 'desc');
+                $query = PhotographerVisit::query()
+                    ->select([
+                        'photographer_visits.id',
+                        'photographer_visits.booking_id',
+                        'photographer_visits.photographer_id',
+                        'photographer_visits.job_id',
+                        'photographer_visits.visit_date',
+                        'photographer_visits.status',
+                    ])
+                    ->with([
+                        'photographer:id,firstname,lastname',
+                        'booking' => fn ($q) => $q->select('bookings.id', 'bookings.society_name', 'bookings.address_area', 'bookings.city_id')
+                            ->withCount([
+                                'photographerVisits as completed_visits_count' => fn ($vq) => $vq->where('status', 'completed'),
+                                'photographerVisits as checked_in_visits_count' => fn ($vq) => $vq->where('status', 'checked_in'),
+                            ])
+                            ->with([
+                                'city:id,name',
+                                'latestAssignee' => fn ($aq) => $aq->select('booking_assignees.id', 'booking_assignees.booking_id', 'booking_assignees.user_id')
+                                    ->with('user:id,firstname,lastname'),
+                            ]),
+                    ])
+                    ->visibleTo($request->user())
+                    ->orderBy('photographer_visits.created_at', 'desc');
 
                 // Apply filters
                 if ($request->filled('status')) {
-                    $query->where('status', $request->status);
+                    $query->where('photographer_visits.status', $request->status);
                 }
 
                 if ($request->filled('photographer_id')) {
-                    $query->where('photographer_id', $request->photographer_id);
+                    $query->where('photographer_visits.photographer_id', $request->photographer_id);
                 }
 
                 if ($request->filled('booking_id')) {
-                    $query->where('booking_id', $request->booking_id);
+                    $query->where('photographer_visits.booking_id', $request->booking_id);
                 }
 
                 if ($request->filled('date_from')) {
-                    $query->whereDate('visit_date', '>=', $request->date_from);
+                    $query->whereDate('photographer_visits.visit_date', '>=', $request->date_from);
                 }
 
                 if ($request->filled('date_to')) {
-                    $query->whereDate('visit_date', '<=', $request->date_to);
+                    $query->whereDate('photographer_visits.visit_date', '<=', $request->date_to);
                 }
-
-                \Log::info('Query built, total visits: ' . $query->count());
 
                 return DataTables::of($query)
                     ->addColumn('photographer_name', function (PhotographerVisit $visit) {
@@ -71,13 +85,17 @@ class PhotographerVisitController extends Controller
                     ->addColumn('booking_info', function (PhotographerVisit $visit) {
                         if ($visit->booking) {
                             $location = $visit->booking->society_name ?? $visit->booking->address_area ?? ($visit->booking->city ? $visit->booking->city->name : '');
-                            return '<strong>#' . $visit->booking->id . '</strong>' .
-                                ($location ? '<br><small class=\"text-muted\">' . $location . '</small>' : '');
+
+                            return '<strong>#' . $visit->booking->id . '</strong>'
+                                . ($location ? '<br><small class="text-muted">' . e($location) . '</small>' : '');
                         }
+
                         return '-';
                     })
                     ->editColumn('visit_date', function (PhotographerVisit $visit) {
-                        return $visit->visit_date ? $visit->visit_date->format('d M Y') . '<br><small class=\"text-muted\">' . $visit->visit_date->format('h:i A') . '</small>' : '-';
+                        return $visit->visit_date
+                            ? $visit->visit_date->format('d M Y') . '<br><small class="text-muted">' . $visit->visit_date->format('h:i A') . '</small>'
+                            : '-';
                     })
                     ->editColumn('status', function (PhotographerVisit $visit) {
                         $badges = [
@@ -89,67 +107,49 @@ class PhotographerVisitController extends Controller
                         ];
                         $color = $badges[$visit->status] ?? 'secondary';
                         $statusText = ucwords(str_replace('_', ' ', $visit->status));
+
                         return '<span class="badge bg-' . $color . '">' . $statusText . '</span>';
                     })
                     ->addColumn('actions', function (PhotographerVisit $visit) {
                         $actions = '<div class="d-flex gap-1">';
 
-                        // View button
                         $view = route('admin.photographer-visits.show', $visit);
-                        $actions .= '<a href="' . $view . '" class="btn btn-sm btn-soft-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="View Visit Details"><iconify-icon icon="solar:eye-broken" class="align-middle fs-18"></iconify-icon></a>';
+                        $actions .= '<a href="' . $view . '" class="btn btn-sm btn-soft-primary" title="View Visit Details"><iconify-icon icon="solar:eye-broken" class="align-middle fs-18"></iconify-icon></a>';
 
-                        // Check-out button (only for checked_in visits that have a job_id)
                         if ($visit->status === 'checked_in' && $visit->job_id) {
                             $checkoutUrl = route('admin.photographer-visit-jobs.check-out-form', $visit->job_id);
-                            $actions .= ' <a href="' . $checkoutUrl . '" class="btn btn-sm btn-soft-warning" data-bs-toggle="tooltip" data-bs-placement="top" title="Check Out"><iconify-icon icon="solar:logout-broken" class="align-middle fs-18"></iconify-icon></a>';
+                            $actions .= ' <a href="' . $checkoutUrl . '" class="btn btn-sm btn-soft-warning" title="Check Out"><iconify-icon icon="solar:logout-broken" class="align-middle fs-18"></iconify-icon></a>';
                         }
 
-                        // Delete button (only for pending visits)
                         if ($visit->status === 'pending') {
                             $delete = route('admin.photographer-visits.destroy', $visit);
-                            $csrf = csrf_field();
-                            $method = method_field('DELETE');
-                            $actions .= ' <form action="' . $delete . '" method="POST" class="d-inline" onsubmit="return confirm(\'Are you sure you want to delete this visit?\');">' . $csrf . $method .
-                                '<button type="submit" class="btn btn-sm btn-soft-danger" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete Visit"><iconify-icon icon="solar:trash-bin-minimalistic-2-broken" class="align-middle fs-18"></iconify-icon></button></form>';
+                            $actions .= ' <button type="button" class="btn btn-sm btn-soft-danger visit-delete-btn" data-delete-url="' . $delete . '" title="Delete Visit"><iconify-icon icon="solar:trash-bin-minimalistic-2-broken" class="align-middle fs-18"></iconify-icon></button>';
                         }
 
                         $actions .= '</div>';
+
                         return $actions;
                     })
                     ->addColumn('check_actions', function (PhotographerVisit $visit) {
-                        if (!$visit->booking || !$visit->booking->assignees || $visit->booking->assignees->isEmpty()) {
+                        $assignee = $visit->booking?->latestAssignee;
+                        if (!$assignee) {
                             return '<span class="text-muted small">No assignee</span>';
                         }
 
-                        $assignee = $visit->booking->assignees->first();
                         $actions = '<div class="d-flex gap-1">';
 
-                        // Check if there's a completed visit for this booking
-                        $completedVisit = PhotographerVisit::where('booking_id', $visit->booking_id)
-                            ->where('status', 'completed')
-                            ->exists();
-
-                        if ($completedVisit) {
-                            // Show TOUR COMPLETE badge
+                        if (($visit->booking->completed_visits_count ?? 0) > 0) {
                             $actions .= '<span class="badge bg-soft-success text-success px-2 py-1"><iconify-icon icon="solar:double-alt-arrow-right-broken" class="align-middle me-1"></iconify-icon>Tour Complete</span>';
+                        } elseif (($visit->booking->checked_in_visits_count ?? 0) > 0) {
+                            $checkoutUrl = route('admin.booking-assignees.check-out-form', $assignee);
+                            $actions .= '<a href="' . $checkoutUrl . '" class="btn btn-sm btn-soft-warning" title="Perform Operator Check Out"><iconify-icon icon="solar:logout-broken" class="align-middle me-1"></iconify-icon>Check Out</a>';
                         } else {
-                            // Check if there's an active checked-in visit for this booking
-                            $activeCheckedIn = PhotographerVisit::where('booking_id', $visit->booking_id)
-                                ->where('status', 'checked_in')
-                                ->exists();
-
-                            if ($activeCheckedIn) {
-                                // Show CHECK-OUT button
-                                $checkoutUrl = route('admin.booking-assignees.check-out-form', $assignee);
-                                $actions .= '<a href="' . $checkoutUrl . '" class="btn btn-sm btn-soft-warning" data-bs-toggle="tooltip" data-bs-placement="top" title="Perform Operator Check Out"><iconify-icon icon="solar:logout-broken" class="align-middle me-1"></iconify-icon>Check Out</a>';
-                            } else {
-                                // Show CHECK-IN button
-                                $checkinUrl = route('admin.booking-assignees.check-in-form', $assignee);
-                                $actions .= '<a href="' . $checkinUrl . '" class="btn btn-sm btn-soft-success" data-bs-toggle="tooltip" data-bs-placement="top" title="Perform Operator Check In"><iconify-icon icon="solar:login-broken" class="align-middle me-1"></iconify-icon>Check In</a>';
-                            }
+                            $checkinUrl = route('admin.booking-assignees.check-in-form', $assignee);
+                            $actions .= '<a href="' . $checkinUrl . '" class="btn btn-sm btn-soft-success" title="Perform Operator Check In"><iconify-icon icon="solar:login-broken" class="align-middle me-1"></iconify-icon>Check In</a>';
                         }
 
                         $actions .= '</div>';
+
                         return $actions;
                     })
                     ->rawColumns(['booking_info', 'visit_date', 'status', 'actions', 'check_actions'])
@@ -160,12 +160,13 @@ class PhotographerVisitController extends Controller
                     'error' => $e->getMessage(),
                     'trace' => $e->getTraceAsString()
                 ]);
+
                 return response()->json(['error' => $e->getMessage()], 500);
             }
         }
 
-        $photographers = User::role('photographer')->get();
-        $bookings = Booking::orderBy('created_at', 'desc')->limit(100)->get();
+        $photographers = User::role('photographer')->orderBy('firstname')->get(['id', 'firstname', 'lastname']);
+        $bookings = Booking::orderBy('created_at', 'desc')->limit(100)->get(['id', 'society_name', 'address_area']);
 
         $canCreate = $request->user()->can('photographer_visit_create');
         $canEdit = $request->user()->can('photographer_visit_edit');
@@ -360,6 +361,10 @@ class PhotographerVisitController extends Controller
             $photographerVisit->delete();
 
             DB::commit();
+
+            if (request()->expectsJson()) {
+                return response()->json(['message' => 'Photographer visit deleted successfully.']);
+            }
 
             return redirect()
                 ->route('admin.photographer-visits.index')

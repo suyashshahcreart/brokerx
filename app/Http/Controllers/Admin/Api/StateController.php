@@ -42,10 +42,15 @@ class StateController extends Controller
     /**
      * Get all states for dropdown options.
      */
-    public function options()
+    public function options(Request $request)
     {
-        $states = State::select('id', 'name')->orderBy('name')->get();
-        return response()->json($states);
+        $query = State::select('id', 'name')->orderBy('name');
+
+        if ($request->filled('country_id')) {
+            $query->where('country_id', $request->country_id);
+        }
+
+        return response()->json($query->get());
     }
 
     /**

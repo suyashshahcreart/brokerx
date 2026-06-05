@@ -19,6 +19,194 @@
         #scheduleModal .input-group-text:hover {
             background-color: #0b5ed7 !important;
         }
+
+        #filtersSection .select2-container {
+            width: 100% !important;
+        }
+
+        #filtersSection .select2-container--bootstrap-5 .select2-selection--single {
+            min-height: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            font-size: 0.8125rem;
+            border-color: var(--bs-border-color);
+        }
+
+        #filtersSection .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
+            line-height: 1.25;
+            padding-left: 0.65rem;
+            padding-right: 2.75rem;
+            color: var(--bs-body-color);
+        }
+
+        #filtersSection .select2-container--bootstrap-5 .select2-selection--single .select2-selection__clear {
+            position: absolute;
+            right: 1.85rem;
+            font-size: 1.05rem;
+            line-height: 1;
+            color: var(--bs-secondary-color);
+            cursor: pointer;
+            margin-right: 0;
+            padding: 0 0.1rem;
+        }
+
+        #filtersSection .select2-container--bootstrap-5 .select2-selection--single .select2-selection__clear:hover {
+            color: var(--bs-body-color);
+        }
+
+        #filtersSection .select2-container--bootstrap-5 .select2-selection--single .select2-selection__placeholder {
+            color: var(--bs-secondary-color) !important;
+        }
+
+        #filtersSection .select2-container--bootstrap-5.select2-container--disabled .select2-selection {
+            background-color: var(--bs-secondary-bg, #e9ecef);
+            cursor: not-allowed;
+        }
+
+        #filtersSection .select2-container--bootstrap-5.select2-container--disabled .select2-selection__rendered {
+            color: var(--bs-secondary-color);
+        }
+
+        #filtersSection .select2-container--bootstrap-5 .select2-selection--multiple {
+            min-height: 32px;
+            padding: 0.1rem 0.35rem;
+            font-size: 0.8125rem;
+            border-color: var(--bs-border-color);
+        }
+
+        #filtersSection .select2-container--bootstrap-5 .select2-selection--multiple .select2-selection__rendered {
+            padding: 0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.15rem;
+        }
+
+        #filtersSection .select2-container--bootstrap-5 .select2-selection--multiple .select2-selection__choice {
+            font-size: 0.7rem;
+            padding: 0.05rem 0.35rem;
+            margin: 0;
+            line-height: 1.35;
+        }
+
+        #filtersSection .select2-container--bootstrap-5 .select2-selection--multiple .select2-search__field {
+            margin-top: 0;
+            font-size: 0.8125rem;
+        }
+
+        .booking-filters-panel {
+            position: relative;
+            background: var(--bs-light-bg-subtle, #f8f9fa);
+            border: 1px solid var(--bs-border-color);
+            border-radius: 0.375rem;
+            overflow: visible;
+            padding: 0.35rem 0.75rem 0.625rem;
+        }
+
+        .booking-filters-grid {
+            display: grid;
+            gap: 0.5rem 0.65rem;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+        }
+
+        .booking-filter-clear {
+            position: absolute;
+            top: 2px;
+            right: 0.5rem;
+            z-index: 2;
+            line-height: 1;
+        }
+
+        @include('admin.partials.mobile-filters-toggle-styles')
+
+        .booking-filters-body .booking-filters-grid + .booking-filters-grid {
+            margin-top: 0.5rem;
+        }
+
+        .booking-filter-clear .btn {
+            padding: 0.1rem 0.35rem;
+            font-size: 0.6875rem;
+            height: 22px;
+            min-width: auto;
+            line-height: 1;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.2rem;
+        }
+
+        .booking-filter-clear .btn i {
+            font-size: 0.8rem;
+            margin: 0 !important;
+        }
+
+        @media (max-width: 1199.98px) {
+            .booking-filters-grid {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 767.98px) {
+            .booking-filters-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 575.98px) {
+            .booking-filters-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .booking-filter-item {
+            min-width: 0;
+        }
+
+        #filtersSection .form-label {
+            font-size: 0.75rem;
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+            color: var(--bs-secondary-color);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        #filtersSection .form-control-sm,
+        #filtersSection .form-select-sm {
+            min-height: 32px;
+            font-size: 0.8125rem;
+        }
+
+        #filterDateRange {
+            background-color: var(--bs-body-bg, #fff);
+            height: 32px;
+            min-height: 32px;
+        }
+
+        .booking-filter-field .input-group-sm {
+            flex-wrap: nowrap;
+        }
+
+        .booking-filter-field .input-group-sm > .form-control,
+        .booking-filter-field .input-group-sm > .input-group-text {
+            height: 32px;
+            min-height: 32px;
+            padding-top: 0.25rem;
+            padding-bottom: 0.25rem;
+        }
+
+        .booking-filter-field .input-group-text {
+            background: var(--bs-primary);
+            color: #fff;
+            border-color: var(--bs-primary);
+            padding-inline: 0.55rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .booking-filters-panel > .booking-filters-grid + .booking-filters-grid {
+            margin-top: 0.5rem;
+        }
     </style>
 @endsection
 
@@ -71,51 +259,104 @@
                 </div>
                 <div class="card-body">
                     <!-- Filters Section -->
-                    <div class="row mb-4 g-3" id="filtersSection">
-                        <div class="col-md-3">
-                            <label for="filterState" class="form-label">State</label>
-                            <select id="filterState" class="form-select form-select-sm">
-                                <option value="">All States</option>
-                                @foreach ($states ?? [] as $state)
-                                    <option value="{{ $state->id }}">{{ $state->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <label for="filterCity" class="form-label">City</label>
-                            <select id="filterCity" class="form-select form-select-sm">
-                                <option value="">All Cities</option>
-                                @foreach ($cities ?? [] as $city)
-                                    <option value="{{ $city->id }}" data-state="{{ $city->state_id }}">{{ $city->name }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <label for="filterStatus" class="form-label">Booking Status</label>
-                            <select id="filterStatus" class="form-select form-select-sm">
-                                <option value="">All Status</option>
-                                <option value="pending">Pending</option>
-                                <option value="confirmed">Confirmed</option>
-                                <option value="cancelled">Cancelled</option>
-                                <option value="completed">Completed</option>
-                                <option value="Schedul_accepted">Schedul Accepted</option>
-                                <option value="Reschedul_accepted">Reschedul Accepted</option>
-                                <option value="Schedul_completed">Schedul Completed</option>
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <label for="filterDateRange" class="form-label">Date Range</label>
-                            <input type="text" id="filterDateRange" class="form-control form-control-sm"
-                                placeholder="Select date range" />
-                        </div>
-                        <div class="col-12">
-                            <button type="button" class="btn btn-sm btn-primary" id="applyFilters">
-                                <i class="ri-search-line me-2"></i>Apply Filters
+                    <div class="booking-filters-panel mb-1" id="filtersSection">
+                        @include('admin.partials.mobile-filters-toggle-button')
+
+                        <div class="booking-filters-body" id="mobileFiltersBody">
+                        <div class="booking-filter-clear">
+                            <button type="button" class="btn btn-sm btn-soft-secondary" id="clearFilters" title="Clear All">
+                                <i class="ri-filter-off-line"></i><span>Clear All</span>
                             </button>
-                            <button type="button" class="btn btn-sm btn-secondary" id="clearFilters">
-                                <i class="ri-close-line me-2"></i>Clear Filters
-                            </button>
+                        </div>
+
+                        <div class="booking-filters-grid">
+                            <div class="booking-filter-item">
+                                    <label for="filterCustomer" class="form-label">Customer</label>
+                                    <select id="filterCustomer" class="form-select form-select-sm booking-filter-select" data-theme="bootstrap-5" data-placeholder="All Customers">
+                                        <option value="">All Customers</option>
+                                    </select>
+                                </div>
+                                <div class="booking-filter-item">
+                                    <label for="filterStatus" class="form-label">Booking Status</label>
+                                    <select id="filterStatus" class="form-select form-select-sm booking-filter-select" data-theme="bootstrap-5" data-placeholder="All Status" multiple>
+                                        <option value="pending">Pending</option>
+                                        <option value="confirmed">Confirmed</option>
+                                        <option value="cancelled">Cancelled</option>
+                                        <option value="completed">Completed</option>
+                                        <option value="schedul_pending">Schedul Pending</option>
+                                        <option value="schedul_accepted">Schedul Accepted</option>
+                                        <option value="reschedul_accepted">Reschedul Accepted</option>
+                                        <option value="schedul_completed">Schedul Completed</option>
+                                        <option value="tour_pending">Tour Pending</option>
+                                        <option value="tour_live">Tour Live</option>
+                                    </select>
+                                </div>
+                                <div class="booking-filter-item">
+                                    <label for="filterCountry" class="form-label">Country</label>
+                                    <select id="filterCountry" class="form-select form-select-sm booking-filter-select" data-theme="bootstrap-5" data-placeholder="All Countries">
+                                        <option value="">All Countries</option>
+                                        @foreach ($countries ?? [] as $country)
+                                            <option value="{{ $country->id }}" @selected(($defaultCountryId ?? null) == $country->id)>{{ $country->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="booking-filter-item">
+                                    <label for="filterState" class="form-label">State</label>
+                                    <select id="filterState" class="form-select form-select-sm booking-filter-select" data-theme="bootstrap-5" data-placeholder="All States">
+                                        <option value="">All States</option>
+                                        @foreach ($states ?? [] as $state)
+                                            <option value="{{ $state->id }}">{{ $state->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="booking-filter-item">
+                                    <label for="filterCity" class="form-label">City</label>
+                                    <select id="filterCity" class="form-select form-select-sm booking-filter-select" data-theme="bootstrap-5" data-placeholder="All Cities" disabled>
+                                        <option value="">All Cities</option>
+                                    </select>
+                                </div>
+                        </div>
+
+                        <div class="booking-filters-grid">
+                                <div class="booking-filter-item">
+                                    <label for="filterPropertyType" class="form-label">Property Type</label>
+                                    <select id="filterPropertyType" class="form-select form-select-sm booking-filter-select" data-theme="bootstrap-5" data-placeholder="All Property Types">
+                                        <option value="">All Property Types</option>
+                                        @foreach ($propertyTypes ?? [] as $propertyType)
+                                            <option value="{{ $propertyType->id }}">{{ $propertyType->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="booking-filter-item">
+                                    <label for="filterPropertySubType" class="form-label">Property Sub Type</label>
+                                    <select id="filterPropertySubType" class="form-select form-select-sm booking-filter-select" data-theme="bootstrap-5" data-placeholder="All Property Sub Types" disabled>
+                                        <option value="">All Property Sub Types</option>
+                                    </select>
+                                </div>
+                                <div class="booking-filter-item d-none" id="filterFurnishWrap">
+                                    <label for="filterFurnish" class="form-label">Furnish Type</label>
+                                    <select id="filterFurnish" class="form-select form-select-sm booking-filter-select" data-theme="bootstrap-5" data-placeholder="All Furnish Types" disabled>
+                                        <option value="">All Furnish Types</option>
+                                        <option value="Furnished">Fully Furnished</option>
+                                        <option value="Semi-Furnished">Semi Furnished</option>
+                                        <option value="Unfurnished">Unfurnished</option>
+                                    </select>
+                                </div>
+                                <div class="booking-filter-item d-none" id="filterBhkWrap">
+                                    <label for="filterBhk" class="form-label">Size (BHK / RK)</label>
+                                    <select id="filterBhk" class="form-select form-select-sm booking-filter-select" data-theme="bootstrap-5" data-placeholder="All Sizes" disabled>
+                                        <option value="">All Sizes</option>
+                                    </select>
+                                </div>
+                                <div class="booking-filter-item booking-filter-field">
+                                    <label for="filterDateRange" class="form-label">Date Range</label>
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text"><i class="ri-calendar-line"></i></span>
+                                        <input type="text" id="filterDateRange" class="form-control form-control-sm"
+                                            placeholder="Select date range" />
+                                    </div>
+                                </div>
+                        </div>
                         </div>
                     </div>
 
@@ -132,7 +373,6 @@
                                     <th>Price</th>
                                     <th>Date</th>
                                     <th>Status</th>
-                                    <th>Payment</th>
                                     <th class="text-end">Actions</th>
                                 </tr>
                             </thead>
@@ -212,7 +452,17 @@
         window.adminBasePath = 'ppadmlog'
         window.apiBaseUrl = '{{ url("/api") }}';
         window.bookingIndexUrl = '{{ route("admin.bookings.index") }}';
+        window.citiesOptionsUrl = '{{ route("admin.api.cities.options") }}';
+        window.statesOptionsUrl = '{{ route("admin.api.states.options") }}';
+        window.customersOptionsUrl = '{{ route("admin.api.customers.options") }}';
+        window.propertySubTypesOptionsUrl = '{{ route("admin.api.property-sub-types.options") }}';
+        window.bhkOptionsUrl = '{{ route("admin.api.bhk.options") }}';
+        window.defaultCountryId = @json($defaultCountryId ?? null);
+        window.propertyTypeMeta = @json($propertyTypeMeta ?? []);
         window.bookingCsrfToken = '{{ csrf_token() }}';
     </script>
+@endsection
+
+@section('script-bottom')
     @vite(['resources/js/pages/booking-index.js'])
 @endsection

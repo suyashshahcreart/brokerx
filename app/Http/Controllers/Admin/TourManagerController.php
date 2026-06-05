@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Jobs\ProcessTourZipFile;
 use App\Models\Booking;
 use App\Models\City;
+use App\Models\Country;
 use App\Models\FtpConfiguration;
+use App\Models\PropertyType;
 use App\Models\QR;
 use App\Models\Setting;
 use App\Models\State;
@@ -45,21 +47,44 @@ class TourManagerController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            // Add joins for searchable columns to enable global search
-            $query = Booking::query()
-                ->leftJoin('customers', 'bookings.customer_id', '=', 'customers.id')
-                ->leftJoin('cities', 'bookings.city_id', '=', 'cities.id')
-                ->leftJoin('tours', function ($join) {
-                    $join->on('tours.booking_id', '=', 'bookings.id')
-                        ->whereNull('tours.deleted_at');
-                })
-                ->leftJoin('qr_code', 'qr_code.booking_id', '=', 'bookings.id')
-                ->select('bookings.*')
-                ->distinct()
-                ->with(['customer', 'propertyType', 'propertySubType', 'bhk', 'city', 'state', 'tours', 'qr'])
-                ->orderBy('bookings.created_at', 'desc');
+            $canEditBooking = $request->user()->can('booking_edit');
+            $canTourEdit = $request->user()->can('tour_manager_edit');
 
-            // Apply filters
+            $query = Booking::query()
+                ->select([
+                    'bookings.id',
+                    'bookings.customer_id',
+                    'bookings.property_type_id',
+                    'bookings.property_sub_type_id',
+                    'bookings.bhk_id',
+                    'bookings.city_id',
+                    'bookings.state_id',
+                    'bookings.society_name',
+                    'bookings.address_area',
+                    'bookings.price',
+                    'bookings.status',
+                    'bookings.booking_date',
+                    'bookings.created_at',
+                ])
+                ->with([
+                    'customer:id,firstname,lastname,base_mobile',
+                    'propertyType:id,name',
+                    'propertySubType:id,name',
+                    'bhk:id,name',
+                    'city:id,name',
+                    'state:id,name',
+                    'qr:id,booking_id,code',
+                    'latestTour' => fn ($q) => $q->select('tours.id', 'tours.booking_id', 'tours.name'),
+                ]);
+
+            if ($request->filled('country_id')) {
+                $query->where('bookings.country_id', $request->country_id);
+            }
+
+            if ($request->filled('customer_id')) {
+                $query->where('bookings.customer_id', $request->customer_id);
+            }
+
             if ($request->filled('state_id')) {
                 $query->where('bookings.state_id', $request->state_id);
             }
@@ -69,135 +94,129 @@ class TourManagerController extends Controller
             }
 
             if ($request->filled('status')) {
-                $query->where('bookings.status', $request->status);
+                $statuses = $request->input('status');
+                if (! is_array($statuses)) {
+                    $statuses = array_filter(explode(',', (string) $statuses));
+                }
+                $statuses = array_values(array_filter(array_map('strtolower', $statuses)));
+                if ($statuses !== []) {
+                    $query->whereIn('bookings.status', $statuses);
+                }
             }
 
-            if ($request->filled('payment_status')) {
-                $query->where('bookings.payment_status', $request->payment_status);
+            if ($request->filled('date_from') && $request->filled('date_to')) {
+                $query->whereBetween('bookings.booking_date', [
+                    $request->date_from,
+                    $request->date_to,
+                ]);
             }
 
             if ($request->filled('property_type_id')) {
                 $query->where('bookings.property_type_id', $request->property_type_id);
             }
 
-            if ($request->filled('date_from')) {
-                $query->whereDate('bookings.booking_date', '>=', $request->date_from);
+            if ($request->filled('property_sub_type_id')) {
+                $query->where('bookings.property_sub_type_id', $request->property_sub_type_id);
             }
 
-            if ($request->filled('date_to')) {
-                $query->whereDate('bookings.booking_date', '<=', $request->date_to);
+            if ($request->filled('furniture_type')) {
+                $query->where('bookings.furniture_type', $request->furniture_type);
+            }
+
+            if ($request->filled('bhk_id')) {
+                $query->where('bookings.bhk_id', $request->bhk_id);
             }
 
             return DataTables::of($query)
-                // Global search filter - uses filterColumn on 'customer' which is searchable
                 ->filterColumn('customer', function ($query, $keyword) {
                     $query->where(function ($subQuery) use ($keyword) {
                         $subQuery
-                            // user related to booking
-                            ->where('customers.firstname', 'like', "%{$keyword}%")
-                            ->orWhere('customers.lastname', 'like', "%{$keyword}%")
-                            ->orWhere('customers.mobile', 'like', "%{$keyword}%")
-                            // tour related to booking
-                            ->orWhere('tours.name', 'like', "%{$keyword}%")
-                            ->orWhere('tours.title', 'like', "%{$keyword}%")
-                            ->orWhere('tours.slug', 'like', "%{$keyword}%")
-                            // seo related search
-                            ->orWhere('tours.meta_keywords', 'like', "%{$keyword}%")
-                            ->orWhere('tours.meta_title', 'like', "%{$keyword}%")
-                            ->orWhere('tours.meta_description', 'like', "%{$keyword}%")
-                            // booking address
-                            ->orWhere('bookings.address_area', 'like', "%{$keyword}%")
+                            ->where('bookings.address_area', 'like', "%{$keyword}%")
                             ->orWhere('bookings.full_address', 'like', "%{$keyword}%")
                             ->orWhere('bookings.pin_code', 'like', "%{$keyword}%")
-                            // qr code
-                            ->orWhere('qr_code.code', 'like', "%{$keyword}%")
-                            // city name
-                            ->orWhere('cities.name', 'like', "%{$keyword}%");
+                            ->orWhereHas('customer', function ($customerQuery) use ($keyword) {
+                                $customerQuery
+                                    ->where('firstname', 'like', "%{$keyword}%")
+                                    ->orWhere('lastname', 'like', "%{$keyword}%")
+                                    ->orWhere('mobile', 'like', "%{$keyword}%")
+                                    ->orWhere('base_mobile', 'like', "%{$keyword}%");
+                            })
+                            ->orWhereHas('latestTour', function ($tourQuery) use ($keyword) {
+                                $tourQuery->where(function ($tourSearch) use ($keyword) {
+                                    $tourSearch
+                                        ->where('name', 'like', "%{$keyword}%")
+                                        ->orWhere('title', 'like', "%{$keyword}%")
+                                        ->orWhere('slug', 'like', "%{$keyword}%");
+                                });
+                            });
                     });
                 })
                 ->filterColumn('qr_code', function ($query, $keyword) {
-                    $query->where('qr_code.code', 'like', "%{$keyword}%");
+                    $query->whereHas('qr', function ($qrQuery) use ($keyword) {
+                        $qrQuery->where('code', 'like', "%{$keyword}%");
+                    });
                 })
-                ->addColumn('booking_id', function (Booking $booking) {
-                    return '<strong>#'.$booking->id.'</strong>';
+                ->filterColumn('city_state', function ($query, $keyword) {
+                    $query->where(function ($subQuery) use ($keyword) {
+                        $subQuery
+                            ->whereHas('city', fn ($cityQuery) => $cityQuery->where('name', 'like', "%{$keyword}%"))
+                            ->orWhereHas('state', fn ($stateQuery) => $stateQuery->where('name', 'like', "%{$keyword}%"));
+                    });
                 })
+                ->addColumn('booking_id', fn (Booking $booking) => '<strong>#'.e($booking->id).'</strong>')
                 ->addColumn('booking_info', function (Booking $booking) {
-                    $propertyType = $booking->propertyType?->name ?? 'N/A';
-                    $subType = $booking->propertySubType?->name ?? '';
-                    $bhk = $booking->bhk?->name ?? '';
+                    $propertyType = e($booking->propertyType?->name ?? 'N/A');
+                    $subType = e($booking->propertySubType?->name ?? '');
+                    $bhk = e($booking->bhk?->name ?? '');
+                    $tourName = $booking->latestTour?->name;
 
-                    // Get tour name safely - check if tours relation is loaded
-                    $tourName = null;
-                    if (isset($booking->tours) && is_object($booking->tours)) {
-                        if (is_iterable($booking->tours)) {
-                            $tour = $booking->tours instanceof \Illuminate\Database\Eloquent\Collection
-                                ? $booking->tours->first()
-                                : current($booking->tours);
-                            $tourName = $tour?->name;
-                        }
-                    }
-
-                    $info = '';
-                    $info .= '<p>'.$propertyType;
+                    $info = $propertyType;
                     if ($subType) {
                         $info .= ' - '.$subType;
                     }
                     if ($bhk) {
                         $info .= ' - '.$bhk;
                     }
-                    $info .= '</br>';
                     if ($tourName) {
-                        $info .= e($tourName).'</p>';
+                        $info .= '<div class="text-muted small">'.e($tourName).'</div>';
                     }
 
                     return $info;
                 })
                 ->addColumn('customer', function (Booking $booking) {
-                    $name = $booking->customer ? $booking->customer->firstname.' '.$booking->customer->lastname : '-';
+                    $name = $booking->customer
+                        ? e($booking->customer->firstname.' '.$booking->customer->lastname)
+                        : '-';
 
-                    return '<strong>'.e($name).'</strong><br>'.
+                    return '<strong>'.$name.'</strong><br>'.
                         '<small class="text-muted">'.e($booking->customer->base_mobile ?? '').'</small>';
                 })
                 ->addColumn('location', function (Booking $booking) {
-                    $location = [];
-                    if ($booking->society_name) {
-                        $location[] = $booking->society_name;
-                    }
-                    if ($booking->address_area) {
-                        $location[] = $booking->address_area;
-                    }
-                    if ($booking->city) {
-                        $location[] = $booking->city->name;
-                    }
+                    $location = array_filter([
+                        $booking->society_name,
+                        $booking->address_area,
+                        $booking->city?->name,
+                    ]);
 
-                    return implode(', ', $location) ?: 'N/A';
+                    return e(implode(', ', $location) ?: 'N/A');
                 })
                 ->addColumn('city_state', function (Booking $booking) {
-                    return ($booking->city?->name ?? '-').'<div class="text-muted small">'.($booking->state?->name ?? '-').'</div>';
+                    return e($booking->city?->name ?? '-').'<div class="text-muted small">'.e($booking->state?->name ?? '-').'</div>';
                 })
                 ->addColumn('qr_code', function (Booking $booking) {
-                    if ($booking->qr && $booking->qr->code) {
-                        $qrBaseUrl = rtrim(Setting::where('name', 'qr_link_base')->value('value') ?? '', '/');
-                        $qrUrl = $booking->qr->qr_link ?: ($qrBaseUrl ? $qrBaseUrl.'/'.$booking->qr->code : null);
+                    if ($booking->qr?->code) {
+                        $safeCode = e($booking->qr->code);
 
-                        // Fallback to plain code when we cannot build a URL
-                        if (! $qrUrl) {
-                            $safeCode = htmlspecialchars($booking->qr->code, ENT_QUOTES, 'UTF-8');
-
-                            return '<span class="text-muted dblclick-copy" data-copy-text="'.$safeCode.'" title="Double click to copy">'.$safeCode.'</span>';
-                        }
-
-                        $safeUrl = htmlspecialchars($qrUrl, ENT_QUOTES, 'UTF-8');
-                        $safeCode = htmlspecialchars($booking->qr->code, ENT_QUOTES, 'UTF-8');
-
-                        return '<a href="'.$safeUrl.'" target="_blank" rel="noopener" data-bs-toggle="tooltip" data-bs-placement="top" title="Open QR link" class="dblclick-copy" data-copy-text="'.$safeCode.'">'.$safeCode.'</a>';
+                        return '<span class="text-muted dblclick-copy" data-copy-text="'.$safeCode.'" title="Double click to copy">'.$safeCode.'</span>';
                     }
 
                     return '<span class="text-muted">N/A</span>';
                 })
                 ->addColumn('created_at', function (Booking $booking) {
-                    return \Carbon\Carbon::parse($booking->created_at)->format('d M Y').'<br>'.
-                        '<small class="text-muted">'.\Carbon\Carbon::parse($booking->created_at)->format('h:i A').'</small>';
+                    $created = $booking->created_at;
+
+                    return ($created ? $created->format('d M Y') : '-').'<br>'.
+                        '<small class="text-muted">'.($created ? $created->format('h:i A') : '').'</small>';
                 })
                 ->addColumn('status', function (Booking $booking) {
                     $badges = [
@@ -206,56 +225,81 @@ class TourManagerController extends Controller
                         'scheduled' => 'info',
                         'completed' => 'success',
                         'cancelled' => 'danger',
+                        'tour_live' => 'success',
+                        'schedul_completed' => 'success',
                     ];
                     $color = $badges[$booking->status] ?? 'secondary';
 
-                    return '<span class="badge bg-'.$color.'">'.ucfirst($booking->status).'</span>';
+                    return '<span class="badge bg-'.$color.' text-uppercase">'.e($booking->status).'</span>';
                 })
-                ->addColumn('payment_status', function (Booking $booking) {
-                    $badges = [
-                        'pending' => 'warning',
-                        'paid' => 'success',
-                        'failed' => 'danger',
-                        'refunded' => 'info',
-                    ];
-                    $color = $badges[$booking->payment_status] ?? 'secondary';
+                ->addColumn('price', fn (Booking $booking) => '₹ '.number_format((float) $booking->price, 2))
+                ->addColumn('actions', function (Booking $booking) use ($canEditBooking, $canTourEdit) {
+                    $html = '<div class="d-flex gap-1 booking-row-actions">';
 
-                    return '<span class="badge bg-'.$color.'">'.ucfirst($booking->payment_status).'</span>';
-                })
-                ->addColumn('price', function (Booking $booking) {
-                    return '₹'.number_format($booking->price, 2);
-                })
-                ->addColumn('actions', function (Booking $booking) use ($request) {
-                    $actions = '<div class="d-flex gap-1">';
+                    $html .= '<a href="'.route('admin.tour-manager.show', $booking->id).'"'
+                        . ' class="btn btn-soft-primary btn-sm" title="View Tour">'
+                        . '<iconify-icon icon="solar:eye-broken" class="align-middle fs-18"></iconify-icon></a>';
 
-                    // View button
-                    $actions .= '<a href="'.route('admin.tour-manager.show', $booking).'" class="btn btn-sm btn-soft-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="View Tour Public Page"><iconify-icon icon="solar:eye-broken" class="align-middle fs-18"></iconify-icon></a>';
-
-                    // Edit booking button (Main booking edit)
-                    if ($request->user()->can('booking_edit')) {
-                        $actions .= ' <a href="'.route('admin.bookings.edit', $booking->id).'" class="btn btn-sm btn-soft-info" data-bs-toggle="tooltip" data-bs-placement="top" title="Edit Booking Info"><iconify-icon icon="solar:pen-new-square-broken" class="align-middle fs-18"></iconify-icon></a>';
+                    if ($canEditBooking) {
+                        $html .= '<a href="'.route('admin.bookings.edit', $booking->id).'"'
+                            . ' class="btn btn-soft-info btn-sm" title="Edit Booking">'
+                            . '<iconify-icon icon="solar:pen-new-square-broken" class="align-middle fs-18"></iconify-icon></a>';
                     }
 
-                    // Edit tour button (Upload Tour)
-                    if ($booking->tours()->exists() && $request->user()->can('tour_manager_edit')) {
-                        $actions .= ' <a href="'.route('admin.tour-manager.upload', $booking).'" class="btn btn-sm btn-soft-warning" data-bs-toggle="tooltip" data-bs-placement="top" title="Upload & Manage Tour Assets"><iconify-icon icon="solar:upload-minimalistic-broken" class="align-middle fs-18"></iconify-icon></a>';
+                    if ($booking->latestTour && $canTourEdit) {
+                        $html .= '<a href="'.route('admin.tour-manager.upload', $booking->id).'"'
+                            . ' class="btn btn-soft-warning btn-sm" title="Upload Tour">'
+                            . '<iconify-icon icon="solar:upload-minimalistic-broken" class="align-middle fs-18"></iconify-icon></a>';
                     }
 
-                    $actions .= '</div>';
-
-                    return $actions;
+                    return $html.'</div>';
                 })
-                ->rawColumns(['booking_id', 'booking_info', 'customer', 'location', 'city_state', 'qr_code', 'created_at', 'status', 'payment_status', 'actions'])
+                ->rawColumns(['booking_id', 'booking_info', 'customer', 'location', 'city_state', 'qr_code', 'created_at', 'status', 'actions'])
+                ->only([
+                    'booking_id',
+                    'booking_info',
+                    'customer',
+                    'location',
+                    'city_state',
+                    'qr_code',
+                    'created_at',
+                    'status',
+                    'price',
+                    'actions',
+                ])
                 ->make(true);
         }
 
-        $statuses = ['pending', 'confirmed', 'scheduled', 'completed', 'cancelled'];
-        $paymentStatuses = ['pending', 'paid', 'failed', 'refunded'];
         $canEdit = $request->user()->can('tour_manager_edit');
-        $states = State::orderBy('name')->get();
-        $cities = City::orderBy('name')->get();
 
-        return view('admin.tour-manager.index', compact('statuses', 'paymentStatuses', 'canEdit', 'states', 'cities'));
+        $countries = Country::where('is_active', true)->orderBy('name')->get(['id', 'name', 'country_code']);
+        $defaultCountryId = optional($countries->first(function ($country) {
+            return strcasecmp($country->name, 'India') === 0 || strtoupper($country->country_code ?? '') === 'IN';
+        }))->id;
+
+        $states = $defaultCountryId
+            ? State::where('country_id', $defaultCountryId)->orderBy('name')->get(['id', 'name'])
+            : collect();
+
+        $propertyTypes = PropertyType::orderBy('name')->get(['id', 'name']);
+        $propertyTypeMeta = $propertyTypes->mapWithKeys(function ($type) {
+            $key = strtolower($type->name);
+
+            return [$type->id => [
+                'name' => $type->name,
+                'is_residential' => str_contains($key, 'residential'),
+                'is_commercial' => str_contains($key, 'commercial'),
+            ]];
+        });
+
+        return view('admin.tour-manager.index', compact(
+            'canEdit',
+            'countries',
+            'defaultCountryId',
+            'states',
+            'propertyTypes',
+            'propertyTypeMeta'
+        ));
     }
 
     /**
