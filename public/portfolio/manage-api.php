@@ -1,10 +1,16 @@
 <?php
 /**
- * Manage API - Load/save portfolio.json, trigger export
+ * Manage API — load/save `data/portfolio.json` (login required).
+ *
+ * Each item may include:
+ * - `sr_no` — global order for the full portfolio (all items).
+ * - `property_types_sr_no` — order within `property_type` (used when filtered by type).
  */
 
+require_once __DIR__ . '/auth.php';
+requireAuth(true);
+
 header('Content-Type: application/json; charset=utf-8');
-header('Access-Control-Allow-Origin: *');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit(0);
@@ -56,14 +62,6 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 $input = json_decode(file_get_contents('php://input'), true) ?: $_POST;
 $action = $input['action'] ?? '';
-
-if ($action === 'export') {
-    $_GET['action'] = 'export';
-    ob_start();
-    include __DIR__ . '/data.php';
-    echo ob_get_clean();
-    exit;
-}
 
 if ($action === 'save') {
     $payload = $input['data'] ?? $input;
