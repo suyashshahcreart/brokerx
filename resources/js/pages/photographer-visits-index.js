@@ -5,6 +5,7 @@
 import $ from "jquery";
 import moment from "moment";
 import 'datatables.net-bs5';
+import { initMobileFiltersToggle } from '../utils/mobile-filters-toggle.js';
 
 // Set default locale (moment includes 'en' by default)
 moment.locale('en');
@@ -107,10 +108,16 @@ document.addEventListener('DOMContentLoaded', function () {
         initDateRangePicker();
     }, 300);
 
+    initMobileFiltersToggle();
+
     // Initialize DataTable
     const dataTable = table.DataTable({
         processing: true,
         serverSide: true,
+        deferRender: true,
+        pageLength: 10,
+        lengthMenu: [10, 25, 50, 100],
+        searchDelay: 500,
         ajax: {
             url: window.photographerVisitsConfig.indexRoute,
             type: 'GET',
@@ -221,20 +228,36 @@ document.addEventListener('DOMContentLoaded', function () {
                 next: '<i class="ri-arrow-right-s-line"></i>',
                 previous: '<i class="ri-arrow-left-s-line"></i>'
             }
-        },
-        lengthMenu: [10, 25, 50, 100],
-        responsive: true,
-        lengthMenu: [10, 25, 50, 100],
-        responsive: true,
-        drawCallback: function (settings) {
-            // Reinitialize tooltips if they exist
-            if (typeof bootstrap !== 'undefined' && bootstrap.Tooltip) {
-                const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-                tooltipTriggerList.map(function (tooltipTriggerEl) {
-                    return new bootstrap.Tooltip(tooltipTriggerEl);
-                });
-            }
         }
+    });
+
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+    $('#visits-table').on('click', '.visit-delete-btn', function () {
+        const deleteUrl = this.getAttribute('data-delete-url');
+        if (!deleteUrl || !confirm('Are you sure you want to delete this visit?')) {
+            return;
+        }
+
+        fetch(deleteUrl, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRF-TOKEN': csrfToken,
+                Accept: 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => Promise.reject(err));
+                }
+                return response.json();
+            })
+            .then(() => dataTable.draw(false))
+            .catch(error => {
+                console.error('Delete error:', error);
+                alert(error?.message || 'Failed to delete visit.');
+            });
     });
 
     // Filter change events

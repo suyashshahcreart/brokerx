@@ -11,6 +11,7 @@ if (typeof window.$ === 'undefined') {
 import 'datatables.net-bs5';
 import Swal from 'sweetalert2';
 import moment from 'moment';
+import { initMobileFiltersToggle } from '../utils/mobile-filters-toggle.js';
 const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 let table = null;
 
@@ -48,9 +49,13 @@ $(document).ready(function () {
     // Initialize daterangepicker (will use the one from app.js)
     initDateRangePicker();
 
+    initMobileFiltersToggle();
+
     table = $('#bookingAssigneesTable').DataTable({
         processing: true,
         serverSide: true,
+        deferRender: true,
+        searchDelay: 500,
         ajax: {
             url: window.location.pathname,
             type: 'GET',
@@ -81,13 +86,13 @@ $(document).ready(function () {
         },
         columns: [
             { data: 'id', name: 'id', width: '60px' },
-            { data: 'customer', name: 'customers.firstname' },
-            { data: 'property', name: 'property_types.name' },
-            { data: 'location', name: 'cities.name' },
+            { data: 'customer', name: 'customer' },
+            { data: 'property', name: 'property' },
+            { data: 'location', name: 'location' },
             { data: 'booking_date', name: 'booking_date', width: '120px' },
             { data: 'status', name: 'status', width: '100px' },
             { data: 'payment_status', name: 'payment_status', width: '100px' },
-            { data: 'created_by', name: 'users.firstname', searchable: false },
+            { data: 'created_by', name: 'created_by', searchable: false },
             { data: 'created_at', name: 'created_at', width: '150px' },
             { data: 'assign_action', name: 'assign_action', orderable: false, searchable: false, width: '100px' },
             { data: 'view_action', name: 'view_action', orderable: false, searchable: false, width: '80px' }
@@ -107,11 +112,6 @@ $(document).ready(function () {
             bindAssignButtons();
             bindReassignButtons();
             bindCancelButtons();
-            // Re-initialize tooltips for dynamically rendered action buttons
-            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-            tooltipTriggerList.map(function (tooltipTriggerEl) {
-                return new bootstrap.Tooltip(tooltipTriggerEl);
-            });
         }
     });
 
@@ -246,24 +246,42 @@ $(document).ready(function () {
             });
     });
 
-    // Filter state - cascade cities
+    // Filter state - load cities via API (avoids loading all cities on page load)
     $('#filterState').on('change', function () {
         const stateId = $(this).val();
         const citySelect = $('#filterCity');
 
-        if (stateId) {
-            citySelect.find('option').each(function () {
-                const $option = $(this);
-                if ($option.val() === '' || $option.data('state') == stateId) {
-                    $option.show();
-                } else {
-                    $option.hide();
+        if (!stateId) {
+            citySelect.html('<option value="">All Cities</option>').prop('disabled', true).val('');
+            if (table) {
+                table.draw();
+            }
+            return;
+        }
+
+        citySelect.prop('disabled', true).html('<option value="">Loading...</option>');
+
+        const citiesUrl = window.citiesOptionsUrl || `${window.appBaseUrl || ''}/${window.adminBasePath}/api/cities/options`;
+
+        $.get(citiesUrl, { state_id: stateId })
+            .done(function (cities) {
+                let html = '<option value="">All Cities</option>';
+                (cities || []).forEach(function (city) {
+                    html += `<option value="${city.id}">${city.name}</option>`;
+                });
+                citySelect.html(html).prop('disabled', false).val('');
+                if (table) {
+                    table.draw();
                 }
+            })
+            .fail(function () {
+                citySelect.html('<option value="">All Cities</option>').prop('disabled', true).val('');
             });
-            citySelect.val('');
-        } else {
-            citySelect.find('option').show();
-            citySelect.val('');
+    });
+
+    $('#filterCity, #filterStatus').on('change', function () {
+        if (table) {
+            table.draw();
         }
     });
 });

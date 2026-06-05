@@ -1,9 +1,16 @@
 /**
- * QR Analytics Index - DataTable Implementation
+ * QR Analytics Index - DataTable
  */
+import $ from 'jquery';
+if (typeof window.$ === 'undefined') {
+    window.$ = window.jQuery = $;
+}
 
+import 'datatables.net-bs5';
 import GMaps from 'gmaps/gmaps';
 import moment from 'moment';
+import { initMobileFiltersToggle } from '../utils/mobile-filters-toggle.js';
+
 window.moment = moment;
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -11,60 +18,98 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const tableElement = document.getElementById('qr-analytics-table');
     if (!tableElement) {
-        console.error('QR Analytics table element not found');
         return;
     }
 
-    // Initialize daterangepicker
-    $('#filterDateRange').daterangepicker({
-        autoUpdateInput: false,
-        locale: {
-            cancelLabel: 'Clear',
-            format: 'YYYY-MM-DD'
-        },
-        opens: 'left',
-        ranges: {
-            'Today': [moment(), moment()],
-            'Yesterday': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
-            'Last 7 Days': [moment().subtract(6, 'days'), moment()],
-            'Last 30 Days': [moment().subtract(29, 'days'), moment()],
-            'This Month': [moment().startOf('month'), moment().endOf('month')],
-            'Last Month': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')],
-            'This Year': [moment().startOf('year'), moment().endOf('year')],
-            'Last Year': [moment().subtract(1, 'year').startOf('year'), moment().subtract(1, 'year').endOf('year')]
-        },
-        alwaysShowCalendars: true,
-        showCustomRangeLabel: true
-    });
+    const $filterTourCode = $('#filterTourCode');
+    const $filterBookingId = $('#filterBookingId');
+    const $filterCountry = $('#filterCountry');
+    const $filterCity = $('#filterCity');
+    const $filterDeviceType = $('#filterDeviceType');
+    const $filterLocationSource = $('#filterLocationSource');
+    const $filterTrackingStatus = $('#filterTrackingStatus');
+    const $filterPageType = $('#filterPageType');
+    const $filterDateRange = $('#filterDateRange');
 
-    $('#filterDateRange').on('apply.daterangepicker', function(ev, picker) {
-        $(this).val(picker.startDate.format('YYYY-MM-DD') + ' - ' + picker.endDate.format('YYYY-MM-DD'));
-    });
+    let dataTable = null;
+    let textFilterTimer = null;
 
-    $('#filterDateRange').on('cancel.daterangepicker', function(ev, picker) {
-        $(this).val('');
-    });
+    function reloadTable() {
+        if (dataTable) {
+            dataTable.ajax.reload(null, false);
+        }
+    }
 
-    // Initialize DataTable
-    const table = $('#qr-analytics-table').DataTable({
+    function debouncedReloadTable() {
+        clearTimeout(textFilterTimer);
+        textFilterTimer = setTimeout(reloadTable, 500);
+    }
+
+    function initDateRangePicker() {
+        if (typeof window.moment === 'undefined' || typeof $.fn.daterangepicker === 'undefined') {
+            setTimeout(initDateRangePicker, 100);
+            return;
+        }
+
+        if ($filterDateRange.data('daterangepicker')) {
+            return;
+        }
+
+        $filterDateRange.daterangepicker({
+            autoUpdateInput: false,
+            locale: {
+                cancelLabel: 'Clear',
+                format: 'YYYY-MM-DD',
+            },
+            opens: 'left',
+            ranges: {
+                Today: [window.moment(), window.moment()],
+                Yesterday: [window.moment().subtract(1, 'days'), window.moment().subtract(1, 'days')],
+                'Last 7 Days': [window.moment().subtract(6, 'days'), window.moment()],
+                'Last 30 Days': [window.moment().subtract(29, 'days'), window.moment()],
+                'This Month': [window.moment().startOf('month'), window.moment().endOf('month')],
+                'Last Month': [window.moment().subtract(1, 'month').startOf('month'), window.moment().subtract(1, 'month').endOf('month')],
+            },
+            alwaysShowCalendars: true,
+            showCustomRangeLabel: true,
+        });
+
+        $filterDateRange.on('apply.daterangepicker', function (ev, picker) {
+            $(this).val(picker.startDate.format('YYYY-MM-DD') + ' - ' + picker.endDate.format('YYYY-MM-DD'));
+            reloadTable();
+        });
+
+        $filterDateRange.on('cancel.daterangepicker', function () {
+            $(this).val('');
+            reloadTable();
+        });
+    }
+
+    setTimeout(initDateRangePicker, 300);
+
+    initMobileFiltersToggle();
+
+    dataTable = $('#qr-analytics-table').DataTable({
         processing: true,
         serverSide: true,
+        deferRender: true,
+        pageLength: 10,
+        lengthMenu: [10, 25, 50],
+        searchDelay: 500,
         ajax: {
             url: window.qrAnalyticsIndexUrl || '',
             type: 'GET',
             data: function (d) {
-                // Add filter parameters
-                d.tour_code = $('#filterTourCode').val() || '';
-                d.booking_id = $('#filterBookingId').val() || '';
-                d.country = $('#filterCountry').val() || '';
-                d.city = $('#filterCity').val() || '';
-                d.device_type = $('#filterDeviceType').val() || '';
-                d.location_source = $('#filterLocationSource').val() || '';
-                d.tracking_status = $('#filterTrackingStatus').val() || '';
-                d.page_type = $('#filterPageType').val() || '';
-                
-                // Handle date range
-                const dateRange = $('#filterDateRange').val();
+                d.tour_code = $filterTourCode.val() || '';
+                d.booking_id = $filterBookingId.val() || '';
+                d.country = $filterCountry.val() || '';
+                d.city = $filterCity.val() || '';
+                d.device_type = $filterDeviceType.val() || '';
+                d.location_source = $filterLocationSource.val() || '';
+                d.tracking_status = $filterTrackingStatus.val() || '';
+                d.page_type = $filterPageType.val() || '';
+
+                const dateRange = $filterDateRange.val();
                 if (dateRange) {
                     const dates = dateRange.split(' - ');
                     if (dates.length === 2) {
@@ -73,117 +118,58 @@ document.addEventListener('DOMContentLoaded', function () {
                     }
                 }
             },
-            error: function (xhr, error, code) {
-                console.error('DataTable Ajax Error:', error);
-            }
+            error: function (xhr, error) {
+                console.error('DataTable Ajax Error:', error, xhr?.responseText);
+            },
         },
         columns: [
-            { 
-                data: 'id', 
-                name: 'id',
-                width: '60px'
-            },
-            { 
-                data: 'tour_code', 
-                name: 'tour_code',
-                orderable: true, 
-                searchable: true
-            },
-            { 
-                data: 'booking_id', 
-                name: 'booking_id',
-                orderable: true
-            },
-            { 
-                data: 'location', 
-                name: 'city',
-                orderable: false
-            },
-            { 
-                data: 'device_info', 
-                name: 'device_type',
-                orderable: false
-            },
-            { 
-                data: 'location_source', 
-                name: 'location_source',
-                orderable: true
-            },
-            { 
-                data: 'tracking_status', 
-                name: 'tracking_status',
-                orderable: true
-            },
-            { 
-                data: 'scan_date', 
-                name: 'scan_date',
-                orderable: true
-            },
-            { 
-                data: 'actions', 
-                name: 'actions', 
-                orderable: false, 
-                searchable: false, 
-                className: 'text-end'
-            }
+            { data: 'id', name: 'qr_analytics.id', width: '60px', searchable: false },
+            { data: 'tour_code', name: 'qr_analytics.tour_code' },
+            { data: 'booking_id', name: 'qr_analytics.booking_id', searchable: false },
+            { data: 'location', name: 'location', orderable: false },
+            { data: 'device_info', name: 'device_info', orderable: false },
+            { data: 'location_source', name: 'qr_analytics.location_source', searchable: false },
+            { data: 'tracking_status', name: 'qr_analytics.tracking_status', searchable: false },
+            { data: 'scan_date', name: 'qr_analytics.scan_date', searchable: false },
+            { data: 'actions', name: 'actions', orderable: false, searchable: false, className: 'text-end' },
         ],
         order: [[0, 'desc']],
-        pageLength: 25,
-        lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
-        responsive: true,
         language: {
             paginate: {
                 previous: "<i class='ri-arrow-left-s-line'></i>",
-                next: "<i class='ri-arrow-right-s-line'></i>"
+                next: "<i class='ri-arrow-right-s-line'></i>",
             },
-            search: "_INPUT_",
-            searchPlaceholder: "Search analytics...",
-            lengthMenu: "Show _MENU_ entries",
-            info: "Showing _START_ to _END_ of _TOTAL_ analytics",
-            infoEmpty: "No analytics found",
-            infoFiltered: "(filtered from _MAX_ total analytics)",
-            loadingRecords: "Loading...",
-            processing: '<div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div>',
-            emptyTable: "No analytics available",
-            zeroRecords: "No matching analytics found"
+            search: '_INPUT_',
+            searchPlaceholder: 'Search analytics...',
+            emptyTable: 'No analytics available',
+            zeroRecords: 'No matching analytics found',
+            processing: '<i class="ri-loader-4-line spin"></i> Loading...',
         },
-        responsive: true,
-		drawCallback: function () {
+        drawCallback: function () {
             $('.dataTables_paginate > .pagination').addClass('pagination-rounded');
-			// Re-initialize Bootstrap tooltips for dynamically loaded buttons
-			const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-			tooltipTriggerList.map(function (tooltipTriggerEl) {
-				return new bootstrap.Tooltip(tooltipTriggerEl);
-			});
-		}
+        },
     });
 
-    // Panel card refresh button
-    const refreshBtn = document.querySelector('[data-panel-action="refresh"]');
-    if (refreshBtn) {
-        refreshBtn.addEventListener('click', function() {
-            table.ajax.reload(null, false); // false to keep current page
-        });
-    }
+    $filterDeviceType.add($filterLocationSource).add($filterTrackingStatus).add($filterPageType)
+        .on('change', reloadTable);
 
-    // Apply filters button
-    $('#applyFilters').on('click', function() {
-        table.ajax.reload();
+    $filterTourCode.add($filterBookingId).add($filterCountry).add($filterCity)
+        .on('input', debouncedReloadTable);
+
+    $('#clearFilters').on('click', function () {
+        $filterTourCode.val('');
+        $filterBookingId.val('');
+        $filterCountry.val('');
+        $filterCity.val('');
+        $filterDeviceType.val('');
+        $filterLocationSource.val('');
+        $filterTrackingStatus.val('');
+        $filterPageType.val('');
+        $filterDateRange.val('');
+        reloadTable();
     });
 
-    // Clear filters button
-    $('#clearFilters').on('click', function() {
-        $('#filterTourCode').val('');
-        $('#filterBookingId').val('');
-        $('#filterCountry').val('');
-        $('#filterCity').val('');
-        $('#filterDeviceType').val('');
-        $('#filterLocationSource').val('');
-        $('#filterTrackingStatus').val('');
-        $('#filterPageType').val('');
-        $('#filterDateRange').val('');
-        table.ajax.reload();
-    });
+    document.querySelector('[data-panel-action="refresh"]')?.addEventListener('click', reloadTable);
 
     // Store map instance for cleanup
     let currentMapInstance = null;

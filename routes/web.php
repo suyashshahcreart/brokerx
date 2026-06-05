@@ -288,6 +288,8 @@ Route::group(['prefix' => 'ppadmlog', 'as' => 'admin.', 'middleware' => ['web', 
         Route::delete('/property-types/{propertyType}', [PropertySettingController::class, 'deletePropertyType'])->name('property-types.destroy');
 
         Route::get('/property-sub-types', [PropertySettingController::class, 'propertySubTypes'])->name('property-sub-types.index');
+        Route::get('/property-sub-types/options', [PropertySettingController::class, 'propertySubTypeOptions'])->name('property-sub-types.options');
+        Route::get('/bhk/options', [PropertySettingController::class, 'bhkOptions'])->name('bhk.options');
         Route::post('/property-sub-types', [PropertySettingController::class, 'storePropertySubType'])->name('property-sub-types.store');
         Route::put('/property-sub-types/{propertySubType}', [PropertySettingController::class, 'updatePropertySubType'])->name('property-sub-types.update');
         Route::delete('/property-sub-types/{propertySubType}', [PropertySettingController::class, 'deletePropertySubType'])->name('property-sub-types.destroy');
@@ -314,6 +316,7 @@ Route::group(['prefix' => 'ppadmlog', 'as' => 'admin.', 'middleware' => ['web', 
 
         Route::get('/cities', [\App\Http\Controllers\Admin\Api\CityController::class, 'index'])->name('cities.index');
         Route::get('/cities/options', [\App\Http\Controllers\Admin\Api\CityController::class, 'options'])->name('cities.options');
+        Route::get('/customers/options', [\App\Http\Controllers\Admin\Api\CustomerController::class, 'options'])->name('customers.options');
         Route::post('/cities', [\App\Http\Controllers\Admin\Api\CityController::class, 'store'])->name('cities.store');
         Route::get('/cities/{city}', [\App\Http\Controllers\Admin\Api\CityController::class, 'show'])->name('cities.show');
         Route::put('/cities/{city}', [\App\Http\Controllers\Admin\Api\CityController::class, 'update'])->name('cities.update');

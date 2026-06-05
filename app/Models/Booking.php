@@ -172,9 +172,27 @@ class Booking extends Model
         return $this->hasMany(BookingAssignee::class);
     }
 
+    public function latestAssignee()
+    {
+        return $this->hasOne(BookingAssignee::class)->latestOfMany();
+    }
+
+    public function photographerVisits()
+    {
+        return $this->hasMany(PhotographerVisit::class);
+    }
+
     public function tours()
     {
         return $this->hasMany(Tour::class);
+    }
+
+    /**
+     * Latest non-deleted tour for list views (single row per booking).
+     */
+    public function latestTour()
+    {
+        return $this->hasOne(Tour::class)->latestOfMany();
     }
 
     /**

@@ -8,6 +8,7 @@ use App\Models\BookingHistory;
 use App\Services\SmsService;
 use Illuminate\Http\Request;
 use Spatie\Activitylog\Models\Activity;
+use Yajra\DataTables\Facades\DataTables;
 
 class PendingScheduleController extends Controller
 {
@@ -26,60 +27,123 @@ class PendingScheduleController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $query = Booking::with(['customer', 'propertyType', 'propertySubType', 'bhk', 'city', 'state'])
+            $query = Booking::query()
+                ->select([
+                    'bookings.id',
+                    'bookings.customer_id',
+                    'bookings.property_type_id',
+                    'bookings.property_sub_type_id',
+                    'bookings.bhk_id',
+                    'bookings.city_id',
+                    'bookings.state_id',
+                    'bookings.area',
+                    'bookings.price',
+                    'bookings.booking_date',
+                    'bookings.booking_notes',
+                    'bookings.status',
+                    'bookings.payment_status',
+                ])
+                ->with([
+                    'customer:id,firstname,lastname',
+                    'propertyType:id,name',
+                    'propertySubType:id,name',
+                    'bhk:id,name',
+                    'city:id,name',
+                    'state:id,name',
+                ])
                 ->whereIn('status', ['schedul_pending', 'reschedul_pending']);
 
-            return \Yajra\DataTables\Facades\DataTables::of($query)
+            return DataTables::of($query)
+                ->filterColumn('customer', function ($query, $keyword) {
+                    $query->whereHas('customer', function ($customerQuery) use ($keyword) {
+                        $customerQuery
+                            ->where('firstname', 'like', "%{$keyword}%")
+                            ->orWhere('lastname', 'like', "%{$keyword}%");
+                    });
+                })
+                ->filterColumn('type_subtype', function ($query, $keyword) {
+                    $query->where(function ($subQuery) use ($keyword) {
+                        $subQuery
+                            ->whereHas('propertyType', fn ($q) => $q->where('name', 'like', "%{$keyword}%"))
+                            ->orWhereHas('propertySubType', fn ($q) => $q->where('name', 'like', "%{$keyword}%"));
+                    });
+                })
+                ->filterColumn('city_state', function ($query, $keyword) {
+                    $query->where(function ($subQuery) use ($keyword) {
+                        $subQuery
+                            ->whereHas('city', fn ($q) => $q->where('name', 'like', "%{$keyword}%"))
+                            ->orWhereHas('state', fn ($q) => $q->where('name', 'like', "%{$keyword}%"));
+                    });
+                })
                 ->addColumn('user', function (Booking $booking) {
-                    return $booking->customer ? trim($booking->customer->firstname . ' ' . $booking->customer->lastname) : 'N/A';
+                    return $booking->customer
+                        ? trim($booking->customer->firstname . ' ' . $booking->customer->lastname)
+                        : 'N/A';
                 })
                 ->addColumn('customer', function (Booking $booking) {
-                    return $booking->customer ? trim($booking->customer->firstname . ' ' . $booking->customer->lastname) : '-';
+                    return $booking->customer
+                        ? trim($booking->customer->firstname . ' ' . $booking->customer->lastname)
+                        : '-';
                 })
                 ->addColumn('type_subtype', function (Booking $booking) {
                     return $booking->propertyType?->name . '<div class="text-muted small">' . ($booking->propertySubType?->name ?? '-') . '</div>';
                 })
-                ->addColumn('bhk', fn(Booking $booking) => $booking->bhk?->name ?? '-')
+                ->addColumn('bhk', fn (Booking $booking) => $booking->bhk?->name ?? '-')
                 ->addColumn('city_state', function (Booking $booking) {
                     return ($booking->city?->name ?? '-') . '<div class="text-muted small">' . ($booking->state?->name ?? '-') . '</div>';
                 })
-                ->editColumn('area', fn(Booking $booking) => number_format($booking->area))
-                ->editColumn('price', fn(Booking $booking) => '₹ ' . number_format($booking->price))
-                ->editColumn('booking_date', fn(Booking $booking) => optional($booking->booking_date)->format('Y-m-d') ?? '-')
-                ->addColumn('booking_notes', fn(Booking $booking) => $booking->booking_notes ?? '')
+                ->editColumn('area', fn (Booking $booking) => number_format($booking->area))
+                ->editColumn('price', fn (Booking $booking) => '₹ ' . number_format($booking->price))
+                ->editColumn('booking_date', fn (Booking $booking) => optional($booking->booking_date)->format('Y-m-d') ?? '-')
+                ->addColumn('booking_notes', fn (Booking $booking) => $booking->booking_notes ?? '')
                 ->editColumn('status', function (Booking $booking) {
                     $badges = [
                         'schedul_pending' => 'warning',
                         'reschedul_pending' => 'warning',
                     ];
                     $color = $badges[$booking->status] ?? 'secondary';
+
                     return '<span class="badge bg-' . $color . ' text-uppercase">' . str_replace('_', ' ', $booking->status) . '</span>';
                 })
-                ->editColumn('payment_status', fn(Booking $booking) => '<span class="badge bg-info text-uppercase">' . $booking->payment_status . '</span>')
+                ->editColumn('payment_status', fn (Booking $booking) => '<span class="badge bg-info text-uppercase">' . $booking->payment_status . '</span>')
                 ->addColumn('actions', function (Booking $booking) {
                     $view = route('admin.bookings.show', $booking);
-                    $accept = route('admin.pending-schedules.accept', $booking);
-                    $decline = route('admin.pending-schedules.decline', $booking);
 
                     return '
-                          <div class="d-flex gap-1 justify-content-end">
-                            <a href="' . $view . '" class="btn btn-sm btn-soft-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="View Booking Details">
+                        <div class="d-flex gap-1 justify-content-end">
+                            <a href="' . $view . '" class="btn btn-sm btn-soft-primary" title="View Booking Details">
                                 <iconify-icon icon="solar:eye-broken" class="align-middle fs-18"></iconify-icon>
                             </a>
-                            <button onclick="acceptSchedule(' . $booking->id . ')" class="btn btn-sm btn-soft-success" data-bs-toggle="tooltip" data-bs-placement="top" title="Accept Schedule">
+                            <button type="button" onclick="acceptSchedule(' . $booking->id . ')" class="btn btn-sm btn-soft-success" title="Accept Schedule">
                                 <iconify-icon icon="solar:check-circle-broken" class="align-middle fs-18"></iconify-icon>
                             </button>
-                            <button onclick="declineSchedule(' . $booking->id . ')" class="btn btn-sm btn-soft-danger" data-bs-toggle="tooltip" data-bs-placement="top" title="Decline Schedule">
+                            <button type="button" onclick="declineSchedule(' . $booking->id . ')" class="btn btn-sm btn-soft-danger" title="Decline Schedule">
                                 <iconify-icon icon="solar:close-circle-broken" class="align-middle fs-18"></iconify-icon>
                             </button>
                         </div>
                     ';
                 })
                 ->rawColumns(['type_subtype', 'city_state', 'status', 'payment_status', 'actions'])
-                ->toJson();
+                ->only([
+                    'id',
+                    'user',
+                    'customer',
+                    'type_subtype',
+                    'bhk',
+                    'city_state',
+                    'area',
+                    'price',
+                    'booking_date',
+                    'booking_notes',
+                    'status',
+                    'payment_status',
+                    'actions',
+                ])
+                ->make(true);
         }
 
         $canEdit = $request->user()->can('booking_edit');
+
         return view('admin.pending-schedules.index', compact('canEdit'));
     }
 

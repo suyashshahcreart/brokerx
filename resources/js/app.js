@@ -5,13 +5,11 @@
  */
 
 
-import $ from 'jquery';
-window.$ = window.jQuery = $;
+import $ from './jquery-select2-setup.js';
 
 import 'datatables.net-bs5';
 import 'datatables.net-bs5/css/dataTables.bootstrap5.min.css';
 import 'select2/dist/css/select2.min.css';
-import 'select2';
 import Dropzone from 'dropzone';
 import 'dropzone/dist/dropzone.css';
 window.Dropzone = Dropzone;
@@ -68,6 +66,9 @@ import 'iconify-icon';
 import 'simplebar'
 
 console.log('Prop pik Admin - Main JS Loaded ./app.js');
+
+window.__appJsReady = true;
+window.dispatchEvent(new CustomEvent('app:ready'));
 // Components
 class Components {
     initBootstrapComponents() {
