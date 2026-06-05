@@ -524,8 +524,6 @@
             "tour_live_link": "https://proppik.cloud/3/aahoacon26/",
             "date": "2026-04-15"
         },
-
-
         {
             "id": "item-1772710309315",
             "sr_no": 47,
@@ -593,25 +591,25 @@
             "date": "2026-02-18"
         },
         {
-            "id": "db-811",
-            "sr_no": 53,
-            "property_types_sr_no": 7,
-            "title": "Praveg's Grand Eulogia",
-            "property_type": "Dubai",
-            "property_sub_type": "Hospitality - tul",
-            "thumbnail": "https://bk-proppik-global.s3.ap-south-1.amazonaws.com/settings/tour_thumbnails/tour_thumbnail_1770446332_I1lhOjs0.png",
-            "tour_live_link": "http://tulproppik.com/grand-eulogia_lan",
-            "date": "2026-02-18"
-        },
-        {
             "id": "db-812",
-            "sr_no": 54,
+            "sr_no": 53,
             "property_types_sr_no": 8,
             "title": "Praveg's Grand Eulogia",
             "property_type": "Dubai",
             "property_sub_type": "Hospitality - ec2",
             "thumbnail": "https://bk-proppik-global.s3.ap-south-1.amazonaws.com/settings/tour_thumbnails/tour_thumbnail_1770446332_I1lhOjs0.png",
             "tour_live_link": "https://proppik.in/portfolio/grand-eulogia_lan/",
+            "date": "2026-02-18"
+        },
+        {
+            "id": "db-811",
+            "sr_no": 54,
+            "property_types_sr_no": 7,
+            "title": "Praveg's Grand Eulogia",
+            "property_type": "Dubai",
+            "property_sub_type": "Hospitality - tul",
+            "thumbnail": "https://bk-proppik-global.s3.ap-south-1.amazonaws.com/settings/tour_thumbnails/tour_thumbnail_1770446332_I1lhOjs0.png",
+            "tour_live_link": "http://tulproppik.com/grand-eulogia_lan",
             "date": "2026-02-18"
         },
         {
