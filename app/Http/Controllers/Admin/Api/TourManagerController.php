@@ -74,7 +74,7 @@ class TourManagerController extends Controller
     }
 
     /**
-     * Get all tours for a given customer via bookings
+     * Get tours for a customer (lean payload for Proppik — no heavy JSON columns).
      */
     public function getToursByCustomer(Request $request)
     {
@@ -82,57 +82,177 @@ class TourManagerController extends Controller
             'customer_id' => 'required|integer|exists:customers,id',
         ]);
 
-        $bookingQuery = Booking::query()->where('customer_id', $data['customer_id']);
-
-        $bookingIds = $bookingQuery->pluck('id');
-        // Get API, QR, and S3 base URLs from settings
         $apiBaseUrl = getApiBaseUrl();
         $qrLinkBase = getQrLinkBase();
         $s3LinkBase = getS3LinkBase();
-        
-        // Get tours for these bookings
-        $tours = Tour::whereIn('booking_id', $bookingIds)->with('booking')->get();
 
-        // Map tours to include full logo URLs
-        $tours = $tours->map(function ($tour) use ($apiBaseUrl, $qrLinkBase, $s3LinkBase) {
+        $tours = Tour::query()
+            ->join('bookings', 'bookings.id', '=', 'tours.booking_id')
+            ->where('bookings.customer_id', $data['customer_id'])
+            ->orderByDesc('tours.id')
+            ->get($this->toursByCustomerSelectColumns());
 
-            $tour->footer_brand_logo = $tour->footer_brand_logo ? $s3LinkBase . $tour->footer_brand_logo : null;
+        $formatted = $tours->map(function (Tour $tour) use ($apiBaseUrl, $qrLinkBase, $s3LinkBase) {
+            return $this->formatTourForToursByCustomerApi(
+                $tour,
+                $tour->booking_tour_code ?? null,
+                isset($tour->booking_customer_id) ? (int) $tour->booking_customer_id : null,
+                $apiBaseUrl,
+                $qrLinkBase,
+                $s3LinkBase
+            );
+        })->values();
 
-            $tour->footer_logo = $tour->footer_logo ? $tour->footer_logo : null;
-            $sidebarConfig = is_array($tour->sidebar_config) ? $tour->sidebar_config : [];
-            $qrCode = $tour->booking ? $tour->booking->tour_code : null;
-            $tour->sidebar_logo = SidebarConfigHelper::logoPreviewUrl($tour, $qrCode, $sidebarConfig['logo'] ?? null);
-
-            // QR Code
-            $tour->qr_code = $tour->booking ? $tour->booking->tour_code : null;
-            $tour->tour_code = $tour->booking ? $tour->booking->tour_code : null;
-            $tour->qr_link = $tour->booking ? $tour->booking->tour_code ? $qrLinkBase . $tour->qr_code : null : null;
-            $tour->s3_link = $tour->booking ? $tour->booking->tour_code ? $s3LinkBase . 'tours/' . $tour->qr_code . "/" : null : null;
-            
-            $tour->top_image = $tour->footer_logo ? $tour->footer_logo : null;
-            $tour->top_number  = $tour->footer_mobile;
-            $tour->top_title  = $tour->footer_title;
-            $tour->top_email  = $tour->footer_email;
-            $tour->top_sub_title  = $tour->footer_subtitle;
-            $tour->top_description  = $tour->footer_decription;
-
-            $tour->is_hosted = $tour->is_hosted ?? false;
-            $tour->hosted_link = $tour->hosted_link ?? null;
-            $tour->api_link = $apiBaseUrl;
-            
-            
-            $tour->makeHidden(['booking']);
-            $tour->makeVisible(['qr_code']);
-            $tourArr = $tour->toArray();
-            // Add full URLs for custom logos
-            $tourArr['custom_logo_sidebar_url'] = $tour->custom_logo_sidebar ? Storage::disk('s3')->url($tour->custom_logo_sidebar) : null;
-            $tourArr['custom_logo_footer_url'] = $tour->custom_logo_footer ? Storage::disk('s3')->url($tour->custom_logo_footer) : null;
-            return $tourArr;
-        });
         return response()->json([
             'success' => true,
-            'tours' => $tours
+            'tours' => $formatted,
         ]);
+    }
+
+    /**
+     * Columns for tours-by-customer (excludes final_json, working_json, tour_data_json, etc.).
+     *
+     * @return list<string>
+     */
+    private function toursByCustomerSelectColumns(): array
+    {
+        return [
+            'tours.id',
+            'tours.booking_id',
+            'tours.name',
+            'tours.title',
+            'tours.slug',
+            'tours.meta_title',
+            'tours.meta_description',
+            'tours.canonical_url',
+            'tours.meta_robots',
+            'tours.gtm_tag',
+            'tours.gtm_tag_2',
+            'tours.gtm_tag_3',
+            'tours.footer_logo',
+            'tours.footer_title',
+            'tours.footer_subtitle',
+            'tours.footer_decription',
+            'tours.footer_mobile',
+            'tours.footer_email',
+            'tours.footer_brand_logo',
+            'tours.footer_brand_text',
+            'tours.footer_brand_mobile',
+            'tours.sidebar_config',
+            'tours.header_code',
+            'tours.footer_code',
+            'tours.is_hosted',
+            'tours.hosted_link',
+            'tours.user_star',
+            'tours.start_date',
+            'bookings.tour_code as booking_tour_code',
+            'bookings.customer_id as booking_customer_id',
+        ];
+    }
+
+    /**
+     * Build the lean tour payload for Proppik (same mapped fields as before, without full model toArray).
+     *
+     * @return array<string, mixed>
+     */
+    private function formatTourForToursByCustomerApi(
+        Tour $tour,
+        ?string $tourCode,
+        ?int $customerId,
+        string $apiBaseUrl,
+        string $qrLinkBase,
+        string $s3LinkBase
+    ): array {
+        $sidebarConfig = is_array($tour->sidebar_config) ? $tour->sidebar_config : [];
+        $sidebarFooter = $this->extractSidebarFooterFieldsForProppik($sidebarConfig);
+
+        $footerBrandLogo = $tour->footer_brand_logo
+            ? $s3LinkBase . $tour->footer_brand_logo
+            : null;
+        $footerLogo = $tour->footer_logo ?: null;
+
+        $qrLink = $tourCode ? $qrLinkBase . $tourCode : null;
+        $s3Link = $tourCode ? $s3LinkBase . 'tours/' . $tourCode . '/' : null;
+
+        $payload = [
+            'id' => $tour->id,
+            'booking_id' => $tour->booking_id,
+            'customer_id' => $customerId,
+            'name' => $tour->name,
+            'title' => $tour->title,
+            'slug' => $tour->slug,
+            'meta_title' => $tour->meta_title,
+            'meta_description' => $tour->meta_description,
+            'canonical_url' => $tour->canonical_url,
+            'meta_robots' => $tour->meta_robots,
+            'gtm_tag' => $tour->gtm_tag,
+            'gtm_tag_2' => $tour->gtm_tag_2,
+            'gtm_tag_3' => $tour->gtm_tag_3,
+            'header_code' => $tour->header_code,
+            'footer_code' => $tour->footer_code,
+            'is_hosted' => (bool) ($tour->is_hosted ?? false),
+            'hosted_link' => $tour->hosted_link,
+            'api_link' => $apiBaseUrl,
+            'qr_code' => $tourCode,
+            'tour_code' => $tourCode,
+            'qr_link' => $qrLink,
+            's3_link' => $s3Link,
+            'footer_brand_logo' => $footerBrandLogo,
+            'footer_brand_text' => $tour->footer_brand_text,
+            'footer_brand_mobile' => $tour->footer_brand_mobile,
+            'top_image' => $footerLogo,
+            'top_title' => $tour->footer_title,
+            'top_sub_title' => $tour->footer_subtitle,
+            'top_number' => $tour->footer_mobile,
+            'top_email' => $tour->footer_email,
+            'top_description' => $tour->footer_decription,
+            'sidebar_logo' => SidebarConfigHelper::logoPreviewUrl($tour, $tourCode, $sidebarConfig['logo'] ?? null),
+            'sidebar_footer_text' => $sidebarFooter['sidebar_footer_text'],
+            'sidebar_footer_link' => $sidebarFooter['sidebar_footer_link'],
+            'sidebar_footer_link_show' => $sidebarFooter['sidebar_footer_link_show'],
+            // 'user_star' => $tour->user_star,
+            // 'userStars' => $tour->user_star,
+            // 'user_stars' => $tour->user_star,
+        ];
+
+        if ($tour->start_date) {
+            $startDate = $tour->start_date instanceof \DateTimeInterface
+                ? $tour->start_date->format('Y-m-d')
+                : (string) $tour->start_date;
+            $payload['start_date'] = $startDate;
+            $payload['tourStartDate'] = $startDate;
+        }
+
+        return $payload;
+    }
+
+    /**
+     * @param  array<string, mixed>  $sidebarConfig
+     * @return array{sidebar_footer_text: ?string, sidebar_footer_link: ?string, sidebar_footer_link_show: ?bool}
+     */
+    private function extractSidebarFooterFieldsForProppik(array $sidebarConfig): array
+    {
+        $footerButton = $sidebarConfig['footerButton'] ?? null;
+        if (! is_array($footerButton)) {
+            return [
+                'sidebar_footer_text' => null,
+                'sidebar_footer_link' => null,
+                'sidebar_footer_link_show' => null,
+            ];
+        }
+
+        $text = $footerButton['text'] ?? null;
+        if (is_array($text)) {
+            $text = $text['en'] ?? (is_string(reset($text)) ? reset($text) : null);
+        }
+
+        $show = array_key_exists('show', $footerButton) ? (bool) $footerButton['show'] : null;
+
+        return [
+            'sidebar_footer_text' => is_string($text) ? $text : (is_scalar($text) ? (string) $text : null),
+            'sidebar_footer_link' => isset($footerButton['link']) ? (string) $footerButton['link'] : null,
+            'sidebar_footer_link_show' => $show,
+        ];
     }
 
     /**

@@ -73,6 +73,8 @@ class Tour extends Model
         'footer_brand_text',
         'footer_brand_mobile',
         'gtm_tag',
+        'gtm_tag_2',
+        'gtm_tag_3',
         'footer_subtitle',
         'is_active',
         'is_credentials',

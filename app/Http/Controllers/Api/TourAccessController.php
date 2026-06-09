@@ -800,6 +800,8 @@ class TourAccessController extends Controller{
                 'title' => $tour->title,
                 'is_active' => $tour->is_active,
                 'gtm_tag' => $tour->gtm_tag,
+                'gtm_tag_2' => $tour->gtm_tag_2,
+                'gtm_tag_3' => $tour->gtm_tag_3,
                 'structured_data' => $tour->structured_data,
                 'header_code' => $tour->header_code,
                 'footer_code' => $tour->footer_code,
@@ -824,8 +826,10 @@ class TourAccessController extends Controller{
                 'twitterTitle'=> $tour->twitter_title ?: ($tour->og_title ?: $tour->meta_title),
                 'twitterDesc' => $tour->twitter_description ?: ($tour->og_description ?: $tour->meta_description),
                 'twitterImage'=> $tour->twitter_image ?: $tour->og_image,
-                'gtmCode'     => $tour->gtm_tag,
-                'headerCode'  => $tour->header_code,
+                'gtmCode'       => $tour->gtm_tag,
+                'gtmCodeSecond' => $tour->gtm_tag_2,
+                'gtmCodeThird'  => $tour->gtm_tag_3,
+                'headerCode'    => $tour->header_code,
                 'footerCode'  => $tour->footer_code
             ]
         ]);
