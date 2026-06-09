@@ -56,10 +56,22 @@
                     </div>
                 </div>
                 <div class="col-md-4">
-                    <label for="gtm_tag">GTM tag</label>
+                    <label for="gtm_tag">GTM tag (1st)</label>
                     <input type="text" name="gtm_tag" id="gtm_tag" class="form-control"
-                    placeholder="e.g, GTM-Tag-7458945"
+                    placeholder="e.g, GTM-5DLM68SF"
                         value="{{ $tour->gtm_tag }}">
+                </div>
+                <div class="col-md-4">
+                    <label for="gtm_tag_2">GTM tag (2nd)</label>
+                    <input type="text" name="gtm_tag_2" id="gtm_tag_2" class="form-control"
+                    placeholder="e.g, GTM-5MKC5T7N"
+                        value="{{ $tour->gtm_tag_2 }}">
+                </div>
+                <div class="col-md-4">
+                    <label for="gtm_tag_3">GTM tag (3rd)</label>
+                    <input type="text" name="gtm_tag_3" id="gtm_tag_3" class="form-control"
+                    placeholder="e.g, GTM-XXXXXXXX"
+                        value="{{ $tour->gtm_tag_3 }}">
                 </div>
             </div>
         </div>

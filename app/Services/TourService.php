@@ -123,19 +123,33 @@ class TourService
         if ($forceSync || Arr::has($diffJson, 'loaderConfig.spinnerGradientColor1') || Arr::has($diffJson, 'loaderConfig.spinnerGradientColor2') || Arr::has($diffJson, 'loaderConfig.spinnerGradientColor3')) {
             $tour->spinner_color = [
                 $loaderConfig['spinnerGradientColor1'] ?? '#b47e37',
-                $loaderConfig['spinnerGradientColor2'] ?? '#73b7d4',
-                $loaderConfig['spinnerGradientColor3'] ?? '#FF5F5F',
+                $loaderConfig['spinnerGradientColor2'] ?? '#d4a574',
+                $loaderConfig['spinnerGradientColor3'] ?? '#efd477',
             ];
         }
 
         if ($forceSync || Arr::has($diffJson, 'loaderConfig.textGradientColor1') || Arr::has($diffJson, 'loaderConfig.textGradientColor2') || Arr::has($diffJson, 'loaderConfig.textGradientColor3')) {
             $tour->loader_color = [
                 $loaderConfig['textGradientColor1'] ?? '#b47e37',
-                $loaderConfig['textGradientColor2'] ?? '#73b7d4',
-                $loaderConfig['textGradientColor3'] ?? '#FF5F5F',
+                $loaderConfig['textGradientColor2'] ?? '#d4a574',
+                $loaderConfig['textGradientColor3'] ?? '#efd477',
             ];
         }
         $branding = $finalJson['branding'] ?? [];
+
+        if ($forceSync || Arr::has($diffJson, 'googleTagManagerId') || Arr::has($diffJson, 'branding.googleTagManagerId')) {
+            $gtmId = $branding['googleTagManagerId'] ?? null;
+            $tour->gtm_tag = is_string($gtmId) && trim($gtmId) !== '' ? trim($gtmId) : null;
+        }
+        if ($forceSync || Arr::has($diffJson, 'googleTagManagerIdSecond') || Arr::has($diffJson, 'branding.googleTagManagerIdSecond')) {
+            $gtmIdSecond = $branding['googleTagManagerIdSecond'] ?? null;
+            $tour->gtm_tag_2 = is_string($gtmIdSecond) && trim($gtmIdSecond) !== '' ? trim($gtmIdSecond) : null;
+        }
+        if ($forceSync || Arr::has($diffJson, 'googleTagManagerIdThird') || Arr::has($diffJson, 'branding.googleTagManagerIdThird')) {
+            $gtmIdThird = $branding['googleTagManagerIdThird'] ?? null;
+            $tour->gtm_tag_3 = is_string($gtmIdThird) && trim($gtmIdThird) !== '' ? trim($gtmIdThird) : null;
+        }
+
         $sidebarConfig = $finalJson['sidebarConfig'] ?? null;
         if (! is_array($sidebarConfig) || $sidebarConfig === []) {
             $sidebarConfig = $branding['sidebarConfig'] ?? [];

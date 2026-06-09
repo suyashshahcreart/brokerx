@@ -23,11 +23,11 @@ class ProcessTourZipFile implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-        public $timeout = 18000; // 5 hours for large ZIP processing
+        public $timeout = 27000; // 7.5  hours for large ZIP processing
 
         public $tries = 1; // Retry a few times (DB retry_after can re-attempt long jobs)
 
-        public $backoff = 10000; // Wait 10000 seconds before retry
+        public $backoff = 27000; // Wait 27000 seconds before retry (27000 seconds = 7.5 hours)
 
     protected $bookingId;
 

@@ -815,8 +815,8 @@ class TourManagerController extends Controller
             $indexHtmlPath = null;
             $swJsPath = null;
             $jsonPath = null;
-            $tourDataJsonPath = null;
-            $tourDataJsPath = null;
+            $tourDataJsonPick = ['path' => null, 'score' => -1];
+            $tourDataJsPick = ['path' => null, 'score' => -1];
             $totalFiles = $zip->numFiles;
 
             \Log::info("Analyzing ZIP structure for tour code: {$uniqueCode} ({$totalFiles} files)");
@@ -850,23 +850,63 @@ class TourManagerController extends Controller
                 if (basename($lowerName) === 'sw.js') {
                     $swJsPath = $filename;
                 }
+                $normLower = $this->normalizeZipEntryPath($filename);
+
                 if (pathinfo($lowerName, PATHINFO_EXTENSION) === 'json') {
-                    // Prefer virtual-tour-nodes.json
+                    // Prefer virtual-tour-nodes.json (exclude tour-data.*.json from fallback)
                     if (stripos($filename, 'virtual-tour-nodes') !== false) {
                         $jsonPath = $filename;
-                    } elseif (! $jsonPath) {
-                        // Use first JSON found as fallback
+                    } elseif (! $jsonPath && ! $this->isTourDataJsonZipPath($normLower)) {
                         $jsonPath = $filename;
                     }
                 }
 
-                $normLower = str_replace('\\', '/', strtolower($filename));
-                if (str_ends_with($normLower, 'assets/js/tour-data.json')) {
-                    $tourDataJsonPath = $filename;
+                if ($this->isTourDataJsonZipPath($normLower)) {
+                    $score = $this->tourDataJsonZipPathPriority($normLower);
+                    if ($score > $tourDataJsonPick['score']) {
+                        $tourDataJsonPick = ['path' => $filename, 'score' => $score];
+                    }
                 }
-                if (str_ends_with($normLower, 'assets/js/tour-data.js')) {
-                    $tourDataJsPath = $filename;
+                if ($this->isTourDataJsZipPath($normLower)) {
+                    $score = $this->tourDataJsZipPathPriority($normLower);
+                    if ($score > $tourDataJsPick['score']) {
+                        $tourDataJsPick = ['path' => $filename, 'score' => $score];
+                    }
                 }
+            }
+
+            $tourDataJsonPath = $tourDataJsonPick['path'];
+            $tourDataJsPath = $tourDataJsPick['path'];
+
+            if ($indexHtmlPath) {
+                $indexHtmlForRefs = $zip->getFromName($indexHtmlPath);
+                if ($indexHtmlForRefs !== false) {
+                    $refs = $this->parseTourDataAssetRefsFromIndexHtml($indexHtmlForRefs);
+                    if ($refs['json'] !== null) {
+                        $fromHtml = $this->findZipEntryEndingWith($zipStructure, $refs['json']);
+                        if ($fromHtml !== null) {
+                            $tourDataJsonPath = $fromHtml;
+                        }
+                    }
+                    if ($refs['js'] !== null) {
+                        $fromHtml = $this->findZipEntryEndingWith($zipStructure, $refs['js']);
+                        if ($fromHtml !== null) {
+                            $tourDataJsPath = $fromHtml;
+                        }
+                    }
+                }
+            }
+
+            if ($tourDataJsonPath) {
+                \Log::info("tour-data JSON detected in ZIP: {$tourDataJsonPath}");
+            } else {
+                \Log::warning('tour-data JSON not found in ZIP (expected assets/js/tour-data.json or tour-data.{hash}.json)');
+            }
+
+            if ($tourDataJsPath) {
+                \Log::info("tour-data JS detected in ZIP: {$tourDataJsPath}");
+            } else {
+                \Log::warning('tour-data JS not found in ZIP (expected assets/js/tour-data.js or tour-data.{hash}.js)');
             }
 
             if (! $indexHtmlPath) {
@@ -1134,9 +1174,6 @@ class TourManagerController extends Controller
                 ], true);
                 try {
 
-                    // Prepare PHP echo snippet for GTM code replacement
-                    $gtmPhpEcho = '<?php echo escAttr($gtmCode); ?>';
-
                     // Tracker for replaced tags and improved transformation logic
                     $replacedTags = [];
 
@@ -1226,22 +1263,8 @@ class TourManagerController extends Controller
                     $metaReplace('name', 'twitter:image', 'twitter:image', 'twitterImage');
                     $metaReplace('name', 'twitter:image:src', 'twitter:image:src', 'twitterImage');
 
-                    // 6. Replace Google Tag Manager occurrences with dynamic GTM code (All occurrences)
-                    $indexHtmlContent = preg_replace(
-                        '/https:\/\/www\.googletagmanager\.com\/gtm\.js\?id=[^"\'\s)]+/i',
-                        'https://www.googletagmanager.com/gtm.js?id='.$gtmPhpEcho,
-                        $indexHtmlContent
-                    );
-                    $indexHtmlContent = preg_replace(
-                        '/https:\/\/www\.googletagmanager\.com\/ns\.html\?id=[^"\'\s)]+/i',
-                        'https://www.googletagmanager.com/ns.html?id='.$gtmPhpEcho,
-                        $indexHtmlContent
-                    );
-                    $indexHtmlContent = preg_replace(
-                        '/["\']GTM-[A-Z0-9]+["\']/i',
-                        '"'.$gtmPhpEcho.'"',
-                        $indexHtmlContent
-                    );
+                    // 6. Map each unique GTM container ID (up to 3) to its own PHP variable
+                    $indexHtmlContent = $this->replaceGoogleTagManagerIdsWithPhpVariables($indexHtmlContent);
 
                     // 7. Loader configuration replacements (overlay bg, loading text, gradients)
                     // - overlay background-color (viewer-loading overlay)
@@ -1928,6 +1951,84 @@ class TourManagerController extends Controller
      *
      * @param  bool  $isFirstTourZipUpload  true when this tour has no JSON history rows yet.
      */
+    private function normalizeZipEntryPath(string $filename): string
+    {
+        return str_replace('\\', '/', strtolower(trim($filename)));
+    }
+
+    /**
+     * assets/js/tour-data.json or assets/js/tour-data.{8hex}.json (Proppik content-hash export).
+     */
+    private function isTourDataJsonZipPath(string $normLower): bool
+    {
+        return (bool) preg_match('#assets/js/tour-data(?:\.[a-f0-9]{8})?\.json$#', $normLower);
+    }
+
+    /**
+     * assets/js/tour-data.js or assets/js/tour-data.{8hex}.js — excludes .js.map.
+     */
+    private function isTourDataJsZipPath(string $normLower): bool
+    {
+        if (str_ends_with($normLower, '.js.map')) {
+            return false;
+        }
+
+        return (bool) preg_match('#assets/js/tour-data(?:\.[a-f0-9]{8})?\.js$#', $normLower);
+    }
+
+    private function tourDataJsonZipPathPriority(string $normLower): int
+    {
+        if (str_ends_with($normLower, 'assets/js/tour-data.json')) {
+            return 100;
+        }
+
+        return preg_match('#assets/js/tour-data\.[a-f0-9]{8}\.json$#', $normLower) ? 50 : 0;
+    }
+
+    private function tourDataJsZipPathPriority(string $normLower): int
+    {
+        if (str_ends_with($normLower, 'assets/js/tour-data.js')) {
+            return 100;
+        }
+
+        return preg_match('#assets/js/tour-data\.[a-f0-9]{8}\.js$#', $normLower) ? 50 : 0;
+    }
+
+    /**
+     * @param  array<int, array{index: int, name: string, size: int}>  $zipStructure
+     */
+    private function findZipEntryEndingWith(array $zipStructure, string $suffix): ?string
+    {
+        $suffix = $this->normalizeZipEntryPath($suffix);
+
+        foreach ($zipStructure as $entry) {
+            $norm = $this->normalizeZipEntryPath($entry['name']);
+            if ($norm === $suffix || str_ends_with($norm, $suffix)) {
+                return $entry['name'];
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @return array{json: ?string, js: ?string} paths like assets/js/tour-data.xxxxxxxx.json
+     */
+    private function parseTourDataAssetRefsFromIndexHtml(string $html): array
+    {
+        $json = null;
+        $js = null;
+
+        if (preg_match('#assets/js/tour-data(?:\.[a-f0-9]{8})?\.json#i', $html, $m)) {
+            $json = strtolower($m[0]);
+        }
+        if (preg_match('#assets/js/tour-data(?:\.[a-f0-9]{8})?\.js(?!\.map)#i', $html, $m)) {
+            $js = strtolower($m[0]);
+        }
+
+        return ['json' => $json, 'js' => $js];
+    }
+
     private function validateZipStructure(ZipArchive $zip, bool $isFirstTourZipUpload = true)
     {
         $hasIndexHtml = false;
@@ -2031,6 +2132,65 @@ class TourManagerController extends Controller
         }
     }
 
+    /**
+     * Collect unique GTM container IDs from HTML in document order (max 3).
+     *
+     * @return list<string>
+     */
+    private function extractUniqueGoogleTagManagerIdsInOrder(string $html): array
+    {
+        $ids = [];
+        $seen = [];
+
+        if (! preg_match_all('/GTM-[A-Z0-9]+/i', $html, $matches, PREG_OFFSET_CAPTURE)) {
+            return $ids;
+        }
+
+        $ordered = $matches[0];
+        usort($ordered, static fn (array $a, array $b): int => $a[1] <=> $b[1]);
+
+        foreach ($ordered as $match) {
+            $literal = (string) ($match[0] ?? '');
+            if ($literal === '') {
+                continue;
+            }
+
+            $key = strtoupper($literal);
+            if (isset($seen[$key])) {
+                continue;
+            }
+
+            $seen[$key] = true;
+            $ids[] = $literal;
+
+            if (count($ids) >= 3) {
+                break;
+            }
+        }
+
+        return $ids;
+    }
+
+    /**
+     * Replace each distinct GTM ID in index HTML with its matching PHP runtime variable.
+     */
+    private function replaceGoogleTagManagerIdsWithPhpVariables(string $html): string
+    {
+        $phpVars = ['gtmCode', 'gtmCodeSecond', 'gtmCodeThird'];
+
+        foreach ($this->extractUniqueGoogleTagManagerIdsInOrder($html) as $index => $literalId) {
+            $phpVar = $phpVars[$index] ?? null;
+            if ($phpVar === null) {
+                break;
+            }
+
+            $echo = '<?php echo escAttr($'.$phpVar.'); ?>';
+            $html = str_replace($literalId, $echo, $html);
+        }
+
+        return $html;
+    }
+
     private function generateDatabaseFetchScript(Tour $tour)
     {
         $apiUrlBase = url('/api/tour/page_data');
@@ -2060,6 +2220,8 @@ class TourManagerController extends Controller
         \$headerCode = '';
         \$footerCode = '';
         \$gtmCode = '';
+        \$gtmCodeSecond = '';
+        \$gtmCodeThird = '';
         \$replacedTags = isset(\$replacedTags) ? \$replacedTags : [];
 
         // Dynamic variables for HTML placeholders (placeholders used by transformation logic)
@@ -2158,6 +2320,8 @@ class TourManagerController extends Controller
                 \$twitterDescription = \$meta['twitterDesc'] ?? \$ogDescription;
                 \$twitterImage = \$meta['twitterImage'] ?? \$ogImage;
                 \$gtmCode = \$meta['gtmCode'] ?? '';
+                \$gtmCodeSecond = \$meta['gtmCodeSecond'] ?? '';
+                \$gtmCodeThird = \$meta['gtmCodeThird'] ?? '';
                 \$headerCode = \$meta['headerCode'] ?? '';
                 \$footerCode = \$meta['footerCode'] ?? '';
                 

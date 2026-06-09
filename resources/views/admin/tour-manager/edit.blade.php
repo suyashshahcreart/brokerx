@@ -551,7 +551,7 @@
     if (match && match[1]) {
         window.adminBasePath = '/' + match[1];
 
-        // in locahost run with folder that time 
+        // in localhost run with folder that time 
         // window.adminBasePath = '/' + match[1] + '/ppadmlog';
     } else {
         window.adminBasePath = '/ppadmlog';

@@ -1256,6 +1256,8 @@ class TourController extends Controller
             'header_code' => ['nullable', 'string'],
             'footer_code' => ['nullable', 'string'],
             'gtm_tag' => ['nullable', 'string', 'max:255'],
+            'gtm_tag_2' => ['nullable', 'string', 'max:255'],
+            'gtm_tag_3' => ['nullable', 'string', 'max:255'],
         ]);
 
         // Validate structured_data as JSON if present
@@ -1291,6 +1293,8 @@ class TourController extends Controller
             'header_code' => $validated['header_code'] ?? null,
             'footer_code' => $validated['footer_code'] ?? null,
             'gtm_tag' => $validated['gtm_tag'] ?? null,
+            'gtm_tag_2' => $validated['gtm_tag_2'] ?? null,
+            'gtm_tag_3' => $validated['gtm_tag_3'] ?? null,
         ]);
 
         if ($request->expectsJson()) {
